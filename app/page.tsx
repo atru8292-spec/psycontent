@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { supabase } from "@/lib/supabase";
 import {
   ArrowRight,
   Target,
@@ -28,7 +29,21 @@ const stagger = {
   visible: { transition: { staggerChildren: 0.15 } },
 };
 
+function useGoogleLogin() {
+  const handleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/onboarding`
+      }
+    })
+    if (error) console.error('Login error:', error.message)
+  }
+  return handleLogin
+}
+
 function Navbar() {
+  const handleLogin = useGoogleLogin()
   return (
     <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur border-b border-brand-border">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -36,15 +51,16 @@ function Navbar() {
           <Sparkles className="w-6 h-6 text-brand-accent" />
           <span className="text-xl font-bold text-brand-text">PsyContent</span>
         </div>
-        <a href="#cta" className="bg-brand-accent text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-brand-accent-hover transition">
+        <button onClick={handleLogin} className="bg-brand-accent text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-brand-accent-hover transition cursor-pointer">
           Начать бесплатно
-        </a>
+        </button>
       </div>
     </nav>
   );
 }
 
 function Hero() {
+  const handleLogin = useGoogleLogin()
   return (
     <section className="pt-32 pb-20 px-6">
       <motion.div className="max-w-4xl mx-auto text-center" initial="hidden" animate="visible" variants={stagger}>
@@ -59,9 +75,9 @@ function Hero() {
           PsyContent берёт ваш опыт, ваш подход, ваш голос — и превращает в контент, который привлекает клиентов. Без фальши. Без плясок.
         </motion.p>
         <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <a href="#cta" className="inline-flex items-center gap-2 bg-brand-accent text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-brand-accent-hover transition shadow-lg shadow-brand-accent/25">
+          <button onClick={handleLogin} className="inline-flex items-center gap-2 bg-brand-accent text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-brand-accent-hover transition shadow-lg shadow-brand-accent/25 cursor-pointer">
             Начать бесплатно <ArrowRight className="w-5 h-5" />
-          </a>
+          </button>
           <a href="#how" className="text-brand-text-secondary hover:text-brand-text transition text-sm flex items-center gap-1">
             Как это работает? <ChevronDown className="w-4 h-4" />
           </a>
@@ -266,6 +282,7 @@ const plans = [
 ];
 
 function Pricing() {
+  const handleLogin = useGoogleLogin()
   return (
     <section id="pricing" className="py-20 px-6 bg-white">
       <motion.div className="max-w-6xl mx-auto" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={stagger}>
@@ -291,9 +308,9 @@ function Pricing() {
                   </li>
                 ))}
               </ul>
-              <a href="#cta" className={`block text-center py-3 rounded-full font-semibold text-sm transition ${plan.popular ? "bg-brand-accent text-white hover:bg-brand-accent-hover" : "bg-white border border-brand-border text-brand-text hover:border-brand-accent"}`}>
+              <button onClick={handleLogin} className={`block w-full text-center py-3 rounded-full font-semibold text-sm transition cursor-pointer ${plan.popular ? "bg-brand-accent text-white hover:bg-brand-accent-hover" : "bg-white border border-brand-border text-brand-text hover:border-brand-accent"}`}>
                 {plan.cta}
-              </a>
+              </button>
             </motion.div>
           ))}
         </div>
@@ -337,6 +354,7 @@ function FAQ() {
 }
 
 function CTA() {
+  const handleLogin = useGoogleLogin()
   return (
     <section id="cta" className="py-20 px-6 bg-brand-accent">
       <motion.div className="max-w-3xl mx-auto text-center" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={stagger}>
@@ -346,9 +364,9 @@ function CTA() {
         <motion.p variants={fadeUp} className="text-lg text-white/80 mb-8">
           5 минут на распаковку — и вы получите стратегию, которая приведёт клиентов. Бесплатно.
         </motion.p>
-        <motion.a variants={fadeUp} href="#" className="inline-flex items-center gap-2 bg-white text-brand-accent px-8 py-4 rounded-full text-lg font-semibold hover:bg-gray-100 transition shadow-lg">
+        <motion.button variants={fadeUp} onClick={handleLogin} className="inline-flex items-center gap-2 bg-white text-brand-accent px-8 py-4 rounded-full text-lg font-semibold hover:bg-gray-100 transition shadow-lg cursor-pointer">
           Начать бесплатно <ArrowRight className="w-5 h-5" />
-        </motion.a>
+        </motion.button>
         <motion.div variants={fadeUp} className="flex items-center justify-center gap-6 mt-6 text-white/60 text-sm">
           <span className="flex items-center gap-1"><Shield className="w-4 h-4" /> Без карты</span>
           <span className="flex items-center gap-1"><Zap className="w-4 h-4" /> За 5 минут</span>
