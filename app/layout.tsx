@@ -1,15 +1,21 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import type { Metadata } from 'next'
+import './globals.css'
 
 export const metadata: Metadata = {
-  title: "PsyContent — Контент для психологов",
-  description: "AI-платформа для создания контента. Посты, рилс, стратегия — без плясок.",
-};
+  title: 'PsyContent — Персональный контент на основе психопрофиля',
+  description: 'Создавайте контент, который резонирует с вашей аудиторией.',
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="ru">
-      <body>{children}</body>
+      <body className="antialiased">
+        {children}
+      </body>
     </html>
-  );
+  )
 }
