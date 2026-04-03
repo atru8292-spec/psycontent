@@ -69,9 +69,11 @@ export default function Dashboard() {
       icon: Target,
       title: 'Паспорт бренда',
       desc: 'Ваше позиционирование, тон голоса и аватар клиента',
-      status: 'Скоро',
+      status: 'Открыть',
       color: 'text-purple-500',
       bg: 'bg-purple-50',
+      href: '/dashboard/brand-passport',
+      ready: true,
     },
     {
       icon: PenTool,
@@ -80,6 +82,8 @@ export default function Dashboard() {
       status: 'Скоро',
       color: 'text-blue-500',
       bg: 'bg-blue-50',
+      href: '#',
+      ready: false,
     },
     {
       icon: FileText,
@@ -88,6 +92,8 @@ export default function Dashboard() {
       status: 'Скоро',
       color: 'text-green-500',
       bg: 'bg-green-50',
+      href: '#',
+      ready: false,
     },
     {
       icon: Wrench,
@@ -96,6 +102,8 @@ export default function Dashboard() {
       status: 'Скоро',
       color: 'text-orange-500',
       bg: 'bg-orange-50',
+      href: '#',
+      ready: false,
     },
     {
       icon: Star,
@@ -104,6 +112,8 @@ export default function Dashboard() {
       status: 'Скоро',
       color: 'text-yellow-500',
       bg: 'bg-yellow-50',
+      href: '#',
+      ready: false,
     },
     {
       icon: BookOpen,
@@ -112,6 +122,8 @@ export default function Dashboard() {
       status: 'Скоро',
       color: 'text-pink-500',
       bg: 'bg-pink-50',
+      href: '#',
+      ready: false,
     },
   ]
 
@@ -234,14 +246,21 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 + i * 0.1 }}
-              className="p-6 rounded-2xl bg-white border border-brand-border hover:shadow-md transition cursor-pointer group"
+              onClick={() => tool.ready && router.push(tool.href)}
+              className={`p-6 rounded-2xl bg-white border border-brand-border hover:shadow-md transition group ${
+                tool.ready ? 'cursor-pointer' : 'opacity-70'
+              }`}
             >
               <div className={`w-12 h-12 rounded-xl ${tool.bg} flex items-center justify-center mb-4 group-hover:scale-110 transition`}>
                 <tool.icon className={`w-6 h-6 ${tool.color}`} />
               </div>
               <h3 className="font-bold text-brand-text mb-2">{tool.title}</h3>
               <p className="text-sm text-brand-text-secondary mb-4">{tool.desc}</p>
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-brand-accent bg-brand-highlight px-3 py-1 rounded-full">
+              <span className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full ${
+                tool.ready
+                  ? 'text-brand-accent bg-brand-highlight'
+                  : 'text-gray-400 bg-gray-100'
+              }`}>
                 {tool.status} →
               </span>
             </motion.div>
