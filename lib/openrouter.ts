@@ -2,7 +2,7 @@ export async function generateWithAI(systemPrompt: string, userPrompt: string) {
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${process.env.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}`,
+      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
       'Content-Type': 'application/json',
       'HTTP-Referer': 'https://psycontent.vercel.app',
       'X-Title': 'PsyContent',
