@@ -1,158 +1,378 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { motion } from 'framer-motion'
-import { Sparkles, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Sparkles,
+  ArrowRight,
+  ArrowLeft,
+  CheckCircle,
+  User,
+  Target,
+  Rocket,
+} from 'lucide-react'
+
+const blocks = [
+  { id: 'who', title: 'Кто вы', icon: User, color: 'bg-purple-100 text-purple-600' },
+  { id: 'where', title: 'Где вы сейчас', icon: Target, color: 'bg-blue-100 text-blue-600' },
+  { id: 'goal', title: 'Куда хотите', icon: Rocket, color: 'bg-green-100 text-green-600' },
+]
 
 const questions = [
+  // Блок 1: Кто вы (0-6)
   {
-    id: 1,
-    question: "Как вас зовут?",
-    subtitle: "Имя и фамилия, как хотите чтобы к вам обращались",
-    type: "text",
-    placeholder: "Например: Анна Петрова"
+    block: 0,
+    key: 'full_name',
+    title: 'Как вас зовут?',
+    subtitle: 'Имя, которое увидят ваши клиенты',
+    type: 'text',
+    placeholder: 'Например: Анна Петрова',
   },
   {
-    id: 2,
-    question: "В каком направлении психологии вы работаете?",
-    subtitle: "Выберите одно или несколько",
-    type: "multi",
-    options: ["КПТ", "Гештальт", "Психоанализ", "Схема-терапия", "ACT", "EMDR", "Арт-терапия", "Системная семейная", "Другое"]
+    block: 0,
+    key: 'approach',
+    title: 'Какой у вас подход?',
+    subtitle: 'Выберите один или несколько',
+    type: 'multi',
+    options: [
+      'КПТ (когнитивно-поведенческая)',
+      'Гештальт-терапия',
+      'Психоанализ',
+      'Системная семейная терапия',
+      'Арт-терапия',
+      'Экзистенциальная терапия',
+      'Схема-терапия',
+      'EMDR',
+      'Эклектика / интегративный',
+      'Другое',
+    ],
   },
   {
-    id: 3,
-    question: "С какими запросами к вам чаще приходят?",
-    subtitle: "Выберите основные темы",
-    type: "multi",
-    options: ["Тревога и панические атаки", "Депрессия", "Отношения и привязанность", "Самооценка", "Выгорание", "Травма и ПТСР", "Потеря и горевание", "Зависимости", "Расстройства пищевого поведения", "Другое"]
+    block: 0,
+    key: 'niche',
+    title: 'С чем вы работаете?',
+    subtitle: 'Основные темы вашей практики',
+    type: 'multi',
+    options: [
+      'Тревожность и панические атаки',
+      'Депрессия',
+      'Отношения и привязанность',
+      'Травма и ПТСР',
+      'Самооценка и уверенность',
+      'Выгорание',
+      'Зависимости',
+      'Расстройства пищевого поведения',
+      'Дети и подростки',
+      'Семейные конфликты',
+      'Горевание и утрата',
+      'Другое',
+    ],
   },
   {
-    id: 4,
-    question: "Кто ваш идеальный клиент?",
-    subtitle: "Опишите свободно: пол, возраст, ситуация",
-    type: "textarea",
-    placeholder: "Например: Женщины 25-40 лет, которые переживают кризис в отношениях и хотят разобраться в себе..."
+    block: 0,
+    key: 'experience',
+    title: 'Сколько у вас опыта?',
+    subtitle: 'Практический опыт работы с клиентами',
+    type: 'single',
+    options: [
+      'Только учусь / стажировка',
+      'До 1 года',
+      '1–3 года',
+      '3–5 лет',
+      '5–10 лет',
+      'Больше 10 лет',
+    ],
   },
   {
-    id: 5,
-    question: "Как бы вы описали свой стиль общения?",
-    subtitle: "Как вы обычно говорите с клиентами и аудиторией",
-    type: "single",
-    options: ["Тёплый и поддерживающий", "Прямой и конкретный", "Академичный и глубокий", "Лёгкий и с юмором", "Провокационный и вызывающий на размышления"]
+    block: 0,
+    key: 'tone',
+    title: 'Какой у вас стиль общения?',
+    subtitle: 'Как бы вы описали свой тон в текстах',
+    type: 'single',
+    options: [
+      'Тёплый и поддерживающий',
+      'Экспертный и структурный',
+      'Дерзкий и провокационный',
+      'Мягкий и философский',
+      'Простой и разговорный',
+      'Ироничный с юмором',
+    ],
   },
   {
-    id: 6,
-    question: "На каких площадках вы хотите вести блог?",
-    subtitle: "Выберите одну или несколько",
-    type: "multi",
-    options: ["Instagram", "Telegram", "YouTube", "VK", "TikTok", "Свой сайт/блог"]
+    block: 0,
+    key: 'values_text',
+    title: 'Что для вас важно в работе?',
+    subtitle: 'Ваши ценности как специалиста',
+    type: 'textarea',
+    placeholder: 'Например: безопасное пространство, честность, уважение к темпу клиента...',
   },
   {
-    id: 7,
-    question: "Что для вас самое сложное в ведении блога?",
-    subtitle: "Выберите главную боль",
-    type: "single",
-    options: ["Не знаю о чём писать", "Нет времени", "Стесняюсь себя продвигать", "Не умею писать интересно", "Не понимаю что работает"]
+    block: 0,
+    key: 'what_annoys',
+    title: 'Что вас бесит в индустрии?',
+    subtitle: 'Это поможет понять вашу позицию и голос',
+    type: 'textarea',
+    placeholder: 'Например: инфоцыганство, обещания "вылечу за 1 сессию", обесценивание профессии...',
+  },
+
+  // Блок 2: Где вы сейчас (7-10)
+  {
+    block: 1,
+    key: 'current_followers',
+    title: 'Сколько у вас подписчиков?',
+    subtitle: 'Примерно, на основной площадке',
+    type: 'single',
+    options: [
+      'Пока нет / до 100',
+      '100–500',
+      '500–1 000',
+      '1 000–5 000',
+      '5 000–10 000',
+      'Больше 10 000',
+    ],
+  },
+  {
+    block: 1,
+    key: 'platforms',
+    title: 'Где ведёте или хотите вести блог?',
+    subtitle: 'Выберите площадки',
+    type: 'multi',
+    options: [
+      'Instagram',
+      'Telegram',
+      'ВКонтакте',
+      'YouTube',
+      'TikTok',
+      'Свой сайт',
+      'Пока нигде',
+    ],
+  },
+  {
+    block: 1,
+    key: 'current_clients',
+    title: 'Сколько клиентов в месяц?',
+    subtitle: 'Примерное количество активных клиентов',
+    type: 'single',
+    options: [
+      'Пока нет клиентов',
+      '1–3',
+      '4–8',
+      '9–15',
+      '16–25',
+      'Больше 25',
+    ],
+  },
+  {
+    block: 1,
+    key: 'client_source',
+    title: 'Откуда приходят клиенты сейчас?',
+    subtitle: 'Основной источник',
+    type: 'single',
+    options: [
+      'Сарафанное радио',
+      'Социальные сети',
+      'Агрегаторы (B17, Ясно, Alter)',
+      'Реклама',
+      'Свой сайт',
+      'Клиентов пока нет',
+    ],
+  },
+
+  // Блок 3: Куда хотите (11-14)
+  {
+    block: 2,
+    key: 'goal',
+    title: 'Какая главная цель на 3 месяца?',
+    subtitle: 'Что для вас самое важное сейчас',
+    type: 'single',
+    options: [
+      'Найти первых клиентов',
+      'Увеличить поток клиентов',
+      'Стать узнаваемым в нише',
+      'Запустить онлайн-курс / группу',
+      'Масштабировать практику',
+      'Просто начать вести блог',
+    ],
+  },
+  {
+    block: 2,
+    key: 'time_available',
+    title: 'Сколько времени готовы тратить на контент?',
+    subtitle: 'В день, реалистично',
+    type: 'single',
+    options: [
+      '15–30 минут',
+      '30 минут – 1 час',
+      '1–2 часа',
+      'Больше 2 часов',
+      'Хочу минимум — пусть AI делает',
+    ],
+  },
+  {
+    block: 2,
+    key: 'biggest_pain',
+    title: 'Что больше всего мешает вести блог?',
+    subtitle: 'Выберите главную боль',
+    type: 'single',
+    options: [
+      'Не знаю о чём писать',
+      'Нет времени и энергии',
+      'Чувствую себя инфоцыганом',
+      'Пишу — но результата нет',
+      'Не понимаю техническую сторону',
+      'Боюсь осуждения коллег',
+      'Всё вместе 😅',
+    ],
+  },
+  {
+    block: 2,
+    key: 'dream_blog',
+    title: 'Опишите свой идеальный блог',
+    subtitle: 'Каким бы вы хотели видеть свой блог через полгода?',
+    type: 'textarea',
+    placeholder: 'Например: хочу чтобы люди находили меня и писали "ваш пост — это про меня", чтобы приходили 5-10 новых клиентов в месяц...',
   },
 ]
 
 export default function Onboarding() {
-  const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
   const [step, setStep] = useState(0)
-  const [answers, setAnswers] = useState<Record<number, any>>({})
-  const [submitting, setSubmitting] = useState(false)
-  const [done, setDone] = useState(false)
+  const [answers, setAnswers] = useState<Record<string, any>>({})
+  const [loading, setLoading] = useState(false)
+  const [completed, setCompleted] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
-      setLoading(false)
-    })
-  }, [])
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/')
+        return
+      }
+      setUserId(user.id)
+
+      // Check if already completed
+      const { data } = await supabase
+        .from('onboarding_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (data) {
+        router.push('/dashboard')
+      }
+    }
+    checkUser()
+  }, [router])
 
   const currentQuestion = questions[step]
+  const currentBlock = blocks[currentQuestion?.block || 0]
   const progress = ((step + 1) / questions.length) * 100
 
-  const handleTextChange = (value: string) => {
-    setAnswers({ ...answers, [currentQuestion.id]: value })
-  }
-
-  const handleSingleSelect = (option: string) => {
-    setAnswers({ ...answers, [currentQuestion.id]: option })
-  }
-
-  const handleMultiSelect = (option: string) => {
-    const current = answers[currentQuestion.id] || []
-    if (current.includes(option)) {
-      setAnswers({ ...answers, [currentQuestion.id]: current.filter((o: string) => o !== option) })
+  const handleAnswer = (value: any) => {
+    const key = currentQuestion.key
+    if (currentQuestion.type === 'multi') {
+      const current = answers[key] || []
+      if (current.includes(value)) {
+        setAnswers({ ...answers, [key]: current.filter((v: string) => v !== value) })
+      } else {
+        setAnswers({ ...answers, [key]: [...current, value] })
+      }
     } else {
-      setAnswers({ ...answers, [currentQuestion.id]: [...current, option] })
+      setAnswers({ ...answers, [key]: value })
     }
   }
 
-  const canGoNext = () => {
-    const answer = answers[currentQuestion.id]
+  const canProceed = () => {
+    const key = currentQuestion.key
+    const answer = answers[key]
     if (!answer) return false
-    if (Array.isArray(answer) && answer.length === 0) return false
+    if (currentQuestion.type === 'multi' && Array.isArray(answer) && answer.length === 0) return false
     if (typeof answer === 'string' && answer.trim() === '') return false
     return true
   }
 
-  const handleSubmit = async () => {
-    setSubmitting(true)
-    try {
-      const { error } = await supabase.from('onboarding_answers').insert({
-        user_id: user.id,
-        answers: answers,
-        completed_at: new Date().toISOString()
-      })
-      if (error) throw error
-      setDone(true)
-    } catch (err) {
-      console.error('Submit error:', err)
-      alert('Ошибка сохранения. Попробуйте ещё раз.')
+  const handleNext = () => {
+    if (step < questions.length - 1) {
+      setStep(step + 1)
+    } else {
+      handleSubmit()
     }
-    setSubmitting(false)
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full"></div>
-      </div>
-    )
+  const handleBack = () => {
+    if (step > 0) setStep(step - 1)
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center px-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-brand-text mb-4">Нужно войти в аккаунт</h1>
-          <a href="/" className="text-brand-accent hover:underline">Вернуться на главную</a>
-        </div>
-      </div>
-    )
+  const handleSubmit = async () => {
+    if (!userId) return
+    setLoading(true)
+
+    const profileData = {
+      user_id: userId,
+      full_name: answers.full_name || '',
+      approach: answers.approach || [],
+      niche: answers.niche || [],
+      experience: answers.experience || '',
+      tone: answers.tone || '',
+      values_text: answers.values_text || '',
+      what_annoys: answers.what_annoys || '',
+      current_followers: answers.current_followers || '',
+      platforms: answers.platforms || [],
+      current_clients: answers.current_clients || '',
+      client_source: answers.client_source || '',
+      biggest_pain: answers.biggest_pain || '',
+      goal: answers.goal || '',
+      time_available: answers.time_available || '',
+      dream_blog: answers.dream_blog || '',
+    }
+
+    const { error } = await supabase
+      .from('onboarding_profiles')
+      .insert(profileData)
+
+    if (error) {
+      console.error('Error saving:', error)
+      alert('Ошибка сохранения. Попробуйте ещё раз.')
+      setLoading(false)
+      return
+    }
+
+    setCompleted(true)
+    setLoading(false)
+
+    setTimeout(() => {
+      router.push('/dashboard')
+    }, 3000)
   }
 
-  if (done) {
+  if (completed) {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center px-6">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
           className="text-center max-w-md"
         >
-          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-6" />
-          <h1 className="text-3xl font-bold text-brand-text mb-4">Распаковка завершена! 🎉</h1>
-          <p className="text-brand-text-secondary mb-8">
-            Мы получили ваши ответы и уже готовим ваш персональный паспорт бренда. 
-            Скоро вы получите контент-стратегию, созданную специально для вас.
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: 'spring' }}
+          >
+            <CheckCircle className="w-20 h-20 text-green-500 mx-auto mb-6" />
+          </motion.div>
+          <h1 className="text-3xl font-bold text-brand-text mb-4">
+            Распаковка завершена! 🎉
+          </h1>
+          <p className="text-brand-text-secondary mb-2">
+            Мы получили ваши ответы и уже готовим ваш персональный паспорт бренда.
           </p>
-          <div className="p-4 bg-brand-highlight rounded-xl">
-            <p className="text-brand-accent font-semibold text-sm">⏳ Паспорт бренда будет готов в ближайшее время</p>
-          </div>
+          <p className="text-brand-text-secondary mb-6">
+            Переходим в ваш кабинет...
+          </p>
+          <div className="animate-spin w-6 h-6 border-3 border-brand-accent border-t-transparent rounded-full mx-auto"></div>
         </motion.div>
       </div>
     )
@@ -161,72 +381,96 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen bg-brand-bg">
       {/* Header */}
-      <div className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur border-b border-brand-border">
-        <div className="max-w-2xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-brand-accent" />
-            <span className="font-bold text-brand-text">Распаковка</span>
+      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-brand-border">
+        <div className="max-w-2xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-brand-accent" />
+              <span className="font-bold text-brand-text">PsyContent</span>
+            </div>
+            <span className="text-sm text-brand-text-secondary">
+              {step + 1} из {questions.length}
+            </span>
           </div>
-          <span className="text-sm text-brand-text-secondary">{step + 1} из {questions.length}</span>
-        </div>
-        {/* Progress bar */}
-        <div className="h-1 bg-gray-100">
-          <motion.div
-            className="h-full bg-brand-accent"
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.3 }}
-          />
+          {/* Progress bar */}
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <motion.div
+              className="bg-brand-accent h-2 rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.3 }}
+            />
+          </div>
+          {/* Block indicator */}
+          <div className="flex gap-2 mt-3">
+            {blocks.map((block, i) => (
+              <div
+                key={block.id}
+                className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition ${
+                  currentQuestion.block === i
+                    ? block.color
+                    : 'bg-gray-100 text-gray-400'
+                }`}
+              >
+                <block.icon className="w-3 h-3" />
+                {block.title}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Question */}
-      <div className="pt-24 pb-32 px-6">
-        <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto px-6 py-12">
+        <AnimatePresence mode="wait">
           <motion.div
             key={step}
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            exit={{ opacity: 0, x: -50 }}
             transition={{ duration: 0.3 }}
           >
             <h2 className="text-2xl md:text-3xl font-bold text-brand-text mb-2">
-              {currentQuestion.question}
+              {currentQuestion.title}
             </h2>
-            <p className="text-brand-text-secondary mb-8">{currentQuestion.subtitle}</p>
+            <p className="text-brand-text-secondary mb-8">
+              {currentQuestion.subtitle}
+            </p>
 
             {/* Text input */}
             {currentQuestion.type === 'text' && (
               <input
                 type="text"
-                value={answers[currentQuestion.id] || ''}
-                onChange={(e) => handleTextChange(e.target.value)}
+                value={answers[currentQuestion.key] || ''}
+                onChange={(e) => handleAnswer(e.target.value)}
                 placeholder={currentQuestion.placeholder}
-                className="w-full p-4 rounded-xl border border-brand-border bg-white text-brand-text text-lg focus:outline-none focus:ring-2 focus:ring-brand-accent/50 focus:border-brand-accent"
+                className="w-full px-5 py-4 rounded-xl border border-brand-border bg-white text-brand-text text-lg focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent"
+                autoFocus
               />
             )}
 
             {/* Textarea */}
             {currentQuestion.type === 'textarea' && (
               <textarea
-                value={answers[currentQuestion.id] || ''}
-                onChange={(e) => handleTextChange(e.target.value)}
+                value={answers[currentQuestion.key] || ''}
+                onChange={(e) => handleAnswer(e.target.value)}
                 placeholder={currentQuestion.placeholder}
                 rows={4}
-                className="w-full p-4 rounded-xl border border-brand-border bg-white text-brand-text text-lg focus:outline-none focus:ring-2 focus:ring-brand-accent/50 focus:border-brand-accent resize-none"
+                className="w-full px-5 py-4 rounded-xl border border-brand-border bg-white text-brand-text text-lg focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent resize-none"
+                autoFocus
               />
             )}
 
             {/* Single select */}
             {currentQuestion.type === 'single' && (
-              <div className="space-y-3">
+              <div className="grid gap-3">
                 {currentQuestion.options?.map((option) => (
                   <button
                     key={option}
-                    onClick={() => handleSingleSelect(option)}
-                    className={`w-full p-4 rounded-xl border text-left transition cursor-pointer ${
-                      answers[currentQuestion.id] === option
-                        ? 'border-brand-accent bg-brand-highlight text-brand-accent font-semibold'
+                    onClick={() => handleAnswer(option)}
+                    className={`w-full text-left px-5 py-4 rounded-xl border transition cursor-pointer ${
+                      answers[currentQuestion.key] === option
+                        ? 'border-brand-accent bg-brand-highlight text-brand-text font-medium'
                         : 'border-brand-border bg-white text-brand-text hover:border-brand-accent/50'
                     }`}
                   >
@@ -238,67 +482,74 @@ export default function Onboarding() {
 
             {/* Multi select */}
             {currentQuestion.type === 'multi' && (
-              <div className="flex flex-wrap gap-3">
+              <div className="grid gap-3">
                 {currentQuestion.options?.map((option) => {
-                  const selected = (answers[currentQuestion.id] || []).includes(option)
+                  const selected = (answers[currentQuestion.key] || []).includes(option)
                   return (
                     <button
                       key={option}
-                      onClick={() => handleMultiSelect(option)}
-                      className={`px-5 py-3 rounded-full border transition cursor-pointer ${
+                      onClick={() => handleAnswer(option)}
+                      className={`w-full text-left px-5 py-4 rounded-xl border transition cursor-pointer flex items-center gap-3 ${
                         selected
-                          ? 'border-brand-accent bg-brand-highlight text-brand-accent font-semibold'
+                          ? 'border-brand-accent bg-brand-highlight text-brand-text font-medium'
                           : 'border-brand-border bg-white text-brand-text hover:border-brand-accent/50'
                       }`}
                     >
+                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${
+                        selected ? 'border-brand-accent bg-brand-accent' : 'border-gray-300'
+                      }`}>
+                        {selected && <CheckCircle className="w-3 h-3 text-white" />}
+                      </div>
                       {option}
                     </button>
                   )
                 })}
+                <p className="text-sm text-brand-text-secondary mt-1">
+                  Можно выбрать несколько
+                </p>
               </div>
             )}
           </motion.div>
-        </div>
-      </div>
+        </AnimatePresence>
 
-      {/* Navigation */}
-      <div className="fixed bottom-0 w-full bg-white/80 backdrop-blur border-t border-brand-border">
-        <div className="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
+        {/* Navigation */}
+        <div className="flex items-center justify-between mt-10">
           <button
-            onClick={() => setStep(step - 1)}
+            onClick={handleBack}
             disabled={step === 0}
-            className={`flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition cursor-pointer ${
-              step === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-brand-text hover:bg-gray-100'
+            className={`flex items-center gap-2 px-5 py-3 rounded-full text-sm font-medium transition cursor-pointer ${
+              step === 0
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-brand-text-secondary hover:text-brand-text'
             }`}
           >
             <ArrowLeft className="w-4 h-4" /> Назад
           </button>
 
-          {step < questions.length - 1 ? (
-            <button
-              onClick={() => setStep(step + 1)}
-              disabled={!canGoNext()}
-              className={`flex items-center gap-2 px-8 py-3 rounded-full font-semibold transition cursor-pointer ${
-                canGoNext()
-                  ? 'bg-brand-accent text-white hover:bg-brand-accent-hover'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              Далее <ArrowRight className="w-4 h-4" />
-            </button>
-          ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={!canGoNext() || submitting}
-              className={`flex items-center gap-2 px-8 py-3 rounded-full font-semibold transition cursor-pointer ${
-                canGoNext() && !submitting
-                  ? 'bg-green-500 text-white hover:bg-green-600'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              {submitting ? 'Сохраняю...' : 'Завершить'} <CheckCircle className="w-4 h-4" />
-            </button>
-          )}
+          <button
+            onClick={handleNext}
+            disabled={!canProceed() || loading}
+            className={`flex items-center gap-2 px-8 py-3 rounded-full text-sm font-semibold transition cursor-pointer ${
+              canProceed() && !loading
+                ? 'bg-brand-accent text-white hover:bg-brand-accent-hover shadow-lg shadow-brand-accent/25'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            {loading ? (
+              <>
+                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                Сохраняем...
+              </>
+            ) : step === questions.length - 1 ? (
+              <>
+                Завершить <CheckCircle className="w-4 h-4" />
+              </>
+            ) : (
+              <>
+                Далее <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>
