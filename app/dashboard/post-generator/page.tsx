@@ -37,7 +37,7 @@ const defaultPillars = [
 
 function formatResult(text: string, format: string) {
   if (format === 'carousel') {
-    const slides = text.split(/(?=Слайд\s+\d+)/i).filter(s => s.trim())
+    const slides = text.split(/(?=\[Слайд\s+\d+|Слайд\s+\d+)/i).filter(s => s.trim())
     if (slides.length > 1) {
       return (
         <div className="space-y-4">
