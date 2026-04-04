@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
 
-const supabase = createClient(
+const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
 const SYSTEM_PROMPT = `Ты — бренд-стратег с 15-летним опытом создания позиционирования для психологов и помогающих специалистов. Ты объединяешь знания из брендинга (фреймворки Саймона Синека, StoryBrand Миллера, архетипы Юнга, модель тона голоса Nielsen Norman Group) и глубокое понимание психотерапевтической практики.
@@ -51,13 +51,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'userId required' }, { status: 400 })
     }
 
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('onboarding_profiles')
       .select('*')
       .eq('user_id', userId)
       .single()
 
     if (profileError || !profile) {
+      console.error('Profile error:', profileError)
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
@@ -68,16 +69,16 @@ export async function POST(request: NextRequest) {
 НИША (с чем работает): ${(profile.niche || []).join(', ')}
 ОПЫТ: ${profile.experience}
 ТОН ОБЩЕНИЯ: ${profile.tone}
-ЦЕННОСТИ: ${profile.values_text}
-ЧТО БЕСИТ В ИНДУСТРИИ: ${profile.what_annoys}
-ПОДПИСЧИКОВ: ${profile.current_followers}
+ЦЕННОСТИ: ${profile.values_text || 'не указаны'}
+ЧТО БЕСИТ В ИНДУСТРИИ: ${profile.what_annoys || 'не указано'}
+ПОДПИСЧИКОВ: ${profile.current_followers || 'не указано'}
 ПЛОЩАДКИ: ${(profile.platforms || []).join(', ')}
 КЛИЕНТОВ В МЕСЯЦ: ${profile.current_clients}
-ИСТОЧНИК КЛИЕНТОВ: ${profile.client_source}
-ГЛАВНАЯ БОЛЬ С КОНТЕНТОМ: ${profile.biggest_pain}
+ИСТОЧНИК КЛИЕНТОВ: ${profile.client_source || 'не указан'}
+ГЛАВНАЯ БОЛЬ С КОНТЕНТОМ: ${profile.biggest_pain || 'не указана'}
 ЦЕЛЬ НА 3 МЕСЯЦА: ${profile.goal}
-ВРЕМЯ НА КОНТЕНТ: ${profile.time_available}
-МЕЧТА О БЛОГЕ: ${profile.dream_blog}
+ВРЕМЯ НА КОНТЕНТ: ${profile.time_available || 'не указано'}
+МЕЧТА О БЛОГЕ: ${profile.dream_blog || 'не указана'}
 
 Создай ПОЛНЫЙ ПАСПОРТ БРЕНДА по следующей структуре:
 
@@ -141,7 +142,7 @@ export async function POST(request: NextRequest) {
 
     const result = await generateWithAI(SYSTEM_PROMPT, userPrompt)
 
-    const { error: saveError } = await supabase
+    const { error: saveError } = await supabaseAdmin
       .from('brand_passports')
       .upsert({
         user_id: userId,
