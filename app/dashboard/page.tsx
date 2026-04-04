@@ -15,6 +15,9 @@ import {
   Wrench,
   Star,
   MessageCircle,
+  Film,
+  RefreshCcw,
+  Lightbulb,
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -106,6 +109,36 @@ export default function Dashboard() {
       ready: true,
     },
     {
+      icon: Film,
+      title: 'Рилс-скрипты',
+      desc: 'Готовые сценарии на 30 и 60 секунд',
+      status: 'Скоро',
+      color: 'text-indigo-500',
+      bg: 'bg-indigo-50',
+      href: '#',
+      ready: false,
+    },
+    {
+      icon: RefreshCcw,
+      title: 'Переписывание текста',
+      desc: 'Превратим ваши мысли в вирусный пост',
+      status: 'Скоро',
+      color: 'text-cyan-500',
+      bg: 'bg-cyan-50',
+      href: '#',
+      ready: false,
+    },
+    {
+      icon: Lightbulb,
+      title: 'Промпты и инструкции',
+      desc: '"Сходи туда" - готовые схемы',
+      status: 'Скоро',
+      color: 'text-fuchsia-500',
+      bg: 'bg-fuchsia-50',
+      href: '#',
+      ready: false,
+    },
+    {
       icon: Star,
       title: 'Портфолио отзывов',
       desc: 'Соберите и оформите отзывы клиентов',
@@ -118,7 +151,7 @@ export default function Dashboard() {
     {
       icon: BookOpen,
       title: 'База знаний',
-      desc: 'Мини-курс по SMM для психологов',
+      desc: 'Мини-курс по SMM для психологов (7 уроков)',
       status: 'Скоро',
       color: 'text-pink-500',
       bg: 'bg-pink-50',
