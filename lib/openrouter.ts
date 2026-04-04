@@ -8,7 +8,7 @@ export async function generateWithAI(systemPrompt: string, userPrompt: string) {
       'X-Title': 'PsyContent',
     },
     body: JSON.stringify({
-      model: 'anthropic/claude-3.5-sonnet',
+      model: 'openai/gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
