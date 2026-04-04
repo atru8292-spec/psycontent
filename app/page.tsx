@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import {
@@ -19,6 +20,7 @@ import {
   BarChart3,
   Users,
   FileText,
+  LayoutDashboard,
 } from "lucide-react";
 
 const fadeUp = {
@@ -28,6 +30,36 @@ const fadeUp = {
 const stagger = {
   visible: { transition: { staggerChildren: 0.15 } },
 };
+
+function useAuthState() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Check if onboarding is complete
+      const { data: profile } = await supabase
+        .from('onboarding_profiles')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profile) {
+        // Already has profile — go straight to dashboard
+        router.push('/dashboard');
+      } else {
+        // Logged in but no profile yet
+        setIsLoggedIn(true);
+      }
+    };
+    checkSession();
+  }, [router]);
+
+  return isLoggedIn;
+}
 
 function useGoogleLogin() {
   const handleLogin = async () => {
@@ -44,6 +76,23 @@ function useGoogleLogin() {
 
 function Navbar() {
   const handleLogin = useGoogleLogin()
+  const router = useRouter()
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    const check = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase
+        .from('onboarding_profiles')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .single()
+      if (data) setIsLoggedIn(true)
+    }
+    check()
+  }, [])
+
   return (
     <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur border-b border-brand-border">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -51,9 +100,19 @@ function Navbar() {
           <Sparkles className="w-6 h-6 text-brand-accent" />
           <span className="text-xl font-bold text-brand-text">PsyContent</span>
         </div>
-        <button onClick={handleLogin} className="bg-brand-accent text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-brand-accent-hover transition cursor-pointer">
-          Начать бесплатно
-        </button>
+        {isLoggedIn ? (
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="flex items-center gap-2 bg-brand-accent text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-brand-accent-hover transition cursor-pointer"
+          >
+            <LayoutDashboard className="w-4 h-4" />
+            Мой кабинет
+          </button>
+        ) : (
+          <button onClick={handleLogin} className="bg-brand-accent text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-brand-accent-hover transition cursor-pointer">
+            Начать бесплатно
+          </button>
+        )}
       </div>
     </nav>
   );
@@ -392,6 +451,9 @@ function Footer() {
 }
 
 export default function Home() {
+  // Auto-redirect if already logged in with a profile
+  useAuthState()
+
   return (
     <main>
       <Navbar />

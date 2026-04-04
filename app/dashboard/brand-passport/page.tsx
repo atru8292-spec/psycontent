@@ -10,10 +10,134 @@ import {
   Loader2,
   Target,
   RefreshCw,
+  Download,
+  Heart,
+  Layers,
+  Volume2,
+  Users,
+  Star,
+  Instagram,
+  Send,
+  LayoutGrid,
+  MessageSquare,
+  AlertTriangle,
+  PenTool,
+  ChevronDown,
+  ChevronUp,
   Copy,
   Check,
 } from 'lucide-react'
-import ReactMarkdown from 'react-markdown'
+
+// Parse markdown into sections
+function parsePassport(content: string) {
+  const sections: { num: string; title: string; content: string }[] = []
+  const lines = content.split('\n')
+  let current: { num: string; title: string; lines: string[] } | null = null
+
+  for (const line of lines) {
+    const headingMatch = line.match(/^##\s+(\d+)\.\s+(.+)/)
+    if (headingMatch) {
+      if (current) {
+        sections.push({ num: current.num, title: current.title, content: current.lines.join('\n').trim() })
+      }
+      current = { num: headingMatch[1], title: headingMatch[2], lines: [] }
+    } else if (current) {
+      current.lines.push(line)
+    }
+  }
+  if (current) {
+    sections.push({ num: current.num, title: current.title, content: current.lines.join('\n').trim() })
+  }
+  return sections
+}
+
+function renderContent(text: string) {
+  const lines = text.split('\n')
+  return lines.map((line, i) => {
+    if (line.startsWith('- ')) {
+      return (
+        <li key={i} className="flex items-start gap-2 text-brand-text-secondary text-sm leading-relaxed">
+          <span className="w-1.5 h-1.5 rounded-full bg-brand-accent mt-2 shrink-0" />
+          <span dangerouslySetInnerHTML={{ __html: line.slice(2).replace(/\*\*(.+?)\*\*/g, '<strong class="text-brand-text font-semibold">$1</strong>') }} />
+        </li>
+      )
+    }
+    if (line.startsWith('### ') || line.startsWith('**')) {
+      const clean = line.replace(/^###\s+/, '').replace(/\*\*/g, '')
+      return <p key={i} className="font-semibold text-brand-text mt-3 mb-1 text-sm">{clean}</p>
+    }
+    if (line.trim() === '') return <div key={i} className="h-2" />
+    return (
+      <p key={i} className="text-brand-text-secondary text-sm leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.+?)\*\*/g, '<strong class="text-brand-text font-semibold">$1</strong>') }}
+      />
+    )
+  })
+}
+
+const sectionMeta: Record<string, { icon: any; color: string; bg: string; accent: string }> = {
+  '1': { icon: Heart, color: 'text-red-500', bg: 'bg-red-50', accent: 'border-red-200' },
+  '2': { icon: Target, color: 'text-purple-500', bg: 'bg-purple-50', accent: 'border-purple-200' },
+  '3': { icon: Layers, color: 'text-indigo-500', bg: 'bg-indigo-50', accent: 'border-indigo-200' },
+  '4': { icon: Volume2, color: 'text-blue-500', bg: 'bg-blue-50', accent: 'border-blue-200' },
+  '5': { icon: Users, color: 'text-green-500', bg: 'bg-green-50', accent: 'border-green-200' },
+  '6': { icon: Star, color: 'text-yellow-500', bg: 'bg-yellow-50', accent: 'border-yellow-200' },
+  '7': { icon: Instagram, color: 'text-pink-500', bg: 'bg-pink-50', accent: 'border-pink-200' },
+  '8': { icon: Send, color: 'text-cyan-500', bg: 'bg-cyan-50', accent: 'border-cyan-200' },
+  '9': { icon: LayoutGrid, color: 'text-orange-500', bg: 'bg-orange-50', accent: 'border-orange-200' },
+  '10': { icon: MessageSquare, color: 'text-teal-500', bg: 'bg-teal-50', accent: 'border-teal-200' },
+  '11': { icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-50', accent: 'border-amber-200' },
+  '12': { icon: PenTool, color: 'text-brand-accent', bg: 'bg-brand-highlight', accent: 'border-brand-accent/30' },
+}
+
+function SectionCard({ section, index }: { section: { num: string; title: string; content: string }; index: number }) {
+  const [open, setOpen] = useState(index < 3)
+  const meta = sectionMeta[section.num] || sectionMeta['1']
+  const Icon = meta.icon
+  const lines = section.content.split('\n')
+  const hasList = lines.some(l => l.startsWith('- '))
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className={`rounded-2xl border bg-white overflow-hidden ${meta.accent}`}
+    >
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-4 p-5 text-left hover:bg-gray-50/50 transition"
+      >
+        <div className={`w-10 h-10 rounded-xl ${meta.bg} flex items-center justify-center shrink-0`}>
+          <Icon className={`w-5 h-5 ${meta.color}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <span className={`text-xs font-bold ${meta.color} uppercase tracking-wider`}>
+            Раздел {section.num}
+          </span>
+          <h3 className="font-bold text-brand-text text-base leading-tight">{section.title}</h3>
+        </div>
+        {open ? (
+          <ChevronUp className="w-5 h-5 text-brand-text-secondary shrink-0" />
+        ) : (
+          <ChevronDown className="w-5 h-5 text-brand-text-secondary shrink-0" />
+        )}
+      </button>
+
+      {open && (
+        <div className={`px-5 pb-5 border-t ${meta.accent}`}>
+          <div className="pt-4">
+            {hasList ? (
+              <ul className="space-y-2">{renderContent(section.content)}</ul>
+            ) : (
+              <div className="space-y-1">{renderContent(section.content)}</div>
+            )}
+          </div>
+        </div>
+      )}
+    </motion.div>
+  )
+}
 
 export default function BrandPassport() {
   const [user, setUser] = useState<any>(null)
@@ -81,6 +205,19 @@ export default function BrandPassport() {
     }
   }
 
+  const handleDownload = () => {
+    if (!passport) return
+    const blob = new Blob([passport], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'brand-passport.txt'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const sections = passport ? parsePassport(passport) : []
+
   if (loading) {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center">
@@ -123,12 +260,12 @@ export default function BrandPassport() {
             Ваш персональный паспорт бренда
           </h1>
           <p className="text-brand-text-secondary max-w-xl mx-auto">
-            AI проанализирует вашу распаковку и создаст документ с позиционированием,
-            тоном голоса, аватаром клиента и контент-стратегией
+            AI проанализировал вашу распаковку и создал стратегический документ
+            с позиционированием, архетипом, аватаром клиента и контент-стратегией
           </p>
         </motion.div>
 
-        {/* Generate Button */}
+        {/* Generate button */}
         {!passport && !generating && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -144,9 +281,8 @@ export default function BrandPassport() {
               Сгенерировать паспорт бренда
             </button>
             <p className="text-sm text-brand-text-secondary mt-4">
-              Генерация занимает 30-60 секунд
+              Генерация занимает 30–60 секунд
             </p>
-
             {error && (
               <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
                 {error}
@@ -166,78 +302,80 @@ export default function BrandPassport() {
             <h2 className="text-xl font-bold text-brand-text mb-2">
               AI создаёт ваш паспорт бренда...
             </h2>
-            <p className="text-brand-text-secondary mb-4">
-              Анализируем вашу распаковку, подбираем архетип, формулируем позиционирование
+            <p className="text-brand-text-secondary mb-8">
+              Анализируем распаковку, подбираем архетип, формулируем позиционирование
             </p>
             <div className="max-w-md mx-auto space-y-3 text-left">
-              <div className="flex items-center gap-3 text-sm text-brand-text-secondary">
-                <div className="animate-pulse w-2 h-2 bg-brand-accent rounded-full"></div>
-                Определяем миссию и позиционирование...
-              </div>
-              <div className="flex items-center gap-3 text-sm text-brand-text-secondary">
-                <div className="animate-pulse w-2 h-2 bg-brand-accent rounded-full" style={{ animationDelay: '0.5s' }}></div>
-                Подбираем архетип бренда...
-              </div>
-              <div className="flex items-center gap-3 text-sm text-brand-text-secondary">
-                <div className="animate-pulse w-2 h-2 bg-brand-accent rounded-full" style={{ animationDelay: '1s' }}></div>
-                Формулируем тон голоса и контентные столбы...
-              </div>
-              <div className="flex items-center gap-3 text-sm text-brand-text-secondary">
-                <div className="animate-pulse w-2 h-2 bg-brand-accent rounded-full" style={{ animationDelay: '1.5s' }}></div>
-                Пишем примеры постов в вашем тоне...
-              </div>
+              {[
+                'Определяем миссию и позиционирование...',
+                'Подбираем архетип бренда...',
+                'Формулируем тон голоса и контентные столбы...',
+                'Пишем примеры постов в вашем тоне...',
+              ].map((step, i) => (
+                <div key={i} className="flex items-center gap-3 text-sm text-brand-text-secondary">
+                  <div
+                    className="animate-pulse w-2 h-2 bg-brand-accent rounded-full"
+                    style={{ animationDelay: `${i * 0.5}s` }}
+                  />
+                  {step}
+                </div>
+              ))}
             </div>
           </motion.div>
         )}
 
         {/* Result */}
         {passport && !generating && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {/* Action buttons */}
-            <div className="flex items-center justify-between mb-6">
-              <button
-                onClick={handleCopy}
-                className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer"
-              >
-                {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                {copied ? 'Скопировано!' : 'Копировать весь текст'}
-              </button>
-              <button
-                onClick={handleGenerate}
-                className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Сгенерировать заново
-              </button>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            {/* Stats bar */}
+            <div className="flex items-center justify-between mb-6 p-4 bg-white rounded-2xl border border-brand-border">
+              <div className="flex items-center gap-6">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-brand-accent">{sections.length}</p>
+                  <p className="text-xs text-brand-text-secondary">разделов</p>
+                </div>
+                <div className="h-8 w-px bg-brand-border" />
+                <p className="text-sm text-brand-text-secondary">
+                  Персональный документ на основе вашей распаковки
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleCopy}
+                  className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-2 rounded-lg hover:bg-brand-highlight"
+                >
+                  {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                  {copied ? 'Скопировано!' : 'Копировать'}
+                </button>
+                <button
+                  onClick={handleDownload}
+                  className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-2 rounded-lg hover:bg-brand-highlight"
+                >
+                  <Download className="w-4 h-4" />
+                  Скачать
+                </button>
+                <button
+                  onClick={handleGenerate}
+                  className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-2 rounded-lg hover:bg-brand-highlight"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Заново
+                </button>
+              </div>
             </div>
 
-            {/* Passport content */}
-            <div className="bg-white rounded-2xl border border-brand-border p-8 md:p-12 shadow-sm">
-              <div className="flex items-center gap-3 mb-8 pb-6 border-b border-brand-border">
-                <div className="w-12 h-12 bg-brand-highlight rounded-xl flex items-center justify-center">
-                  <Target className="w-6 h-6 text-brand-accent" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-brand-text">Паспорт бренда</h2>
-                  <p className="text-sm text-brand-text-secondary">
-                    Создано AI на основе вашей распаковки
-                  </p>
-                </div>
-              </div>
-
-              <div className="prose prose-lg max-w-none prose-headings:text-brand-text prose-headings:font-bold prose-p:text-brand-text-secondary prose-li:text-brand-text-secondary prose-strong:text-brand-text">
-                <ReactMarkdown>{passport}</ReactMarkdown>
-              </div>
+            {/* Sections */}
+            <div className="space-y-4">
+              {sections.map((section, i) => (
+                <SectionCard key={section.num} section={section} index={i} />
+              ))}
             </div>
 
             {/* Next step */}
             <div className="mt-8 p-6 bg-brand-accent rounded-2xl text-white text-center">
               <h3 className="text-lg font-bold mb-2">Паспорт готов! Что дальше? 🚀</h3>
               <p className="text-white/80 mb-4">
-                Теперь используйте контентные столбы для генерации постов
+                Используйте контентные столбы для генерации постов
               </p>
               <button
                 onClick={() => router.push('/dashboard')}
