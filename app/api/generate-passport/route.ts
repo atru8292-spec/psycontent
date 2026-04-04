@@ -2,11 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 const SYSTEM_PROMPT = `Ты — бренд-стратег с 15-летним опытом создания позиционирования для психологов и помогающих специалистов. Ты объединяешь знания из брендинга (фреймворки Саймона Синека, StoryBrand Миллера, архетипы Юнга, модель тона голоса Nielsen Norman Group) и глубокое понимание психотерапевтической практики.
 
 ТВОЯ ЗАДАЧА:
@@ -43,6 +38,13 @@ const SYSTEM_PROMPT = `Ты — бренд-стратег с 15-летним о�
 - Будь конкретен: давай готовые тексты, а не рекомендации
 - Каждый раздел — 200-400 слов`
 
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await request.json()
@@ -50,6 +52,8 @@ export async function POST(request: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: 'userId required' }, { status: 400 })
     }
+
+    const supabaseAdmin = getSupabaseAdmin()
 
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('onboarding_profiles')
