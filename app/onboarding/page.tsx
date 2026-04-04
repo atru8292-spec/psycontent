@@ -529,7 +529,7 @@ export default function Onboarding() {
             <span className="text-brand-text-secondary">{step + 1} / {questions.length}</span>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-            <motion.div className="bg-indigo-600 h-full" initial={{ width: 0 }} animate={{ width: \`\${progress}%\` }} transition={{ duration: 0.4 }} />
+            <motion.div className="bg-indigo-600 h-full" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.4 }} />
           </div>
         </div>
       </div>
