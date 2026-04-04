@@ -8,17 +8,19 @@ import {
   Sparkles, ArrowLeft, Loader2, Search,
   AlignLeft, Image, Film, FileText,
   TrendingUp, Zap, PenTool, RefreshCw,
-  Globe, ChevronRight, Filter,
+  Globe, ChevronRight, BookOpen, Quote
 } from 'lucide-react'
 
 type Topic = {
   id: number
+  block: string
   topic: string
   hook: string
   pillar: string
   why: string
   format: string
-  trend: string
+  source: string
+  cta: string
 }
 
 const FORMAT_META: Record<string, { icon: any; label: string; color: string; bg: string }> = {
@@ -36,30 +38,39 @@ const PILLAR_COLORS: Record<string, string> = {
   'Позиционирование': 'bg-violet-100 text-violet-700',
 }
 
+const BLOCK_META: Record<string, { label: string, icon: any, color: string }> = {
+  'trend': { label: 'Тренды 2025', icon: TrendingUp, color: 'text-orange-600' },
+  'science': { label: 'Исследования', icon: BookOpen, color: 'text-blue-600' },
+  'quote': { label: 'Цитаты', icon: Quote, color: 'text-emerald-600' }
+}
+
 function TopicCard({ topic, index, onGenerate }: { topic: Topic; index: number; onGenerate: (t: Topic) => void }) {
   const fmt = FORMAT_META[topic.format] || FORMAT_META.post
   const Icon = fmt.icon
   const pillarColor = PILLAR_COLORS[topic.pillar] || 'bg-gray-100 text-gray-700'
+  const blk = BLOCK_META[topic.block] || { label: topic.block, icon: Zap, color: 'text-gray-600' }
+  const BlockIcon = blk.icon
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.03 }}
-      className="bg-white rounded-2xl border border-brand-border p-5 hover:border-brand-accent/40 hover:shadow-md transition-all group"
+      className="bg-white rounded-2xl border border-brand-border p-5 hover:border-brand-accent/40 hover:shadow-md transition-all group flex flex-col h-full"
     >
       {/* Header row */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="w-6 h-6 rounded-full bg-brand-highlight text-brand-accent text-xs font-bold flex items-center justify-center shrink-0">
-            {topic.id}
-          </span>
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pillarColor}`}>
+          <div className="flex items-center gap-1 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
+             <BlockIcon className={`w-3 h-3 ${blk.color}`} />
+             <span className={`text-[10px] font-bold uppercase tracking-wider ${blk.color}`}>{blk.label}</span>
+          </div>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${pillarColor}`}>
             {topic.pillar}
           </span>
           <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${fmt.bg}`}>
             <Icon className={`w-3 h-3 ${fmt.color}`} />
-            <span className={`text-xs font-semibold ${fmt.color}`}>{fmt.label}</span>
+            <span className={`text-[10px] font-bold uppercase tracking-wider ${fmt.color}`}>{fmt.label}</span>
           </div>
         </div>
       </div>
@@ -71,29 +82,37 @@ function TopicCard({ topic, index, onGenerate }: { topic: Topic; index: number; 
 
       {/* Hook */}
       <div className="p-3 rounded-xl bg-brand-highlight border border-brand-accent/20 mb-3">
-        <div className="flex items-center gap-1.5 mb-1">
+        <div className="flex items-center gap-1.5 mb-1.5">
           <Zap className="w-3.5 h-3.5 text-brand-accent" />
           <span className="text-xs font-bold text-brand-accent uppercase tracking-wide">Хук</span>
         </div>
         <p className="text-xs text-brand-text italic leading-relaxed">«{topic.hook}»</p>
       </div>
 
-      {/* Why + Trend */}
-      <div className="space-y-1.5 mb-4">
-        <p className="text-xs text-brand-text-secondary leading-relaxed">
+      {/* Details */}
+      <div className="space-y-2 mb-4 grow">
+        <p className="text-[11px] text-brand-text-secondary leading-relaxed">
           <span className="font-semibold text-brand-text">Почему зайдёт: </span>
           {topic.why}
         </p>
-        <div className="flex items-center gap-1.5">
-          <Globe className="w-3 h-3 text-brand-text-secondary shrink-0" />
-          <p className="text-xs text-brand-text-secondary">{topic.trend}</p>
+        <div className="flex items-start gap-1.5 bg-gray-50 p-2 rounded-lg">
+          <Globe className="w-3.5 h-3.5 text-brand-text-secondary shrink-0 mt-0.5" />
+          <p className="text-[11px] text-brand-text-secondary leading-snug">
+             <span className="font-semibold text-gray-700">Источник: </span>
+             {topic.source}
+          </p>
         </div>
+        {topic.cta && (
+           <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mt-2">
+              CTA: <span className="text-brand-accent">{topic.cta}</span>
+           </p>
+        )}
       </div>
 
-      {/* CTA */}
+      {/* CTA Button */}
       <button
         onClick={() => onGenerate(topic)}
-        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand-accent text-white text-xs font-semibold opacity-0 group-hover:opacity-100 transition cursor-pointer hover:bg-brand-accent-hover"
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand-accent text-white text-xs font-semibold opacity-0 group-hover:opacity-100 transition cursor-pointer hover:bg-brand-accent-hover mt-auto"
       >
         <PenTool className="w-3.5 h-3.5" />
         Написать пост
@@ -109,7 +128,7 @@ export default function ResearchTopics() {
   const [loading, setLoading] = useState(true)
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [filter, setFilter] = useState('all')
+  const [filterBlock, setFilterBlock] = useState('all')
   const router = useRouter()
 
   useEffect(() => {
@@ -117,7 +136,23 @@ export default function ResearchTopics() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
       setUser(user)
-      setLoading(false)
+      
+      // Load existing
+      try {
+        const res = await fetch('/api/research-topics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, action: 'fetch' }),
+        })
+        const data = await res.json()
+        if (data.topics && data.topics.length > 0) {
+           setTopics(data.topics)
+        }
+      } catch (err) {
+        console.error('Fetch error:', err)
+      } finally {
+        setLoading(false)
+      }
     }
     init()
   }, [router])
@@ -130,7 +165,7 @@ export default function ResearchTopics() {
       const res = await fetch('/api/research-topics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id }),
+        body: JSON.stringify({ userId: user.id, action: 'generate' }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Ошибка поиска')
@@ -151,8 +186,13 @@ export default function ResearchTopics() {
     router.push(`/dashboard/post-generator?${params}`)
   }
 
-  const pillars = ['all', 'Психообразование', 'Личное', 'Практика', 'Истории', 'Позиционирование']
-  const filtered = filter === 'all' ? topics : topics.filter(t => t.pillar === filter)
+  const blocks = [
+     { id: 'all', label: 'Все темы' },
+     { id: 'trend', label: 'Тренды' },
+     { id: 'science', label: 'Исследования' },
+     { id: 'quote', label: 'Цитаты' }
+  ]
+  const filtered = filterBlock === 'all' ? topics : topics.filter(t => t.block === filterBlock)
 
   if (loading) {
     return (
@@ -198,14 +238,14 @@ export default function ResearchTopics() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
             <TrendingUp className="w-4 h-4" />
-            Исследование тем
+            Исследовательский модуль
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-brand-text mb-2">
-            Что сейчас цепляет в Instagram
+            Идеи на базе данных и трендов
           </h1>
           <p className="text-brand-text-secondary max-w-xl">
-            Perplexity ищет актуальные темы в интернете прямо сейчас — под ваш голос, нишу и аудиторию.
-            Не шаблоны, а живые тренды.
+            Три блока контента: тренды Instagram/Telegram, актуальные научные исследования (2023-2026) и редкие цитаты. 
+            Всё адаптировано под вашу нишу.
           </p>
         </motion.div>
 
@@ -219,16 +259,16 @@ export default function ResearchTopics() {
             {/* Feature cards */}
             <div className="grid grid-cols-3 gap-3 mb-8">
               {[
-                { icon: Globe, label: 'Реальный поиск', desc: 'Perplexity ищет в интернете прямо сейчас' },
-                { icon: TrendingUp, label: '30 тем', desc: 'Актуальные, не заезженные' },
-                { icon: Zap, label: 'Готовые хуки', desc: 'Для каждой темы — первые 2 строки' },
+                { icon: TrendingUp, label: 'Тренды', desc: 'Wordstat, каналы' },
+                { icon: BookOpen, label: 'Наука', desc: 'Nature, Lancet' },
+                { icon: Quote, label: 'Цитаты', desc: 'Перлз, Фрейд, Бек...' },
               ].map(({ icon: Icon, label, desc }) => (
-                <div key={label} className="bg-white rounded-2xl border border-brand-border p-4 text-center">
-                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-2">
-                    <Icon className="w-5 h-5 text-blue-600" />
+                <div key={label} className="bg-white rounded-2xl border border-brand-border p-4 text-center shadow-sm">
+                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-2 text-blue-600">
+                    <Icon className="w-5 h-5" />
                   </div>
-                  <p className="font-semibold text-brand-text text-sm">{label}</p>
-                  <p className="text-xs text-brand-text-secondary mt-0.5">{desc}</p>
+                  <p className="font-bold text-brand-text text-[13px]">{label}</p>
+                  <p className="text-[11px] text-brand-text-secondary mt-1">{desc}</p>
                 </div>
               ))}
             </div>
@@ -239,10 +279,10 @@ export default function ResearchTopics() {
               className="inline-flex items-center gap-3 bg-brand-accent text-white px-10 py-4 rounded-2xl text-lg font-semibold hover:bg-brand-accent-hover transition shadow-lg shadow-brand-accent/25 cursor-pointer"
             >
               <Search className="w-5 h-5" />
-              Найти актуальные темы
+              Провести исследование (1 мин)
             </button>
-            <p className="text-sm text-brand-text-secondary mt-3">
-              Perplexity ищет в интернете ~20-30 секунд
+            <p className="text-sm text-brand-text-secondary mt-4">
+              Perplexity проанализирует данные за 2025-2026 год, найдёт исследования и актуальные тренды.
             </p>
             {error && (
               <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>
@@ -257,14 +297,14 @@ export default function ResearchTopics() {
               <Loader2 className="w-16 h-16 text-brand-accent animate-spin" />
               <Globe className="w-6 h-6 text-brand-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
             </div>
-            <h2 className="text-xl font-bold text-brand-text mb-2">Perplexity ищет в интернете...</h2>
-            <p className="text-brand-text-secondary mb-6">Анализирует Instagram, Telegram, тренды 2024-2025</p>
+            <h2 className="text-xl font-bold text-brand-text mb-2">Глубокий ресёрч запущен...</h2>
+            <p className="text-brand-text-secondary mb-6">Ищем свежие тренды, исследования и цитаты в вашей нише</p>
             <div className="flex flex-col items-center gap-2 text-sm text-brand-text-secondary">
               {[
-                'Сканируем русскоязычный Instagram...',
-                'Анализируем Telegram-каналы психологов...',
-                'Изучаем поисковые запросы...',
-                'Фильтруем под вашу нишу...',
+                'Анализ трендов Telegram и Яндекс Wordstat...',
+                'Поиск научных статей за 2023-2026 год...',
+                'Подбор цитат классиков и современников...',
+                'Генерация сильных хуков...',
               ].map((s, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse" style={{ animationDelay: `${i * 0.5}s` }} />
@@ -278,47 +318,33 @@ export default function ResearchTopics() {
         {/* Results */}
         {topics.length > 0 && !searching && (
           <div>
-            {/* Stats */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-between bg-white rounded-2xl border border-brand-border p-4 mb-5"
-            >
-              <div className="flex items-center gap-4">
-                <div>
-                  <p className="text-2xl font-bold text-brand-accent">{topics.length}</p>
-                  <p className="text-xs text-brand-text-secondary">тем найдено</p>
-                </div>
-                <div className="h-8 w-px bg-brand-border" />
-                <p className="text-sm text-brand-text-secondary">
-                  Нажми на тему — появится кнопка «Написать пост»
-                </p>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-brand-text-secondary bg-brand-highlight px-3 py-1.5 rounded-full">
-                <Globe className="w-3.5 h-3.5" />
-                Источник: веб-поиск Perplexity
-              </div>
-            </motion.div>
-
-            {/* Filter */}
-            <div className="flex gap-2 flex-wrap mb-5">
-              {pillars.map(p => (
-                <button
-                  key={p}
-                  onClick={() => setFilter(p)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition cursor-pointer ${
-                    filter === p
-                      ? 'bg-brand-accent text-white'
-                      : 'bg-white border border-brand-border text-brand-text-secondary hover:border-brand-accent/50'
-                  }`}
-                >
-                  {p === 'all' ? `Все ${topics.length}` : `${p} (${topics.filter(t => t.pillar === p).length})`}
-                </button>
-              ))}
+            {/* Filter Tabs */}
+            <div className="flex gap-2 flex-wrap mb-6">
+              {blocks.map(b => {
+                 const count = b.id === 'all' ? topics.length : topics.filter(t => t.block === b.id).length
+                 return (
+                  <button
+                    key={b.id}
+                    onClick={() => setFilterBlock(b.id)}
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer flex items-center gap-2 ${
+                      filterBlock === b.id
+                        ? 'bg-brand-accent text-white shadow-md shadow-brand-accent/20'
+                        : 'bg-white border border-brand-border text-brand-text-secondary hover:border-brand-accent/50 hover:bg-brand-highlight/30'
+                    }`}
+                  >
+                    {b.label}
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                       filterBlock === b.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                       {count}
+                    </span>
+                  </button>
+                 )
+              })}
             </div>
 
             {/* Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
               <AnimatePresence>
                 {filtered.map((topic, i) => (
                   <TopicCard key={topic.id} topic={topic} index={i} onGenerate={handleGenerate} />
