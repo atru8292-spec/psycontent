@@ -544,16 +544,15 @@ export default function Onboarding() {
             </h2>
             {q.subtitle && <p className="text-lg text-brand-text-secondary mb-10">{q.subtitle}</p>}
 
-            {/* РЕНДЕР ПОЛЕЙ В ЗАВИСИМОСТИ ОТ ТИПА */}
             <div className="space-y-6">
 
-              {/* Text, Textarea */}
+              {/* 1. Блок текстового ввода (для text, textarea) */}
               {(q.type === 'text' || q.type === 'textarea' || q.type === 'text_and_single' || q.type === 'text_and_multi') && (
                 <div>
                   {q.type.includes('textarea') ? (
                     <textarea 
                       value={answers[q.key] || ''} onChange={e => setAnswers({...answers, [q.key]: e.target.value})}
-                      placeholder={q.placeholder} rows={5}
+                      placeholder={q.placeholder} rows={3}
                       className="w-full p-5 rounded-2xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-lg resize-none"
                     />
                   ) : (
@@ -566,22 +565,20 @@ export default function Onboarding() {
                 </div>
               )}
 
-              {/* Options OptionsOptions OptionsOptions OptionsOptions */}
-              {(q.type === 'single' || q.type === 'multi' || q.type.includes('_and_') || q.type === 'single_and_single') && q.options && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
-                  {q.options.map(opt => {
+              {/* 2. Основная сетка опций (для single, multi, _and_ (кроме text_and_...)) */}
+              {(q.type === 'single' || q.type === 'multi' || q.type === 'multi_and_text' || q.type === 'single_and_text' || q.type === 'multi_and_single' || q.type === 'single_and_single') && (q.options || q.options1) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                  {(q.options1 || q.options || []).map(opt => {
                     const isMulti = q.type.includes('multi')
                     const isSelected = isMulti ? (answers[q.key] || []).includes(opt) : answers[q.key] === opt
-                    let optTargetKey = q.key;
-                    if(q.type === 'single_and_single' && q.options1?.includes(opt)) { optTargetKey = q.key } // Wait, options1 logic is complex, simpler to use q.options for both
                     
                     return (
                       <button 
                         key={opt} onClick={() => isMulti ? toggleArrayItem(q.key, opt, q.maxChoice) : setAnswers({...answers, [q.key]: opt})}
                         className={`text-left p-4 rounded-xl border-2 transition font-medium cursor-pointer flex items-start gap-3 
-                          ${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                          \${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-gray-200 bg-white hover:border-gray-300'}`}
                       >
-                        <div className={`w-5 h-5 mt-0.5 rounded flex items-center justify-center shrink-0 border ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
+                        <div className={`w-5 h-5 mt-0.5 rounded flex items-center justify-center shrink-0 border \${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
                           {isSelected && <CheckCircle className="w-4 h-4 text-white" />}
                         </div>
                         {opt}
@@ -591,31 +588,38 @@ export default function Onboarding() {
                 </div>
               )}
 
-              {/* Second text input/textarea */}
+              {/* 3. Дополнительный текстовый ввод (textarea) (для multi_and_text, single_and_text) */}
               {(q.textKey) && (
-                <div className="pt-4 border-t border-gray-100 mt-6">
+                <div className="pt-6 mt-6 border-t border-gray-100">
                   <textarea 
                     value={answers[q.textKey] || ''} onChange={e => setAnswers({...answers, [q.textKey]: e.target.value})}
                     placeholder={q.textPlaceholder} rows={3}
-                    className="w-full p-5 rounded-2xl border-2 border-gray-200 focus:border-indigo-500 outline-none"
+                    className="w-full p-5 rounded-2xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-lg resize-none"
                   />
                 </div>
               )}
 
-              {/* Secondary Options (e.g. appeal or price) */}
+              {/* 4. Дополнительная сетка опций (text_and_single, text_and_multi, multi_and_single, single_and_single) */}
               {(q.optionsKey || q.singleKey || q.single2Key) && (
-                <div className="pt-4 border-t border-gray-100 mt-6">
-                  <p className="font-semibold text-brand-text mb-3">Укажите тут же:</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {(q.options || q.singleOptions || q.options1 || q.options2 || []).map(opt => {
-                      const actualOpts = q.singleOptions || q.options2 || (q.options?.length && q.options[0] === 'По имени (Анна)' ? q.options : [])
-                      if (!actualOpts.includes(opt)) return null
-
-                      const k = q.optionsKey || q.singleKey || q.single2Key!
-                      const isMulti = q.optionsKey && q.type === 'text_and_multi' 
-                      const isSelected = isMulti ? (answers[k] || []).includes(opt) : answers[k] === opt
+                <div className="pt-6 mt-6 border-t border-gray-100">
+                  <p className="font-bold text-brand-text mb-4 text-lg">
+                    {q.type === 'text_and_single' ? 'И как нам к вам обращаться?' : 
+                     q.type === 'multi_and_single' ? 'Примерная стоимость вашей сессии?' :
+                     q.single2Key === 'time_available' ? 'Сколько времени вы готовы тратить на блог?' :
+                     'Укажите дополнительно:'}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Choose the right options array for the secondary select */}
+                    {(q.singleOptions || q.options2 || q.options || []).map(opt => {
+                      const tgtKey = q.optionsKey || q.singleKey || q.single2Key!
+                      const isMulti = q.type.includes('multi') && !!q.optionsKey // Only text_and_multi uses multi for secondary
+                      const isSelected = isMulti ? (answers[tgtKey] || []).includes(opt) : answers[tgtKey] === opt
+                      
                       return (
-                        <button key={opt} onClick={() => isMulti ? toggleArrayItem(k, opt) : setAnswers({...answers, [k]: opt})} className={`p-3 rounded-lg border text-sm font-medium transition cursor-pointer text-center ${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-gray-200 hover:bg-gray-50'}`}>
+                        <button key={opt} onClick={() => isMulti ? toggleArrayItem(tgtKey, opt) : setAnswers({...answers, [tgtKey]: opt})} className={`p-4 rounded-xl border-2 font-medium transition cursor-pointer text-left flex items-start gap-3 \${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-gray-200 hover:bg-gray-50'}`}>
+                          <div className={`w-5 h-5 mt-0.5 rounded-full flex items-center justify-center shrink-0 border \${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
+                              {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
+                          </div>
                           {opt}
                         </button>
                       )
