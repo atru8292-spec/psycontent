@@ -38,7 +38,7 @@ export async function generateWithWebSearch(userPrompt: string) {
       'X-Title': 'PsyContent',
     },
     body: JSON.stringify({
-      model: 'perplexity/llama-3.1-sonar-small-128k-online',
+      model: 'perplexity/sonar',
       messages: [
         {
           role: 'system',
