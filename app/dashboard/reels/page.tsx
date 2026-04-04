@@ -8,22 +8,26 @@ import {
   Sparkles,
   ArrowLeft,
   Loader2,
-  PenTool,
+  Film,
   Copy,
   Check,
   RefreshCw,
-  FileText,
-  Film,
-  Image,
-  AlignLeft,
+  Video,
+  Mic,
+  MonitorPlay,
   ChevronRight,
   Lightbulb,
 } from 'lucide-react'
 
-const formats = [
-  { id: 'post', label: 'Пост', icon: AlignLeft, desc: 'Текстовый пост для Instagram/Telegram', color: 'text-purple-500', bg: 'bg-purple-50', border: 'border-purple-200' },
-  { id: 'carousel', label: 'Карусель', icon: Image, desc: 'Серия слайдов с текстом', color: 'text-blue-500', bg: 'bg-blue-50', border: 'border-blue-200' },
-  { id: 'stories', label: 'Stories', icon: FileText, desc: 'Серия из 4–5 историй', color: 'text-orange-500', bg: 'bg-orange-50', border: 'border-orange-200' },
+const lengths = [
+  { id: '30s', label: '30 секунд', desc: 'Быстрый и вирусный хук' },
+  { id: '60s', label: '1 минута', desc: 'Глубокая история и разбор' },
+]
+
+const styles = [
+  { id: 'talking_head', label: 'Говорящая голова', icon: Video, desc: 'Вы в кадре, классиный формат' },
+  { id: 'text_on_screen', label: 'Текст на экране', icon: MonitorPlay, desc: 'Атмосферное видео + плашки текста' },
+  { id: 'voiceover', label: 'Закадровый голос', icon: Mic, desc: 'Аудио поверх видеоряда' },
 ]
 
 const defaultPillars = [
@@ -34,32 +38,12 @@ const defaultPillars = [
   { id: 'positioning', label: 'Позиционирование', topics: ['Чем я отличаюсь от других психологов', 'С кем мне не по пути', 'Мой взгляд на быстрые результаты', 'Почему я против «гарантий» в психологии', 'Мои принципы работы'] },
 ]
 
-function formatResult(text: string, format: string) {
-  if (format === 'carousel') {
-    const slides = text.split(/(?=\[Слайд\s+\d+|Слайд\s+\d+)/i).filter(s => s.trim())
-    if (slides.length > 1) {
-      return (
-        <div className="space-y-4">
-          {slides.map((slide, i) => (
-            <div key={i} className="p-4 rounded-xl bg-brand-bg border border-brand-border">
-              <p className="text-sm leading-relaxed text-brand-text whitespace-pre-wrap">{slide.trim()}</p>
-            </div>
-          ))}
-        </div>
-      )
-    }
-  }
-  return (
-    <p className="text-brand-text text-sm leading-relaxed whitespace-pre-wrap">{text}</p>
-  )
-}
-
-export default function PostGenerator() {
+export default function ReelsGenerator() {
   const [user, setUser] = useState<any>(null)
-  const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
-  const [selectedFormat, setSelectedFormat] = useState('post')
+  const [selectedLength, setSelectedLength] = useState('30s')
+  const [selectedStyle, setSelectedStyle] = useState('talking_head')
   const [selectedPillar, setSelectedPillar] = useState<string | null>(null)
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null)
   const [customTopic, setCustomTopic] = useState('')
@@ -85,14 +69,13 @@ export default function PostGenerator() {
         .single()
 
       if (!data) { router.push('/onboarding'); return }
-      setProfile(data)
       setLoading(false)
     }
     init()
   }, [router])
 
   const currentPillar = defaultPillars.find(p => p.id === selectedPillar)
-  const canGenerate = selectedFormat && (useCustom ? customTopic.trim() : selectedTopic)
+  const canGenerate = selectedTopic || (useCustom && customTopic.trim())
 
   const handleGenerate = async () => {
     if (!user || !canGenerate) return
@@ -101,21 +84,22 @@ export default function PostGenerator() {
     setError(null)
 
     try {
-      const response = await fetch('/api/generate-post', {
+      const response = await fetch('/api/generate-reels', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user.id,
           topic: selectedTopic,
           customTopic: useCustom ? customTopic : undefined,
-          format: selectedFormat,
+          videoLength: selectedLength,
+          videoStyle: selectedStyle,
           pillar: currentPillar?.label,
         }),
       })
 
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Ошибка генерации')
-      setResult(data.post)
+      setResult(data.script)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -129,6 +113,25 @@ export default function PostGenerator() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }
+  }
+
+  // Helper to format blocks natively based on brackets like [Кадр] or [Хук (0-3 сек)]
+  const formatResult = (text: string) => {
+    // Split text by lines and colorize bracketed lines if they are section headers
+    return text.split('\n').map((line, i) => {
+      const isHeader = line.trim().startsWith('[') && line.trim().endsWith(']')
+      
+      if (isHeader) {
+        return (
+          <div key={i} className="mt-4 first:mt-0">
+            <span className="inline-block bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded border border-indigo-100 text-sm mb-1">
+              {line}
+            </span>
+          </div>
+        )
+      }
+      return <p key={i} className="text-brand-text text-sm leading-relaxed mb-2 last:mb-0">{line}</p>
+    })
   }
 
   if (loading) {
@@ -161,54 +164,78 @@ export default function PostGenerator() {
       <div className="max-w-6xl mx-auto px-6 py-12">
         {/* Title */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
-          <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-600 px-4 py-2 rounded-full text-sm font-medium mb-4">
-            <PenTool className="w-4 h-4" />
-            Генератор постов
+          <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-600 px-4 py-2 rounded-full text-sm font-medium mb-4">
+            <Film className="w-4 h-4" />
+            Рилс-скрипты
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-brand-text mb-2">
-            Создайте пост в вашем голосе
+            Сценарии для видео
           </h1>
           <p className="text-brand-text-secondary">
-            AI учитывает ваш подход, тон и нишу — контент будет звучать как вы
+            AI пишет скрипты с таймкодами под ваш стиль ведения (даже если вы не хотите снимать себя).
           </p>
         </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-8">
-          {/* Left — Settings */}
+          {/* Settings Left */}
           <div className="space-y-6">
-            {/* Step 1: Format */}
+            
+            {/* Step 1: Length */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white rounded-2xl border border-brand-border p-6">
               <h2 className="font-bold text-brand-text mb-4 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-brand-accent text-white text-xs flex items-center justify-center font-bold">1</span>
-                Формат контента
+                Хронометраж
               </h2>
               <div className="grid grid-cols-2 gap-3">
-                {formats.map(fmt => {
-                  const Icon = fmt.icon
-                  const active = selectedFormat === fmt.id
+                {lengths.map(len => (
+                  <button
+                    key={len.id}
+                    onClick={() => setSelectedLength(len.id)}
+                    className={`p-4 rounded-xl border-2 text-left transition cursor-pointer ${selectedLength === len.id ? 'border-indigo-500 bg-indigo-50' : 'border-brand-border hover:border-gray-300 bg-brand-bg'}`}
+                  >
+                    <p className={`font-semibold text-sm ${selectedLength === len.id ? 'text-indigo-700' : 'text-brand-text'}`}>{len.label}</p>
+                    <p className="text-xs text-brand-text-secondary mt-0.5">{len.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Step 2: Format Style */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white rounded-2xl border border-brand-border p-6">
+              <h2 className="font-bold text-brand-text mb-4 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-brand-accent text-white text-xs flex items-center justify-center font-bold">2</span>
+                Формат съёмки
+              </h2>
+              <div className="space-y-3">
+                {styles.map(style => {
+                  const Icon = style.icon
+                  const active = selectedStyle === style.id
                   return (
                     <button
-                      key={fmt.id}
-                      onClick={() => setSelectedFormat(fmt.id)}
-                      className={`p-4 rounded-xl border-2 text-left transition cursor-pointer ${active ? `${fmt.border} ${fmt.bg}` : 'border-brand-border hover:border-gray-300 bg-brand-bg'}`}
+                      key={style.id}
+                      onClick={() => setSelectedStyle(style.id)}
+                      className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition cursor-pointer text-left ${active ? 'border-indigo-500 bg-indigo-50' : 'border-brand-border hover:border-gray-300 bg-brand-bg'}`}
                     >
-                      <Icon className={`w-5 h-5 mb-2 ${active ? fmt.color : 'text-brand-text-secondary'}`} />
-                      <p className={`font-semibold text-sm ${active ? 'text-brand-text' : 'text-brand-text-secondary'}`}>{fmt.label}</p>
-                      <p className="text-xs text-brand-text-secondary mt-0.5">{fmt.desc}</p>
+                      <div className={`p-2 rounded-lg ${active ? 'bg-indigo-100' : 'bg-white'}`}>
+                        <Icon className={`w-5 h-5 ${active ? 'text-indigo-600' : 'text-gray-400'}`} />
+                      </div>
+                      <div>
+                        <p className={`font-semibold text-sm ${active ? 'text-indigo-700' : 'text-brand-text'}`}>{style.label}</p>
+                        <p className="text-xs text-brand-text-secondary">{style.desc}</p>
+                      </div>
                     </button>
                   )
                 })}
               </div>
             </motion.div>
 
-            {/* Step 2: Topic */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white rounded-2xl border border-brand-border p-6">
+            {/* Step 3: Topic */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white rounded-2xl border border-brand-border p-6">
               <h2 className="font-bold text-brand-text mb-4 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-brand-accent text-white text-xs flex items-center justify-center font-bold">2</span>
-                Тема поста
+                <span className="w-6 h-6 rounded-full bg-brand-accent text-white text-xs flex items-center justify-center font-bold">3</span>
+                Тема видео
               </h2>
 
-              {/* Pillars */}
               <div className="space-y-2 mb-4">
                 {defaultPillars.map(pillar => (
                   <div key={pillar.id}>
@@ -218,7 +245,7 @@ export default function PostGenerator() {
                         setUseCustom(false)
                         setSelectedTopic(null)
                       }}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition cursor-pointer text-sm font-medium ${selectedPillar === pillar.id ? 'border-brand-accent bg-brand-highlight text-brand-text' : 'border-brand-border bg-brand-bg text-brand-text-secondary hover:border-brand-accent/50'}`}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition cursor-pointer text-sm font-medium ${selectedPillar === pillar.id ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-brand-border bg-brand-bg text-brand-text-secondary hover:border-indigo-200'}`}
                     >
                       {pillar.label}
                       <ChevronRight className={`w-4 h-4 transition-transform ${selectedPillar === pillar.id ? 'rotate-90' : ''}`} />
@@ -237,7 +264,7 @@ export default function PostGenerator() {
                               <button
                                 key={topic}
                                 onClick={() => { setSelectedTopic(topic); setUseCustom(false) }}
-                                className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition cursor-pointer ${selectedTopic === topic && !useCustom ? 'bg-brand-accent text-white font-medium' : 'text-brand-text-secondary hover:bg-brand-highlight hover:text-brand-text'}`}
+                                className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition cursor-pointer ${selectedTopic === topic && !useCustom ? 'bg-indigo-500 text-white font-medium' : 'text-brand-text-secondary hover:bg-indigo-50 hover:text-indigo-700'}`}
                               >
                                 {topic}
                               </button>
@@ -254,7 +281,7 @@ export default function PostGenerator() {
               <div className="border-t border-brand-border pt-4">
                 <button
                   onClick={() => { setUseCustom(!useCustom); setSelectedTopic(null); setSelectedPillar(null) }}
-                  className={`w-full flex items-center gap-2 px-4 py-3 rounded-xl border text-sm font-medium transition cursor-pointer ${useCustom ? 'border-brand-accent bg-brand-highlight text-brand-text' : 'border-brand-border bg-brand-bg text-brand-text-secondary hover:border-brand-accent/50'}`}
+                  className={`w-full flex items-center gap-2 px-4 py-3 rounded-xl border text-sm font-medium transition cursor-pointer ${useCustom ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-brand-border bg-brand-bg text-brand-text-secondary hover:border-indigo-200'}`}
                 >
                   <Lightbulb className="w-4 h-4" />
                   Своя тема
@@ -263,9 +290,9 @@ export default function PostGenerator() {
                   <textarea
                     value={customTopic}
                     onChange={e => setCustomTopic(e.target.value)}
-                    placeholder="Напишите тему или идею поста..."
+                    placeholder="Какую тему разобрать в Рилс?.."
                     rows={2}
-                    className="w-full mt-2 px-4 py-3 rounded-xl border border-brand-border bg-white text-brand-text text-sm focus:outline-none focus:ring-2 focus:ring-brand-accent resize-none"
+                    className="w-full mt-2 px-4 py-3 rounded-xl border border-brand-border bg-white text-brand-text text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                     autoFocus
                   />
                 )}
@@ -276,17 +303,18 @@ export default function PostGenerator() {
             <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.4 }}
               onClick={handleGenerate}
               disabled={!canGenerate || generating}
               className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl text-base font-semibold transition cursor-pointer ${canGenerate && !generating ? 'bg-brand-accent text-white hover:bg-brand-accent-hover shadow-lg shadow-brand-accent/25' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
             >
               {generating ? (
-                <><Loader2 className="w-5 h-5 animate-spin" /> Генерирую...</>
+                <><Loader2 className="w-5 h-5 animate-spin" /> Пишу сценарий...</>
               ) : (
-                <><Sparkles className="w-5 h-5" /> Сгенерировать</>
+                <><Sparkles className="w-5 h-5" /> Создать скрипт</>
               )}
             </motion.button>
+
           </div>
 
           {/* Right — Result */}
@@ -300,9 +328,9 @@ export default function PostGenerator() {
                   exit={{ opacity: 0 }}
                   className="h-full flex flex-col items-center justify-center text-center py-20 bg-white rounded-2xl border border-dashed border-brand-border"
                 >
-                  <PenTool className="w-12 h-12 text-gray-200 mb-4" />
-                  <p className="text-brand-text-secondary font-medium">Выберите формат и тему</p>
-                  <p className="text-sm text-brand-text-secondary mt-1">Пост появится здесь</p>
+                  <Film className="w-12 h-12 text-gray-200 mb-4" />
+                  <p className="text-brand-text-secondary font-medium">Сценарий появится здесь</p>
+                  <p className="text-sm text-brand-text-secondary mt-1">Осталось выбрать тему и нажать кнопку</p>
                 </motion.div>
               )}
 
@@ -315,8 +343,8 @@ export default function PostGenerator() {
                   className="h-full flex flex-col items-center justify-center text-center py-20 bg-white rounded-2xl border border-brand-border"
                 >
                   <Loader2 className="w-10 h-10 text-brand-accent animate-spin mb-4" />
-                  <p className="font-semibold text-brand-text">AI пишет пост...</p>
-                  <p className="text-sm text-brand-text-secondary mt-1">Обычно 10–20 секунд</p>
+                  <p className="font-semibold text-brand-text">ИИ режиссирует ваш Рилс...</p>
+                  <p className="text-sm text-brand-text-secondary mt-1">Обычно занимает 20 секунд</p>
                 </motion.div>
               )}
 
@@ -341,8 +369,8 @@ export default function PostGenerator() {
                   {/* Result header */}
                   <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border bg-brand-bg">
                     <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-green-400" />
-                      <span className="text-sm font-semibold text-brand-text">Готово!</span>
+                      <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                      <span className="text-sm font-semibold text-brand-text">Скрипт готов!</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -353,7 +381,7 @@ export default function PostGenerator() {
                       </button>
                       <button
                         onClick={handleCopy}
-                        className="flex items-center gap-1.5 text-xs font-semibold text-white bg-brand-accent hover:bg-brand-accent-hover transition cursor-pointer px-3 py-1.5 rounded-lg"
+                        className="flex items-center gap-1.5 text-xs font-semibold text-white bg-indigo-500 hover:bg-indigo-600 transition cursor-pointer px-3 py-1.5 rounded-lg"
                       >
                         {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                         {copied ? 'Скопировано!' : 'Копировать'}
@@ -363,12 +391,7 @@ export default function PostGenerator() {
 
                   {/* Content */}
                   <div className="p-6">
-                    {formatResult(result, selectedFormat)}
-                  </div>
-
-                  {/* Character count */}
-                  <div className="px-6 pb-4">
-                    <p className="text-xs text-brand-text-secondary">{result.length} символов</p>
+                    {formatResult(result)}
                   </div>
                 </motion.div>
               )}
