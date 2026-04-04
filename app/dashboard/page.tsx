@@ -97,13 +97,13 @@ export default function Dashboard() {
     },
     {
       icon: Wrench,
-      title: 'Промпты и инструкции',
-      desc: 'Готовые промпты для Canva, ChatGPT, HeyGen',
-      status: 'Скоро',
+      title: 'Исследование тем',
+      desc: 'Perplexity найдёт 30 трендовых тем в интернете под вашу нишу',
+      status: 'Открыть',
       color: 'text-orange-500',
       bg: 'bg-orange-50',
-      href: '#',
-      ready: false,
+      href: '/dashboard/research',
+      ready: true,
     },
     {
       icon: Star,
