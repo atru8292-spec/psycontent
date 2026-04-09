@@ -29,10 +29,7 @@ export default function Dashboard() {
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/')
-        return
-      }
+      if (!user) { router.push('/'); return }
       setUser(user)
 
       const { data } = await supabase
@@ -41,11 +38,7 @@ export default function Dashboard() {
         .eq('user_id', user.id)
         .single()
 
-      if (!data) {
-        router.push('/onboarding')
-        return
-      }
-
+      if (!data) { router.push('/onboarding'); return }
       setProfile(data)
       setLoading(false)
     }
@@ -60,12 +53,19 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full"></div>
+        <div className="animate-spin w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full" />
       </div>
     )
   }
 
-  const displayName = profile?.full_name || user?.user_metadata?.full_name || 'Специалист'
+  const displayName = profile?.full_name || 'Специалист'
+
+  const formatArray = (val: any) => {
+    if (!val) return '—'
+    if (Array.isArray(val)) return val.join(', ')
+    if (typeof val === 'string') return val
+    return '—'
+  }
 
   const tools = [
     {
@@ -101,7 +101,7 @@ export default function Dashboard() {
     {
       icon: Wrench,
       title: 'Исследование тем',
-      desc: 'Perplexity найдёт 30 трендовых тем в интернете под вашу нишу',
+      desc: 'AI найдёт 30 трендовых тем под вашу нишу',
       status: 'Открыть',
       color: 'text-orange-500',
       bg: 'bg-orange-50',
@@ -131,7 +131,7 @@ export default function Dashboard() {
     {
       icon: Lightbulb,
       title: 'Промпты и инструкции',
-      desc: '"Сходи туда" - готовые схемы',
+      desc: 'Готовые схемы для ChatGPT',
       status: 'Скоро',
       color: 'text-fuchsia-500',
       bg: 'bg-fuchsia-50',
@@ -151,7 +151,7 @@ export default function Dashboard() {
     {
       icon: BookOpen,
       title: 'База знаний',
-      desc: 'Мини-курс по SMM для психологов (7 уроков)',
+      desc: 'Мини-курс по SMM для психологов',
       status: 'Скоро',
       color: 'text-pink-500',
       bg: 'bg-pink-50',
@@ -215,25 +215,25 @@ export default function Dashboard() {
             <div className="p-4 rounded-xl bg-brand-bg">
               <p className="text-xs text-brand-text-secondary mb-1">Подход</p>
               <p className="text-sm font-semibold text-brand-text">
-                {profile?.approach?.join(', ') || '—'}
+                {formatArray(profile?.approaches)}
               </p>
             </div>
             <div className="p-4 rounded-xl bg-brand-bg">
               <p className="text-xs text-brand-text-secondary mb-1">Ниша</p>
               <p className="text-sm font-semibold text-brand-text">
-                {profile?.niche?.join(', ') || '—'}
+                {formatArray(profile?.niches)}
               </p>
             </div>
             <div className="p-4 rounded-xl bg-brand-bg">
-              <p className="text-xs text-brand-text-secondary mb-1">Тон общения</p>
-              <p className="text-sm font-semibold text-brand-text">
-                {profile?.tone || '—'}
+              <p className="text-xs text-brand-text-secondary mb-1">Голос бренда</p>
+              <p className="text-sm font-semibold text-brand-text line-clamp-2">
+                {profile?.live_voice || '—'}
               </p>
             </div>
             <div className="p-4 rounded-xl bg-brand-bg">
-              <p className="text-xs text-brand-text-secondary mb-1">Цель</p>
-              <p className="text-sm font-semibold text-brand-text">
-                {profile?.goal || '—'}
+              <p className="text-xs text-brand-text-secondary mb-1">Цель на 3 месяца</p>
+              <p className="text-sm font-semibold text-brand-text line-clamp-2">
+                {profile?.goal_3_months || '—'}
               </p>
             </div>
           </div>
@@ -248,11 +248,11 @@ export default function Dashboard() {
             <div className="p-4 rounded-xl bg-brand-bg">
               <p className="text-xs text-brand-text-secondary mb-1">Площадки</p>
               <p className="text-sm font-semibold text-brand-text">
-                {profile?.platforms?.join(', ') || '—'}
+                {formatArray(profile?.platforms)}
               </p>
             </div>
             <div className="p-4 rounded-xl bg-brand-bg">
-              <p className="text-xs text-brand-text-secondary mb-1">Клиентов в месяц</p>
+              <p className="text-xs text-brand-text-secondary mb-1">Клиентов сейчас</p>
               <p className="text-sm font-semibold text-brand-text">
                 {profile?.current_clients || '—'}
               </p>
@@ -311,8 +311,8 @@ export default function Dashboard() {
             Вы уже на шаг впереди 90% психологов 🚀
           </h3>
           <p className="text-white/80 max-w-lg mx-auto">
-            Вы прошли распаковку и теперь мы знаем ваш голос. Скоро здесь появятся
-            инструменты, которые превратят ваши знания в контент, привлекающий клиентов.
+            Вы прошли распаковку и теперь мы знаем ваш голос. Используйте инструменты
+            чтобы превратить знания в контент, привлекающий клиентов.
           </p>
         </motion.div>
       </div>
