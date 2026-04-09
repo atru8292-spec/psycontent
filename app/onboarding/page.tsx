@@ -20,8 +20,7 @@ const blocks = [
 const questions = [
   // --- БЛОК 1: КТО ВЫ ---
   {
-    block: 0,
-    key: 'full_name',
+    block: 0, key: 'full_name',
     title: 'Как вас зовут? И как клиенты к вам обращаются?',
     subtitle: 'Это влияет на тон ваших постов — будут они на "вы" или на "ты", формальные или дружеские.',
     type: 'text_and_single',
@@ -30,8 +29,7 @@ const questions = [
     optionsKey: 'appeal'
   },
   {
-    block: 0,
-    key: 'approaches',
+    block: 0, key: 'approaches',
     title: 'В каком подходе вы работаете?',
     subtitle: 'Какой подход ОСНОВНОЙ — тот, через который вы смотрите на мир?',
     type: 'multi',
@@ -43,8 +41,7 @@ const questions = [
     ]
   },
   {
-    block: 0,
-    key: 'niches',
+    block: 0, key: 'niches',
     title: 'С чем вы работаете чаще всего?',
     subtitle: 'А если бы вы могли работать ТОЛЬКО с одной проблемой до конца жизни — какая бы это была?',
     type: 'multi_and_text',
@@ -58,8 +55,7 @@ const questions = [
     textPlaceholder: 'Моя единственная проблема для работы — это... потому что...'
   },
   {
-    block: 0,
-    key: 'experience',
+    block: 0, key: 'experience',
     title: 'Ваш опыт и путь в профессию',
     subtitle: 'Как вы пришли в психологию? Не биография, а момент.',
     type: 'single_and_text',
@@ -68,8 +64,7 @@ const questions = [
     textPlaceholder: 'Например: Мне было 28, я сидела в офисе и поняла что ненавижу каждый понедельник...'
   },
   {
-    block: 0,
-    key: 'formats',
+    block: 0, key: 'formats',
     title: 'Как вы работаете и стоимость сессии?',
     subtitle: 'Форматы работы и примерная цена.',
     type: 'multi_and_single',
@@ -80,8 +75,7 @@ const questions = [
 
   // --- БЛОК 2: ВАШ ГОЛОС ---
   {
-    block: 1,
-    key: 'tone_sliders',
+    block: 1, key: 'tone_sliders',
     title: 'Какой у вас тон общения?',
     subtitle: 'Представьте что вы пишете пост.',
     type: 'sliders',
@@ -92,8 +86,7 @@ const questions = [
     ]
   },
   {
-    block: 1,
-    key: 'tone_verbal',
+    block: 1, key: 'tone_verbal',
     title: 'Как вы обычно разговариваете с клиентами?',
     subtitle: 'Выберите самый близкий стиль',
     type: 'single',
@@ -106,8 +99,7 @@ const questions = [
     ],
   },
   {
-    block: 1,
-    key: 'values',
+    block: 1, key: 'values',
     title: 'Что для вас САМОЕ важное в работе?',
     subtitle: 'И что делаете не так, как другие? (допишите текстом)',
     type: 'multi_and_text',
@@ -121,8 +113,7 @@ const questions = [
     textPlaceholder: 'Я делаю не так как другие вот что...'
   },
   {
-    block: 1,
-    key: 'anti_values',
+    block: 1, key: 'anti_values',
     title: 'Что вас раздражает в индустрии?',
     subtitle: 'Ваши антиценности — золото для контента.',
     type: 'multi_and_text',
@@ -135,8 +126,7 @@ const questions = [
     textPlaceholder: 'Если бы я мог(ла) сказать ОДНУ вещь всем коллегам — я бы сказал(а)...'
   },
   {
-    block: 1,
-    key: 'superpowers',
+    block: 1, key: 'superpowers',
     title: 'Что вам говорят клиенты? За что ценят?',
     subtitle: 'Ваши суперсилы в глазах клиентов',
     type: 'multi',
@@ -147,8 +137,7 @@ const questions = [
     ]
   },
   {
-    block: 1,
-    key: 'content_struggles',
+    block: 1, key: 'content_struggles',
     title: 'Что СЛОЖНО в ведении блога?',
     subtitle: 'Честно — это поможет подобрать инструменты.',
     type: 'multi',
@@ -158,18 +147,16 @@ const questions = [
     ]
   },
   {
-    block: 1,
-    key: 'live_voice',
+    block: 1, key: 'live_voice',
     title: 'Самый важный вопрос — ваш живой голос',
     subtitle: 'Представьте: вы на вечеринке. Друг: «А чем вы занимаетесь? И чем отличаетесь от других?»',
     type: 'textarea',
-    placeholder: 'Говорите как есть. Без "оказание психологической помощи". Просто — кто вы и почему вам не всё равно. Например: "Я работаю с людьми которые выгорели. Знаешь, те которые на работе — звезды..."'
+    placeholder: 'Говорите как есть. Без "оказание психологической помощи". Просто — кто вы и почему вам не всё равно.'
   },
 
   // --- БЛОК 3: ИДЕАЛЬНЫЙ КЛИЕНТ ---
   {
-    block: 2,
-    key: 'client_avatar',
+    block: 2, key: 'client_avatar',
     title: 'Кто ваш идеальный клиент?',
     subtitle: 'После сессии с которым вы думаете "вот ради этого я в профессии".',
     type: 'single_and_text',
@@ -178,16 +165,14 @@ const questions = [
     textPlaceholder: 'Чем этот человек занимается? (Например: IT-менеджер, мама в декрете, предприниматель)'
   },
   {
-    block: 2,
-    key: 'client_pain_phrases',
+    block: 2, key: 'client_pain_phrases',
     title: 'Как ОН описывает свою боль?',
     subtitle: 'Не диагноз, а 2-3 прямые фразы, которые вы слышите на первых сессиях.',
     type: 'textarea',
     placeholder: 'Например: "Я устала быть сильной", "Мозг не выключается", "Мы с мужем живём как соседи"...'
   },
   {
-    block: 2,
-    key: 'client_tried',
+    block: 2, key: 'client_tried',
     title: 'Что клиент уже пробовал ДО вас?',
     subtitle: 'И что ему мешает прийти (главный страх)?',
     type: 'multi',
@@ -196,8 +181,7 @@ const questions = [
     ]
   },
   {
-    block: 2,
-    key: 'client_fear',
+    block: 2, key: 'client_fear',
     title: 'Какой у него главный страх перед терапией?',
     subtitle: 'Что мешает записаться?',
     type: 'multi',
@@ -206,8 +190,7 @@ const questions = [
     ]
   },
   {
-    block: 2,
-    key: 'client_result',
+    block: 2, key: 'client_result',
     title: 'Результат работы. Что он ДЕЛАЕТ по-другому?',
     subtitle: 'Не «становится лучше», а конкретика.',
     type: 'textarea',
@@ -216,8 +199,7 @@ const questions = [
 
   // --- БЛОК 4: ГДЕ ВЫ СЕЙЧАС ---
   {
-    block: 3,
-    key: 'platforms',
+    block: 3, key: 'platforms',
     title: 'Где ведёте (или хотите) блог?',
     subtitle: 'И сколько у вас подписчиков сегодня?',
     type: 'multi_and_single',
@@ -226,8 +208,7 @@ const questions = [
     singleOptions: ['0', 'до 500', '500-2000', '2000-5000', '5000+']
   },
   {
-    block: 3,
-    key: 'client_source',
+    block: 3, key: 'client_source',
     title: 'Откуда сейчас приходят клиенты?',
     subtitle: 'И сколько их в месяц?',
     type: 'multi_and_single',
@@ -236,8 +217,7 @@ const questions = [
     singleOptions: ['0-3', '3-8', '8-15', '15-25', '25+']
   },
   {
-    block: 3,
-    key: 'content_pain',
+    block: 3, key: 'content_pain',
     title: 'ОДНА главная проблема с контентом прямо сейчас',
     subtitle: 'Опишите подробнее как это проявляется в жизни.',
     type: 'single_and_text',
@@ -250,16 +230,14 @@ const questions = [
 
   // --- БЛОК 5: КУДА ХОТИТЕ ---
   {
-    block: 4,
-    key: 'desired_clients',
+    block: 4, key: 'desired_clients',
     title: 'Сколько клиентов вы ХОТИТЕ?',
     subtitle: 'Ваша цель',
     type: 'single',
     options: ['5-10/мес (начать поток)', '10-20 (стабильно)', '20-30 (полная запись)', 'Повысить чек (запись полная)']
   },
   {
-    block: 4,
-    key: 'goal_3_months',
+    block: 4, key: 'goal_3_months',
     title: 'Цель на 3 месяца и время на контент',
     subtitle: 'Выберите главную цель и сколько ресурса есть.',
     type: 'single_and_single',
@@ -271,8 +249,7 @@ const questions = [
     single2Key: 'time_available'
   },
   {
-    block: 4,
-    key: 'video_attitude',
+    block: 4, key: 'video_attitude',
     title: 'Как относитесь к видео (Reels / Shorts)?',
     subtitle: 'Мы не будем заставлять.',
     type: 'single',
@@ -281,8 +258,7 @@ const questions = [
     ]
   },
   {
-    block: 4,
-    key: 'dream_blog',
+    block: 4, key: 'dream_blog',
     title: 'Представьте идеальную картину через год.',
     subtitle: 'Что вы чувствуете открывая директ утром?',
     type: 'textarea',
@@ -291,8 +267,7 @@ const questions = [
 
   // --- БЛОК 6: ФИНАЛЬНЫЙ ШТРИХ ---
   {
-    block: 5,
-    key: 'idols',
+    block: 5, key: 'idols',
     title: 'Чей контент вам нравится?',
     subtitle: 'Есть психологи, которыми восхищаетесь?',
     type: 'text_and_multi',
@@ -301,8 +276,7 @@ const questions = [
     optionsKey: 'idols_why'
   },
   {
-    block: 5,
-    key: 'something_else',
+    block: 5, key: 'something_else',
     title: 'Что-то ещё?',
     subtitle: 'Необычный опыт, хобби, нестандартный путь?',
     type: 'textarea',
@@ -323,20 +297,17 @@ export default function Onboarding() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
       setUserId(user.id)
-
       const { data } = await supabase
         .from('onboarding_profiles')
         .select('id')
         .eq('user_id', user.id)
         .single()
-
       if (data) router.push('/dashboard')
     }
     checkUser()
   }, [router])
 
   const handleStart = () => setStep(0)
-
   const currentQuestion = step >= 0 ? questions[step] : null
   const currentBlock = currentQuestion ? blocks[currentQuestion.block] : null
   const progress = ((step) / questions.length) * 100
@@ -353,17 +324,20 @@ export default function Onboarding() {
 
   const canProceed = () => {
     if (!currentQuestion) return false
-    const { key, type, textKey, singleKey, optionsKey, single2Key } = currentQuestion as any
+    const { key, type } = currentQuestion
+    const textKey = (currentQuestion as any).textKey
+    const singleKey = (currentQuestion as any).singleKey
+    const optionsKey = (currentQuestion as any).optionsKey
+    const single2Key = (currentQuestion as any).single2Key
 
     if (type === 'text' || type === 'textarea') return (answers[key]?.length > 2)
     if (type === 'single') return !!answers[key]
     if (type === 'multi') return (answers[key]?.length > 0)
-
-    if (type === 'text_and_single') return (answers[key]?.length > 2 && !!answers[optionsKey!])
-    if (type === 'multi_and_text') return (answers[key]?.length > 0 && answers[textKey!]?.length > 2)
-    if (type === 'single_and_text') return (answers[key] && answers[textKey!]?.length > 2)
-    if (type === 'multi_and_single') return (answers[key]?.length > 0 && !!answers[singleKey!])
-    if (type === 'single_and_single') return (answers[key] && !!answers[single2Key!])
+    if (type === 'text_and_single') return (answers[key]?.length > 2 && !!answers[optionsKey])
+    if (type === 'multi_and_text') return (answers[key]?.length > 0 && answers[textKey]?.length > 2)
+    if (type === 'single_and_text') return (answers[key] && answers[textKey]?.length > 2)
+    if (type === 'multi_and_single') return (answers[key]?.length > 0 && !!answers[singleKey])
+    if (type === 'single_and_single') return (answers[key] && !!answers[single2Key])
     if (type === 'text_and_multi') return true
     if (type === 'sliders') return true
     return true
@@ -382,10 +356,6 @@ export default function Onboarding() {
     if (!userId) return
     setLoading(true)
 
-    const t_form = answers.tone_formal || 50
-    const t_ser = answers.tone_serious || 50
-    const t_cau = answers.tone_cautious || 50
-
     const profileData = {
       user_id: userId,
       full_name: answers.full_name || '',
@@ -397,12 +367,10 @@ export default function Onboarding() {
       path_to_profession: answers.path_to_profession || '',
       formats: answers.formats || [],
       price: answers.price || '',
-
-      tone_formal: t_form,
-      tone_serious: t_ser,
-      tone_cautious: t_cau,
+      tone_formal: answers.tone_formal || 50,
+      tone_serious: answers.tone_serious || 50,
+      tone_cautious: answers.tone_cautious || 50,
       tone_verbal: answers.tone_verbal || '',
-
       values: answers.values || [],
       values_custom: answers.values_custom || '',
       anti_values: answers.anti_values || [],
@@ -410,27 +378,23 @@ export default function Onboarding() {
       superpowers: answers.superpowers || [],
       content_struggles: answers.content_struggles || [],
       live_voice: answers.live_voice || '',
-
       client_avatar: answers.client_avatar || '',
       client_job: answers.client_job || '',
       client_pain_phrases: answers.client_pain_phrases || '',
       client_tried: answers.client_tried || [],
       client_fear: answers.client_fear || [],
       client_result: answers.client_result || '',
-
       platforms: answers.platforms || [],
       current_followers: answers.current_followers || '',
       current_clients: answers.current_clients || '',
       client_source: answers.client_source || [],
       content_pain: answers.content_pain || '',
       content_pain_detail: answers.content_pain_detail || '',
-
       desired_clients: answers.desired_clients || '',
       goal_3_months: answers.goal_3_months || '',
       time_available: answers.time_available || '',
       video_attitude: answers.video_attitude || '',
       dream_blog: answers.dream_blog || '',
-
       idols: answers.idols || '',
       idols_why: answers.idols_why || [],
       something_else: answers.something_else || '',
@@ -442,15 +406,16 @@ export default function Onboarding() {
 
     if (error) {
       console.error('Save error:', error)
-      alert('Ошибка при сохранении. Проверьте добавлены ли новые колонки в Supabase (см. инструкцию).')
+      alert('Ошибка при сохранении. Проверьте добавлены ли новые колонки в Supabase.')
       setLoading(false)
       return
     }
-
     setCompleted(true)
   }
 
-  // --- ЭКРАН ЗАВЕРШЕНИЯ ---
+  // ═══════════════════════════════════
+  // ЭКРАН ЗАВЕРШЕНИЯ
+  // ═══════════════════════════════════
   if (completed) {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center p-6">
@@ -475,39 +440,83 @@ export default function Onboarding() {
     )
   }
 
-  // --- ЭКРАН ПРИВЕТСТВИЯ ---
+  // ═══════════════════════════════════
+  // ЭКРАН ПРИВЕТСТВИЯ (обновлённый)
+  // ═══════════════════════════════════
   if (step === -1) {
     return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center p-6 bg-[url('/noise.png')]">
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center p-6">
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="max-w-2xl bg-white rounded-3xl p-8 md:p-12 border border-brand-border shadow-2xl">
+
           <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 px-4 py-2 rounded-full text-sm font-bold mb-6">
-            <Sparkles className="w-4 h-4" /> Глубокая распаковка
+            <Sparkles className="w-4 h-4" /> Сейчас будет непривычно
           </div>
-          <h1 className="text-3xl md:text-5xl font-extrabold text-brand-text mb-6">Давайте познакомимся. По-настоящему.</h1>
 
-          <div className="prose prose-lg text-brand-text-secondary mb-8 leading-relaxed">
-            <p>Сейчас будет 22 вопроса — это займёт около <strong>25 минут</strong>. Заварите чай ☕</p>
-            <p>Почему так долго? Потому что мы не делаем шаблонный контент. Мы создаём ВАШ голос. Чем больше мы о вас узнаем — тем точнее будут посты. Они будут звучать как вы.</p>
+          <h1 className="text-3xl md:text-5xl font-extrabold text-brand-text mb-4">
+            Присаживайтесь поудобнее.
+          </h1>
+          <p className="text-xl md:text-2xl text-brand-text-secondary mb-8">
+            Сейчас <span className="text-brand-accent font-bold">мы</span> проведём сессию с <span className="text-brand-accent font-bold">вами</span>.
+            <br className="hidden md:block" />
+            Да-да, на этот раз вы — клиент 😉
+          </p>
 
-            <div className="bg-orange-50 border border-orange-100 p-5 rounded-xl my-6 text-base">
-              <span className="font-bold text-orange-800">Три совета:</span>
-              <ul className="mt-2 space-y-2 text-orange-700">
-                <li>1. Отвечайте честно, а не «правильно».</li>
-                <li>2. Пишите <b>как говорите</b>. Без «оказание психологической помощи».</li>
-                <li>3. Если вопрос вызывает ступор — первое что пришло в голову обычно самое точное.</li>
-              </ul>
+          <div className="bg-gray-50 rounded-2xl p-6 mb-8 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-sm">🎯</span>
+              </div>
+              <div>
+                <p className="font-bold text-brand-text">22 вопроса, ~15 минут</p>
+                <p className="text-sm text-brand-text-secondary">Заварите чай. Это как первая встреча — только вы рассказываете о себе как о специалисте.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-sm">🔥</span>
+              </div>
+              <div>
+                <p className="font-bold text-brand-text">Зачем так много?</p>
+                <p className="text-sm text-brand-text-secondary">Чем глубже мы вас узнаем — тем точнее будут посты. Они будут звучать как вы, а не как робот.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-sm">✨</span>
+              </div>
+              <div>
+                <p className="font-bold text-brand-text">Что вы получите</p>
+                <p className="text-sm text-brand-text-secondary">Паспорт бренда, контент-план на месяц и посты, которые звучат так, будто вы сами сели и написали.</p>
+              </div>
             </div>
           </div>
 
-          <button onClick={handleStart} className="w-full md:w-auto px-8 py-4 bg-brand-text hover:bg-black text-white rounded-xl font-bold text-lg transition flex items-center justify-center gap-3 cursor-pointer">
-            Начать распаковку <ArrowRight className="w-6 h-6" />
+          <div className="bg-orange-50 border border-orange-100 p-5 rounded-xl mb-8">
+            <p className="font-bold text-orange-800 mb-2">📋 Правила нашей сессии:</p>
+            <ul className="space-y-1.5 text-sm text-orange-700">
+              <li>1. <b>Отвечайте как говорите</b>, а не как пишете в резюме</li>
+              <li>2. <b>«Оказание психологической помощи»</b> — запрещённая фраза 😄</li>
+              <li>3. Первое что пришло в голову — обычно самое точное</li>
+              <li>4. Нет правильных ответов. Есть ваши</li>
+            </ul>
+          </div>
+
+          <button onClick={handleStart} className="w-full md:w-auto px-8 py-4 bg-brand-accent hover:bg-brand-accent-hover text-white rounded-xl font-bold text-lg transition flex items-center justify-center gap-3 cursor-pointer shadow-lg shadow-brand-accent/25">
+            Я готов(а), начинаем <ArrowRight className="w-6 h-6" />
           </button>
+
+          <p className="text-xs text-brand-text-secondary mt-4 opacity-60">
+            Можно прерваться и вернуться — прогресс сохранится
+          </p>
         </motion.div>
       </div>
     )
   }
 
-   // --- ОНБОРДИНГ ШАГИ ---
+  // ═══════════════════════════════════
+  // ОНБОРДИНГ ШАГИ
+  // ═══════════════════════════════════
   const q = currentQuestion!
 
   return (
@@ -582,9 +591,18 @@ export default function Onboarding() {
                 </div>
               )}
 
-              {/* 3. Дополнительный textarea (multi_and_text, single_and_text) */}
+              {/* 3. Дополнительный textarea с подписью */}
               {((q as any).textKey) && (
                 <div className="pt-6 mt-6 border-t border-gray-100">
+                  <p className="font-bold text-brand-text mb-3 text-lg">
+                    {q.key === 'niches' && 'А если бы можно было выбрать только одну проблему — с чем бы вы работали и почему именно с этим? 💭'}
+                    {q.key === 'experience' && 'Расскажите, как всё началось. Что в какой-то момент щёлкнуло и вы поняли — хочу в психологию? 🤔'}
+                    {q.key === 'values' && 'А вот что интересно — чем вы отличаетесь от коллег? Что делаете по-своему? ✨'}
+                    {q.key === 'anti_values' && 'Представьте, что вас слышат все коллеги разом. Что бы вы им сказали? Без цензуры 😄'}
+                    {q.key === 'client_avatar' && 'Расскажите про этого человека — кто он, чем занимается, как живёт? 🙂'}
+                    {q.key === 'content_pain' && 'Опишите как это обычно происходит. Вот вы садитесь писать пост — и что дальше? 👀'}
+                    {!['niches', 'experience', 'values', 'anti_values', 'client_avatar', 'content_pain'].includes(q.key) && 'Расскажите подробнее, нам правда интересно 🙂'}
+                  </p>
                   <textarea
                     value={answers[(q as any).textKey] || ''} onChange={e => setAnswers({ ...answers, [(q as any).textKey]: e.target.value })}
                     placeholder={(q as any).textPlaceholder} rows={3}
@@ -593,14 +611,16 @@ export default function Onboarding() {
                 </div>
               )}
 
-              {/* 4. Дополнительная сетка опций (text_and_single, text_and_multi, multi_and_single, single_and_single) */}
+              {/* 4. Дополнительная сетка опций */}
               {((q as any).optionsKey || (q as any).singleKey || (q as any).single2Key) && (
                 <div className="pt-6 mt-6 border-t border-gray-100">
                   <p className="font-bold text-brand-text mb-4 text-lg">
                     {q.type === 'text_and_single' ? 'И как нам к вам обращаться?' :
-                      q.type === 'multi_and_single' ? 'Примерная стоимость вашей сессии?' :
-                        (q as any).single2Key === 'time_available' ? 'Сколько времени вы готовы тратить на блог?' :
-                          'Укажите дополнительно:'}
+                      q.type === 'multi_and_single' && (q as any).singleKey === 'price' ? 'А примерная стоимость вашей сессии?' :
+                      q.type === 'multi_and_single' && (q as any).singleKey === 'current_followers' ? 'И сколько сейчас подписчиков?' :
+                      q.type === 'multi_and_single' && (q as any).singleKey === 'current_clients' ? 'И сколько клиентов в месяц?' :
+                      (q as any).single2Key === 'time_available' ? 'Сколько времени готовы уделять блогу?' :
+                      'Уточните:'}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {((q as any).singleOptions || (q as any).options2 || (q as any).options || []).map((opt: string) => {
@@ -673,3 +693,4 @@ export default function Onboarding() {
     </div>
   )
 }
+            
