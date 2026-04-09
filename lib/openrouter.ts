@@ -1,3 +1,4 @@
+// Claude for text generation (posts, reels, rewrite, content plan, passport)
 export async function generateWithAI(systemPrompt: string, userPrompt: string) {
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
@@ -8,7 +9,7 @@ export async function generateWithAI(systemPrompt: string, userPrompt: string) {
       'X-Title': 'PsyContent',
     },
     body: JSON.stringify({
-      model: 'openai/gpt-4o-mini',
+      model: 'anthropic/claude-sonnet-4-20250514',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
@@ -27,7 +28,7 @@ export async function generateWithAI(systemPrompt: string, userPrompt: string) {
   return data.choices[0].message.content
 }
 
-// Perplexity with web search — for research & trending topics
+// Perplexity for web search (research & trending topics)
 export async function generateWithWebSearch(userPrompt: string) {
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
