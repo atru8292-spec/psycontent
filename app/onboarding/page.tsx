@@ -8,7 +8,6 @@ import {
   Sparkles, ArrowRight, ArrowLeft, CheckCircle, User, MessageCircle, Heart, MapPin, Flag, Star
 } from 'lucide-react'
 
-// БЛОКИ РАСПАКОВКИ
 const blocks = [
   { id: 'who', title: 'Кто вы', icon: User, color: 'text-purple-600 bg-purple-100' },
   { id: 'voice', title: 'Ваш голос', icon: MessageCircle, color: 'text-orange-600 bg-orange-100' },
@@ -18,9 +17,8 @@ const blocks = [
   { id: 'final', title: 'Финальный штрих', icon: Star, color: 'text-yellow-600 bg-yellow-100' },
 ]
 
-// ВОПРОСЫ
 const questions = [
-  // --- БЛОК 1 ---
+  // --- БЛОК 1: КТО ВЫ ---
   {
     block: 0,
     key: 'full_name',
@@ -38,9 +36,9 @@ const questions = [
     subtitle: 'Какой подход ОСНОВНОЙ — тот, через который вы смотрите на мир?',
     type: 'multi',
     options: [
-      'КПТ (когнитивно-поведенческая)', 'Гештальт-терапия', 'Психоанализ', 
-      'Экзистенциальная терапия', 'Системная семейная терапия', 'Арт-терапия', 
-      'ACT (терапия принятия)', 'Схема-терапия', 'EMDR', 
+      'КПТ (когнитивно-поведенческая)', 'Гештальт-терапия', 'Психоанализ',
+      'Экзистенциальная терапия', 'Системная семейная терапия', 'Арт-терапия',
+      'ACT (терапия принятия)', 'Схема-терапия', 'EMDR',
       'Телесно-ориентированная терапия', 'Эклектика / интегративный'
     ]
   },
@@ -80,7 +78,7 @@ const questions = [
     singleOptions: ['до 3000₽', '3000-5000₽', '5000-7000₽', '7000-10000₽', '10000₽+']
   },
 
-  // --- БЛОК 2 ---
+  // --- БЛОК 2: ВАШ ГОЛОС ---
   {
     block: 1,
     key: 'tone_sliders',
@@ -168,7 +166,7 @@ const questions = [
     placeholder: 'Говорите как есть. Без "оказание психологической помощи". Просто — кто вы и почему вам не всё равно. Например: "Я работаю с людьми которые выгорели. Знаешь, те которые на работе — звезды..."'
   },
 
-  // --- БЛОК 3 ---
+  // --- БЛОК 3: ИДЕАЛЬНЫЙ КЛИЕНТ ---
   {
     block: 2,
     key: 'client_avatar',
@@ -216,7 +214,7 @@ const questions = [
     placeholder: 'Например: "Перестала звонить бывшему в 3 часа ночи", "Впервые взял отпуск и не проверял почту"...'
   },
 
-  // --- БЛОК 4 ---
+  // --- БЛОК 4: ГДЕ ВЫ СЕЙЧАС ---
   {
     block: 3,
     key: 'platforms',
@@ -250,7 +248,7 @@ const questions = [
     textPlaceholder: 'Например: Я могу сидеть перед пустым листом 3 часа, потом пишу сухой текст, выкладываю — и 2 лайка...'
   },
 
-  // --- БЛОК 5 ---
+  // --- БЛОК 5: КУДА ХОТИТЕ ---
   {
     block: 4,
     key: 'desired_clients',
@@ -291,7 +289,7 @@ const questions = [
     placeholder: 'Мечтайте конкретно: "открываю директ — 3 заявки, все по моей специализации, я выбираю с кем работать..."'
   },
 
-  // --- БЛОК 6 ---
+  // --- БЛОК 6: ФИНАЛЬНЫЙ ШТРИХ ---
   {
     block: 5,
     key: 'idols',
@@ -313,7 +311,7 @@ const questions = [
 ]
 
 export default function Onboarding() {
-  const [step, setStep] = useState(-1) // -1 is welcome screen
+  const [step, setStep] = useState(-1)
   const [answers, setAnswers] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(false)
   const [completed, setCompleted] = useState(false)
@@ -338,38 +336,36 @@ export default function Onboarding() {
   }, [router])
 
   const handleStart = () => setStep(0)
-  
+
   const currentQuestion = step >= 0 ? questions[step] : null
   const currentBlock = currentQuestion ? blocks[currentQuestion.block] : null
   const progress = ((step) / questions.length) * 100
 
-  // Утилита: безопасно прочитать/изменить массив
   const toggleArrayItem = (key: string, item: string, max?: number) => {
     const arr = answers[key] || []
     if (arr.includes(item)) {
       setAnswers({ ...answers, [key]: arr.filter((i: string) => i !== item) })
     } else {
-      if (max && arr.length >= max) return // лимит
+      if (max && arr.length >= max) return
       setAnswers({ ...answers, [key]: [...arr, item] })
     }
   }
 
-  // Роутинг логики полей
   const canProceed = () => {
     if (!currentQuestion) return false
-    const { key, type, textKey, singleKey, optionsKey, single2Key } = currentQuestion
-    
+    const { key, type, textKey, singleKey, optionsKey, single2Key } = currentQuestion as any
+
     if (type === 'text' || type === 'textarea') return (answers[key]?.length > 2)
     if (type === 'single') return !!answers[key]
     if (type === 'multi') return (answers[key]?.length > 0)
-    
+
     if (type === 'text_and_single') return (answers[key]?.length > 2 && !!answers[optionsKey!])
     if (type === 'multi_and_text') return (answers[key]?.length > 0 && answers[textKey!]?.length > 2)
     if (type === 'single_and_text') return (answers[key] && answers[textKey!]?.length > 2)
     if (type === 'multi_and_single') return (answers[key]?.length > 0 && !!answers[singleKey!])
     if (type === 'single_and_single') return (answers[key] && !!answers[single2Key!])
-    if (type === 'text_and_multi') return true // optional
-    if (type === 'sliders') return true // always proceed, defaults applied at save
+    if (type === 'text_and_multi') return true
+    if (type === 'sliders') return true
     return true
   }
 
@@ -386,12 +382,10 @@ export default function Onboarding() {
     if (!userId) return
     setLoading(true)
 
-    // Если "sliders" не трогались, поставим базу (50)
     const t_form = answers.tone_formal || 50
     const t_ser = answers.tone_serious || 50
     const t_cau = answers.tone_cautious || 50
 
-    // Пакуем всё аккуратно (22+ полей)
     const profileData = {
       user_id: userId,
       full_name: answers.full_name || '',
@@ -403,12 +397,12 @@ export default function Onboarding() {
       path_to_profession: answers.path_to_profession || '',
       formats: answers.formats || [],
       price: answers.price || '',
-      
+
       tone_formal: t_form,
       tone_serious: t_ser,
       tone_cautious: t_cau,
       tone_verbal: answers.tone_verbal || '',
-      
+
       values: answers.values || [],
       values_custom: answers.values_custom || '',
       anti_values: answers.anti_values || [],
@@ -416,27 +410,27 @@ export default function Onboarding() {
       superpowers: answers.superpowers || [],
       content_struggles: answers.content_struggles || [],
       live_voice: answers.live_voice || '',
-      
+
       client_avatar: answers.client_avatar || '',
       client_job: answers.client_job || '',
       client_pain_phrases: answers.client_pain_phrases || '',
       client_tried: answers.client_tried || [],
       client_fear: answers.client_fear || [],
       client_result: answers.client_result || '',
-      
+
       platforms: answers.platforms || [],
       current_followers: answers.current_followers || '',
       current_clients: answers.current_clients || '',
       client_source: answers.client_source || [],
       content_pain: answers.content_pain || '',
       content_pain_detail: answers.content_pain_detail || '',
-      
+
       desired_clients: answers.desired_clients || '',
       goal_3_months: answers.goal_3_months || '',
       time_available: answers.time_available || '',
       video_attitude: answers.video_attitude || '',
       dream_blog: answers.dream_blog || '',
-      
+
       idols: answers.idols || '',
       idols_why: answers.idols_why || [],
       something_else: answers.something_else || '',
@@ -490,11 +484,11 @@ export default function Onboarding() {
             <Sparkles className="w-4 h-4" /> Глубокая распаковка
           </div>
           <h1 className="text-3xl md:text-5xl font-extrabold text-brand-text mb-6">Давайте познакомимся. По-настоящему.</h1>
-          
+
           <div className="prose prose-lg text-brand-text-secondary mb-8 leading-relaxed">
             <p>Сейчас будет 22 вопроса — это займёт около <strong>25 минут</strong>. Заварите чай ☕</p>
             <p>Почему так долго? Потому что мы не делаем шаблонный контент. Мы создаём ВАШ голос. Чем больше мы о вас узнаем — тем точнее будут посты. Они будут звучать как вы.</p>
-            
+
             <div className="bg-orange-50 border border-orange-100 p-5 rounded-xl my-6 text-base">
               <span className="font-bold text-orange-800">Три совета:</span>
               <ul className="mt-2 space-y-2 text-orange-700">
@@ -513,9 +507,9 @@ export default function Onboarding() {
     )
   }
 
-  // --- ОНБОРДИНГ ШАГИ ---
+   // --- ОНБОРДИНГ ШАГИ ---
   const q = currentQuestion!
-  
+
   return (
     <div className="min-h-screen bg-brand-bg pb-24">
       {/* HEADER ПРОГРЕСС */}
@@ -538,7 +532,7 @@ export default function Onboarding() {
       <div className="max-w-3xl mx-auto px-6 pt-12">
         <AnimatePresence mode="wait">
           <motion.div key={step} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.3 }}>
-            
+
             <h2 className="text-2xl md:text-4xl font-extrabold text-brand-text mb-4 leading-tight">
               {q.title}
             </h2>
@@ -546,18 +540,18 @@ export default function Onboarding() {
 
             <div className="space-y-6">
 
-              {/* 1. Блок текстового ввода (для text, textarea) */}
+              {/* 1. Текстовый ввод (text, textarea, text_and_single, text_and_multi) */}
               {(q.type === 'text' || q.type === 'textarea' || q.type === 'text_and_single' || q.type === 'text_and_multi') && (
                 <div>
                   {q.type.includes('textarea') ? (
-                    <textarea 
-                      value={answers[q.key] || ''} onChange={e => setAnswers({...answers, [q.key]: e.target.value})}
+                    <textarea
+                      value={answers[q.key] || ''} onChange={e => setAnswers({ ...answers, [q.key]: e.target.value })}
                       placeholder={q.placeholder} rows={3}
                       className="w-full p-5 rounded-2xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-lg resize-none"
                     />
                   ) : (
-                    <input 
-                      type="text" value={answers[q.key] || ''} onChange={e => setAnswers({...answers, [q.key]: e.target.value})}
+                    <input
+                      type="text" value={answers[q.key] || ''} onChange={e => setAnswers({ ...answers, [q.key]: e.target.value })}
                       placeholder={q.placeholder}
                       className="w-full p-5 rounded-2xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-lg"
                     />
@@ -565,20 +559,20 @@ export default function Onboarding() {
                 </div>
               )}
 
-              {/* 2. Основная сетка опций (для single, multi, _and_ (кроме text_and_...)) */}
-              {(q.type === 'single' || q.type === 'multi' || q.type === 'multi_and_text' || q.type === 'single_and_text' || q.type === 'multi_and_single' || q.type === 'single_and_single') && (q.options || q.options1) && (
+              {/* 2. Основная сетка опций */}
+              {(q.type === 'single' || q.type === 'multi' || q.type === 'multi_and_text' || q.type === 'single_and_text' || q.type === 'multi_and_single' || q.type === 'single_and_single') && ((q as any).options || (q as any).options1) && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-                  {(q.options1 || q.options || []).map(opt => {
+                  {((q as any).options1 || (q as any).options || []).map((opt: string) => {
                     const isMulti = q.type.includes('multi')
                     const isSelected = isMulti ? (answers[q.key] || []).includes(opt) : answers[q.key] === opt
-                    
+
                     return (
-                      <button 
-                        key={opt} onClick={() => isMulti ? toggleArrayItem(q.key, opt, q.maxChoice) : setAnswers({...answers, [q.key]: opt})}
-                        className={`text-left p-4 rounded-xl border-2 transition font-medium cursor-pointer flex items-start gap-3 
-                          \${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                      <button
+                        key={opt}
+                        onClick={() => isMulti ? toggleArrayItem(q.key, opt, (q as any).maxChoice) : setAnswers({ ...answers, [q.key]: opt })}
+                        className={`text-left p-4 rounded-xl border-2 transition font-medium cursor-pointer flex items-start gap-3 ${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-gray-200 bg-white hover:border-gray-300'}`}
                       >
-                        <div className={`w-5 h-5 mt-0.5 rounded flex items-center justify-center shrink-0 border \${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
+                        <div className={`w-5 h-5 mt-0.5 rounded flex items-center justify-center shrink-0 border ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
                           {isSelected && <CheckCircle className="w-4 h-4 text-white" />}
                         </div>
                         {opt}
@@ -588,37 +582,40 @@ export default function Onboarding() {
                 </div>
               )}
 
-              {/* 3. Дополнительный текстовый ввод (textarea) (для multi_and_text, single_and_text) */}
-              {(q.textKey) && (
+              {/* 3. Дополнительный textarea (multi_and_text, single_and_text) */}
+              {((q as any).textKey) && (
                 <div className="pt-6 mt-6 border-t border-gray-100">
-                  <textarea 
-                    value={answers[q.textKey] || ''} onChange={e => setAnswers({...answers, [q.textKey]: e.target.value})}
-                    placeholder={q.textPlaceholder} rows={3}
+                  <textarea
+                    value={answers[(q as any).textKey] || ''} onChange={e => setAnswers({ ...answers, [(q as any).textKey]: e.target.value })}
+                    placeholder={(q as any).textPlaceholder} rows={3}
                     className="w-full p-5 rounded-2xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-lg resize-none"
                   />
                 </div>
               )}
 
               {/* 4. Дополнительная сетка опций (text_and_single, text_and_multi, multi_and_single, single_and_single) */}
-              {(q.optionsKey || q.singleKey || q.single2Key) && (
+              {((q as any).optionsKey || (q as any).singleKey || (q as any).single2Key) && (
                 <div className="pt-6 mt-6 border-t border-gray-100">
                   <p className="font-bold text-brand-text mb-4 text-lg">
-                    {q.type === 'text_and_single' ? 'И как нам к вам обращаться?' : 
-                     q.type === 'multi_and_single' ? 'Примерная стоимость вашей сессии?' :
-                     q.single2Key === 'time_available' ? 'Сколько времени вы готовы тратить на блог?' :
-                     'Укажите дополнительно:'}
+                    {q.type === 'text_and_single' ? 'И как нам к вам обращаться?' :
+                      q.type === 'multi_and_single' ? 'Примерная стоимость вашей сессии?' :
+                        (q as any).single2Key === 'time_available' ? 'Сколько времени вы готовы тратить на блог?' :
+                          'Укажите дополнительно:'}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Choose the right options array for the secondary select */}
-                    {(q.singleOptions || q.options2 || q.options || []).map(opt => {
-                      const tgtKey = q.optionsKey || q.singleKey || q.single2Key!
-                      const isMulti = q.type.includes('multi') && !!q.optionsKey // Only text_and_multi uses multi for secondary
+                    {((q as any).singleOptions || (q as any).options2 || (q as any).options || []).map((opt: string) => {
+                      const tgtKey = (q as any).optionsKey || (q as any).singleKey || (q as any).single2Key!
+                      const isMulti = q.type.includes('multi') && !!(q as any).optionsKey
                       const isSelected = isMulti ? (answers[tgtKey] || []).includes(opt) : answers[tgtKey] === opt
-                      
+
                       return (
-                        <button key={opt} onClick={() => isMulti ? toggleArrayItem(tgtKey, opt) : setAnswers({...answers, [tgtKey]: opt})} className={`p-4 rounded-xl border-2 font-medium transition cursor-pointer text-left flex items-start gap-3 \${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-gray-200 hover:bg-gray-50'}`}>
-                          <div className={`w-5 h-5 mt-0.5 rounded-full flex items-center justify-center shrink-0 border \${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
-                              {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
+                        <button
+                          key={opt}
+                          onClick={() => isMulti ? toggleArrayItem(tgtKey, opt) : setAnswers({ ...answers, [tgtKey]: opt })}
+                          className={`p-4 rounded-xl border-2 font-medium transition cursor-pointer text-left flex items-start gap-3 ${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-gray-200 hover:bg-gray-50'}`}
+                        >
+                          <div className={`w-5 h-5 mt-0.5 rounded-full flex items-center justify-center shrink-0 border ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
+                            {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
                           </div>
                           {opt}
                         </button>
@@ -628,19 +625,19 @@ export default function Onboarding() {
                 </div>
               )}
 
-              {/* Sliders (Tone of voice) */}
-              {q.type === 'sliders' && q.sliders && (
+              {/* 5. Слайдеры (Тон голоса) */}
+              {q.type === 'sliders' && (q as any).sliders && (
                 <div className="space-y-10 bg-white p-8 rounded-3xl border border-gray-100 mt-6 shadow-sm">
-                  {q.sliders.map(slider => (
+                  {(q as any).sliders.map((slider: any) => (
                     <div key={slider.key}>
                       <div className="flex justify-between text-sm font-bold text-gray-400 mb-4 px-2 uppercase tracking-wide">
                         <span className={answers[slider.key] < 50 ? 'text-indigo-600' : ''}>{slider.left}</span>
                         <span className={answers[slider.key] > 50 ? 'text-indigo-600' : ''}>{slider.right}</span>
                       </div>
-                      <input 
-                        type="range" min="0" max="100" 
-                        value={answers[slider.key] || 50} 
-                        onChange={e => setAnswers({...answers, [slider.key]: Number(e.target.value)})}
+                      <input
+                        type="range" min="0" max="100"
+                        value={answers[slider.key] || 50}
+                        onChange={e => setAnswers({ ...answers, [slider.key]: Number(e.target.value) })}
                         className="w-full accent-indigo-600 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                       />
                     </div>
@@ -657,19 +654,19 @@ export default function Onboarding() {
       {/* FOOTER НАВИГАЦИЯ */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-brand-border py-4 px-6 z-50">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <button 
+          <button
             onClick={() => setStep(step - 1)} disabled={step === 0}
             className={`flex items-center gap-2 font-semibold transition cursor-pointer px-4 py-2 rounded-xl border-2 ${step === 0 ? 'text-gray-300 border-transparent' : 'text-gray-500 border-gray-200 hover:text-black hover:bg-gray-50'}`}
           >
             <ArrowLeft className="w-5 h-5" /> Назад
           </button>
-          
-          <button 
+
+          <button
             onClick={handleNext} disabled={!canProceed() || loading}
             className={`px-8 py-3 rounded-full font-bold flex items-center gap-2 transition shadow-lg cursor-pointer
               ${canProceed() && !loading ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200' : 'bg-gray-100 text-gray-400 shadow-none'}`}
           >
-            {loading ? 'Сохраняем...' : step === questions.length - 1 ? 'Завершить 🎉' : <>Далее <ArrowRight className="w-5 h-5"/></>}
+            {loading ? 'Сохраняем...' : step === questions.length - 1 ? 'Завершить 🎉' : <>Далее <ArrowRight className="w-5 h-5" /></>}
           </button>
         </div>
       </div>
