@@ -10,6 +10,20 @@ function getSupabaseAdmin() {
   )
 }
 
+function safeParseJSON(raw: string) {
+  let s = raw.trim()
+
+  if (s.startsWith('```')) {
+    const firstBracket = s.indexOf('[')
+    const lastBracket = s.lastIndexOf(']')
+    if (firstBracket >= 0 && lastBracket > firstBracket) {
+      s = s.slice(firstBracket, lastBracket + 1)
+    }
+  }
+
+  return JSON.parse(s)
+}
+
 function getApproachResearchFocus(approaches: string[]): string {
   const focus: Record<string, string> = {
     'КПТ': `КПТ-фокус для ресёрча:
@@ -93,13 +107,17 @@ function getApproachResearchFocus(approaches: string[]): string {
 
   const parts: string[] = []
   for (const approach of approaches) {
-    const key = Object.keys(focus).find(k =>
-      approach.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(approach.toLowerCase())
+    const key = Object.keys(focus).find(
+      k =>
+        approach.toLowerCase().includes(k.toLowerCase()) ||
+        k.toLowerCase().includes(approach.toLowerCase())
     )
     if (key) parts.push(focus[key])
   }
 
-  return parts.length > 0 ? parts.join('\n\n') : `Интегративный подход: ищи исследования по основным методам терапии, привязанности, самосостраданию, нейробиологии эмоций.`
+  return parts.length > 0
+    ? parts.join('\n\n')
+    : `Интегративный подход: ищи исследования по основным методам терапии, привязанности, самосостраданию, нейробиологии эмоций.`
 }
 
 function getApproachAuthors(approaches: string[]): string {
@@ -119,13 +137,17 @@ function getApproachAuthors(approaches: string[]): string {
 
   const parts: string[] = []
   for (const approach of approaches) {
-    const key = Object.keys(authors).find(k =>
-      approach.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(approach.toLowerCase())
+    const key = Object.keys(authors).find(
+      k =>
+        approach.toLowerCase().includes(k.toLowerCase()) ||
+        k.toLowerCase().includes(approach.toLowerCase())
     )
     if (key) parts.push(authors[key])
   }
 
-  parts.push('Универсальные: Карл Роджерс, Ирвин Ялом, Виктор Франкл, Эрих Фромм, Габор Матэ, Бессел ван дер Колк, Брене Браун')
+  parts.push(
+    'Универсальные: Карл Роджерс, Ирвин Ялом, Виктор Франкл, Эрих Фромм, Габор Матэ, Бессел ван дер Колк, Брене Браун'
+  )
 
   return parts.join('\n')
 }
@@ -148,7 +170,7 @@ export async function POST(request: NextRequest) {
 
     const [profileRes, passportRes] = await Promise.all([
       supabaseAdmin.from('onboarding_profiles').select('*').eq('user_id', userId).single(),
-      supabaseAdmin.from('brand_passports').select('content').eq('user_id', userId).single()
+      supabaseAdmin.from('brand_passports').select('content').eq('user_id', userId).single(),
     ])
 
     const profile = profileRes.data
@@ -256,13 +278,11 @@ Block строго: "trend" (12 штук), "science" (10 штук), "quote" (8 �
 
     const result = await generateWithWebSearch(prompt)
 
-    const jsonMatch = result.match(/$$[\s\S]*$$/)
-    if (!jsonMatch) throw new Error('AI не вернул валидный JSON')
-
-    let topics = []
+    let topics: any[] = []
     try {
-      topics = JSON.parse(jsonMatch[0])
-    } catch {
+      topics = safeParseJSON(result)
+    } catch (e: any) {
+      console.error('RAW AI RESULT:', result)
       throw new Error('Не удалось распарсить JSON от AI')
     }
 
@@ -272,14 +292,16 @@ Block строго: "trend" (12 штук), "science" (10 штук), "quote" (8 �
 
     await supabaseAdmin
       .from('researched_topics')
-      .upsert({
-        user_id: userId,
-        topics: topics,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' })
+      .upsert(
+        {
+          user_id: userId,
+          topics,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' }
+      )
 
     return NextResponse.json({ topics })
-
   } catch (error: any) {
     console.error('Research topics error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
