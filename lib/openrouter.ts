@@ -9,7 +9,7 @@ export async function generateWithAI(systemPrompt: string, userPrompt: string) {
       'X-Title': 'PsyContent',
     },
     body: JSON.stringify({
-      // сбалансированная по цене/качеству модель Anthropic
+      // актуальная модель Claude, не жрущая как Opus
       model: 'anthropic/claude-sonnet-4',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -40,8 +40,8 @@ export async function generateWithWebSearch(userPrompt: string) {
       'X-Title': 'PsyContent',
     },
     body: JSON.stringify({
-      // более лёгкая и дешёвая онлайн-модель для поиска
-      model: 'perplexity/sonar-small-online',
+      // лёгкая и дешевая модель Perplexity с веб-поиском
+      model: 'perplexity/sonar',
       messages: [
         {
           role: 'system',
