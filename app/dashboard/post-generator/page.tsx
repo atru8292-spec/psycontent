@@ -13,11 +13,11 @@ import {
   Check,
   RefreshCw,
   FileText,
-  Film,
   Image,
   AlignLeft,
   ChevronRight,
   Lightbulb,
+  CheckCircle,
 } from 'lucide-react'
 
 const formats = [
@@ -69,6 +69,7 @@ export default function PostGenerator() {
   const [result, setResult] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   const router = useRouter()
 
@@ -99,6 +100,9 @@ export default function PostGenerator() {
     setGenerating(true)
     setResult(null)
     setError(null)
+    setSaved(false)
+
+    const topic = useCustom ? customTopic : selectedTopic
 
     try {
       const response = await fetch('/api/generate-post', {
@@ -115,7 +119,27 @@ export default function PostGenerator() {
 
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Ошибка генерации')
+      
       setResult(data.post)
+
+      // Сохраняем в базу
+      const { error: saveError } = await supabase
+        .from('generated_posts')
+        .insert({
+          user_id: user.id,
+          topic: topic,
+          format: selectedFormat,
+          category: currentPillar?.label || 'Своя тема',
+          content: data.post,
+          source: 'generator',
+        })
+
+      if (saveError) {
+        console.error('Save error:', saveError)
+      } else {
+        setSaved(true)
+      }
+
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -343,6 +367,12 @@ export default function PostGenerator() {
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-green-400" />
                       <span className="text-sm font-semibold text-brand-text">Готово!</span>
+                      {saved && (
+                        <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                          <CheckCircle className="w-3 h-3" />
+                          Сохранено
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -366,9 +396,15 @@ export default function PostGenerator() {
                     {formatResult(result, selectedFormat)}
                   </div>
 
-                  {/* Character count */}
-                  <div className="px-6 pb-4">
+                  {/* Footer */}
+                  <div className="px-6 pb-4 flex items-center justify-between">
                     <p className="text-xs text-brand-text-secondary">{result.length} символов</p>
+                    <button
+                      onClick={() => router.push('/dashboard/post-history')}
+                      className="text-xs text-brand-accent hover:underline cursor-pointer"
+                    >
+                      Смотреть историю →
+                    </button>
                   </div>
                 </motion.div>
               )}
