@@ -4,10 +4,14 @@ import { generateWithAI } from '@/lib/openrouter'
 import { buildProfileContext } from '@/lib/profile-context'
 
 function getSupabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  
+  if (!url || !key) {
+    throw new Error('Missing Supabase env variables')
+  }
+  
+  return createClient(url, key)
 }
 
 function getApproachContext(approaches: string[]): string {
@@ -177,25 +181,44 @@ const SYSTEM_PROMPT = `Ты — копирайтер-призрак (ghostwriter
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, topic, customTopic, format, pillar } = await req.json()
+    const body = await req.json()
+    const { userId, topic, customTopic, format, pillar } = body
 
-    if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
+    console.log('Generate post request:', { userId, topic, customTopic, format, pillar })
+
+    if (!userId) {
+      return NextResponse.json({ error: 'userId required' }, { status: 400 })
+    }
 
     const finalTopic = customTopic || topic
-    if (!finalTopic) return NextResponse.json({ error: 'Тема не указана' }, { status: 400 })
+    if (!finalTopic) {
+      return NextResponse.json({ error: 'Тема не указана' }, { status: 400 })
+    }
 
     const supabase = getSupabaseAdmin()
 
+    // Загружаем профиль и паспорт
     const [profileRes, passportRes] = await Promise.all([
       supabase.from('onboarding_profiles').select('*').eq('user_id', userId).single(),
       supabase.from('brand_passports').select('content').eq('user_id', userId).single()
     ])
 
+    console.log('Profile fetch:', profileRes.error ? profileRes.error.message : 'OK')
+    console.log('Passport fetch:', passportRes.error ? passportRes.error.message : 'OK')
+
     const profile = profileRes.data || {}
     const passport = passportRes.data?.content || ''
     const approaches = Array.isArray(profile.approaches) ? profile.approaches : []
 
-    const profileContext = buildProfileContext(profile)
+    // Строим контекст
+    let profileContext = ''
+    try {
+      profileContext = buildProfileContext(profile)
+    } catch (e: any) {
+      console.error('buildProfileContext error:', e)
+      profileContext = 'Профиль психолога не заполнен полностью.'
+    }
+
     const approachContext = getApproachContext(approaches)
     const formatInstruction = getFormatInstruction(format)
 
@@ -225,19 +248,38 @@ ${formatInstruction}
 
 Напиши пост. Только пост, без предисловий.`
 
+    console.log('Calling generateWithAI...')
     const post = await generateWithAI(SYSTEM_PROMPT, prompt)
+    console.log('Post generated, length:', post?.length)
 
-    await supabase.from('generated_posts').insert({
+    if (!post) {
+      throw new Error('AI returned empty response')
+    }
+
+    // Сохраняем в БД (ошибка здесь не должна ломать ответ)
+    const { error: insertError } = await supabase.from('generated_posts').insert({
       user_id: userId,
       topic: finalTopic,
       format,
       content: post,
       category: pillar || 'Своя тема'
-    }).catch(() => {})
+    })
+
+    if (insertError) {
+      console.warn('Failed to save post to DB:', insertError.message)
+    }
 
     return NextResponse.json({ post })
+
   } catch (error: any) {
     console.error('Generate post error:', error)
-    return NextResponse.json({ error: 'Не удалось сгенерировать пост' }, { status: 500 })
+
+    return NextResponse.json(
+      {
+        error: error?.message || 'Не удалось сгенерировать пост',
+        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+      },
+      { status: 500 }
+    )
   }
 }
