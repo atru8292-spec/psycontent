@@ -1,6 +1,6 @@
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
-function getHeaders() {
+function getOpenRouterHeaders() {
   const apiKey = process.env.OPENROUTER_API_KEY
 
   if (!apiKey) {
@@ -15,60 +15,74 @@ function getHeaders() {
   }
 }
 
-async function parseOpenRouterResponse(response: Response) {
+async function extractContent(response: Response) {
+  const rawText = await response.text()
+
   if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(`OpenRouter error ${response.status}: ${errorText}`)
+    throw new Error(`OpenRouter error ${response.status}: ${rawText}`)
   }
 
-  const data = await response.json()
+  let data: any
+
+  try {
+    data = JSON.parse(rawText)
+  } catch {
+    throw new Error(`OpenRouter returned invalid JSON: ${rawText}`)
+  }
+
   const content = data?.choices?.[0]?.message?.content
 
-  if (!content) {
-    throw new Error('Empty response from OpenRouter')
-  }
-
-  if (typeof content === 'string') {
-    return content
+  if (typeof content === 'string' && content.trim()) {
+    return content.trim()
   }
 
   if (Array.isArray(content)) {
-    return content
-      .map((item: any) => (typeof item?.text === 'string' ? item.text : ''))
+    const joined = content
+      .map((item: any) => {
+        if (typeof item === 'string') return item
+        if (typeof item?.text === 'string') return item.text
+        return ''
+      })
       .join('')
       .trim()
+
+    if (joined) return joined
   }
 
-  throw new Error('Unsupported response format from OpenRouter')
+  throw new Error(`Empty model response: ${rawText}`)
+}
+
+async function callOpenRouter(body: Record<string, unknown>, timeoutMs = 30000) {
+  const response = await fetch(OPENROUTER_URL, {
+    method: 'POST',
+    headers: getOpenRouterHeaders(),
+    signal: AbortSignal.timeout(timeoutMs),
+    body: JSON.stringify(body),
+  })
+
+  return extractContent(response)
 }
 
 // Claude for text generation (posts, reels, rewrite, content plan, passport)
 export async function generateWithAI(systemPrompt: string, userPrompt: string) {
-  const response = await fetch(OPENROUTER_URL, {
-    method: 'POST',
-    headers: getHeaders(),
-    signal: AbortSignal.timeout(30_000),
-    body: JSON.stringify({
+  return callOpenRouter(
+    {
       model: 'anthropic/claude-sonnet-4.5',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      max_tokens: 4000,
       temperature: 0.7,
-    }),
-  })
-
-  return parseOpenRouterResponse(response)
+      max_tokens: 4000,
+    },
+    30000
+  )
 }
 
-// Perplexity for web research (research & trending topics)
+// Perplexity for web search (research & trending topics)
 export async function generateWithWebSearch(userPrompt: string) {
-  const response = await fetch(OPENROUTER_URL, {
-    method: 'POST',
-    headers: getHeaders(),
-    signal: AbortSignal.timeout(45_000),
-    body: JSON.stringify({
+  return callOpenRouter(
+    {
       model: 'perplexity/sonar',
       messages: [
         {
@@ -78,10 +92,9 @@ export async function generateWithWebSearch(userPrompt: string) {
         },
         { role: 'user', content: userPrompt },
       ],
-      max_tokens: 3000,
       temperature: 0.3,
-    }),
-  })
-
-  return parseOpenRouterResponse(response)
+      max_tokens: 3000,
+    },
+    45000
+  )
 }
