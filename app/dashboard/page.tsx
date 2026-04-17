@@ -19,6 +19,7 @@ import {
   RefreshCcw,
   Lightbulb,
   Settings,
+  History,
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -127,6 +128,16 @@ export default function Dashboard() {
       color: 'text-cyan-500',
       bg: 'bg-cyan-50',
       href: '/dashboard/rewrite',
+      ready: true,
+    },
+    {
+      icon: History,
+      title: 'История постов',
+      desc: 'Все сгенерированные посты в одном месте',
+      status: 'Открыть',
+      color: 'text-emerald-500',
+      bg: 'bg-emerald-50',
+      href: '/dashboard/post-history',
       ready: true,
     },
     {
