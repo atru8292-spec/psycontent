@@ -1,0 +1,415 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  ArrowLeft,
+  Copy,
+  Check,
+  Trash2,
+  Star,
+  Calendar,
+  FileText,
+  Layers,
+  MessageSquare,
+  Search,
+  Filter,
+  Loader2,
+  Sparkles,
+} from 'lucide-react'
+
+type Post = {
+  id: string
+  topic: string
+  format: string
+  category: string
+  content: string
+  source: string
+  is_favorite: boolean
+  created_at: string
+}
+
+const formatLabels: Record<string, { label: string; icon: any; color: string }> = {
+  post: { label: 'Пост', icon: FileText, color: 'bg-blue-100 text-blue-700' },
+  carousel: { label: 'Карусель', icon: Layers, color: 'bg-purple-100 text-purple-700' },
+  stories: { label: 'Сторис', icon: MessageSquare, color: 'bg-pink-100 text-pink-700' },
+}
+
+const sourceLabels: Record<string, string> = {
+  generator: 'Генератор',
+  content_plan: 'Контент-план',
+  rewrite: 'Рерайт',
+  reels: 'Рилс',
+}
+
+export default function PostHistory() {
+  const [posts, setPosts] = useState<Post[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterFormat, setFilterFormat] = useState<string>('all')
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
+  const router = useRouter()
+
+  useEffect(() => {
+    loadPosts()
+  }, [])
+
+  const loadPosts = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.push('/'); return }
+
+    const { data, error } = await supabase
+      .from('generated_posts')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Load posts error:', error)
+    } else {
+      setPosts(data || [])
+    }
+    setLoading(false)
+  }
+
+  const toggleFavorite = async (post: Post) => {
+    const { error } = await supabase
+      .from('generated_posts')
+      .update({ is_favorite: !post.is_favorite })
+      .eq('id', post.id)
+
+    if (!error) {
+      setPosts(posts.map(p => p.id === post.id ? { ...p, is_favorite: !p.is_favorite } : p))
+      if (selectedPost?.id === post.id) {
+        setSelectedPost({ ...post, is_favorite: !post.is_favorite })
+      }
+    }
+  }
+
+  const deletePost = async (postId: string) => {
+    if (!confirm('Удалить этот пост?')) return
+
+    const { error } = await supabase
+      .from('generated_posts')
+      .delete()
+      .eq('id', postId)
+
+    if (!error) {
+      setPosts(posts.filter(p => p.id !== postId))
+      if (selectedPost?.id === postId) {
+        setSelectedPost(null)
+      }
+    }
+  }
+
+  const copyToClipboard = async (text: string, id: string) => {
+    await navigator.clipboard.writeText(text)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  // Фильтрация
+  const filteredPosts = posts.filter(post => {
+    const matchesSearch = !searchQuery || 
+      post.topic?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.content?.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesFormat = filterFormat === 'all' || post.format === filterFormat
+    const matchesFavorite = !showFavoritesOnly || post.is_favorite
+    return matchesSearch && matchesFormat && matchesFavorite
+  })
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-brand-accent" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-brand-bg">
+      {/* Header */}
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-brand-border">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="flex items-center gap-2 text-brand-text-secondary hover:text-brand-text transition cursor-pointer"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="font-medium">Назад</span>
+          </button>
+          <h1 className="text-xl font-bold text-brand-text">История постов</h1>
+          <div className="w-20" />
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Статистика */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-xl p-4 border border-brand-border">
+            <p className="text-2xl font-bold text-brand-text">{posts.length}</p>
+            <p className="text-sm text-brand-text-secondary">Всего постов</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 border border-brand-border">
+            <p className="text-2xl font-bold text-brand-text">
+              {posts.filter(p => p.is_favorite).length}
+            </p>
+            <p className="text-sm text-brand-text-secondary">В избранном</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 border border-brand-border">
+            <p className="text-2xl font-bold text-brand-text">
+              {posts.filter(p => p.format === 'carousel').length}
+            </p>
+            <p className="text-sm text-brand-text-secondary">Каруселей</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 border border-brand-border">
+            <p className="text-2xl font-bold text-brand-text">
+              {posts.filter(p => {
+                const date = new Date(p.created_at)
+                const weekAgo = new Date()
+                weekAgo.setDate(weekAgo.getDate() - 7)
+                return date > weekAgo
+              }).length}
+            </p>
+            <p className="text-sm text-brand-text-secondary">За неделю</p>
+          </div>
+        </div>
+
+        {/* Фильтры */}
+        <div className="bg-white rounded-xl p-4 border border-brand-border mb-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Поиск */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Поиск по теме или тексту..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:border-brand-accent outline-none"
+              />
+            </div>
+
+            {/* Формат */}
+            <div className="flex gap-2">
+              {['all', 'post', 'carousel', 'stories'].map(format => (
+                <button
+                  key={format}
+                  onClick={() => setFilterFormat(format)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition cursor-pointer ${
+                    filterFormat === format
+                      ? 'bg-brand-accent text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {format === 'all' ? 'Все' : formatLabels[format]?.label || format}
+                </button>
+              ))}
+            </div>
+
+            {/* Избранное */}
+            <button
+              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition cursor-pointer ${
+                showFavoritesOnly
+                  ? 'bg-yellow-100 text-yellow-700'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <Star className={`w-4 h-4 ${showFavoritesOnly ? 'fill-yellow-500' : ''}`} />
+              Избранное
+            </button>
+          </div>
+        </div>
+
+        {/* Список постов */}
+        {filteredPosts.length === 0 ? (
+          <div className="bg-white rounded-2xl p-12 border border-brand-border text-center">
+            <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-brand-text mb-2">
+              {posts.length === 0 ? 'Пока нет постов' : 'Ничего не найдено'}
+            </h3>
+            <p className="text-brand-text-secondary mb-6">
+              {posts.length === 0 
+                ? 'Сгенерируйте первый пост в генераторе'
+                : 'Попробуйте изменить фильтры'
+              }
+            </p>
+            {posts.length === 0 && (
+              <button
+                onClick={() => router.push('/dashboard/post-generator')}
+                className="px-6 py-3 bg-brand-accent text-white rounded-xl font-medium hover:bg-brand-accent-hover transition cursor-pointer"
+              >
+                Создать пост
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredPosts.map((post, index) => {
+              const formatInfo = formatLabels[post.format] || formatLabels.post
+              const FormatIcon = formatInfo.icon
+
+              return (
+                <motion.div
+                  key={post.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  onClick={() => setSelectedPost(post)}
+                  className="bg-white rounded-xl p-5 border border-brand-border hover:shadow-md transition cursor-pointer group"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${formatInfo.color}`}>
+                      <FormatIcon className="w-3.5 h-3.5" />
+                      {formatInfo.label}
+                    </span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleFavorite(post) }}
+                      className="p-1.5 hover:bg-gray-100 rounded-lg transition"
+                    >
+                      <Star className={`w-4 h-4 ${post.is_favorite ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                    </button>
+                  </div>
+
+                  <h3 className="font-semibold text-brand-text mb-2 line-clamp-2">
+                    {post.topic || 'Без темы'}
+                  </h3>
+
+                  <p className="text-sm text-brand-text-secondary line-clamp-3 mb-4">
+                    {post.content?.substring(0, 150)}...
+                  </p>
+
+                  <div className="flex items-center justify-between text-xs text-gray-400">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5" />
+                      {formatDate(post.created_at)}
+                    </span>
+                    {post.category && (
+                      <span className="bg-gray-100 px-2 py-0.5 rounded">
+                        {post.category}
+                      </span>
+                    )}
+                  </div>
+                </motion.div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Модалка детального просмотра */}
+      <AnimatePresence>
+        {selectedPost && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedPost(null)}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-gray-100">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-brand-text mb-1">
+                      {selectedPost.topic || 'Без темы'}
+                    </h2>
+                    <div className="flex items-center gap-3 text-sm text-brand-text-secondary">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        {formatDate(selectedPost.created_at)}
+                      </span>
+                      {selectedPost.category && (
+                        <span className="bg-gray-100 px-2 py-0.5 rounded">
+                          {selectedPost.category}
+                        </span>
+                      )}
+                      <span className="bg-gray-100 px-2 py-0.5 rounded">
+                        {sourceLabels[selectedPost.source] || selectedPost.source}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedPost(null)}
+                    className="p-2 hover:bg-gray-100 rounded-xl transition"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="prose prose-sm max-w-none whitespace-pre-wrap text-brand-text">
+                  {selectedPost.content}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="p-6 border-t border-gray-100 flex items-center justify-between">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => toggleFavorite(selectedPost)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition cursor-pointer ${
+                      selectedPost.is_favorite
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    <Star className={`w-4 h-4 ${selectedPost.is_favorite ? 'fill-yellow-500' : ''}`} />
+                    {selectedPost.is_favorite ? 'В избранном' : 'В избранное'}
+                  </button>
+                  <button
+                    onClick={() => deletePost(selectedPost.id)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium bg-red-50 text-red-600 hover:bg-red-100 transition cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Удалить
+                  </button>
+                </div>
+                <button
+                  onClick={() => copyToClipboard(selectedPost.content, selectedPost.id)}
+                  className="flex items-center gap-2 px-6 py-2 bg-brand-accent text-white rounded-xl font-medium hover:bg-brand-accent-hover transition cursor-pointer"
+                >
+                  {copiedId === selectedPost.id ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Скопировано!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      Копировать
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
