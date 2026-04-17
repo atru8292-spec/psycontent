@@ -18,6 +18,7 @@ import {
   Film,
   RefreshCcw,
   Lightbulb,
+  Settings,
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -207,10 +208,20 @@ export default function Dashboard() {
           transition={{ delay: 0.1 }}
           className="mb-10 p-6 rounded-2xl bg-white border border-brand-border"
         >
-          <h2 className="text-lg font-bold text-brand-text mb-4 flex items-center gap-2">
-            <MessageCircle className="w-5 h-5 text-brand-accent" />
-            Ваш профиль распаковки
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-brand-text flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-brand-accent" />
+              Ваш профиль распаковки
+            </h2>
+            <button
+              onClick={() => router.push('/dashboard/edit-profile')}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand-text-secondary hover:text-brand-accent hover:bg-brand-highlight rounded-xl transition cursor-pointer"
+            >
+              <Settings className="w-4 h-4" />
+              Редактировать
+            </button>
+          </div>
+          
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="p-4 rounded-xl bg-brand-bg">
               <p className="text-xs text-brand-text-secondary mb-1">Подход</p>
