@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { generatePDF } from '@/lib/pdf-export'
 import {
   Sparkles, ArrowLeft, Loader2, CalendarDays,
-  AlignLeft, Image, Film, FileText,
+  AlignLeft, Film, FileText,
   CheckCircle2, Circle, PenTool, X,
   RefreshCw, Lightbulb, ChevronRight,
   Download, Copy, FileSpreadsheet, Check,
@@ -90,7 +90,6 @@ ${day.hook ? `Хук: ${day.hook}` : ''}
   const exportToPDF = async () => {
     setExporting(true)
     setShowMenu(false)
-
     try {
       await generatePDF(plan)
     } catch (error) {
@@ -147,7 +146,6 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
   const fmt = FORMAT_META[item.format] || FORMAT_META.post
   const pillar = getPillarMeta(item.pillar)
   const Icon = fmt.icon
-
   const buttonText = item.format === 'carousel' ? 'Создать карусель' : 'Написать пост'
 
   return (
@@ -215,12 +213,11 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
   )
 }
 
-// ============ DETAIL PANEL (mobile: bottom sheet / desktop: side) ============
+// ============ DETAIL PANEL ============
 function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: () => void; onGenerate: () => void }) {
   const fmt = FORMAT_META[item.format] || FORMAT_META.post
   const pillar = getPillarMeta(item.pillar)
   const Icon = fmt.icon
-
   const isCarousel = item.format === 'carousel'
   const buttonText = isCarousel ? 'Создать карусель' : 'Сгенерировать пост'
   const buttonClass = isCarousel
@@ -228,12 +225,7 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
     : 'bg-brand-accent hover:bg-brand-accent-hover shadow-brand-accent/20'
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 40 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 40 }}
-      className="bg-white rounded-xl sm:rounded-2xl border border-brand-border p-4 sm:p-6 sticky top-24"
-    >
+    <div className="bg-white rounded-xl sm:rounded-2xl border border-brand-border p-4 sm:p-6 lg:sticky lg:top-24">
       <div className="flex items-start justify-between mb-3 sm:mb-4">
         <div className="flex items-center gap-2">
           <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-highlight text-brand-accent text-xs sm:text-sm font-bold flex items-center justify-center">{item.day}</span>
@@ -286,7 +278,7 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
         {buttonText}
         <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
       </button>
-    </motion.div>
+    </div>
   )
 }
 
@@ -416,8 +408,8 @@ export default function ContentPlan() {
                   <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
                   Обновить план
                 </button>
-                <button onClick={handleGenerate} disabled={generating} className="sm:hidden flex items-center gap-1.5 text-xs text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-2 py-1.5 rounded-lg hover:bg-brand-highlight">
-                  <RefreshCw className={`w-3.5 h-3.5 ${generating ? 'animate-spin' : ''}`} />
+                <button onClick={handleGenerate} disabled={generating} className="sm:hidden flex items-center text-brand-text-secondary hover:text-brand-accent transition cursor-pointer p-1.5 rounded-lg hover:bg-brand-highlight">
+                  <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
                 </button>
               </>
             )}
@@ -469,14 +461,7 @@ export default function ContentPlan() {
             </h2>
             <p className="text-xs sm:text-sm text-brand-text-secondary mb-4 sm:mb-6">AI подбирает темы под ваш голос и нишу</p>
 
-                          <div className="flex justify-between text-[10px] sm:text-xs text-brand-text-secondary mb-1.5 sm:mb-2">
-                {[1, 2, 3, 4, 5, 6].map(b => (
-                  <span key={b} className={currentBatch >= b ? 'text-brand-accent font-medium' : ''}>
-                    {(b-1)*5+1}-{b*5}
-                  </span>
-                ))}
-              </div>
-              <div className="h-1.5 sm:h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="h-1.5 sm:h-2 bg-gray-200 rounded-full overflow-hidden">
                 <motion.div
                   className="h-full bg-brand-accent"
                   initial={{ width: '0%' }}
@@ -521,13 +506,17 @@ export default function ContentPlan() {
                 </div>
               </motion.div>
 
-              {/* Filters */}
-              <div className="flex gap-1.5 sm:gap-2 flex-wrap mb-4 sm:mb-5">
+              {/* Filters — горизонтальный скролл на мобилке */}
+              <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-2 mb-4 sm:mb-5 scrollbar-hide">
                 {pillars.map(p => (
                   <button
                     key={p}
                     onClick={() => setFilter(p)}
-                    className={`px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-sm font-medium transition cursor-pointer ${filter === p ? 'bg-brand-accent text-white' : 'bg-white border border-brand-border text-brand-text-secondary hover:border-brand-accent/50'}`}
+                    className={`px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-sm font-medium transition cursor-pointer whitespace-nowrap shrink-0 ${
+                      filter === p
+                        ? 'bg-brand-accent text-white'
+                        : 'bg-white border border-brand-border text-brand-text-secondary hover:border-brand-accent/50'
+                    }`}
                   >
                     {p === 'all' ? `Все ${plan.length}` : p}
                   </button>
@@ -554,29 +543,30 @@ export default function ContentPlan() {
               </div>
             </div>
 
-            {/* Detail panel — hidden on mobile as overlay, visible on lg as sidebar */}
+            {/* Detail panel */}
             <AnimatePresence>
               {selected && (
                 <>
-                  {/* Mobile: bottom overlay */}
+                  {/* Mobile: bottom sheet + backdrop */}
                   <motion.div
-                    key="detail-mobile"
-                    initial={{ opacity: 0, y: 100 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 100 }}
-                    className="lg:hidden fixed inset-x-0 bottom-0 z-50 p-4 pb-6 bg-white border-t border-brand-border rounded-t-2xl shadow-2xl max-h-[80vh] overflow-y-auto"
-                  >
-                    <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3" />
-                    <DetailPanel item={selected} onClose={() => setSelected(null)} onGenerate={() => handleGoGenerate(selected)} />
-                  </motion.div>
-                  {/* Mobile backdrop */}
-                  <motion.div
+                    key="backdrop"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     className="lg:hidden fixed inset-0 bg-black/30 z-40"
                     onClick={() => setSelected(null)}
                   />
+                  <motion.div
+                    key="detail-mobile"
+                    initial={{ opacity: 0, y: 100 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 100 }}
+                    className="lg:hidden fixed inset-x-0 bottom-0 z-50 p-4 pb-6 max-h-[80vh] overflow-y-auto"
+                  >
+                    <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3" />
+                    <DetailPanel item={selected} onClose={() => setSelected(null)} onGenerate={() => handleGoGenerate(selected)} />
+                  </motion.div>
+
                   {/* Desktop: sidebar */}
                   <motion.div
                     key="detail-desktop"
