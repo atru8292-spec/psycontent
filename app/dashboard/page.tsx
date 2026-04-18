@@ -20,7 +20,8 @@ import {
   Lightbulb,
   Settings,
   History,
-  Layers, // ← Добавлена иконка для каруселей
+  Layers,
+  Search, // ← Добавлена иконка для анализа конкурентов
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -91,7 +92,6 @@ export default function Dashboard() {
       href: '/dashboard/post-generator',
       ready: true,
     },
-    // ============ НОВЫЙ ИНСТРУМЕНТ ============
     {
       icon: Layers,
       title: 'Генератор каруселей',
@@ -140,6 +140,17 @@ export default function Dashboard() {
       color: 'text-cyan-500',
       bg: 'bg-cyan-50',
       href: '/dashboard/rewrite',
+      ready: true,
+    },
+    // ============ АНАЛИЗ КОНКУРЕНТОВ ============
+    {
+      icon: Search,
+      title: 'Анализ конкурентов',
+      desc: 'Разбор Reels/TikTok/YouTube — получите сценарий',
+      status: 'Открыть',
+      color: 'text-red-500',
+      bg: 'bg-red-50',
+      href: '/dashboard/competitor-analysis',
       ready: true,
     },
     {
