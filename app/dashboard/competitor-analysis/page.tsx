@@ -14,21 +14,23 @@ interface Analysis {
   created_at: string
 }
 
+type Step = 'idle' | 'transcribing' | 'transcribed' | 'analyzing' | 'done'
+
 export default function CompetitorAnalysisPage() {
   const [url, setUrl] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<{ analysis: string; transcript: string; metadata: any; platform: string } | null>(null)
+  const [step, setStep] = useState<Step>('idle')
+  const [transcript, setTranscript] = useState('')
+  const [platform, setPlatform] = useState('')
+  const [analysis, setAnalysis] = useState('')
   const [history, setHistory] = useState<Analysis[]>([])
   const [activeTab, setActiveTab] = useState<'analysis' | 'transcript'>('analysis')
+  const [error, setError] = useState('')
 
-  useEffect(() => {
-    loadHistory()
-  }, [])
+  useEffect(() => { loadHistory() }, [])
 
   const loadHistory = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    
     const { data } = await supabase
       .from('competitor_analyses')
       .select('*')
@@ -38,35 +40,78 @@ export default function CompetitorAnalysisPage() {
     if (data) setHistory(data)
   }
 
-  const handleAnalyze = async () => {
-    if (!url.trim()) return alert('Вставь ссылку')
-    setLoading(true)
-    setResult(null)
+  const getToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token) throw new Error('Не авторизован. Пожалуйста, войдите в систему.')
+    return session.access_token
+  }
+
+  // Шаг 1: Получить транскрипцию
+  const handleTranscribe = async () => {
+    if (!url.trim()) return setError('Вставь ссылку')
+    setError('')
+    setTranscript('')
+    setAnalysis('')
+    setStep('transcribing')
 
     try {
-      // Получаем токен сессии
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        throw new Error('Не авторизован. Пожалуйста, войдите в систему.')
-      }
-
-      const res = await fetch('/api/analyze-competitor', {
+      const token = await getToken()
+      const res = await fetch('/api/transcribe', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ url }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      setResult(data)
+      setTranscript(data.transcript)
+      setPlatform(data.platform)
+      setStep('transcribed')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Ошибка транскрипции')
+      setStep('idle')
+    }
+  }
+
+  // Шаг 2: Анализировать
+  const handleAnalyze = async () => {
+    if (!transcript) return
+    setError('')
+    setStep('analyzing')
+
+    try {
+      const token = await getToken()
+      const res = await fetch('/api/analyze-competitor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ url, transcript, platform }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setAnalysis(data.analysis)
+      setStep('done')
       loadHistory()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Ошибка')
-    } finally {
-      setLoading(false)
+      setError(e instanceof Error ? e.message : 'Ошибка анализа')
+      setStep('transcribed')
     }
+  }
+
+  const handleReset = () => {
+    setStep('idle')
+    setUrl('')
+    setTranscript('')
+    setAnalysis('')
+    setPlatform('')
+    setError('')
+  }
+
+  const loadFromHistory = (item: Analysis) => {
+    setUrl(item.url)
+    setPlatform(item.platform)
+    setTranscript(item.transcript)
+    setAnalysis(item.analysis)
+    setStep('done')
+    setError('')
   }
 
   const handleDelete = async (id: string) => {
@@ -74,15 +119,12 @@ export default function CompetitorAnalysisPage() {
     setHistory(history.filter(h => h.id !== id))
   }
 
-  const loadFromHistory = (item: Analysis) => {
-    setResult({ analysis: item.analysis, transcript: item.transcript, metadata: item.metadata, platform: item.platform })
-    setUrl(item.url)
-  }
-
   const copyText = (text: string) => {
     navigator.clipboard.writeText(text)
     alert('Скопировано!')
   }
+
+  const isLoading = step === 'transcribing' || step === 'analyzing'
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
@@ -91,108 +133,134 @@ export default function CompetitorAnalysisPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
         <div>
-          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
-            <input
-              type="text"
-              placeholder="https://instagram.com/reel/..."
-              value={url}
-              onChange={e => setUrl(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleAnalyze()}
-              disabled={loading}
-              style={{
-                flex: 1,
-                padding: '0.75rem 1rem',
-                border: '1px solid #ddd',
-                borderRadius: '0.5rem',
-                fontSize: '1rem',
-              }}
-            />
-            <button
-              onClick={handleAnalyze}
-              disabled={loading || !url.trim()}
-              style={{
-                padding: '0.75rem 1.5rem',
-                background: loading ? '#ccc' : '#000',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '0.5rem',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontWeight: '500',
-              }}
-            >
-              {loading ? '⏳ Анализирую...' : '🔍 Анализировать'}
-            </button>
+
+          {/* Шаг-индикатор */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', fontSize: '0.875rem', color: '#888' }}>
+            <span style={{ color: step !== 'idle' ? '#22c55e' : '#000', fontWeight: step === 'idle' || step === 'transcribing' ? '600' : '400' }}>1. Транскрипция</span>
+            <span>→</span>
+            <span style={{ color: step === 'done' ? '#22c55e' : step === 'analyzing' ? '#000' : '#ccc', fontWeight: step === 'analyzing' || step === 'transcribed' ? '600' : '400' }}>2. Анализ</span>
           </div>
 
-          {loading && (
-            <div style={{ textAlign: 'center', padding: '3rem', background: '#f5f5f5', borderRadius: '0.5rem' }}>
-              <p style={{ fontSize: '1.125rem', fontWeight: '500' }}>Анализирую видео...</p>
-              <p style={{ color: '#666', marginTop: '0.5rem' }}>Получаю транскрипцию и готовлю рекомендации</p>
+          {/* Поле ввода */}
+          {(step === 'idle' || step === 'transcribing') && (
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
+              <input
+                type="text"
+                placeholder="https://instagram.com/reel/..."
+                value={url}
+                onChange={e => setUrl(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && !isLoading && handleTranscribe()}
+                disabled={isLoading}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '0.5rem',
+                  fontSize: '1rem',
+                }}
+              />
+              <button
+                onClick={handleTranscribe}
+                disabled={isLoading || !url.trim()}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: isLoading || !url.trim() ? '#ccc' : '#000',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '0.5rem',
+                  cursor: isLoading || !url.trim() ? 'not-allowed' : 'pointer',
+                  fontWeight: '500',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {step === 'transcribing' ? '⏳ Получаю...' : '📝 Транскрибировать'}
+              </button>
             </div>
           )}
 
-          {result && !loading && (
+          {/* Ошибка */}
+          {error && (
+            <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '0.5rem', padding: '0.75rem 1rem', marginBottom: '1rem', color: '#dc2626' }}>
+              {error}
+            </div>
+          )}
+
+          {/* Загрузка транскрипции */}
+          {step === 'transcribing' && (
+            <div style={{ textAlign: 'center', padding: '3rem', background: '#f5f5f5', borderRadius: '0.5rem' }}>
+              <p style={{ fontSize: '1.125rem', fontWeight: '500' }}>📝 Получаю транскрипцию...</p>
+              <p style={{ color: '#666', marginTop: '0.5rem' }}>Обычно занимает 5-15 секунд</p>
+            </div>
+          )}
+
+          {/* Транскрипция получена — шаг 2 */}
+          {(step === 'transcribed' || step === 'analyzing' || step === 'done') && (
+            <div style={{ border: '1px solid #ddd', borderRadius: '0.5rem', padding: '1.5rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h2 style={{ fontSize: '1rem', fontWeight: '600' }}>📝 Транскрипция ({platform})</h2>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={() => copyText(transcript)} style={{ padding: '0.4rem 0.75rem', border: '1px solid #ddd', borderRadius: '0.25rem', background: '#fff', cursor: 'pointer', fontSize: '0.875rem' }}>
+                    📋 Копировать
+                  </button>
+                  <button onClick={handleReset} style={{ padding: '0.4rem 0.75rem', border: '1px solid #ddd', borderRadius: '0.25rem', background: '#fff', cursor: 'pointer', fontSize: '0.875rem', color: '#666' }}>
+                    ✕ Сбросить
+                  </button>
+                </div>
+              </div>
+              <div style={{ background: '#f9f9f9', padding: '1rem', borderRadius: '0.5rem', maxHeight: '200px', overflowY: 'auto', fontSize: '0.875rem', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+                {transcript}
+              </div>
+
+              {/* Кнопка анализа */}
+              {step === 'transcribed' && (
+                <button
+                  onClick={handleAnalyze}
+                  style={{
+                    marginTop: '1rem',
+                    width: '100%',
+                    padding: '0.875rem',
+                    background: '#000',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    fontSize: '1rem',
+                  }}
+                >
+                  🔍 Анализировать под психолога
+                </button>
+              )}
+
+              {step === 'analyzing' && (
+                <div style={{ marginTop: '1rem', textAlign: 'center', padding: '1.5rem', background: '#f5f5f5', borderRadius: '0.5rem' }}>
+                  <p style={{ fontWeight: '500' }}>🤖 Анализирую и готовлю сценарий...</p>
+                  <p style={{ color: '#666', fontSize: '0.875rem', marginTop: '0.25rem' }}>Обычно 5-10 секунд</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Результат анализа */}
+          {step === 'done' && analysis && (
             <div style={{ border: '1px solid #ddd', borderRadius: '0.5rem', padding: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <div>
-                  <h2 style={{ fontSize: '1.25rem', fontWeight: '600' }}>Результат ({result.platform})</h2>
-                  {result.metadata?.author && <p style={{ color: '#666' }}>@{result.metadata.author}</p>}
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '600' }}>✅ Анализ готов</h2>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={() => copyText(analysis)} style={{ padding: '0.5rem 1rem', border: '1px solid #ddd', borderRadius: '0.25rem', background: '#fff', cursor: 'pointer' }}>
+                    📋 Копировать
+                  </button>
+                  <button onClick={handleReset} style={{ padding: '0.5rem 1rem', border: '1px solid #ddd', borderRadius: '0.25rem', background: '#fff', cursor: 'pointer', color: '#666' }}>
+                    🔄 Новый анализ
+                  </button>
                 </div>
-                <button onClick={() => copyText(result.analysis)} style={{ padding: '0.5rem 1rem', border: '1px solid #ddd', borderRadius: '0.25rem', background: '#fff', cursor: 'pointer' }}>
-                  📋 Копировать
-                </button>
               </div>
-
-              {result.metadata && (
-                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', color: '#666', fontSize: '0.875rem' }}>
-                  {result.metadata.viewCount && <span>👁 {result.metadata.viewCount.toLocaleString()}</span>}
-                  {result.metadata.likeCount && <span>❤️ {result.metadata.likeCount.toLocaleString()}</span>}
-                  {result.metadata.commentCount && <span>💬 {result.metadata.commentCount.toLocaleString()}</span>}
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-                <button
-                  onClick={() => setActiveTab('analysis')}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    border: 'none',
-                    borderRadius: '0.25rem',
-                    background: activeTab === 'analysis' ? '#000' : '#eee',
-                    color: activeTab === 'analysis' ? '#fff' : '#000',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Анализ
-                </button>
-                <button
-                  onClick={() => setActiveTab('transcript')}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    border: 'none',
-                    borderRadius: '0.25rem',
-                    background: activeTab === 'transcript' ? '#000' : '#eee',
-                    color: activeTab === 'transcript' ? '#fff' : '#000',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Транскрипция
-                </button>
-              </div>
-
-              {activeTab === 'analysis' ? (
-                <div>
-                  <ReactMarkdown>{result.analysis}</ReactMarkdown>
-                </div>
-              ) : (
-                <div style={{ background: '#f5f5f5', padding: '1rem', borderRadius: '0.5rem', whiteSpace: 'pre-wrap' }}>
-                  {result.transcript}
-                </div>
-              )}
+              <ReactMarkdown>{analysis}</ReactMarkdown>
             </div>
           )}
         </div>
 
+        {/* История */}
         <div style={{ border: '1px solid #ddd', borderRadius: '0.5rem', padding: '1rem' }}>
           <h3 style={{ fontWeight: '600', marginBottom: '1rem' }}>📜 История</h3>
           {history.length === 0 ? (
@@ -203,16 +271,10 @@ export default function CompetitorAnalysisPage() {
                 <div
                   key={item.id}
                   onClick={() => loadFromHistory(item)}
-                  style={{
-                    padding: '0.75rem',
-                    borderBottom: '1px solid #eee',
-                    cursor: 'pointer',
-                  }}
+                  style={{ padding: '0.75rem', borderBottom: '1px solid #eee', cursor: 'pointer' }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontWeight: '500', fontSize: '0.875rem' }}>
-                      {item.metadata?.author ? `@${item.metadata.author}` : item.platform}
-                    </span>
+                    <span style={{ fontWeight: '500', fontSize: '0.875rem' }}>{item.platform}</span>
                     <button
                       onClick={e => { e.stopPropagation(); handleDelete(item.id) }}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999' }}
@@ -222,6 +284,9 @@ export default function CompetitorAnalysisPage() {
                   </div>
                   <p style={{ fontSize: '0.75rem', color: '#999', marginTop: '0.25rem' }}>
                     {new Date(item.created_at).toLocaleDateString('ru-RU')}
+                  </p>
+                  <p style={{ fontSize: '0.75rem', color: '#666', marginTop: '0.125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {item.transcript?.slice(0, 60)}...
                   </p>
                 </div>
               ))}
