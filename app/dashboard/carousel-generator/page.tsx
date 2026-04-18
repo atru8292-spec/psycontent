@@ -17,12 +17,23 @@ import {
   ChevronRight,
   Layers,
   Download,
-  CheckCircle,
 } from 'lucide-react'
 
 type Slide = {
   slide: number
   text: string
+}
+
+function downloadFile(filename: string, content: string, contentType: string) {
+  const blob = new Blob([content], { type: contentType })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
 }
 
 function CarouselGeneratorContent() {
@@ -38,6 +49,10 @@ function CarouselGeneratorContent() {
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState<number | null>(null)
   const [copiedAll, setCopiedAll] = useState(false)
+  const [carouselId, setCarouselId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [regeneratingSlide, setRegeneratingSlide] = useState(false)
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -68,6 +83,8 @@ function CarouselGeneratorContent() {
     setSlides([])
     setCurrentSlide(0)
     setError(null)
+    setCarouselId(null)
+    setSaved(false)
 
     try {
       const response = await fetch('/api/generate-carousel', {
@@ -84,6 +101,7 @@ function CarouselGeneratorContent() {
       if (!response.ok) throw new Error(data.error || 'Ошибка генерации')
       
       setSlides(data.slides)
+      setCarouselId(data.carouselId || null)
 
     } catch (err: any) {
       setError(err.message)
@@ -105,6 +123,22 @@ function CarouselGeneratorContent() {
     setTimeout(() => setCopiedAll(false), 2000)
   }
 
+  const updateSlideText = (index: number, text: string) => {
+    setSlides(prev => prev.map((slide, i) => (i === index ? { ...slide, text } : slide)))
+    setSaved(false)
+  }
+
+  const exportTxt = () => {
+    if (!slides.length) return
+    const text = slides.map((s, i) => `[Слайд ${i + 1}]\n${s.text}`).join('\n\n')
+    downloadFile(`carousel-${Date.now()}.txt`, text, 'text/plain;charset=utf-8')
+  }
+
+  const exportJson = () => {
+    if (!slides.length) return
+    downloadFile(`carousel-${Date.now()}.json`, JSON.stringify(slides, null, 2), 'application/json;charset=utf-8')
+  }
+
   const nextSlide = () => {
     if (currentSlide < slides.length - 1) {
       setCurrentSlide(currentSlide + 1)
@@ -114,6 +148,75 @@ function CarouselGeneratorContent() {
   const prevSlide = () => {
     if (currentSlide > 0) {
       setCurrentSlide(currentSlide - 1)
+    }
+  }
+
+  useEffect(() => {
+    if (!slides.length) return
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowRight') nextSlide()
+      if (event.key === 'ArrowLeft') prevSlide()
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [slides.length, currentSlide])
+
+  const saveEdits = async () => {
+    if (!user || !slides.length || saving) return
+    setSaving(true)
+    setError(null)
+    try {
+      const response = await fetch('/api/save-carousel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          carouselId,
+          topic: topic.trim(),
+          pillar,
+          slides,
+        }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Не удалось сохранить')
+      setCarouselId(data.carouselId || carouselId)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const regenerateCurrentSlide = async () => {
+    if (!user || !slides.length || regeneratingSlide) return
+    setRegeneratingSlide(true)
+    setError(null)
+    try {
+      const response = await fetch('/api/regenerate-carousel-slide', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          topic: topic.trim(),
+          pillar,
+          slideNumber: currentSlide + 1,
+          totalSlides: slides.length,
+          currentSlideText: slides[currentSlide].text,
+          allSlides: slides,
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Не удалось перегенерировать слайд')
+      updateSlideText(currentSlide, data.text || slides[currentSlide].text)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setRegeneratingSlide(false)
     }
   }
 
@@ -231,13 +334,29 @@ function CarouselGeneratorContent() {
                   <span className="text-sm font-medium text-[#2D3748]">
                     Все слайды ({slides.length})
                   </span>
-                  <button
-                    onClick={copyAll}
-                    className="flex items-center gap-1.5 text-xs text-[#6B7AA1] hover:text-[#5A6890] transition cursor-pointer"
-                  >
-                    {copiedAll ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    {copiedAll ? 'Скопировано!' : 'Копировать все'}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={copyAll}
+                      className="flex items-center gap-1.5 text-xs text-[#6B7AA1] hover:text-[#5A6890] transition cursor-pointer"
+                    >
+                      {copiedAll ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedAll ? 'Скопировано!' : 'Копировать все'}
+                    </button>
+                    <button
+                      onClick={exportTxt}
+                      className="flex items-center gap-1.5 text-xs text-[#6B7AA1] hover:text-[#5A6890] transition cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      TXT
+                    </button>
+                    <button
+                      onClick={exportJson}
+                      className="flex items-center gap-1.5 text-xs text-[#6B7AA1] hover:text-[#5A6890] transition cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      JSON
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-5 gap-2">
@@ -382,6 +501,35 @@ function CarouselGeneratorContent() {
                           />
                         ))}
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl border border-[#DCE1EB] p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-medium text-[#2D3748]">Редактировать текущий слайд</p>
+                      <span className="text-xs text-[#828AA0]">{slides[currentSlide].text.length} символов</span>
+                    </div>
+                    <textarea
+                      value={slides[currentSlide].text}
+                      onChange={(e) => updateSlideText(currentSlide, e.target.value)}
+                      rows={4}
+                      className="w-full px-3 py-2 rounded-xl border border-[#DCE1EB] text-sm text-[#2D3748] focus:outline-none focus:ring-2 focus:ring-[#6B7AA1]/50 resize-none"
+                    />
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={regenerateCurrentSlide}
+                        disabled={regeneratingSlide}
+                        className="px-3 py-2 rounded-lg border border-[#DCE1EB] text-xs font-medium text-[#6B7AA1] hover:bg-[#F5F7FA] transition disabled:opacity-50 cursor-pointer"
+                      >
+                        {regeneratingSlide ? 'Генерирую...' : 'Перегенерировать этот слайд'}
+                      </button>
+                      <button
+                        onClick={saveEdits}
+                        disabled={saving}
+                        className="px-3 py-2 rounded-lg bg-[#6B7AA1] text-white text-xs font-medium hover:bg-[#5A6890] transition disabled:opacity-50 cursor-pointer"
+                      >
+                        {saving ? 'Сохраняю...' : saved ? 'Сохранено!' : 'Сохранить правки'}
+                      </button>
                     </div>
                   </div>
 

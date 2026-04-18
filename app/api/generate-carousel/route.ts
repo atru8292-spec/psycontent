@@ -12,6 +12,20 @@ function getSupabaseAdmin() {
   return createClient(url, key)
 }
 
+type Slide = { slide: number; text: string }
+
+function normalizeSlides(input: unknown): Slide[] {
+  if (!Array.isArray(input)) return []
+
+  return input
+    .map((item: any, index) => {
+      const text = typeof item?.text === 'string' ? item.text.trim() : ''
+      if (!text) return null
+      return { slide: index + 1, text }
+    })
+    .filter(Boolean) as Slide[]
+}
+
 const CAROUSEL_SYSTEM_PROMPT = `Ты — эксперт по созданию виральных каруселей для Instagram. Специализация — психологический контент.
 
 ═══════════════════════════════
@@ -142,7 +156,7 @@ ${pillar ? `Рубрика: ${pillar}` : ''}
     }
 
     // Парсим JSON
-    let slides: Array<{ slide: number; text: string }>
+    let slides: Slide[]
     
     try {
       // Ищем JSON в ответе
@@ -150,34 +164,42 @@ ${pillar ? `Рубрика: ${pillar}` : ''}
       if (!jsonMatch) {
         throw new Error('No JSON found in response')
       }
-      slides = JSON.parse(jsonMatch[0])
+      slides = normalizeSlides(JSON.parse(jsonMatch[0]))
     } catch (parseError) {
       console.error('JSON parse error:', parseError)
       console.log('Raw response:', response)
       
       // Fallback: пробуем разбить по слайдам старым способом
       const slideTexts = response.split(/\[?Слайд\s*\d+\]?:?/i).filter(s => s.trim())
-      slides = slideTexts.map((text, i) => ({ slide: i + 1, text: text.trim() }))
+      slides = normalizeSlides(slideTexts.map((text, i) => ({ slide: i + 1, text })))
     }
 
     if (!slides || slides.length < 3) {
       throw new Error('Failed to generate carousel slides')
     }
 
+    if (slides.length > 10) {
+      slides = slides.slice(0, 10)
+    }
+
     // Сохраняем в БД
-    const { error: insertError } = await supabase.from('generated_posts').insert({
-      user_id: userId,
-      topic,
-      format: 'carousel',
-      content: JSON.stringify(slides),
-      category: pillar || 'Карусель'
-    })
+    const { data: inserted, error: insertError } = await supabase
+      .from('generated_posts')
+      .insert({
+        user_id: userId,
+        topic,
+        format: 'carousel',
+        content: JSON.stringify(slides),
+        category: pillar || 'Карусель'
+      })
+      .select('id')
+      .single()
 
     if (insertError) {
       console.warn('Failed to save carousel:', insertError.message)
     }
 
-    return NextResponse.json({ slides })
+    return NextResponse.json({ slides, carouselId: inserted?.id || null })
 
   } catch (error: any) {
     console.error('Generate carousel error:', error)
