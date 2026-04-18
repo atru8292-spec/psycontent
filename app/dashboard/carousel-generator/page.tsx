@@ -16,8 +16,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Layers,
-  Download,
-  CheckCircle,
+  HelpCircle,
+  X,
+  Lightbulb,
+  Target,
+  TrendingUp,
+  ListChecks,
 } from 'lucide-react'
 
 type Slide = {
@@ -25,30 +29,48 @@ type Slide = {
   text: string
 }
 
+type TopicSuggestion = {
+  title: string
+  description: string
+}
+
 function CarouselGeneratorContent() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
-  const [topic, setTopic] = useState('')
-  const [pillar, setPillar] = useState<string | null>(null)
+  // Шаг 1: Выбор темы
+  const [step, setStep] = useState<'topics' | 'carousel'>('topics')
+  const [suggestedTopics, setSuggestedTopics] = useState<TopicSuggestion[]>([])
+  const [loadingTopics, setLoadingTopics] = useState(false)
+  const [selectedTopic, setSelectedTopic] = useState<TopicSuggestion | null>(null)
   
+  // Свой вариант
+  const [customTopic, setCustomTopic] = useState('')
+  const [showCustomInput, setShowCustomInput] = useState(false)
+
+  // Шаг 2: Генерация карусели
   const [generating, setGenerating] = useState(false)
   const [slides, setSlides] = useState<Slide[]>([])
   const [currentSlide, setCurrentSlide] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState<number | null>(null)
   const [copiedAll, setCopiedAll] = useState(false)
+  
+  // Показ подсказки
+  const [showHelp, setShowHelp] = useState(false)
 
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // Получаем параметры из URL (если пришли из контент-плана)
+  // Если пришли из контент-плана с готовой темой
   useEffect(() => {
     const urlTopic = searchParams.get('topic')
     const urlPillar = searchParams.get('pillar')
     
-    if (urlTopic) setTopic(urlTopic)
-    if (urlPillar) setPillar(urlPillar)
+    if (urlTopic) {
+      setSelectedTopic({ title: urlTopic, description: urlPillar || '' })
+      setStep('carousel')
+    }
   }, [searchParams])
 
   useEffect(() => {
@@ -57,12 +79,58 @@ function CarouselGeneratorContent() {
       if (!user) { router.push('/'); return }
       setUser(user)
       setLoading(false)
+      
+      // Сразу загружаем темы
+      if (!searchParams.get('topic')) {
+        loadTopics(user.id)
+      }
     }
     init()
-  }, [router])
+  }, [router, searchParams])
 
-  const handleGenerate = async () => {
-    if (!user || !topic.trim()) return
+  // Загрузка предложенных тем
+  const loadTopics = async (userId: string) => {
+    setLoadingTopics(true)
+    setError(null)
+    
+    try {
+      const response = await fetch('/api/generate-carousel-topics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Ошибка загрузки тем')
+      
+      setSuggestedTopics(data.topics)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoadingTopics(false)
+    }
+  }
+
+  // Выбор темы и переход к генерации
+  const handleSelectTopic = (topic: TopicSuggestion) => {
+    setSelectedTopic(topic)
+    setStep('carousel')
+    handleGenerate(topic.title)
+  }
+
+  // Свой вариант темы
+  const handleCustomTopic = () => {
+    if (!customTopic.trim()) return
+    const topic = { title: customTopic.trim(), description: 'Своя тема' }
+    setSelectedTopic(topic)
+    setStep('carousel')
+    handleGenerate(topic.title)
+  }
+
+  // Генерация карусели
+  const handleGenerate = async (topic?: string) => {
+    const topicToUse = topic || selectedTopic?.title
+    if (!user || !topicToUse) return
     
     setGenerating(true)
     setSlides([])
@@ -75,8 +143,7 @@ function CarouselGeneratorContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user.id,
-          topic: topic.trim(),
-          pillar,
+          topic: topicToUse,
         }),
       })
 
@@ -90,6 +157,15 @@ function CarouselGeneratorContent() {
     } finally {
       setGenerating(false)
     }
+  }
+
+  // Вернуться к выбору тем
+  const backToTopics = () => {
+    setStep('topics')
+    setSelectedTopic(null)
+    setSlides([])
+    setShowCustomInput(false)
+    setCustomTopic('')
   }
 
   const copySlide = (index: number) => {
@@ -131,11 +207,11 @@ function CarouselGeneratorContent() {
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-[#DCE1EB]">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => step === 'carousel' && !searchParams.get('topic') ? backToTopics() : router.push('/dashboard')}
             className="flex items-center gap-2 text-[#828AA0] hover:text-[#2D3748] transition cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />
-            Назад в кабинет
+            {step === 'carousel' && !searchParams.get('topic') ? 'К выбору темы' : 'Назад в кабинет'}
           </button>
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-[#6B7AA1]" />
@@ -151,261 +227,505 @@ function CarouselGeneratorContent() {
           animate={{ opacity: 1, y: 0 }} 
           className="mb-10"
         >
-          <div className="inline-flex items-center gap-2 bg-[#6B7AA1]/10 text-[#6B7AA1] px-4 py-2 rounded-full text-sm font-medium mb-4">
-            <Layers className="w-4 h-4" />
-            Генератор каруселей
+          <div className="flex items-center gap-3 mb-4">
+            <div className="inline-flex items-center gap-2 bg-[#6B7AA1]/10 text-[#6B7AA1] px-4 py-2 rounded-full text-sm font-medium">
+              <Layers className="w-4 h-4" />
+              Генератор каруселей
+            </div>
+            <button
+              onClick={() => setShowHelp(true)}
+              className="inline-flex items-center gap-1.5 text-[#828AA0] hover:text-[#6B7AA1] text-sm transition cursor-pointer"
+            >
+              <HelpCircle className="w-4 h-4" />
+              Что такое карусель?
+            </button>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-[#2D3748] mb-2">
-            Создайте карусель для Instagram
+            {step === 'topics' ? 'Выберите тему для карусели' : 'Ваша карусель'}
           </h1>
           <p className="text-[#828AA0]">
-            AI создаст 8-10 слайдов с цепляющим хуком и логичной структурой
+            {step === 'topics' 
+              ? 'AI подобрал 5 тем на основе вашей ниши — выберите одну или напишите свою'
+              : `Тема: ${selectedTopic?.title}`
+            }
           </p>
         </motion.div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Левая колонка — форма */}
-          <div className="space-y-6">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }} 
-              animate={{ opacity: 1, y: 0 }} 
-              transition={{ delay: 0.1 }}
-              className="bg-white rounded-2xl border border-[#DCE1EB] p-6"
+        {/* Модальное окно с объяснением */}
+        <AnimatePresence>
+          {showHelp && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+              onClick={() => setShowHelp(false)}
             >
-              <h2 className="font-semibold text-[#2D3748] mb-4">Тема карусели</h2>
-              
-              {pillar && (
-                <div className="mb-3">
-                  <span className="inline-block px-3 py-1 bg-[#6B7AA1]/10 text-[#6B7AA1] text-xs font-medium rounded-full">
-                    {pillar}
-                  </span>
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                onClick={e => e.stopPropagation()}
+                className="bg-white rounded-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-xl"
+              >
+                <div className="flex items-center justify-between p-6 border-b border-[#DCE1EB]">
+                  <h2 className="text-xl font-bold text-[#2D3748]">Что такое карусель?</h2>
+                  <button
+                    onClick={() => setShowHelp(false)}
+                    className="p-2 hover:bg-[#F5F7FA] rounded-lg transition cursor-pointer"
+                  >
+                    <X className="w-5 h-5 text-[#828AA0]" />
+                  </button>
                 </div>
-              )}
-              
-              <textarea
-                value={topic}
-                onChange={e => setTopic(e.target.value)}
-                placeholder="Например: Почему мы выбираем тех, кто делает нам больно"
-                rows={3}
-                className="w-full px-4 py-3 rounded-xl border border-[#DCE1EB] bg-white text-[#2D3748] text-sm focus:outline-none focus:ring-2 focus:ring-[#6B7AA1]/50 focus:border-[#6B7AA1] resize-none transition"
-              />
-              
-              <p className="text-xs text-[#828AA0] mt-2">
-                Опишите тему или идею — AI раскроет её в формате карусели
-              </p>
+
+                <div className="p-6 space-y-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-lg bg-[#6B7AA1]/10 flex items-center justify-center">
+                        <Layers className="w-4 h-4 text-[#6B7AA1]" />
+                      </div>
+                      <h3 className="font-semibold text-[#2D3748]">Что это?</h3>
+                    </div>
+                    <p className="text-sm text-[#828AA0] leading-relaxed">
+                      Карусель — это пост в Instagram из <strong>нескольких картинок</strong> (слайдов), 
+                      которые листаются влево-вправо. Обычно 5-10 слайдов с текстом на каждом.
+                    </p>
+                  </div>
+
+                  <div className="bg-[#F5F7FA] rounded-xl p-4">
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                      {['Хук', 'Проблема', 'Развитие', 'Решение', 'CTA'].map((text, i) => (
+                        <div
+                          key={i}
+                          className="flex-shrink-0 w-16 h-16 bg-white rounded-lg border border-[#DCE1EB] flex flex-col items-center justify-center p-2"
+                        >
+                          <span className="text-lg font-bold text-[#6B7AA1]">{i + 1}</span>
+                          <span className="text-[8px] text-[#828AA0] text-center">{text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                        <Target className="w-4 h-4 text-green-600" />
+                      </div>
+                      <h3 className="font-semibold text-[#2D3748]">Зачем психологу?</h3>
+                    </div>
+                    <ul className="text-sm text-[#828AA0] space-y-1">
+                      <li>✓ Больше вовлечения — люди листают</li>
+                      <li>✓ Показываете экспертность</li>
+                      <li>✓ Часто сохраняют в закладки</li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-[#6B7AA1]/10 to-[#8E9CC2]/10 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className="w-4 h-4 text-[#6B7AA1]" />
+                      <span className="text-sm font-medium text-[#2D3748]">Статистика</span>
+                    </div>
+                    <p className="text-xs text-[#828AA0]">
+                      Карусели получают <strong>в 3 раза больше вовлечения</strong>, чем обычные посты.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-6 border-t border-[#DCE1EB]">
+                  <button
+                    onClick={() => setShowHelp(false)}
+                    className="w-full py-3 bg-[#6B7AA1] text-white rounded-xl font-medium hover:bg-[#5A6890] transition cursor-pointer"
+                  >
+                    Понятно!
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
+          )}
+        </AnimatePresence>
 
-            <motion.button
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              onClick={handleGenerate}
-              disabled={!topic.trim() || generating}
-              className={`w-full flex items-center justify-center gap-3 py-4 rounded-xl text-base font-semibold transition cursor-pointer ${
-                topic.trim() && !generating
-                  ? 'bg-[#6B7AA1] text-white hover:bg-[#5A6890]'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              {generating ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Генерирую слайды...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5" />
-                  Сгенерировать карусель
-                </>
-              )}
-            </motion.button>
-
-            {/* Список всех слайдов (миниатюры) */}
-            {slides.length > 0 && (
+        {/* ШАГ 1: Выбор темы */}
+        {step === 'topics' && (
+          <div className="max-w-2xl mx-auto">
+            {/* Загрузка тем */}
+            {loadingTopics && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="bg-white rounded-2xl border border-[#DCE1EB] p-4"
+                className="text-center py-16"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium text-[#2D3748]">
-                    Все слайды ({slides.length})
-                  </span>
-                  <button
-                    onClick={copyAll}
-                    className="flex items-center gap-1.5 text-xs text-[#6B7AA1] hover:text-[#5A6890] transition cursor-pointer"
-                  >
-                    {copiedAll ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    {copiedAll ? 'Скопировано!' : 'Копировать все'}
-                  </button>
+                <Loader2 className="w-10 h-10 text-[#6B7AA1] animate-spin mx-auto mb-4" />
+                <p className="font-semibold text-[#2D3748]">AI подбирает темы для вас...</p>
+                <p className="text-sm text-[#828AA0] mt-1">На основе вашей ниши и целевой аудитории</p>
+              </motion.div>
+            )}
+
+            {/* Список тем */}
+            {!loadingTopics && suggestedTopics.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center gap-2 mb-6">
+                  <ListChecks className="w-5 h-5 text-[#6B7AA1]" />
+                  <span className="font-medium text-[#2D3748]">Выберите тему:</span>
                 </div>
-                
-                <div className="grid grid-cols-5 gap-2">
-                  {slides.map((slide, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentSlide(i)}
-                      className={`aspect-square rounded-lg flex items-center justify-center text-sm font-bold transition cursor-pointer ${
-                        currentSlide === i
-                          ? 'bg-[#6B7AA1] text-white'
-                          : 'bg-[#F5F7FA] text-[#828AA0] hover:bg-[#DCE1EB]'
-                      }`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
+
+                {suggestedTopics.map((topic, index) => (
+                  <motion.button
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    onClick={() => handleSelectTopic(topic)}
+                    className="w-full text-left p-5 bg-white rounded-xl border border-[#DCE1EB] hover:border-[#6B7AA1] hover:shadow-md transition cursor-pointer group"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-full bg-[#6B7AA1]/10 flex items-center justify-center flex-shrink-0 group-hover:bg-[#6B7AA1] transition">
+                        <span className="font-bold text-[#6B7AA1] group-hover:text-white transition">
+                          {index + 1}
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-[#2D3748] mb-1 group-hover:text-[#6B7AA1] transition">
+                          {topic.title}
+                        </h3>
+                        <p className="text-sm text-[#828AA0]">
+                          {topic.description}
+                        </p>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-[#DCE1EB] group-hover:text-[#6B7AA1] transition flex-shrink-0 mt-2" />
+                    </div>
+                  </motion.button>
+                ))}
+
+                {/* Разделитель */}
+                <div className="flex items-center gap-4 py-4">
+                  <div className="flex-1 h-px bg-[#DCE1EB]" />
+                  <span className="text-sm text-[#828AA0]">или</span>
+                  <div className="flex-1 h-px bg-[#DCE1EB]" />
+                </div>
+
+                {/* Свой вариант */}
+                {!showCustomInput ? (
+                  <motion.button
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    onClick={() => setShowCustomInput(true)}
+                    className="w-full p-5 border-2 border-dashed border-[#DCE1EB] rounded-xl text-[#828AA0] hover:border-[#6B7AA1] hover:text-[#6B7AA1] transition cursor-pointer"
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <Lightbulb className="w-5 h-5" />
+                      <span className="font-medium">Написать свою тему</span>
+                    </div>
+                  </motion.button>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="bg-white rounded-xl border border-[#DCE1EB] p-5"
+                  >
+                    <label className="block text-sm font-medium text-[#2D3748] mb-2">
+                      Своя тема для карусели:
+                    </label>
+                    <textarea
+                      value={customTopic}
+                      onChange={e => setCustomTopic(e.target.value)}
+                      placeholder="Например: Почему мы выбираем тех, кто делает нам больно"
+                      rows={2}
+                      className="w-full px-4 py-3 rounded-xl border border-[#DCE1EB] bg-white text-[#2D3748] text-sm focus:outline-none focus:ring-2 focus:ring-[#6B7AA1]/50 focus:border-[#6B7AA1] resize-none transition"
+                      autoFocus
+                    />
+                    <div className="flex gap-3 mt-3">
+                      <button
+                        onClick={() => {
+                          setShowCustomInput(false)
+                          setCustomTopic('')
+                        }}
+                        className="flex-1 py-2.5 rounded-xl border border-[#DCE1EB] text-[#828AA0] hover:text-[#2D3748] transition cursor-pointer text-sm font-medium"
+                      >
+                        Отмена
+                      </button>
+                      <button
+                        onClick={handleCustomTopic}
+                        disabled={!customTopic.trim()}
+                        className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer ${
+                          customTopic.trim()
+                            ? 'bg-[#6B7AA1] text-white hover:bg-[#5A6890]'
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        }`}
+                      >
+                        Создать карусель
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Обновить темы */}
+                <div className="text-center pt-4">
+                  <button
+                    onClick={() => loadTopics(user.id)}
+                    className="inline-flex items-center gap-2 text-sm text-[#828AA0] hover:text-[#6B7AA1] transition cursor-pointer"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Предложить другие темы
+                  </button>
                 </div>
               </motion.div>
             )}
+
+            {/* Ошибка */}
+            {error && !loadingTopics && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="p-6 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-sm text-center"
+              >
+                {error}
+                <button
+                  onClick={() => loadTopics(user.id)}
+                  className="block mx-auto mt-3 text-red-700 underline hover:no-underline cursor-pointer"
+                >
+                  Попробовать снова
+                </button>
+              </motion.div>
+            )}
           </div>
+        )}
 
-          {/* Правая колонка — превью */}
-          <div>
-            <AnimatePresence mode="wait">
-              {/* Пустое состояние */}
-              {!slides.length && !generating && !error && (
-                <motion.div
-                  key="empty"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="h-full flex flex-col items-center justify-center text-center py-20 bg-white rounded-2xl border border-dashed border-[#DCE1EB]"
-                >
-                  <Layers className="w-12 h-12 text-[#DCE1EB] mb-4" />
-                  <p className="text-[#828AA0] font-medium">Введите тему карусели</p>
-                  <p className="text-sm text-[#828AA0] mt-1">Превью слайдов появится здесь</p>
-                </motion.div>
-              )}
+        {/* ШАГ 2: Карусель */}
+        {step === 'carousel' && (
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* Левая колонка — инфо */}
+            <div className="space-y-6">
+              {/* Выбранная тема */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }} 
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-2xl border border-[#DCE1EB] p-6"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <h2 className="font-semibold text-[#2D3748]">Тема карусели</h2>
+                  {!searchParams.get('topic') && (
+                    <button
+                      onClick={backToTopics}
+                      className="text-xs text-[#6B7AA1] hover:underline cursor-pointer"
+                    >
+                      Изменить тему
+                    </button>
+                  )}
+                </div>
+                
+                <div className="p-4 bg-[#F5F7FA] rounded-xl">
+                  <p className="font-medium text-[#2D3748]">{selectedTopic?.title}</p>
+                  {selectedTopic?.description && selectedTopic.description !== 'Своя тема' && (
+                    <p className="text-sm text-[#828AA0] mt-1">{selectedTopic.description}</p>
+                  )}
+                </div>
+              </motion.div>
 
-              {/* Загрузка */}
-              {generating && (
+              {/* Список всех слайдов */}
+              {slides.length > 0 && (
                 <motion.div
-                  key="loading"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="h-full flex flex-col items-center justify-center text-center py-20 bg-white rounded-2xl border border-[#DCE1EB]"
-                >
-                  <Loader2 className="w-10 h-10 text-[#6B7AA1] animate-spin mb-4" />
-                  <p className="font-semibold text-[#2D3748]">AI создаёт карусель...</p>
-                  <p className="text-sm text-[#828AA0] mt-1">Обычно 15–30 секунд</p>
-                </motion.div>
-              )}
-
-              {/* Ошибка */}
-              {error && (
-                <motion.div
-                  key="error"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="p-6 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-sm"
-                >
-                  {error}
-                </motion.div>
-              )}
-
-              {/* Результат — превью слайда */}
-              {slides.length > 0 && !generating && (
-                <motion.div
-                  key="result"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="space-y-4"
+                  transition={{ delay: 0.1 }}
+                  className="bg-white rounded-2xl border border-[#DCE1EB] p-4"
                 >
-                  {/* Превью текущего слайда (как в Instagram) */}
-                  <div className="bg-white rounded-2xl border border-[#DCE1EB] overflow-hidden">
-                    {/* Шапка */}
-                    <div className="flex items-center justify-between px-5 py-3 border-b border-[#DCE1EB] bg-[#F5F7FA]">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-[#2D3748]">
-                          Слайд {currentSlide + 1} из {slides.length}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => copySlide(currentSlide)}
-                        className="flex items-center gap-1.5 text-xs font-medium text-white bg-[#6B7AA1] hover:bg-[#5A6890] transition cursor-pointer px-3 py-1.5 rounded-lg"
-                      >
-                        {copied === currentSlide ? (
-                          <><Check className="w-3.5 h-3.5" /> Скопировано!</>
-                        ) : (
-                          <><Copy className="w-3.5 h-3.5" /> Копировать</>
-                        )}
-                      </button>
-                    </div>
-
-                    {/* Контент слайда */}
-                    <div className="relative">
-                      {/* Имитация Instagram карусели */}
-                      <div className="aspect-square bg-gradient-to-br from-[#6B7AA1]/5 to-[#8E9CC2]/10 flex items-center justify-center p-8">
-                        <div className="max-w-[280px] text-center">
-                          {/* Номер слайда */}
-                          <div className="text-[80px] font-bold text-[#DCE1EB] leading-none mb-4">
-                            {String(currentSlide + 1).padStart(2, '0')}
-                          </div>
-                          {/* Текст слайда */}
-                          <p className="text-[#2D3748] text-lg leading-relaxed whitespace-pre-wrap">
-                            {slides[currentSlide].text}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Навигация */}
-                      <button
-                        onClick={prevSlide}
-                        disabled={currentSlide === 0}
-                        className={`absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow-lg flex items-center justify-center transition cursor-pointer ${
-                          currentSlide === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-white'
-                        }`}
-                      >
-                        <ChevronLeft className="w-5 h-5 text-[#2D3748]" />
-                      </button>
-                      
-                      <button
-                        onClick={nextSlide}
-                        disabled={currentSlide === slides.length - 1}
-                        className={`absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow-lg flex items-center justify-center transition cursor-pointer ${
-                          currentSlide === slides.length - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-white'
-                        }`}
-                      >
-                        <ChevronRight className="w-5 h-5 text-[#2D3748]" />
-                      </button>
-
-                      {/* Индикаторы (точки) */}
-                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
-                        {slides.map((_, i) => (
-                          <button
-                            key={i}
-                            onClick={() => setCurrentSlide(i)}
-                            className={`w-2 h-2 rounded-full transition cursor-pointer ${
-                              currentSlide === i ? 'bg-[#6B7AA1]' : 'bg-[#DCE1EB]'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    </div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-medium text-[#2D3748]">
+                      Все слайды ({slides.length})
+                    </span>
+                    <button
+                      onClick={copyAll}
+                      className="flex items-center gap-1.5 text-xs text-[#6B7AA1] hover:text-[#5A6890] transition cursor-pointer"
+                    >
+                      {copiedAll ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedAll ? 'Скопировано!' : 'Копировать все'}
+                    </button>
                   </div>
-
-                  {/* Кнопки действий */}
-                  <div className="flex gap-3">
-                    <button
-                      onClick={handleGenerate}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#DCE1EB] text-[#828AA0] hover:text-[#2D3748] hover:border-[#6B7AA1] transition cursor-pointer text-sm font-medium"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      Переделать
-                    </button>
-                    <button
-                      onClick={() => router.push('/dashboard/content-plan')}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#DCE1EB] text-[#828AA0] hover:text-[#2D3748] hover:border-[#6B7AA1] transition cursor-pointer text-sm font-medium"
-                    >
-                      ← К контент-плану
-                    </button>
+                  
+                  <div className="grid grid-cols-5 gap-2">
+                    {slides.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setCurrentSlide(i)}
+                        className={`aspect-square rounded-lg flex items-center justify-center text-sm font-bold transition cursor-pointer ${
+                          currentSlide === i
+                            ? 'bg-[#6B7AA1] text-white'
+                            : 'bg-[#F5F7FA] text-[#828AA0] hover:bg-[#DCE1EB]'
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
                   </div>
                 </motion.div>
               )}
-            </AnimatePresence>
+
+              {/* Кнопки действий */}
+              {slides.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="flex gap-3"
+                >
+                  <button
+                    onClick={() => handleGenerate()}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#DCE1EB] text-[#828AA0] hover:text-[#2D3748] hover:border-[#6B7AA1] transition cursor-pointer text-sm font-medium bg-white"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Переделать
+                  </button>
+                  {!searchParams.get('topic') && (
+                    <button
+                      onClick={backToTopics}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#DCE1EB] text-[#828AA0] hover:text-[#2D3748] hover:border-[#6B7AA1] transition cursor-pointer text-sm font-medium bg-white"
+                    >
+                      Другая тема
+                    </button>
+                  )}
+                </motion.div>
+              )}
+            </div>
+
+            {/* Правая колонка — превью */}
+            <div>
+              <AnimatePresence mode="wait">
+                {/* Загрузка */}
+                {generating && (
+                  <motion.div
+                    key="loading"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="h-full flex flex-col items-center justify-center text-center py-20 bg-white rounded-2xl border border-[#DCE1EB]"
+                  >
+                    <Loader2 className="w-10 h-10 text-[#6B7AA1] animate-spin mb-4" />
+                    <p className="font-semibold text-[#2D3748]">AI создаёт карусель...</p>
+                    <p className="text-sm text-[#828AA0] mt-1">Обычно 15–30 секунд</p>
+                  </motion.div>
+                )}
+
+                {/* Ошибка */}
+                {error && !generating && (
+                  <motion.div
+                    key="error"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="p-6 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-sm"
+                  >
+                    {error}
+                    <button
+                      onClick={() => handleGenerate()}
+                      className="block mt-3 text-red-700 underline hover:no-underline cursor-pointer"
+                    >
+                      Попробовать снова
+                    </button>
+                  </motion.div>
+                )}
+
+                {/* Результат */}
+                {slides.length > 0 && !generating && (
+                  <motion.div
+                    key="result"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-4"
+                  >
+                    {/* Подсказка */}
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-3">
+                      <p className="text-xs text-green-700">
+                        ✨ <strong>Готово!</strong> Скопируйте тексты и создайте картинки в Canva
+                      </p>
+                    </div>
+
+                                     {/* Превью слайда */}
+                    <div className="bg-white rounded-2xl border border-[#DCE1EB] overflow-hidden">
+                      <div className="flex items-center justify-between px-5 py-3 border-b border-[#DCE1EB] bg-[#F5F7FA]">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-[#2D3748]">
+                            Слайд {currentSlide + 1} из {slides.length}
+                          </span>
+                          {currentSlide === 0 && (
+                            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                              Хук
+                            </span>
+                          )}
+                          {currentSlide === slides.length - 1 && (
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                              Финал
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => copySlide(currentSlide)}
+                          className="flex items-center gap-1.5 text-xs font-medium text-white bg-[#6B7AA1] hover:bg-[#5A6890] transition cursor-pointer px-3 py-1.5 rounded-lg"
+                        >
+                          {copied === currentSlide ? (
+                            <><Check className="w-3.5 h-3.5" /> Скопировано!</>
+                          ) : (
+                            <><Copy className="w-3.5 h-3.5" /> Копировать</>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Контент слайда */}
+                      <div className="relative">
+                        <div className="aspect-square bg-gradient-to-br from-[#6B7AA1]/5 to-[#8E9CC2]/10 flex items-center justify-center p-8">
+                          <div className="max-w-[280px] text-center">
+                            <div className="text-[80px] font-bold text-[#DCE1EB] leading-none mb-4">
+                              {String(currentSlide + 1).padStart(2, '0')}
+                            </div>
+                            <p className="text-[#2D3748] text-lg leading-relaxed whitespace-pre-wrap">
+                              {slides[currentSlide].text}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Навигация */}
+                        <button
+                          onClick={prevSlide}
+                          disabled={currentSlide === 0}
+                          className={`absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow-lg flex items-center justify-center transition cursor-pointer ${
+                            currentSlide === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-white'
+                          }`}
+                        >
+                          <ChevronLeft className="w-5 h-5 text-[#2D3748]" />
+                        </button>
+                        
+                        <button
+                          onClick={nextSlide}
+                          disabled={currentSlide === slides.length - 1}
+                          className={`absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow-lg flex items-center justify-center transition cursor-pointer ${
+                            currentSlide === slides.length - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-white'
+                          }`}
+                        >
+                          <ChevronRight className="w-5 h-5 text-[#2D3748]" />
+                        </button>
+
+                        {/* Индикаторы */}
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                          {slides.map((_, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setCurrentSlide(i)}
+                              className={`w-2 h-2 rounded-full transition cursor-pointer ${
+                                currentSlide === i ? 'bg-[#6B7AA1]' : 'bg-[#DCE1EB]'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
