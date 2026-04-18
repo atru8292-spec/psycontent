@@ -1,106 +1,141 @@
-// app/api/generate-carousel-topics/route.ts
-
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import { generateWithAI } from '@/lib/openrouter'
-import { buildProfileContext } from '@/lib/profile-context'
 
-function getSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) throw new Error('Missing Supabase env variables')
-  return createClient(url, key)
+const SUPADATA_API_KEY = process.env.SUPADATA_API_KEY
+const SUPADATA_BASE_URL = 'https://api.supadata.ai/v1'
+
+async function getTranscript(url: string) {
+  const response = await fetch(
+    `${SUPADATA_BASE_URL}/youtube/transcript?url=${encodeURIComponent(url)}`,
+    {
+      method: 'GET',
+      headers: { 'x-api-key': SUPADATA_API_KEY! },
+    }
+  )
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.message || `Supadata error: ${response.status}`)
+  }
+  return response.json()
 }
 
-const SYSTEM_PROMPT = `Ты — эксперт по контенту для психологов в Instagram. 
-Твоя задача — предложить темы для каруселей, которые:
-- Цепляют внимание с первого слайда
-- Раскрывают экспертность психолога
-- Резонируют с целевой аудиторией
-- Подходят для формата 8-10 слайдов
+function detectPlatform(url: string): string {
+  if (url.includes('instagram.com')) return 'Instagram'
+  if (url.includes('youtube.com') || url.includes('youtu.be')) return 'YouTube'
+  if (url.includes('tiktok.com')) return 'TikTok'
+  return 'Video'
+}
 
-Отвечай ТОЛЬКО JSON массивом, без markdown и пояснений.`
+const SYSTEM_PROMPT = `Ты — эксперт по контент-стратегии для психологов. Анализируй видео конкурента.
 
-export async function POST(req: NextRequest) {
+Структура ответа:
+
+## 📊 АНАЛИЗ КОНТЕНТА
+
+### Тема и ключевые мысли
+[О чём видео, главный посыл]
+
+### Формат и структура
+[Какой формат, как построено]
+
+### Хуки и приёмы
+[Что цепляет в первые 3 секунды]
+
+### Что работает хорошо
+[Сильные стороны]
+
+---
+
+## 🎯 ЧТО ВЗЯТЬ СЕБЕ
+
+- [Приём 1]
+- [Приём 2]
+- [Удачная формулировка]
+
+---
+
+## ✍️ АДАПТАЦИЯ
+
+[Как адаптировать под психолога]
+
+---
+
+## 🎬 ГОТОВЫЙ СЦЕНАРИЙ (30-60 сек)
+
+**[0:00-0:03] ХУК:**
+[Начало]
+
+**[0:03-0:10] ПРОБЛЕМА:**
+[Боль]
+
+**[0:10-0:25] ОСНОВА:**
+[Контент]
+
+**[0:25-0:30] CTA:**
+[Призыв]
+
+Пиши на русском, живым языком.`
+
+export async function POST(request: NextRequest) {
   try {
-    const body = await req.json()
-    const { userId } = body
+    const { data: { user } } = await supabase.auth.getUser()
 
-    if (!userId) {
-      return NextResponse.json({ error: 'userId required' }, { status: 400 })
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const supabase = getSupabaseAdmin()
+    if (!SUPADATA_API_KEY) {
+      return NextResponse.json({ error: 'Supadata not configured' }, { status: 500 })
+    }
 
-    // Получаем профиль пользователя
-    const { data: profile } = await supabase
-      .from('onboarding_profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .single()
+    const { url } = await request.json()
 
-    let profileContext = ''
+    if (!url) {
+      return NextResponse.json({ error: 'URL обязателен' }, { status: 400 })
+    }
+
+    const platform = detectPlatform(url)
+
+    let transcriptData
     try {
-      profileContext = buildProfileContext(profile || {})
-    } catch {
-      profileContext = 'Профиль психолога не заполнен.'
+      transcriptData = await getTranscript(url)
+    } catch (error) {
+      return NextResponse.json(
+        { error: `Не удалось получить транскрипцию: ${error instanceof Error ? error.message : 'Unknown'}` },
+        { status: 400 }
+      )
     }
 
-    const prompt = `
-${profileContext}
-
-═══════════════════════════════
-ЗАДАНИЕ
-═══════════════════════════════
-
-Предложи 5 тем для карусели в Instagram.
-
-Каждая тема должна:
-- Быть актуальной для целевой аудитории
-- Иметь цепляющий заголовок (как для первого слайда)
-- Раскрываться за 8-10 слайдов
-
-Формат ответа — JSON массив:
-[
-  {
-    "title": "Цепляющий заголовок темы",
-    "description": "Краткое описание — о чём будет карусель (1 предложение)"
-  }
-]
-
-ТОЛЬКО JSON, без markdown и пояснений.`
-
-    const response = await generateWithAI(SYSTEM_PROMPT, prompt)
-
-    if (!response) {
-      throw new Error('AI returned empty response')
+    let transcript = ''
+    if (transcriptData.content && Array.isArray(transcriptData.content)) {
+      transcript = transcriptData.content.map((s: any) => s.text).join(' ')
+    } else if (typeof transcriptData.content === 'string') {
+      transcript = transcriptData.content
     }
 
-    // Парсим JSON
-    let topics: Array<{ title: string; description: string }>
-    
-    try {
-      const jsonMatch = response.match(/\[[\s\S]*\]/)
-      if (!jsonMatch) {
-        throw new Error('No JSON found in response')
-      }
-      topics = JSON.parse(jsonMatch[0])
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError)
-      console.log('Raw response:', response)
-      throw new Error('Failed to parse topics')
+    if (!transcript.trim()) {
+      return NextResponse.json({ error: 'В видео нет речи или субтитров' }, { status: 400 })
     }
 
-    if (!topics || topics.length < 3) {
-      throw new Error('Not enough topics generated')
-    }
+    const userPrompt = `Платформа: ${platform}\n\nТранскрипция:\n${transcript}`
 
-    return NextResponse.json({ topics })
+    const analysis = await generateWithAI(SYSTEM_PROMPT, userPrompt)
 
-  } catch (error: any) {
-    console.error('Generate carousel topics error:', error)
+    await supabase.from('competitor_analyses').insert({
+      user_id: user.id,
+      url,
+      platform,
+      transcript,
+      metadata: null,
+      analysis,
+    })
+
+    return NextResponse.json({ success: true, analysis, transcript, metadata: null, platform })
+  } catch (error) {
+    console.error('Competitor analysis error:', error)
     return NextResponse.json(
-      { error: error?.message || 'Не удалось сгенерировать темы' },
+      { error: error instanceof Error ? error.message : 'Ошибка анализа' },
       { status: 500 }
     )
   }
