@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -55,7 +55,7 @@ function formatResult(text: string, format: string) {
   )
 }
 
-export default function PostGenerator() {
+function PostGeneratorContent() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -66,7 +66,6 @@ export default function PostGenerator() {
   const [customTopic, setCustomTopic] = useState('')
   const [useCustom, setUseCustom] = useState(false)
   
-  // Флаг: пришли из контент-плана
   const [fromPlan, setFromPlan] = useState(false)
   const [planPillar, setPlanPillar] = useState<string | null>(null)
 
@@ -79,7 +78,6 @@ export default function PostGenerator() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // Чтение параметров из URL (из контент-плана)
   useEffect(() => {
     const topic = searchParams.get('topic')
     const format = searchParams.get('format')
@@ -94,7 +92,6 @@ export default function PostGenerator() {
     }
 
     if (format && ['post', 'carousel', 'stories', 'reels'].includes(format)) {
-      // reels маппим на post для этого генератора
       setSelectedFormat(format === 'reels' ? 'post' : format)
     }
 
@@ -157,7 +154,6 @@ export default function PostGenerator() {
       
       setResult(data.post)
 
-      // Сохраняем в базу
       const { error: saveError } = await supabase
         .from('generated_posts')
         .insert({
@@ -195,7 +191,6 @@ export default function PostGenerator() {
     setPlanPillar(null)
     setCustomTopic('')
     setUseCustom(false)
-    // Убираем параметры из URL
     router.replace('/dashboard/post-generator')
   }
 
@@ -209,7 +204,6 @@ export default function PostGenerator() {
 
   return (
     <div className="min-h-screen bg-brand-bg">
-      {/* Header */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-brand-border">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <button
@@ -227,7 +221,6 @@ export default function PostGenerator() {
       </nav>
 
       <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* Title */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
           <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-600 px-4 py-2 rounded-full text-sm font-medium mb-4">
             <PenTool className="w-4 h-4" />
@@ -241,7 +234,6 @@ export default function PostGenerator() {
           </p>
         </motion.div>
 
-        {/* Banner: пришли из контент-плана */}
         {fromPlan && customTopic && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -257,9 +249,7 @@ export default function PostGenerator() {
                   <p className="text-sm font-semibold text-green-800 mb-1">
                     Тема из контент-плана
                   </p>
-                  <p className="text-sm text-green-700">
-                    {customTopic}
-                  </p>
+                  <p className="text-sm text-green-700">{customTopic}</p>
                   {planPillar && (
                     <span className="inline-block mt-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
                       {planPillar}
@@ -278,9 +268,7 @@ export default function PostGenerator() {
         )}
 
         <div className="grid lg:grid-cols-2 gap-8">
-          {/* Left — Settings */}
           <div className="space-y-6">
-            {/* Step 1: Format */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white rounded-2xl border border-brand-border p-6">
               <h2 className="font-bold text-brand-text mb-4 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-brand-accent text-white text-xs flex items-center justify-center font-bold">1</span>
@@ -305,7 +293,6 @@ export default function PostGenerator() {
               </div>
             </motion.div>
 
-            {/* Step 2: Topic — скрываем если пришли из плана */}
             {!fromPlan && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white rounded-2xl border border-brand-border p-6">
                 <h2 className="font-bold text-brand-text mb-4 flex items-center gap-2">
@@ -313,7 +300,6 @@ export default function PostGenerator() {
                   Тема поста
                 </h2>
 
-                {/* Pillars */}
                 <div className="space-y-2 mb-4">
                   {defaultPillars.map(pillar => (
                     <div key={pillar.id}>
@@ -355,7 +341,6 @@ export default function PostGenerator() {
                   ))}
                 </div>
 
-                {/* Custom topic */}
                 <div className="border-t border-brand-border pt-4">
                   <button
                     onClick={() => { setUseCustom(!useCustom); setSelectedTopic(null); setSelectedPillar(null) }}
@@ -378,7 +363,6 @@ export default function PostGenerator() {
               </motion.div>
             )}
 
-            {/* Generate button */}
             <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -395,7 +379,6 @@ export default function PostGenerator() {
             </motion.button>
           </div>
 
-          {/* Right — Result */}
           <div>
             <AnimatePresence mode="wait">
               {!result && !generating && !error && (
@@ -446,7 +429,6 @@ export default function PostGenerator() {
                   animate={{ opacity: 1, y: 0 }}
                   className="bg-white rounded-2xl border border-brand-border overflow-hidden"
                 >
-                  {/* Result header */}
                   <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border bg-brand-bg">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-green-400" />
@@ -475,12 +457,10 @@ export default function PostGenerator() {
                     </div>
                   </div>
 
-                  {/* Content */}
                   <div className="p-6">
                     {formatResult(result, selectedFormat)}
                   </div>
 
-                  {/* Footer */}
                   <div className="px-6 pb-4 flex items-center justify-between">
                     <p className="text-xs text-brand-text-secondary">{result.length} символов</p>
                     <div className="flex items-center gap-4">
@@ -507,5 +487,18 @@ export default function PostGenerator() {
         </div>
       </div>
     </div>
+  )
+}
+
+// ============ WRAPPER WITH SUSPENSE ============
+export default function PostGeneratorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full" />
+      </div>
+    }>
+      <PostGeneratorContent />
+    </Suspense>
   )
 }
