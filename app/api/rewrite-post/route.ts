@@ -141,7 +141,7 @@ const SYSTEM_PROMPT = `Ты — ghostwriter для практикующего п
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, sourceText, format, goal } = await req.json()
+    const { userId, sourceText, format, goal, model } = await req.json()
 
     if (!userId || !sourceText) {
       return NextResponse.json({ error: 'Не указаны userId или текст' }, { status: 400 })
@@ -193,7 +193,7 @@ ${sourceText}
 
 Перепиши. Только готовый текст, без предисловий.`
 
-    const post = await generateWithAI(SYSTEM_PROMPT, prompt)
+    const post = await generateWithAI(SYSTEM_PROMPT, prompt, { model })
 
     await supabase.from('generated_posts').insert({
       user_id: userId,

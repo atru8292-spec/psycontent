@@ -103,7 +103,7 @@ CTA ДЛЯ REELS (мягкие):
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, topic, customTopic, videoLength, videoStyle, pillar } = await req.json()
+    const { userId, topic, customTopic, videoLength, videoStyle, pillar, model } = await req.json()
 
     if (!userId) return NextResponse.json({ error: 'Не указан userId' }, { status: 400 })
 
@@ -174,7 +174,7 @@ ${getStyleInstruction(videoStyle)}
 
 Выдай готовый скрипт. Без предисловий.`
 
-    const script = await generateWithAI(SYSTEM_PROMPT, prompt)
+    const script = await generateWithAI(SYSTEM_PROMPT, prompt, { model })
 
     await supabase.from('generated_posts').insert({
       user_id: userId,

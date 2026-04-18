@@ -1,6 +1,7 @@
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 export type GenerateOptions = {
+  model?: string
   temperature?: number
   max_tokens?: number
 }
@@ -76,7 +77,7 @@ export async function generateWithAI(
 ) {
   return callOpenRouter(
     {
-      model: 'anthropic/claude-sonnet-4.5',
+      model: options.model ?? 'anthropic/claude-sonnet-4.5',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },

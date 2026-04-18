@@ -19,6 +19,8 @@ import {
   CheckCircle,
   CalendarDays,
 } from 'lucide-react'
+import AiModelSelector from '@/components/ai-model-selector'
+import { DEFAULT_AI_MODEL_ID, getModelById } from '@/lib/ai-models'
 
 // ============ УБРАНА КАРУСЕЛЬ ============
 const formats = [
@@ -53,6 +55,7 @@ function PostGeneratorContent() {
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [selectedModelId, setSelectedModelId] = useState(DEFAULT_AI_MODEL_ID)
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -104,6 +107,7 @@ function PostGeneratorContent() {
   }, [router])
 
   const currentPillar = defaultPillars.find(p => p.id === selectedPillar)
+  const selectedModel = getModelById(selectedModelId)
   const canGenerate = selectedFormat && (useCustom ? customTopic.trim() : selectedTopic)
 
   const handleGenerate = async () => {
@@ -126,6 +130,7 @@ function PostGeneratorContent() {
           customTopic: useCustom ? customTopic : undefined,
           format: selectedFormat,
           pillar: pillarLabel,
+          model: selectedModel.openrouterModel,
         }),
       })
 
@@ -285,6 +290,10 @@ function PostGeneratorContent() {
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
+            </motion.div>
+
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+              <AiModelSelector value={selectedModelId} onChange={setSelectedModelId} />
             </motion.div>
 
             {/* Тема */}

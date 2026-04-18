@@ -23,7 +23,7 @@ const SYSTEM_PROMPT = `Ты редактируешь ОДИН слайд кар�
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, topic, pillar, slideNumber, totalSlides, currentSlideText, allSlides } = await req.json()
+    const { userId, topic, pillar, slideNumber, totalSlides, currentSlideText, allSlides, model } = await req.json()
 
     if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
     if (!slideNumber || !totalSlides) {
@@ -58,7 +58,11 @@ ${contextSlides}
 
 Перепиши только слайд ${slideNumber}, чтобы он лучше держал внимание и логично продолжал соседние слайды.`
 
-    const text = await generateWithAI(SYSTEM_PROMPT, prompt, { max_tokens: 220, temperature: 0.7 })
+    const text = await generateWithAI(SYSTEM_PROMPT, prompt, {
+      model,
+      max_tokens: 220,
+      temperature: 0.7,
+    })
 
     return NextResponse.json({ text: (text || '').trim() })
   } catch (error: any) {

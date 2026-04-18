@@ -242,7 +242,7 @@ CTA (1 строка) → "Сохрани если узнала" / вопрос
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { userId, topic, customTopic, format, pillar } = body
+    const { userId, topic, customTopic, format, pillar, model } = body
 
     console.log('Generate post request:', { userId, topic, customTopic, format, pillar })
 
@@ -315,7 +315,7 @@ ${formatInstruction}
 Напиши пост. Только текст, без предисловий.`
 
     console.log('Calling generateWithAI...')
-    const post = await generateWithAI(SYSTEM_PROMPT, prompt)
+    const post = await generateWithAI(SYSTEM_PROMPT, prompt, { model })
     console.log('Post generated, length:', post?.length)
 
     if (!post) {

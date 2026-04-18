@@ -20,6 +20,8 @@ import {
   MessageSquare,
   TrendingUp
 } from 'lucide-react'
+import AiModelSelector from '@/components/ai-model-selector'
+import { DEFAULT_AI_MODEL_ID, getModelById } from '@/lib/ai-models'
 
 const formats = [
   { id: 'post', label: 'Текстовый пост', icon: AlignLeft },
@@ -47,6 +49,7 @@ export default function RewriteGenerator() {
   const [result, setResult] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [selectedModelId, setSelectedModelId] = useState(DEFAULT_AI_MODEL_ID)
 
   const router = useRouter()
 
@@ -69,6 +72,7 @@ export default function RewriteGenerator() {
   }, [router])
 
   const canGenerate = sourceText.trim().length > 20
+  const selectedModel = getModelById(selectedModelId)
 
   const handleRewrite = async () => {
     if (!user || !canGenerate) return
@@ -85,6 +89,7 @@ export default function RewriteGenerator() {
           sourceText,
           format: selectedFormat,
           goal: selectedGoal,
+          model: selectedModel.openrouterModel,
         }),
       })
 
@@ -276,6 +281,10 @@ export default function RewriteGenerator() {
                 </div>
               </div>
 
+            </motion.div>
+
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+              <AiModelSelector value={selectedModelId} onChange={setSelectedModelId} />
             </motion.div>
           </div>
 

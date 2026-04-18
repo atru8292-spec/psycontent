@@ -104,7 +104,7 @@ const CAROUSEL_SYSTEM_PROMPT = `Ты — эксперт по созданию в
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { userId, topic, pillar } = body
+    const { userId, topic, pillar, model } = body
 
     if (!userId) {
       return NextResponse.json({ error: 'userId required' }, { status: 400 })
@@ -149,7 +149,7 @@ ${pillar ? `Рубрика: ${pillar}` : ''}
 
 Создай карусель из 8-10 слайдов. Ответ ТОЛЬКО в формате JSON массива.`
 
-    const response = await generateWithAI(CAROUSEL_SYSTEM_PROMPT, prompt)
+    const response = await generateWithAI(CAROUSEL_SYSTEM_PROMPT, prompt, { model })
 
     if (!response) {
       throw new Error('AI returned empty response')

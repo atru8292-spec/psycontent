@@ -18,6 +18,8 @@ import {
   ChevronRight,
   Lightbulb,
 } from 'lucide-react'
+import AiModelSelector from '@/components/ai-model-selector'
+import { DEFAULT_AI_MODEL_ID, getModelById } from '@/lib/ai-models'
 
 const lengths = [
   { id: '30s', label: '30 секунд', desc: 'Быстрый и вирусный хук' },
@@ -53,6 +55,7 @@ export default function ReelsGenerator() {
   const [result, setResult] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [selectedModelId, setSelectedModelId] = useState(DEFAULT_AI_MODEL_ID)
 
   const router = useRouter()
 
@@ -75,6 +78,7 @@ export default function ReelsGenerator() {
   }, [router])
 
   const currentPillar = defaultPillars.find(p => p.id === selectedPillar)
+  const selectedModel = getModelById(selectedModelId)
   const canGenerate = selectedTopic || (useCustom && customTopic.trim())
 
   const handleGenerate = async () => {
@@ -94,6 +98,7 @@ export default function ReelsGenerator() {
           videoLength: selectedLength,
           videoStyle: selectedStyle,
           pillar: currentPillar?.label,
+          model: selectedModel.openrouterModel,
         }),
       })
 
@@ -297,6 +302,10 @@ export default function ReelsGenerator() {
                   />
                 )}
               </div>
+            </motion.div>
+
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+              <AiModelSelector value={selectedModelId} onChange={setSelectedModelId} />
             </motion.div>
 
             {/* Generate button */}

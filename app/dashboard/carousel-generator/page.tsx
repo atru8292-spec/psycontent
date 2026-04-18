@@ -18,6 +18,8 @@ import {
   Layers,
   Download,
 } from 'lucide-react'
+import AiModelSelector from '@/components/ai-model-selector'
+import { DEFAULT_AI_MODEL_ID, getModelById } from '@/lib/ai-models'
 
 type Slide = {
   slide: number
@@ -53,9 +55,11 @@ function CarouselGeneratorContent() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [regeneratingSlide, setRegeneratingSlide] = useState(false)
+  const [selectedModelId, setSelectedModelId] = useState(DEFAULT_AI_MODEL_ID)
 
   const router = useRouter()
   const searchParams = useSearchParams()
+  const selectedModel = getModelById(selectedModelId)
 
   // Получаем параметры из URL (если пришли из контент-плана)
   useEffect(() => {
@@ -94,6 +98,7 @@ function CarouselGeneratorContent() {
           userId: user.id,
           topic: topic.trim(),
           pillar,
+          model: selectedModel.openrouterModel,
         }),
       })
 
@@ -208,6 +213,7 @@ function CarouselGeneratorContent() {
           totalSlides: slides.length,
           currentSlideText: slides[currentSlide].text,
           allSlides: slides,
+          model: selectedModel.openrouterModel,
         }),
       })
       const data = await response.json()
@@ -296,6 +302,14 @@ function CarouselGeneratorContent() {
               <p className="text-xs text-[#828AA0] mt-2">
                 Опишите тему или идею — AI раскроет её в формате карусели
               </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <AiModelSelector value={selectedModelId} onChange={setSelectedModelId} />
             </motion.div>
 
             <motion.button
