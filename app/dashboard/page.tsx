@@ -18,6 +18,9 @@ import {
   Film,
   RefreshCcw,
   Lightbulb,
+  Settings,
+  History,
+  Layers, // ← Добавлена иконка для каруселей
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -29,10 +32,7 @@ export default function Dashboard() {
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/')
-        return
-      }
+      if (!user) { router.push('/'); return }
       setUser(user)
 
       const { data } = await supabase
@@ -41,11 +41,7 @@ export default function Dashboard() {
         .eq('user_id', user.id)
         .single()
 
-      if (!data) {
-        router.push('/onboarding')
-        return
-      }
-
+      if (!data) { router.push('/onboarding'); return }
       setProfile(data)
       setLoading(false)
     }
@@ -60,7 +56,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full"></div>
+        <div className="animate-spin w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full" />
       </div>
     )
   }
@@ -71,6 +67,13 @@ export default function Dashboard() {
       ? `${profile.tone_formal ?? 50}% формальный, ${profile.tone_serious ?? 50}% серьёзный, ${profile.tone_cautious ?? 50}% осторожный`
       : '—'
   )
+
+  const formatArray = (val: any) => {
+    if (!val) return '—'
+    if (Array.isArray(val)) return val.join(', ')
+    if (typeof val === 'string') return val
+    return '—'
+  }
 
   const tools = [
     {
@@ -86,11 +89,22 @@ export default function Dashboard() {
     {
       icon: PenTool,
       title: 'Генератор постов',
-      desc: 'Создавайте посты в вашем тоне за 30 секунд',
+      desc: 'Создавайте посты и stories за 30 секунд',
+      status: 'Открыть',
+      color: 'text-violet-500',
+      bg: 'bg-violet-50',
+      href: '/dashboard/post-generator',
+      ready: true,
+    },
+    // ============ НОВЫЙ ИНСТРУМЕНТ ============
+    {
+      icon: Layers,
+      title: 'Генератор каруселей',
+      desc: '8-10 слайдов с хуком и структурой',
       status: 'Открыть',
       color: 'text-blue-500',
       bg: 'bg-blue-50',
-      href: '/dashboard/post-generator',
+      href: '/dashboard/carousel-generator',
       ready: true,
     },
     {
@@ -106,7 +120,7 @@ export default function Dashboard() {
     {
       icon: Wrench,
       title: 'Исследование тем',
-      desc: 'Perplexity найдёт 30 трендовых тем в интернете под вашу нишу',
+      desc: 'AI найдёт 30 трендовых тем под вашу нишу',
       status: 'Открыть',
       color: 'text-orange-500',
       bg: 'bg-orange-50',
@@ -134,9 +148,19 @@ export default function Dashboard() {
       ready: true,
     },
     {
+      icon: History,
+      title: 'История постов',
+      desc: 'Все сгенерированные посты в одном месте',
+      status: 'Открыть',
+      color: 'text-emerald-500',
+      bg: 'bg-emerald-50',
+      href: '/dashboard/post-history',
+      ready: true,
+    },
+    {
       icon: Lightbulb,
       title: 'Промпты и инструкции',
-      desc: '"Сходи туда" - готовые схемы',
+      desc: 'Готовые схемы для ChatGPT',
       status: 'Скоро',
       color: 'text-fuchsia-500',
       bg: 'bg-fuchsia-50',
@@ -156,7 +180,7 @@ export default function Dashboard() {
     {
       icon: BookOpen,
       title: 'База знаний',
-      desc: 'Мини-курс по SMM для психологов (7 уроков)',
+      desc: 'Мини-курс по SMM для психологов',
       status: 'Скоро',
       color: 'text-pink-500',
       bg: 'bg-pink-50',
@@ -212,21 +236,31 @@ export default function Dashboard() {
           transition={{ delay: 0.1 }}
           className="mb-10 p-6 rounded-2xl bg-white border border-brand-border"
         >
-          <h2 className="text-lg font-bold text-brand-text mb-4 flex items-center gap-2">
-            <MessageCircle className="w-5 h-5 text-brand-accent" />
-            Ваш профиль распаковки
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-brand-text flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-brand-accent" />
+              Ваш профиль распаковки
+            </h2>
+            <button
+              onClick={() => router.push('/dashboard/edit-profile')}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand-text-secondary hover:text-brand-accent hover:bg-brand-highlight rounded-xl transition cursor-pointer"
+            >
+              <Settings className="w-4 h-4" />
+              Редактировать
+            </button>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="p-4 rounded-xl bg-brand-bg">
               <p className="text-xs text-brand-text-secondary mb-1">Подход</p>
               <p className="text-sm font-semibold text-brand-text">
-                {profile?.approaches?.join(', ') || '—'}
+                {formatArray(profile?.approaches)}
               </p>
             </div>
             <div className="p-4 rounded-xl bg-brand-bg">
               <p className="text-xs text-brand-text-secondary mb-1">Ниша</p>
               <p className="text-sm font-semibold text-brand-text">
-                {profile?.niches?.join(', ') || '—'}
+                {formatArray(profile?.niches)}
               </p>
             </div>
             <div className="p-4 rounded-xl bg-brand-bg">
@@ -236,8 +270,14 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="p-4 rounded-xl bg-brand-bg">
-              <p className="text-xs text-brand-text-secondary mb-1">Цель</p>
-              <p className="text-sm font-semibold text-brand-text">
+              <p className="text-xs text-brand-text-secondary mb-1">Голос бренда</p>
+              <p className="text-sm font-semibold text-brand-text line-clamp-2">
+                {profile?.live_voice || '—'}
+              </p>
+            </div>
+            <div className="p-4 rounded-xl bg-brand-bg">
+              <p className="text-xs text-brand-text-secondary mb-1">Цель на 3 месяца</p>
+              <p className="text-sm font-semibold text-brand-text line-clamp-2">
                 {profile?.goal_3_months || '—'}
               </p>
             </div>
@@ -253,11 +293,11 @@ export default function Dashboard() {
             <div className="p-4 rounded-xl bg-brand-bg">
               <p className="text-xs text-brand-text-secondary mb-1">Площадки</p>
               <p className="text-sm font-semibold text-brand-text">
-                {profile?.platforms?.join(', ') || '—'}
+                {formatArray(profile?.platforms)}
               </p>
             </div>
             <div className="p-4 rounded-xl bg-brand-bg">
-              <p className="text-xs text-brand-text-secondary mb-1">Клиентов в месяц</p>
+              <p className="text-xs text-brand-text-secondary mb-1">Клиентов сейчас</p>
               <p className="text-sm font-semibold text-brand-text">
                 {profile?.current_clients || '—'}
               </p>
@@ -283,7 +323,7 @@ export default function Dashboard() {
               key={i}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 + i * 0.1 }}
+              transition={{ delay: 0.3 + i * 0.05 }}
               onClick={() => tool.ready && router.push(tool.href)}
               className={`p-6 rounded-2xl bg-white border border-brand-border hover:shadow-md transition group ${
                 tool.ready ? 'cursor-pointer' : 'opacity-70'
@@ -316,8 +356,8 @@ export default function Dashboard() {
             Вы уже на шаг впереди 90% психологов 🚀
           </h3>
           <p className="text-white/80 max-w-lg mx-auto">
-            Вы прошли распаковку и теперь мы знаем ваш голос. Скоро здесь появятся
-            инструменты, которые превратят ваши знания в контент, привлекающий клиентов.
+            Вы прошли распаковку и теперь мы знаем ваш голос. Используйте инструменты
+            чтобы превратить знания в контент, привлекающий клиентов.
           </p>
         </motion.div>
       </div>

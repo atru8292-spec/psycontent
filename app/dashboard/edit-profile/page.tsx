@@ -1,3 +1,4 @@
+// app/dashboard/edit-profile/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -5,7 +6,8 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Sparkles, ArrowRight, ArrowLeft, CheckCircle, User, MessageCircle, Heart, MapPin, Flag, Star
+  Sparkles, ArrowRight, ArrowLeft, CheckCircle, User, MessageCircle, 
+  Heart, MapPin, Flag, Star, Loader2, AlertTriangle
 } from 'lucide-react'
 
 const blocks = [
@@ -284,33 +286,84 @@ const questions = [
   }
 ]
 
-export default function Onboarding() {
-  const [step, setStep] = useState(-1)
+export default function EditProfile() {
+  const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<Record<string, any>>({})
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [completed, setCompleted] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const router = useRouter()
 
+  // Загрузка существующего профиля
   useEffect(() => {
-    const checkUser = async () => {
+    const loadProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
       setUserId(user.id)
-      const { data } = await supabase
+
+      const { data: profile } = await supabase
         .from('onboarding_profiles')
-        .select('id')
+        .select('*')
         .eq('user_id', user.id)
         .single()
-      if (data) router.push('/dashboard')
+
+      if (!profile) {
+        router.push('/onboarding')
+        return
+      }
+
+      // Заполняем answers из профиля
+      setAnswers({
+        full_name: profile.full_name || '',
+        appeal: profile.appeal || '',
+        approaches: profile.approaches || [],
+        niches: profile.niches || [],
+        one_niche: profile.one_niche || '',
+        experience: profile.experience || '',
+        path_to_profession: profile.path_to_profession || '',
+        formats: profile.formats || [],
+        price: profile.price || '',
+        tone_formal: profile.tone_formal || 50,
+        tone_serious: profile.tone_serious || 50,
+        tone_cautious: profile.tone_cautious || 50,
+        tone_verbal: profile.tone_verbal || '',
+        values: profile.values || [],
+        values_custom: profile.values_custom || '',
+        anti_values: profile.anti_values || [],
+        anti_values_custom: profile.anti_values_custom || '',
+        superpowers: profile.superpowers || [],
+        content_struggles: profile.content_struggles || [],
+        live_voice: profile.live_voice || '',
+        client_avatar: profile.client_avatar || '',
+        client_job: profile.client_job || '',
+        client_pain_phrases: profile.client_pain_phrases || '',
+        client_tried: profile.client_tried || [],
+        client_fear: profile.client_fear || [],
+        client_result: profile.client_result || '',
+        platforms: profile.platforms || [],
+        current_followers: profile.current_followers || '',
+        current_clients: profile.current_clients || '',
+        client_source: profile.client_source || [],
+        content_pain: profile.content_pain || '',
+        content_pain_detail: profile.content_pain_detail || '',
+        desired_clients: profile.desired_clients || '',
+        goal_3_months: profile.goal_3_months || '',
+        time_available: profile.time_available || '',
+        video_attitude: profile.video_attitude || '',
+        dream_blog: profile.dream_blog || '',
+        idols: profile.idols || '',
+        idols_why: profile.idols_why || [],
+        something_else: profile.something_else || '',
+      })
+      setLoading(false)
     }
-    checkUser()
+    loadProfile()
   }, [router])
 
-  const handleStart = () => setStep(0)
-  const currentQuestion = step >= 0 ? questions[step] : null
-  const currentBlock = currentQuestion ? blocks[currentQuestion.block] : null
-  const progress = ((step) / questions.length) * 100
+  const currentQuestion = questions[step]
+  const currentBlock = blocks[currentQuestion.block]
+  const progress = ((step + 1) / questions.length) * 100
 
   const toggleArrayItem = (key: string, item: string, max?: number) => {
     const arr = answers[key] || []
@@ -323,7 +376,6 @@ export default function Onboarding() {
   }
 
   const canProceed = () => {
-    if (!currentQuestion) return false
     const { key, type } = currentQuestion
     const textKey = (currentQuestion as any).textKey
     const singleKey = (currentQuestion as any).singleKey
@@ -354,10 +406,9 @@ export default function Onboarding() {
 
   const handleSubmit = async () => {
     if (!userId) return
-    setLoading(true)
+    setSaving(true)
 
     const profileData = {
-      user_id: userId,
       full_name: answers.full_name || '',
       appeal: answers.appeal || '',
       approaches: answers.approaches || [],
@@ -402,122 +453,76 @@ export default function Onboarding() {
 
     const { error } = await supabase
       .from('onboarding_profiles')
-      .insert(profileData)
+      .update(profileData)
+      .eq('user_id', userId)
 
     if (error) {
-      console.error('Save error:', error)
-      alert('Ошибка при сохранении. Проверьте добавлены ли новые колонки в Supabase.')
-      setLoading(false)
+      console.error('Update error:', error)
+      alert('Ошибка при сохранении')
+      setSaving(false)
       return
     }
+
     setCompleted(true)
   }
 
-  // ═══════════════════════════════════
-  // ЭКРАН ЗАВЕРШЕНИЯ
-  // ═══════════════════════════════════
+  // Загрузка
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-brand-accent" />
+      </div>
+    )
+  }
+
+  // Завершение
   if (completed) {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center p-6">
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-lg w-full rounded-2xl p-8 border border-brand-border text-center shadow-xl">
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }} 
+          animate={{ scale: 1, opacity: 1 }} 
+          className="bg-white max-w-lg w-full rounded-2xl p-8 border border-brand-border text-center shadow-xl"
+        >
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h1 className="text-3xl font-bold text-brand-text mb-4">🎉 Распаковка завершена!</h1>
+          <h1 className="text-3xl font-bold text-brand-text mb-4">✅ Профиль обновлён!</h1>
           <p className="text-brand-text-secondary mb-6 leading-relaxed">
-            Спасибо что были честны — это было не просто. Мы собрали достаточно, чтобы создать вашу уникальную стратегию.
+            Изменения сохранены. Рекомендуем перегенерировать паспорт бренда, чтобы он отражал новые данные.
           </p>
-          <ul className="text-left text-sm text-brand-text-secondary bg-gray-50 rounded-xl p-5 mb-8 space-y-3">
-            <li>✅ Мы поняли <strong>КТО</strong> вы и чем отличаетесь</li>
-            <li>✅ Мы услышали ваш <strong>Живой голос</strong></li>
-            <li>✅ Мы собрали боли вашего <strong>Идеального клиента</strong></li>
-          </ul>
-          <button onClick={() => router.push('/dashboard/brand-passport')} className="w-full py-4 bg-brand-accent hover:bg-brand-accent-hover text-white rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-lg cursor-pointer">
-            Создать мой Паспорт бренда <ArrowRight className="w-5 h-5" />
-          </button>
+          
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-800 text-left">
+              Старый паспорт бренда был создан на основе предыдущих данных. 
+              Нажмите «Перегенерировать» на странице паспорта.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <button 
+              onClick={() => router.push('/dashboard/brand-passport')} 
+              className="w-full py-4 bg-brand-accent hover:bg-brand-accent-hover text-white rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-lg cursor-pointer"
+            >
+              Перегенерировать паспорт <ArrowRight className="w-5 h-5" />
+            </button>
+                       <button 
+              onClick={() => router.push('/dashboard')} 
+              className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-brand-text rounded-xl font-medium transition cursor-pointer"
+            >
+              Вернуться в дашборд
+            </button>
+          </div>
         </motion.div>
       </div>
     )
   }
 
   // ═══════════════════════════════════
-  // ЭКРАН ПРИВЕТСТВИЯ (обновлённый)
+  // ШАГИ РЕДАКТИРОВАНИЯ
   // ═══════════════════════════════════
-  if (step === -1) {
-    return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center p-6">
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="max-w-2xl bg-white rounded-3xl p-8 md:p-12 border border-brand-border shadow-2xl">
-
-          <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 px-4 py-2 rounded-full text-sm font-bold mb-6">
-            <Sparkles className="w-4 h-4" /> Сейчас будет непривычно
-          </div>
-
-          <h1 className="text-3xl md:text-5xl font-extrabold text-brand-text mb-4">
-            Присаживайтесь поудобнее.
-          </h1>
-          <p className="text-xl md:text-2xl text-brand-text-secondary mb-8">
-            Сейчас <span className="text-brand-accent font-bold">мы</span> проведём сессию с <span className="text-brand-accent font-bold">вами</span>.
-            <br className="hidden md:block" />
-            Да-да, на этот раз вы — клиент 😉
-          </p>
-
-          <div className="bg-gray-50 rounded-2xl p-6 mb-8 space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-sm">🎯</span>
-              </div>
-              <div>
-                <p className="font-bold text-brand-text">22 вопроса, ~15 минут</p>
-                <p className="text-sm text-brand-text-secondary">Заварите чай. Это как первая встреча — только вы рассказываете о себе как о специалисте.</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-sm">🔥</span>
-              </div>
-              <div>
-                <p className="font-bold text-brand-text">Зачем так много?</p>
-                <p className="text-sm text-brand-text-secondary">Чем глубже мы вас узнаем — тем точнее будут посты. Они будут звучать как вы, а не как робот.</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-sm">✨</span>
-              </div>
-              <div>
-                <p className="font-bold text-brand-text">Что вы получите</p>
-                <p className="text-sm text-brand-text-secondary">Паспорт бренда, контент-план на месяц и посты, которые звучат так, будто вы сами сели и написали.</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-orange-50 border border-orange-100 p-5 rounded-xl mb-8">
-            <p className="font-bold text-orange-800 mb-2">📋 Правила нашей сессии:</p>
-            <ul className="space-y-1.5 text-sm text-orange-700">
-              <li>1. <b>Отвечайте как говорите</b>, а не как пишете в резюме</li>
-              <li>2. <b>«Оказание психологической помощи»</b> — запрещённая фраза 😄</li>
-              <li>3. Первое что пришло в голову — обычно самое точное</li>
-              <li>4. Нет правильных ответов. Есть ваши</li>
-            </ul>
-          </div>
-
-          <button onClick={handleStart} className="w-full md:w-auto px-8 py-4 bg-brand-accent hover:bg-brand-accent-hover text-white rounded-xl font-bold text-lg transition flex items-center justify-center gap-3 cursor-pointer shadow-lg shadow-brand-accent/25">
-            Я готов(а), начинаем <ArrowRight className="w-6 h-6" />
-          </button>
-
-          <p className="text-xs text-brand-text-secondary mt-4 opacity-60">
-            Можно прерваться и вернуться — прогресс сохранится
-          </p>
-        </motion.div>
-      </div>
-    )
-  }
-
-  // ═══════════════════════════════════
-  // ОНБОРДИНГ ШАГИ
-  // ═══════════════════════════════════
-  const q = currentQuestion!
+  const q = currentQuestion
 
   return (
     <div className="min-h-screen bg-brand-bg pb-24">
@@ -525,14 +530,27 @@ export default function Onboarding() {
       <div className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-brand-border">
         <div className="max-w-3xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between text-sm font-bold mb-3">
-            <span className={currentBlock?.color + ' px-3 py-1 rounded-full flex items-center gap-1.5'}>
-              {currentBlock && <currentBlock.icon className="w-4 h-4" />}
-              {currentBlock?.title}
+            <span className={currentBlock.color + ' px-3 py-1 rounded-full flex items-center gap-1.5'}>
+              <currentBlock.icon className="w-4 h-4" />
+              {currentBlock.title}
             </span>
-            <span className="text-brand-text-secondary">{step + 1} / {questions.length}</span>
+            <div className="flex items-center gap-4">
+              <span className="text-brand-text-secondary">{step + 1} / {questions.length}</span>
+              <button 
+                onClick={() => router.push('/dashboard')}
+                className="text-gray-400 hover:text-gray-600 text-sm"
+              >
+                Отмена
+              </button>
+            </div>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-            <motion.div className="bg-indigo-600 h-full" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.4 }} />
+            <motion.div 
+              className="bg-indigo-600 h-full" 
+              initial={{ width: 0 }} 
+              animate={{ width: `${progress}%` }} 
+              transition={{ duration: 0.4 }} 
+            />
           </div>
         </div>
       </div>
@@ -540,7 +558,16 @@ export default function Onboarding() {
       {/* ВОПРОС */}
       <div className="max-w-3xl mx-auto px-6 pt-12">
         <AnimatePresence mode="wait">
-          <motion.div key={step} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.3 }}>
+          <motion.div 
+            key={step} 
+            initial={{ opacity: 0, y: 15 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -15 }} 
+            transition={{ duration: 0.3 }}
+          >
+            <div className="inline-flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-sm font-medium mb-4">
+              ✏️ Режим редактирования
+            </div>
 
             <h2 className="text-2xl md:text-4xl font-extrabold text-brand-text mb-4 leading-tight">
               {q.title}
@@ -549,18 +576,22 @@ export default function Onboarding() {
 
             <div className="space-y-6">
 
-              {/* 1. Текстовый ввод (text, textarea, text_and_single, text_and_multi) */}
+              {/* 1. Текстовый ввод */}
               {(q.type === 'text' || q.type === 'textarea' || q.type === 'text_and_single' || q.type === 'text_and_multi') && (
                 <div>
                   {q.type.includes('textarea') ? (
                     <textarea
-                      value={answers[q.key] || ''} onChange={e => setAnswers({ ...answers, [q.key]: e.target.value })}
-                      placeholder={q.placeholder} rows={3}
+                      value={answers[q.key] || ''} 
+                      onChange={e => setAnswers({ ...answers, [q.key]: e.target.value })}
+                      placeholder={q.placeholder} 
+                      rows={3}
                       className="w-full p-5 rounded-2xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-lg resize-none"
                     />
                   ) : (
                     <input
-                      type="text" value={answers[q.key] || ''} onChange={e => setAnswers({ ...answers, [q.key]: e.target.value })}
+                      type="text" 
+                      value={answers[q.key] || ''} 
+                      onChange={e => setAnswers({ ...answers, [q.key]: e.target.value })}
                       placeholder={q.placeholder}
                       className="w-full p-5 rounded-2xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-lg"
                     />
@@ -591,7 +622,7 @@ export default function Onboarding() {
                 </div>
               )}
 
-              {/* 3. Дополнительный textarea с подписью */}
+              {/* 3. Дополнительный textarea */}
               {((q as any).textKey) && (
                 <div className="pt-6 mt-6 border-t border-gray-100">
                   <p className="font-bold text-brand-text mb-3 text-lg">
@@ -601,11 +632,13 @@ export default function Onboarding() {
                     {q.key === 'anti_values' && 'Представьте, что вас слышат все коллеги разом. Что бы вы им сказали? Без цензуры 😄'}
                     {q.key === 'client_avatar' && 'Расскажите про этого человека — кто он, чем занимается, как живёт? 🙂'}
                     {q.key === 'content_pain' && 'Опишите как это обычно происходит. Вот вы садитесь писать пост — и что дальше? 👀'}
-                    {!['niches', 'experience', 'values', 'anti_values', 'client_avatar', 'content_pain'].includes(q.key) && 'Расскажите подробнее, нам правда интересно 🙂'}
+                    {!['niches', 'experience', 'values', 'anti_values', 'client_avatar', 'content_pain'].includes(q.key) && 'Расскажите подробнее 🙂'}
                   </p>
                   <textarea
-                    value={answers[(q as any).textKey] || ''} onChange={e => setAnswers({ ...answers, [(q as any).textKey]: e.target.value })}
-                    placeholder={(q as any).textPlaceholder} rows={3}
+                    value={answers[(q as any).textKey] || ''} 
+                    onChange={e => setAnswers({ ...answers, [(q as any).textKey]: e.target.value })}
+                    placeholder={(q as any).textPlaceholder} 
+                    rows={3}
                     className="w-full p-5 rounded-2xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-lg resize-none"
                   />
                 </div>
@@ -645,7 +678,7 @@ export default function Onboarding() {
                 </div>
               )}
 
-              {/* 5. Слайдеры (Тон голоса) */}
+              {/* 5. Слайдеры */}
               {q.type === 'sliders' && (q as any).sliders && (
                 <div className="space-y-10 bg-white p-8 rounded-3xl border border-gray-100 mt-6 shadow-sm">
                   {(q as any).sliders.map((slider: any) => (
@@ -666,7 +699,6 @@ export default function Onboarding() {
               )}
 
             </div>
-
           </motion.div>
         </AnimatePresence>
       </div>
@@ -675,22 +707,31 @@ export default function Onboarding() {
       <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-brand-border py-4 px-6 z-50">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <button
-            onClick={() => setStep(step - 1)} disabled={step === 0}
+            onClick={() => setStep(step - 1)} 
+            disabled={step === 0}
             className={`flex items-center gap-2 font-semibold transition cursor-pointer px-4 py-2 rounded-xl border-2 ${step === 0 ? 'text-gray-300 border-transparent' : 'text-gray-500 border-gray-200 hover:text-black hover:bg-gray-50'}`}
           >
             <ArrowLeft className="w-5 h-5" /> Назад
           </button>
 
           <button
-            onClick={handleNext} disabled={!canProceed() || loading}
+            onClick={handleNext} 
+            disabled={!canProceed() || saving}
             className={`px-8 py-3 rounded-full font-bold flex items-center gap-2 transition shadow-lg cursor-pointer
-              ${canProceed() && !loading ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200' : 'bg-gray-100 text-gray-400 shadow-none'}`}
+              ${canProceed() && !saving ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200' : 'bg-gray-100 text-gray-400 shadow-none'}`}
           >
-            {loading ? 'Сохраняем...' : step === questions.length - 1 ? 'Завершить 🎉' : <>Далее <ArrowRight className="w-5 h-5" /></>}
+            {saving ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" /> Сохраняем...
+              </>
+            ) : step === questions.length - 1 ? (
+              'Сохранить изменения ✅'
+            ) : (
+              <>Далее <ArrowRight className="w-5 h-5" /></>
+            )}
           </button>
         </div>
       </div>
     </div>
   )
 }
-            

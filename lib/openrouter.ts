@@ -1,66 +1,109 @@
-type GenerateOptions = {
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
+
+export type GenerateOptions = {
   temperature?: number
   max_tokens?: number
 }
 
-export async function generateWithAI(systemPrompt: string, userPrompt: string, options: GenerateOptions = {}) {
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+function getOpenRouterHeaders() {
+  const apiKey = process.env.OPENROUTER_API_KEY
+
+  if (!apiKey) {
+    throw new Error('OPENROUTER_API_KEY is not set')
+  }
+
+  return {
+    Authorization: `Bearer ${apiKey}`,
+    'Content-Type': 'application/json',
+    'HTTP-Referer': 'https://psycontent.vercel.app',
+    'X-Title': 'PsyContent',
+  }
+}
+
+async function extractContent(response: Response) {
+  const rawText = await response.text()
+
+  if (!response.ok) {
+    throw new Error(`OpenRouter error ${response.status}: ${rawText}`)
+  }
+
+  let data: any
+
+  try {
+    data = JSON.parse(rawText)
+  } catch {
+    throw new Error(`OpenRouter returned invalid JSON: ${rawText}`)
+  }
+
+  const content = data?.choices?.[0]?.message?.content
+
+  if (typeof content === 'string' && content.trim()) {
+    return content.trim()
+  }
+
+  if (Array.isArray(content)) {
+    const joined = content
+      .map((item: any) => {
+        if (typeof item === 'string') return item
+        if (typeof item?.text === 'string') return item.text
+        return ''
+      })
+      .join('')
+      .trim()
+
+    if (joined) return joined
+  }
+
+  throw new Error(`Empty model response: ${rawText}`)
+}
+
+async function callOpenRouter(body: Record<string, unknown>, timeoutMs = 30000) {
+  const response = await fetch(OPENROUTER_URL, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://psycontent.vercel.app',
-      'X-Title': 'PsyContent',
-    },
-    body: JSON.stringify({
-      model: 'openai/gpt-4o-mini',
+    headers: getOpenRouterHeaders(),
+    signal: AbortSignal.timeout(timeoutMs),
+    body: JSON.stringify(body),
+  })
+
+  return extractContent(response)
+}
+
+// Claude for text generation (posts, reels, rewrite, content plan, passport)
+export async function generateWithAI(
+  systemPrompt: string,
+  userPrompt: string,
+  options: GenerateOptions = {}
+) {
+  return callOpenRouter(
+    {
+      model: 'anthropic/claude-sonnet-4.5',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      max_tokens: options.max_tokens ?? 4000,
       temperature: options.temperature ?? 0.7,
-    }),
-  })
-
-  if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`OpenRouter error: ${error}`)
-  }
-
-  const data = await response.json()
-  return data.choices[0].message.content
+      max_tokens: options.max_tokens ?? 4000,
+    },
+    30000
+  )
 }
 
-// Perplexity with web search — for research & trending topics
+// Perplexity for web search (research & trending topics)
 export async function generateWithWebSearch(userPrompt: string) {
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://psycontent.vercel.app',
-      'X-Title': 'PsyContent',
-    },
-    body: JSON.stringify({
+  return callOpenRouter(
+    {
       model: 'perplexity/sonar',
       messages: [
         {
           role: 'system',
-          content: 'Ты — эксперт по контент-стратегии для психологов в Instagram. Отвечай только на русском языке. Возвращай только валидный JSON без markdown-оберток.',
+          content:
+            'Ты — эксперт по контент-стратегии для психологов в Instagram. Отвечай только на русском языке. Возвращай только валидный JSON без markdown-оберток.',
         },
         { role: 'user', content: userPrompt },
       ],
-      max_tokens: 6000,
       temperature: 0.3,
-    }),
-  })
-
-  if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`Perplexity error: ${error}`)
-  }
-
-  const data = await response.json()
-  return data.choices[0].message.content
+      max_tokens: 3000,
+    },
+    45000
+  )
 }
