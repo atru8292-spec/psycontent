@@ -20,6 +20,7 @@ import {
   Lightbulb,
   Settings,
   History,
+  Layers, // ← Добавлена иконка для каруселей
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -83,11 +84,22 @@ export default function Dashboard() {
     {
       icon: PenTool,
       title: 'Генератор постов',
-      desc: 'Создавайте посты в вашем тоне за 30 секунд',
+      desc: 'Создавайте посты и stories за 30 секунд',
+      status: 'Открыть',
+      color: 'text-violet-500',
+      bg: 'bg-violet-50',
+      href: '/dashboard/post-generator',
+      ready: true,
+    },
+    // ============ НОВЫЙ ИНСТРУМЕНТ ============
+    {
+      icon: Layers,
+      title: 'Генератор каруселей',
+      desc: '8-10 слайдов с хуком и структурой',
       status: 'Открыть',
       color: 'text-blue-500',
       bg: 'bg-blue-50',
-      href: '/dashboard/post-generator',
+      href: '/dashboard/carousel-generator',
       ready: true,
     },
     {
@@ -300,7 +312,7 @@ export default function Dashboard() {
               key={i}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 + i * 0.1 }}
+              transition={{ delay: 0.3 + i * 0.05 }}
               onClick={() => tool.ready && router.push(tool.href)}
               className={`p-6 rounded-2xl bg-white border border-brand-border hover:shadow-md transition group ${
                 tool.ready ? 'cursor-pointer' : 'opacity-70'
