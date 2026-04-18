@@ -13,7 +13,6 @@ import {
   Check,
   RefreshCw,
   FileText,
-  Image,
   AlignLeft,
   ChevronRight,
   Lightbulb,
@@ -21,9 +20,9 @@ import {
   CalendarDays,
 } from 'lucide-react'
 
+// ============ УБРАНА КАРУСЕЛЬ ============
 const formats = [
   { id: 'post', label: 'Пост', icon: AlignLeft, desc: 'Текстовый пост для Instagram/Telegram', color: 'text-purple-500', bg: 'bg-purple-50', border: 'border-purple-200' },
-  { id: 'carousel', label: 'Карусель', icon: Image, desc: 'Серия слайдов с текстом', color: 'text-blue-500', bg: 'bg-blue-50', border: 'border-blue-200' },
   { id: 'stories', label: 'Stories', icon: FileText, desc: 'Серия из 4–5 историй', color: 'text-orange-500', bg: 'bg-orange-50', border: 'border-orange-200' },
 ]
 
@@ -34,26 +33,6 @@ const defaultPillars = [
   { id: 'stories_pillar', label: 'Истории клиентов', topics: ['До и после работы с тревогой', 'Как человек нашёл себя после развода', 'История того, кто не верил в психологию', 'Как 3 сессии изменили взгляд на отношения', 'История преодоления выгорания'] },
   { id: 'positioning', label: 'Позиционирование', topics: ['Чем я отличаюсь от других психологов', 'С кем мне не по пути', 'Мой взгляд на быстрые результаты', 'Почему я против «гарантий» в психологии', 'Мои принципы работы'] },
 ]
-
-function formatResult(text: string, format: string) {
-  if (format === 'carousel') {
-    const slides = text.split(/(?=\[Слайд\s+\d+|Слайд\s+\d+)/i).filter(s => s.trim())
-    if (slides.length > 1) {
-      return (
-        <div className="space-y-4">
-          {slides.map((slide, i) => (
-            <div key={i} className="p-4 rounded-xl bg-brand-bg border border-brand-border">
-              <p className="text-sm leading-relaxed text-brand-text whitespace-pre-wrap">{slide.trim()}</p>
-            </div>
-          ))}
-        </div>
-      )
-    }
-  }
-  return (
-    <p className="text-brand-text text-sm leading-relaxed whitespace-pre-wrap">{text}</p>
-  )
-}
 
 function PostGeneratorContent() {
   const [user, setUser] = useState<any>(null)
@@ -91,7 +70,8 @@ function PostGeneratorContent() {
       setSelectedPillar(null)
     }
 
-    if (format && ['post', 'carousel', 'stories', 'reels'].includes(format)) {
+    // Карусели теперь идут на отдельную страницу, здесь только post/stories
+    if (format && ['post', 'stories', 'reels'].includes(format)) {
       setSelectedFormat(format === 'reels' ? 'post' : format)
     }
 
@@ -222,7 +202,7 @@ function PostGeneratorContent() {
 
       <div className="max-w-6xl mx-auto px-6 py-12">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
-          <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-600 px-4 py-2 rounded-full text-sm font-medium mb-4">
+          <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-600 px-4 py-2 rounded-full text-sm font-medium mb-4">
             <PenTool className="w-4 h-4" />
             Генератор постов
           </div>
@@ -269,6 +249,7 @@ function PostGeneratorContent() {
 
         <div className="grid lg:grid-cols-2 gap-8">
           <div className="space-y-6">
+            {/* Формат */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white rounded-2xl border border-brand-border p-6">
               <h2 className="font-bold text-brand-text mb-4 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-brand-accent text-white text-xs flex items-center justify-center font-bold">1</span>
@@ -291,8 +272,22 @@ function PostGeneratorContent() {
                   )
                 })}
               </div>
+              
+              {/* Ссылка на генератор каруселей */}
+              <div className="mt-4 pt-4 border-t border-brand-border">
+                <button
+                  onClick={() => router.push('/dashboard/carousel-generator')}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 transition cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">🎠 Нужна карусель?</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             </motion.div>
 
+            {/* Тема */}
             {!fromPlan && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white rounded-2xl border border-brand-border p-6">
                 <h2 className="font-bold text-brand-text mb-4 flex items-center gap-2">
@@ -363,6 +358,7 @@ function PostGeneratorContent() {
               </motion.div>
             )}
 
+            {/* Кнопка генерации */}
             <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -379,6 +375,7 @@ function PostGeneratorContent() {
             </motion.button>
           </div>
 
+          {/* Результат */}
           <div>
             <AnimatePresence mode="wait">
               {!result && !generating && !error && (
@@ -458,7 +455,7 @@ function PostGeneratorContent() {
                   </div>
 
                   <div className="p-6">
-                    {formatResult(result, selectedFormat)}
+                    <p className="text-brand-text text-sm leading-relaxed whitespace-pre-wrap">{result}</p>
                   </div>
 
                   <div className="px-6 pb-4 flex items-center justify-between">
@@ -490,7 +487,6 @@ function PostGeneratorContent() {
   )
 }
 
-// ============ WRAPPER WITH SUSPENSE ============
 export default function PostGeneratorPage() {
   return (
     <Suspense fallback={
