@@ -30,7 +30,7 @@ export async function generatePDF(plan: DayItem[]): Promise<void> {
   
   // ===== ЗАГРУЗКА РУССКОГО ШРИФТА =====
   try {
-    const fontResponse = await fetch('/fonts/Roboto-Regular.ttf')
+    const fontResponse = await fetch('/Roboto-Regular.ttf')
     const fontBuffer = await fontResponse.arrayBuffer()
     const fontBase64 = btoa(
       new Uint8Array(fontBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
