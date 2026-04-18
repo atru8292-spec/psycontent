@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import ReactMarkdown from 'react-markdown'
 
@@ -17,13 +18,13 @@ interface Analysis {
 type Step = 'idle' | 'transcribing' | 'transcribed' | 'analyzing' | 'done'
 
 export default function CompetitorAnalysisPage() {
+  const router = useRouter()
   const [url, setUrl] = useState('')
   const [step, setStep] = useState<Step>('idle')
   const [transcript, setTranscript] = useState('')
   const [platform, setPlatform] = useState('')
   const [analysis, setAnalysis] = useState('')
   const [history, setHistory] = useState<Analysis[]>([])
-  const [activeTab, setActiveTab] = useState<'analysis' | 'transcript'>('analysis')
   const [error, setError] = useState('')
 
   useEffect(() => { loadHistory() }, [])
@@ -46,7 +47,6 @@ export default function CompetitorAnalysisPage() {
     return session.access_token
   }
 
-  // Безопасный fetch: всегда читаем как text, потом парсим JSON
   const safeFetch = async (path: string, token: string, body: object) => {
     const res = await fetch(path, {
       method: 'POST',
@@ -130,6 +130,19 @@ export default function CompetitorAnalysisPage() {
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      {/* Кнопка назад */}
+      <button
+        onClick={() => router.push('/dashboard')}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
+          marginBottom: '1.5rem', padding: '0.5rem 1rem',
+          border: '1px solid #ddd', borderRadius: '0.5rem',
+          background: '#fff', cursor: 'pointer', fontSize: '0.875rem', color: '#444',
+        }}
+      >
+        ← На дашборд
+      </button>
+
       <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>🔍 Анализ конкурентов</h1>
       <p style={{ color: '#666', marginBottom: '2rem' }}>Вставь ссылку на Reels/TikTok/YouTube — получи анализ и сценарий</p>
 
