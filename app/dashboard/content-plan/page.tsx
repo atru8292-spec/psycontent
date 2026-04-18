@@ -7,11 +7,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { generatePDF } from '@/lib/pdf-export'
 import {
   Sparkles, ArrowLeft, Loader2, CalendarDays,
-  AlignLeft, Film, FileText,
+  AlignLeft, Image, Film, FileText,
   CheckCircle2, Circle, PenTool, X,
   RefreshCw, Lightbulb, ChevronRight,
   Download, Copy, FileSpreadsheet, Check,
-  Layers,
+  Layers, // ← Добавил иконку для каруселей
 } from 'lucide-react'
 
 type DayItem = {
@@ -50,7 +50,7 @@ function ExportMenu({ plan }: { plan: DayItem[] }) {
   const [exporting, setExporting] = useState(false)
 
   const copyAsText = () => {
-    const text = plan.map(day =>
+    const text = plan.map(day => 
 `День ${day.day}
 Рубрика: ${day.pillar}
 Формат: ${day.format}
@@ -90,6 +90,7 @@ ${day.hook ? `Хук: ${day.hook}` : ''}
   const exportToPDF = async () => {
     setExporting(true)
     setShowMenu(false)
+
     try {
       await generatePDF(plan)
     } catch (error) {
@@ -105,16 +106,16 @@ ${day.hook ? `Хук: ${day.hook}` : ''}
       <button
         onClick={() => setShowMenu(!showMenu)}
         disabled={exporting}
-        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-brand-text-secondary hover:text-brand-text bg-white border border-brand-border rounded-lg sm:rounded-xl hover:border-brand-accent/50 transition cursor-pointer disabled:opacity-50"
+        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand-text-secondary hover:text-brand-text bg-white border border-brand-border rounded-xl hover:border-brand-accent/50 transition cursor-pointer disabled:opacity-50"
       >
-        {exporting ? <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" /> : <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-        {exporting ? 'PDF...' : 'Экспорт'}
+        {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+        {exporting ? 'Создаю PDF...' : 'Экспорт'}
       </button>
 
       {showMenu && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-          <div className="absolute right-0 top-full mt-2 w-52 sm:w-56 bg-white border border-brand-border rounded-xl shadow-lg z-50 overflow-hidden">
+          <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-brand-border rounded-xl shadow-lg z-50 overflow-hidden">
             <button onClick={copyAsText} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-brand-text hover:bg-brand-bg transition cursor-pointer text-left">
               {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-brand-text-secondary" />}
               {copied ? 'Скопировано!' : 'Копировать текст'}
@@ -146,6 +147,8 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
   const fmt = FORMAT_META[item.format] || FORMAT_META.post
   const pillar = getPillarMeta(item.pillar)
   const Icon = fmt.icon
+
+  // Текст кнопки в зависимости от формата
   const buttonText = item.format === 'carousel' ? 'Создать карусель' : 'Написать пост'
 
   return (
@@ -155,55 +158,55 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
       animate={{ opacity: 1, y: 0 }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className={`relative rounded-xl sm:rounded-2xl border transition-all duration-200 overflow-hidden ${
+      className={`relative rounded-2xl border transition-all duration-200 overflow-hidden ${
         item.done ? 'border-green-200 bg-green-50/50 opacity-70' : 'border-brand-border bg-white hover:border-brand-accent/40 hover:shadow-md'
       }`}
     >
-      <div className="flex items-start justify-between p-3 sm:p-4 pb-1.5 sm:pb-2">
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <span className={`text-[10px] sm:text-xs font-bold w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center ${item.done ? 'bg-green-100 text-green-600' : 'bg-brand-highlight text-brand-accent'}`}>
+      <div className="flex items-start justify-between p-4 pb-2">
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center ${item.done ? 'bg-green-100 text-green-600' : 'bg-brand-highlight text-brand-accent'}`}>
             {item.day}
           </span>
-          <span className={`text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded-full border ${pillar.color} truncate max-w-[80px] sm:max-w-none`}>
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${pillar.color}`}>
             {item.pillar}
           </span>
         </div>
         <button onClick={(e) => { e.stopPropagation(); onToggle(); }} className="cursor-pointer transition">
-          {item.done ? <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" /> : <Circle className={`w-4 h-4 sm:w-5 sm:h-5 ${hover ? 'text-brand-accent' : 'text-gray-200'} transition`} />}
+          {item.done ? <CheckCircle2 className="w-5 h-5 text-green-500" /> : <Circle className={`w-5 h-5 ${hover ? 'text-brand-accent' : 'text-gray-200'} transition`} />}
         </button>
       </div>
 
-      <div className="px-3 sm:px-4 pb-1.5 sm:pb-2">
-        <div className={`inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg ${fmt.bg}`}>
-          <Icon className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${fmt.color}`} />
-          <span className={`text-[10px] sm:text-xs font-semibold ${fmt.color}`}>{fmt.label}</span>
+      <div className="px-4 pb-2">
+        <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg ${fmt.bg}`}>
+          <Icon className={`w-3.5 h-3.5 ${fmt.color}`} />
+          <span className={`text-xs font-semibold ${fmt.color}`}>{fmt.label}</span>
         </div>
       </div>
 
-      <div className="px-3 sm:px-4 pb-2 sm:pb-3">
-        <p className={`text-xs sm:text-sm font-semibold leading-tight ${item.done ? 'text-gray-400 line-through' : 'text-brand-text'}`}>
+      <div className="px-4 pb-3">
+        <p className={`text-sm font-semibold leading-tight ${item.done ? 'text-gray-400 line-through' : 'text-brand-text'}`}>
           {item.topic}
         </p>
       </div>
 
       {item.hook && !item.done && (
-        <div className="mx-3 sm:mx-4 mb-2 sm:mb-3 p-1.5 sm:p-2 rounded-md sm:rounded-lg bg-brand-bg border border-brand-border">
-          <p className="text-[10px] sm:text-xs text-brand-text-secondary italic leading-relaxed line-clamp-2">«{item.hook}»</p>
+        <div className="mx-4 mb-3 p-2 rounded-lg bg-brand-bg border border-brand-border">
+          <p className="text-xs text-brand-text-secondary italic leading-relaxed line-clamp-2">«{item.hook}»</p>
         </div>
       )}
 
       <AnimatePresence>
         {hover && !item.done && (
-          <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }} className="px-3 sm:px-4 pb-3 sm:pb-4">
+          <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }} className="px-4 pb-4">
             <button
               onClick={(e) => { e.stopPropagation(); onGenerate(); }}
-              className={`w-full flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-white text-[10px] sm:text-xs font-semibold transition cursor-pointer ${
-                item.format === 'carousel'
-                  ? 'bg-blue-500 hover:bg-blue-600'
+              className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-white text-xs font-semibold transition cursor-pointer ${
+                item.format === 'carousel' 
+                  ? 'bg-blue-500 hover:bg-blue-600' 
                   : 'bg-brand-accent hover:bg-brand-accent-hover'
               }`}
             >
-              {item.format === 'carousel' ? <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <PenTool className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
+              {item.format === 'carousel' ? <Layers className="w-3.5 h-3.5" /> : <PenTool className="w-3.5 h-3.5" />}
               {buttonText}
             </button>
           </motion.div>
@@ -218,67 +221,75 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
   const fmt = FORMAT_META[item.format] || FORMAT_META.post
   const pillar = getPillarMeta(item.pillar)
   const Icon = fmt.icon
+
+  // Текст и стиль кнопки в зависимости от формата
   const isCarousel = item.format === 'carousel'
   const buttonText = isCarousel ? 'Создать карусель' : 'Сгенерировать пост'
-  const buttonClass = isCarousel
-    ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-500/20'
+  const buttonClass = isCarousel 
+    ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-500/20' 
     : 'bg-brand-accent hover:bg-brand-accent-hover shadow-brand-accent/20'
 
   return (
-    <div className="bg-white rounded-xl sm:rounded-2xl border border-brand-border p-4 sm:p-6 lg:sticky lg:top-24">
-      <div className="flex items-start justify-between mb-3 sm:mb-4">
+    <motion.div
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 40 }}
+      className="bg-white rounded-2xl border border-brand-border p-6 sticky top-24"
+    >
+      <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-2">
-          <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-highlight text-brand-accent text-xs sm:text-sm font-bold flex items-center justify-center">{item.day}</span>
-          <span className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full border ${pillar.color}`}>{item.pillar}</span>
+          <span className="w-8 h-8 rounded-full bg-brand-highlight text-brand-accent text-sm font-bold flex items-center justify-center">{item.day}</span>
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${pillar.color}`}>{item.pillar}</span>
         </div>
         <button onClick={onClose} className="cursor-pointer text-brand-text-secondary hover:text-brand-text transition">
-          <X className="w-4 h-4 sm:w-5 sm:h-5" />
+          <X className="w-5 h-5" />
         </button>
       </div>
 
-      <h3 className="text-sm sm:text-lg font-bold text-brand-text mb-3 sm:mb-4 leading-snug">{item.topic}</h3>
+      <h3 className="text-lg font-bold text-brand-text mb-4 leading-snug">{item.topic}</h3>
 
-      <div className={`inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg ${fmt.bg} mb-3 sm:mb-4`}>
-        <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${fmt.color}`} />
-        <span className={`text-xs sm:text-sm font-semibold ${fmt.color}`}>{fmt.label}</span>
+      <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${fmt.bg} mb-4`}>
+        <Icon className={`w-4 h-4 ${fmt.color}`} />
+        <span className={`text-sm font-semibold ${fmt.color}`}>{fmt.label}</span>
       </div>
 
+      {/* Подсказка для карусели */}
       {isCarousel && (
-        <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 bg-blue-50 rounded-lg sm:rounded-xl border border-blue-200">
-          <p className="text-[10px] sm:text-xs text-blue-700">
+        <div className="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-200">
+          <p className="text-xs text-blue-700">
             <strong>Карусель</strong> — это 8-10 слайдов с текстом. AI создаст хук, развитие мысли и CTA.
           </p>
         </div>
       )}
 
       {item.hook && (
-        <div className="mb-3 sm:mb-4">
-          <p className="text-[10px] sm:text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-1.5 sm:mb-2">Хук (первая строка)</p>
-          <div className="p-2.5 sm:p-3 bg-brand-highlight rounded-lg sm:rounded-xl border border-brand-accent/20">
-            <p className="text-xs sm:text-sm text-brand-text italic">«{item.hook}»</p>
+        <div className="mb-4">
+          <p className="text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-2">Хук (первая строка)</p>
+          <div className="p-3 bg-brand-highlight rounded-xl border border-brand-accent/20">
+            <p className="text-sm text-brand-text italic">«{item.hook}»</p>
           </div>
         </div>
       )}
 
       {item.tip && (
-        <div className="mb-4 sm:mb-6">
-          <p className="text-[10px] sm:text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-1.5 sm:mb-2">Подсказка</p>
-          <div className="flex items-start gap-2 p-2.5 sm:p-3 bg-amber-50 rounded-lg sm:rounded-xl border border-amber-200">
-            <Lightbulb className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 mt-0.5 shrink-0" />
-            <p className="text-xs sm:text-sm text-amber-800 leading-relaxed">{item.tip}</p>
+        <div className="mb-6">
+          <p className="text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-2">Подсказка</p>
+          <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-xl border border-amber-200">
+            <Lightbulb className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+            <p className="text-sm text-amber-800 leading-relaxed">{item.tip}</p>
           </div>
         </div>
       )}
 
       <button
         onClick={onGenerate}
-        className={`w-full flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-white text-sm font-semibold transition shadow-lg cursor-pointer ${buttonClass}`}
+        className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold transition shadow-lg cursor-pointer ${buttonClass}`}
       >
-        {isCarousel ? <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+        {isCarousel ? <Layers className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
         {buttonText}
-        <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        <ChevronRight className="w-4 h-4" />
       </button>
-    </div>
+    </motion.div>
   )
 }
 
@@ -323,22 +334,22 @@ export default function ContentPlan() {
     setError(null)
     setPlan([])
     setCurrentBatch(0)
-
+    
     try {
       for (let batch = 1; batch <= TOTAL_BATCHES; batch++) {
         setCurrentBatch(batch)
-
+        
         const res = await fetch('/api/generate-content-plan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: user.id, batch }),
         })
-
+        
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || 'Ошибка генерации')
-
+        
         setPlan(data.plan)
-
+        
         if (data.complete) break
       }
     } catch (err: any) {
@@ -359,15 +370,18 @@ export default function ContentPlan() {
     }, { onConflict: 'user_id' })
   }
 
+  // ============ ИЗМЕНЁННАЯ ФУНКЦИЯ ============
   const handleGoGenerate = (item: DayItem) => {
-    const params = new URLSearchParams({
-      topic: item.topic,
-      pillar: item.pillar
+    const params = new URLSearchParams({ 
+      topic: item.topic, 
+      pillar: item.pillar 
     })
-
+    
+    // Карусели → отдельный генератор
     if (item.format === 'carousel') {
       router.push(`/dashboard/carousel-generator?${params}`)
     } else {
+      // Посты, stories, reels → обычный генератор
       params.append('format', item.format)
       router.push(`/dashboard/post-generator?${params}`)
     }
@@ -392,77 +406,77 @@ export default function ContentPlan() {
 
   return (
     <div className="min-h-screen bg-brand-bg">
-      {/* ═══ NAV ═══ */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-brand-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
-          <button onClick={() => router.push('/dashboard')} className="flex items-center gap-1.5 sm:gap-2 text-sm text-brand-text-secondary hover:text-brand-text transition cursor-pointer">
-            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="hidden sm:inline">Назад в кабинет</span>
-            <span className="sm:hidden">Назад</span>
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2 text-brand-text-secondary hover:text-brand-text transition cursor-pointer">
+            <ArrowLeft className="w-5 h-5" />
+            Назад в кабинет
           </button>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-3">
             {plan.length > 0 && !generating && (
               <>
                 <ExportMenu plan={plan} />
-                <button onClick={handleGenerate} disabled={generating} className="hidden sm:flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-1.5 rounded-lg hover:bg-brand-highlight">
+                <button onClick={handleGenerate} disabled={generating} className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-1.5 rounded-lg hover:bg-brand-highlight">
                   <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
                   Обновить план
                 </button>
-                <button onClick={handleGenerate} disabled={generating} className="sm:hidden flex items-center text-brand-text-secondary hover:text-brand-accent transition cursor-pointer p-1.5 rounded-lg hover:bg-brand-highlight">
-                  <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
-                </button>
               </>
             )}
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-brand-accent" />
-              <span className="font-bold text-brand-text text-sm sm:text-base hidden sm:inline">PsyContent</span>
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-brand-accent" />
+              <span className="font-bold text-brand-text">PsyContent</span>
             </div>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-        {/* ═══ TITLE ═══ */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 sm:mb-8">
-          <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium mb-3 sm:mb-4">
-            <CalendarDays className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+      <div className="max-w-7xl mx-auto px-6 py-10">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+          <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
+            <CalendarDays className="w-4 h-4" />
             Контент-план
           </div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-1.5 sm:mb-2">30 дней контента для вашего блога</h1>
-          <p className="text-xs sm:text-sm text-brand-text-secondary">Персональный план на основе вашего паспорта бренда. Нажмите на карточку — получите готовый пост.</p>
+          <h1 className="text-3xl md:text-4xl font-bold text-brand-text mb-2">30 дней контента для вашего блога</h1>
+          <p className="text-brand-text-secondary">Персональный план на основе вашего паспорта бренда. Нажмите на карточку — получите готовый пост.</p>
         </motion.div>
 
-        {/* ═══ EMPTY STATE ═══ */}
         {!plan.length && !generating && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-lg mx-auto text-center py-14 sm:py-20">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-2xl sm:rounded-3xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
-              <CalendarDays className="w-8 h-8 sm:w-10 sm:h-10 text-green-600" />
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-lg mx-auto text-center py-20">
+            <div className="w-20 h-20 bg-green-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <CalendarDays className="w-10 h-10 text-green-600" />
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-brand-text mb-2 sm:mb-3">Создайте план на 30 дней</h2>
-            <p className="text-sm sm:text-base text-brand-text-secondary mb-6 sm:mb-8">AI составит персональный контент-план с темами, форматами и хуками для каждого дня</p>
-            <button onClick={handleGenerate} className="inline-flex items-center gap-2.5 sm:gap-3 bg-brand-accent text-white px-8 sm:px-10 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl text-base sm:text-lg font-semibold hover:bg-brand-accent-hover transition shadow-lg shadow-brand-accent/25 cursor-pointer">
-              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+            <h2 className="text-2xl font-bold text-brand-text mb-3">Создайте план на 30 дней</h2>
+            <p className="text-brand-text-secondary mb-8">AI составит персональный контент-план с темами, форматами и хуками для каждого дня</p>
+            <button onClick={handleGenerate} className="inline-flex items-center gap-3 bg-brand-accent text-white px-10 py-4 rounded-2xl text-lg font-semibold hover:bg-brand-accent-hover transition shadow-lg shadow-brand-accent/25 cursor-pointer">
+              <Sparkles className="w-5 h-5" />
               Сгенерировать план
             </button>
-            <p className="text-xs sm:text-sm text-brand-text-secondary mt-2.5 sm:mt-3">Займёт около 30-40 секунд</p>
-            {error && <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs sm:text-sm">{error}</div>}
+            <p className="text-sm text-brand-text-secondary mt-3">Займёт около 30-40 секунд</p>
+            {error && <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>}
           </motion.div>
         )}
 
-        {/* ═══ GENERATING ═══ */}
         {generating && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16 sm:py-24">
-            <div className="relative w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 sm:mb-6">
-              <Loader2 className="w-12 h-12 sm:w-16 sm:h-16 text-brand-accent animate-spin" />
-              <CalendarDays className="w-4 h-4 sm:w-6 sm:h-6 text-brand-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-24">
+            <div className="relative w-16 h-16 mx-auto mb-6">
+              <Loader2 className="w-16 h-16 text-brand-accent animate-spin" />
+              <CalendarDays className="w-6 h-6 text-brand-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
             </div>
-            <h2 className="text-lg sm:text-xl font-bold text-brand-text mb-1.5 sm:mb-2">
+            <h2 className="text-xl font-bold text-brand-text mb-2">
               Генерирую дни {currentDayStart}-{currentDayEnd}...
             </h2>
-            <p className="text-xs sm:text-sm text-brand-text-secondary mb-4 sm:mb-6">AI подбирает темы под ваш голос и нишу</p>
-
-                          <div className="h-1.5 sm:h-2 bg-gray-200 rounded-full overflow-hidden">
-                <motion.div
+            <p className="text-brand-text-secondary mb-6">AI подбирает темы под ваш голос и нишу</p>
+            
+            <div className="max-w-md mx-auto">
+              <div className="flex justify-between text-xs text-brand-text-secondary mb-2">
+                {[1, 2, 3, 4, 5, 6].map(b => (
+                  <span key={b} className={currentBatch >= b ? 'text-brand-accent font-medium' : ''}>
+                    {(b-1)*5+1}-{b*5}
+                  </span>
+                ))}
+              </div>
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <motion.div 
                   className="h-full bg-brand-accent"
                   initial={{ width: '0%' }}
                   animate={{ width: `${genProgress}%` }}
@@ -472,59 +486,51 @@ export default function ContentPlan() {
             </div>
 
             {plan.length > 0 && (
-              <p className="text-xs sm:text-sm text-green-600 mt-3 sm:mt-4">
+              <p className="text-sm text-green-600 mt-4">
                 ✓ Готово: {plan.length} дней
               </p>
             )}
           </motion.div>
         )}
 
-        {/* ═══ PLAN GRID ═══ */}
         {plan.length > 0 && !generating && (
-          <div className={`flex flex-col lg:flex-row gap-4 sm:gap-8 ${selected ? 'items-start' : ''}`}>
+          <div className={`flex gap-8 ${selected ? 'items-start' : ''}`}>
             <div className="flex-1 min-w-0">
-              {/* Stats bar */}
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-xl sm:rounded-2xl border border-brand-border p-3.5 sm:p-5 mb-4 sm:mb-6">
-                <div className="flex items-center justify-between mb-2.5 sm:mb-3">
-                  <div className="flex items-center gap-4 sm:gap-6">
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl border border-brand-border p-5 mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-6">
                     <div>
-                      <p className="text-xl sm:text-2xl font-bold text-brand-accent">{done}</p>
-                      <p className="text-[10px] sm:text-xs text-brand-text-secondary">опубликовано</p>
+                      <p className="text-2xl font-bold text-brand-accent">{done}</p>
+                      <p className="text-xs text-brand-text-secondary">опубликовано</p>
                     </div>
                     <div>
-                      <p className="text-xl sm:text-2xl font-bold text-brand-text">{plan.length - done}</p>
-                      <p className="text-[10px] sm:text-xs text-brand-text-secondary">осталось</p>
+                      <p className="text-2xl font-bold text-brand-text">{plan.length - done}</p>
+                      <p className="text-xs text-brand-text-secondary">осталось</p>
                     </div>
                     <div>
-                      <p className="text-xl sm:text-2xl font-bold text-brand-text">{progressPercent}%</p>
-                      <p className="text-[10px] sm:text-xs text-brand-text-secondary">выполнено</p>
+                      <p className="text-2xl font-bold text-brand-text">{progressPercent}%</p>
+                      <p className="text-xs text-brand-text-secondary">выполнено</p>
                     </div>
                   </div>
                 </div>
-                <div className="w-full bg-gray-100 rounded-full h-1.5 sm:h-2">
-                  <motion.div className="bg-brand-accent h-1.5 sm:h-2 rounded-full" initial={{ width: 0 }} animate={{ width: `${progressPercent}%` }} transition={{ duration: 0.6 }} />
+                <div className="w-full bg-gray-100 rounded-full h-2">
+                  <motion.div className="bg-brand-accent h-2 rounded-full" initial={{ width: 0 }} animate={{ width: `${progressPercent}%` }} transition={{ duration: 0.6 }} />
                 </div>
               </motion.div>
 
-              {/* Filters — горизонтальный скролл на мобилке */}
-              <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-2 mb-4 sm:mb-5 scrollbar-hide">
+              <div className="flex gap-2 flex-wrap mb-5">
                 {pillars.map(p => (
                   <button
                     key={p}
                     onClick={() => setFilter(p)}
-                    className={`px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-sm font-medium transition cursor-pointer whitespace-nowrap shrink-0 ${
-                      filter === p
-                        ? 'bg-brand-accent text-white'
-                        : 'bg-white border border-brand-border text-brand-text-secondary hover:border-brand-accent/50'
-                    }`}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition cursor-pointer ${filter === p ? 'bg-brand-accent text-white' : 'bg-white border border-brand-border text-brand-text-secondary hover:border-brand-accent/50'}`}
                   >
-                    {p === 'all' ? `Все ${plan.length}` : p}
+                    {p === 'all' ? `Все ${plan.length} дней` : p}
                   </button>
                 ))}
               </div>
 
-              {/* Cards grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
                 <AnimatePresence>
                   {filtered.map((item, i) => (
                     <motion.div
@@ -534,7 +540,7 @@ export default function ContentPlan() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: i * 0.02 }}
                       onClick={() => setSelected(selected?.day === item.day ? null : item)}
-                      className={`cursor-pointer ${selected?.day === item.day ? 'ring-2 ring-brand-accent ring-offset-1 rounded-xl sm:rounded-2xl' : ''}`}
+                      className={`cursor-pointer ${selected?.day === item.day ? 'ring-2 ring-brand-accent ring-offset-1 rounded-2xl' : ''}`}
                     >
                       <DayCard item={item} onToggle={() => toggleDone(item.day)} onGenerate={() => handleGoGenerate(item)} />
                     </motion.div>
@@ -543,54 +549,22 @@ export default function ContentPlan() {
               </div>
             </div>
 
-            {/* Detail panel */}
-            <AnimatePresence>
+                        <AnimatePresence>
               {selected && (
-                <>
-                  {/* Mobile: bottom sheet + backdrop */}
-                  <motion.div
-                    key="backdrop"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="lg:hidden fixed inset-0 bg-black/30 z-40"
-                    onClick={() => setSelected(null)}
-                  />
-                  <motion.div
-                    key="detail-mobile"
-                    initial={{ opacity: 0, y: 100 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 100 }}
-                    className="lg:hidden fixed inset-x-0 bottom-0 z-50 p-4 pb-6 max-h-[80vh] overflow-y-auto"
-                  >
-                    <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3" />
-                    <DetailPanel item={selected} onClose={() => setSelected(null)} onGenerate={() => handleGoGenerate(selected)} />
-                  </motion.div>
-
-                  {/* Desktop: sidebar */}
-                  <motion.div
-                    key="detail-desktop"
-                    initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: 320 }}
-                    exit={{ opacity: 0, width: 0 }}
-                    className="hidden lg:block shrink-0"
-                    style={{ width: 320 }}
-                  >
-                    <DetailPanel item={selected} onClose={() => setSelected(null)} onGenerate={() => handleGoGenerate(selected)} />
-                  </motion.div>
-                </>
+                <motion.div key="detail" initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 320 }} exit={{ opacity: 0, width: 0 }} className="shrink-0" style={{ width: 320 }}>
+                  <DetailPanel item={selected} onClose={() => setSelected(null)} onGenerate={() => handleGoGenerate(selected)} />
+                </motion.div>
               )}
             </AnimatePresence>
           </div>
         )}
 
-        {/* ═══ ERROR ═══ */}
         {error && !generating && (
-          <div className="max-w-lg mx-auto mt-4 sm:mt-6 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs sm:text-sm text-center">
+          <div className="max-w-lg mx-auto mt-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm text-center">
             {error}
-            <button
+            <button 
               onClick={handleGenerate}
-              className="block mx-auto mt-2 sm:mt-3 text-brand-accent hover:underline cursor-pointer"
+              className="block mx-auto mt-3 text-brand-accent hover:underline cursor-pointer"
             >
               Попробовать снова
             </button>
