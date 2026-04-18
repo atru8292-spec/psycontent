@@ -59,7 +59,7 @@ function useGoogleLogin() {
 }
 
 // ═══════════════════════════════════════
-// NEW: AUTH MODAL (Email + Google)
+// AUTH MODAL (Email + Google)
 // ═══════════════════════════════════════
 
 function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
@@ -96,8 +96,6 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
           ? 'Этот email уже зарегистрирован. Попробуйте войти.'
           : signUpError.message);
       } else if (data.user) {
-        // Supabase может требовать подтверждение email
-        // Если confirmations OFF — сразу редиректим
         if (data.session) {
           router.push('/onboarding');
         } else {
@@ -114,7 +112,6 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
           ? 'Неверный email или пароль'
           : signInError.message);
       } else if (data.user) {
-        // Check if has profile
         const { data: profile } = await supabase
           .from('onboarding_profiles')
           .select('user_id')
@@ -134,7 +131,7 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+        className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       >
         <motion.div
@@ -142,22 +139,27 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.2 }}
-          className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl relative"
+          className="bg-white rounded-t-2xl sm:rounded-2xl p-6 sm:p-8 w-full sm:max-w-md shadow-2xl relative max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition cursor-pointer"
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition cursor-pointer p-1"
           >
             <X className="w-5 h-5" />
           </button>
 
+          {/* Мобильная ручка для свайпа */}
+          <div className="sm:hidden flex justify-center mb-3">
+            <div className="w-10 h-1 bg-gray-300 rounded-full" />
+          </div>
+
           <div className="text-center mb-6">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <Sparkles className="w-6 h-6 text-brand-accent" />
-              <span className="text-xl font-bold text-brand-text">PsyContent</span>
+              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-brand-accent" />
+              <span className="text-lg sm:text-xl font-bold text-brand-text">PsyContent</span>
             </div>
-            <h3 className="text-lg font-bold text-brand-text">
+            <h3 className="text-base sm:text-lg font-bold text-brand-text">
               {mode === 'register' ? 'Создайте аккаунт' : 'Войдите в аккаунт'}
             </h3>
             <p className="text-sm text-brand-text-secondary mt-1">
@@ -170,9 +172,9 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
           {/* Google Button */}
           <button
             onClick={() => { handleGoogle(); onClose(); }}
-            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-brand-border hover:bg-gray-50 transition font-medium text-brand-text text-sm cursor-pointer mb-4"
+            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-brand-border hover:bg-gray-50 transition font-medium text-brand-text text-sm cursor-pointer mb-4 active:scale-[0.98]"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -188,41 +190,37 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
             <div className="flex-1 h-px bg-brand-border" />
           </div>
 
-          {/* Email Form */}
+          {/* Email Form — font-size: 16px чтобы iOS не зумил */}
           <form onSubmit={handleEmailAuth} className="space-y-3">
-            <div>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-brand-border text-sm focus:border-brand-accent focus:outline-none transition"
-                />
-              </div>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-brand-border text-base sm:text-sm focus:border-brand-accent focus:outline-none transition"
+              />
             </div>
-            <div>
-              <div className="relative">
-                <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Пароль"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  className="w-full pl-10 pr-12 py-3 rounded-xl border border-brand-border text-sm focus:border-brand-accent focus:outline-none transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
+            <div className="relative">
+              <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Пароль"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                className="w-full pl-10 pr-12 py-3 rounded-xl border border-brand-border text-base sm:text-sm focus:border-brand-accent focus:outline-none transition"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer p-1"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
 
             {error && (
@@ -235,7 +233,7 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-brand-accent text-white rounded-xl font-semibold text-sm hover:bg-brand-accent-hover transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3 bg-brand-accent text-white rounded-xl font-semibold text-sm hover:bg-brand-accent-hover transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
             >
               {loading ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Загрузка...</>
@@ -269,13 +267,13 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
 }
 
 // ═══════════════════════════════════════
-// NAVBAR (updated to use modal)
+// NAVBAR
 // ═══════════════════════════════════════
 
 function Navbar() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showAuth, setShowAuth] = useState(false); // NEW
+  const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
     const check = async () => {
@@ -294,25 +292,27 @@ function Navbar() {
   return (
     <>
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur border-b border-brand-border">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-brand-accent" />
-            <span className="text-xl font-bold text-brand-text">PsyContent</span>
+            <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-brand-accent" />
+            <span className="text-lg sm:text-xl font-bold text-brand-text">PsyContent</span>
           </div>
           {isLoggedIn ? (
             <button
               onClick={() => router.push('/dashboard')}
-              className="flex items-center gap-2 bg-brand-accent text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-brand-accent-hover transition cursor-pointer"
+              className="flex items-center gap-2 bg-brand-accent text-white px-4 sm:px-5 py-2 rounded-full text-sm font-semibold hover:bg-brand-accent-hover transition cursor-pointer active:scale-[0.97]"
             >
               <LayoutDashboard className="w-4 h-4" />
-              Мой кабинет
+              <span className="hidden sm:inline">Мой кабинет</span>
+              <span className="sm:hidden">Кабинет</span>
             </button>
           ) : (
             <button
               onClick={() => setShowAuth(true)}
-              className="bg-brand-accent text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-brand-accent-hover transition cursor-pointer"
+              className="bg-brand-accent text-white px-4 sm:px-5 py-2 rounded-full text-sm font-semibold hover:bg-brand-accent-hover transition cursor-pointer active:scale-[0.97]"
             >
-              Начать бесплатно
+              <span className="hidden sm:inline">Начать бесплатно</span>
+              <span className="sm:hidden">Начать</span>
             </button>
           )}
         </div>
@@ -323,41 +323,50 @@ function Navbar() {
 }
 
 // ═══════════════════════════════════════
-// HERO (updated to use modal)
+// HERO
 // ═══════════════════════════════════════
 
 function Hero() {
-  const [showAuth, setShowAuth] = useState(false); // NEW
+  const [showAuth, setShowAuth] = useState(false);
 
   return (
     <>
-      <section className="pt-32 pb-20 px-6">
+      <section className="pt-24 sm:pt-32 pb-12 sm:pb-20 px-4 sm:px-6">
         <motion.div className="max-w-4xl mx-auto text-center" initial="hidden" animate="visible" variants={stagger}>
-          <motion.div variants={fadeUp} className="inline-flex items-center gap-2 bg-brand-highlight text-brand-accent px-4 py-2 rounded-full text-sm font-medium mb-8">
-            <Sparkles className="w-4 h-4" /> Для психологов, которые не хотят танцевать в рилс
+          {/* Бейдж — на мобилке текст покороче */}
+          <motion.div variants={fadeUp} className="inline-flex items-center gap-2 bg-brand-highlight text-brand-accent px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium mb-6 sm:mb-8">
+            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="hidden sm:inline">Для психологов, которые не хотят танцевать в рилс</span>
+            <span className="sm:hidden">Для психологов без танцев в рилс</span>
           </motion.div>
-          <motion.h1 variants={fadeUp} className="text-4xl md:text-6xl font-extrabold text-brand-text leading-tight mb-6">
+
+          {/* Заголовок — адаптивные размеры */}
+          <motion.h1 variants={fadeUp} className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-brand-text leading-tight mb-4 sm:mb-6">
             Вы помогаете людям найти себя.{" "}
             <span className="text-brand-accent">Мы поможем людям найти вас.</span>
           </motion.h1>
-          <motion.p variants={fadeUp} className="text-lg md:text-xl text-brand-text-secondary max-w-2xl mx-auto mb-10">
+
+          <motion.p variants={fadeUp} className="text-base sm:text-lg md:text-xl text-brand-text-secondary max-w-2xl mx-auto mb-8 sm:mb-10">
             PsyContent берёт ваш опыт, ваш подход, ваш голос — и превращает в контент, который привлекает клиентов. Без фальши. Без плясок.
           </motion.p>
-          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-4">
+
+          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <button
               onClick={() => setShowAuth(true)}
-              className="inline-flex items-center gap-2 bg-brand-accent text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-brand-accent-hover transition shadow-lg shadow-brand-accent/25 cursor-pointer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-brand-accent text-white px-8 py-4 rounded-full text-base sm:text-lg font-semibold hover:bg-brand-accent-hover transition shadow-lg shadow-brand-accent/25 cursor-pointer active:scale-[0.97]"
             >
               Начать бесплатно <ArrowRight className="w-5 h-5" />
             </button>
-            <a href="#how" className="text-brand-text-secondary hover:text-brand-text transition text-sm flex items-center gap-1">
+            <a href="#how" className="text-brand-text-secondary hover:text-brand-text transition text-sm flex items-center gap-1 py-2">
               Как это работает? <ChevronDown className="w-4 h-4" />
             </a>
           </motion.div>
-          <motion.div variants={fadeUp} className="flex items-center justify-center gap-6 mt-8 text-brand-text-secondary text-sm">
-            <span className="flex items-center gap-1"><Shield className="w-4 h-4" /> Без карты</span>
-            <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> 5 минут на старт</span>
-            <span className="flex items-center gap-1"><Star className="w-4 h-4" /> Бесплатный план</span>
+
+          {/* Бенефиты — на мобилке gap поменьше, текст мельче */}
+          <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 mt-6 sm:mt-8 text-brand-text-secondary text-xs sm:text-sm">
+            <span className="flex items-center gap-1"><Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Без карты</span>
+            <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> 5 минут на старт</span>
+            <span className="flex items-center gap-1"><Star className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Бесплатный план</span>
           </motion.div>
         </motion.div>
       </section>
@@ -367,7 +376,7 @@ function Hero() {
 }
 
 // ═══════════════════════════════════════
-// REST OF COMPONENTS (unchanged)
+// PAINS
 // ═══════════════════════════════════════
 
 const pains = [
@@ -379,16 +388,16 @@ const pains = [
 
 function Pains() {
   return (
-    <section className="py-20 px-6 bg-white">
+    <section className="py-12 sm:py-20 px-4 sm:px-6 bg-white">
       <motion.div className="max-w-6xl mx-auto" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={stagger}>
-        <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-bold text-center text-brand-text mb-4">Знакомо?</motion.h2>
-        <motion.p variants={fadeUp} className="text-center text-brand-text-secondary mb-12">Большинство психологов сталкиваются с этим каждый день</motion.p>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <motion.h2 variants={fadeUp} className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-brand-text mb-3 sm:mb-4">Знакомо?</motion.h2>
+        <motion.p variants={fadeUp} className="text-center text-brand-text-secondary text-sm sm:text-base mb-8 sm:mb-12">Большинство психологов сталкиваются с этим каждый день</motion.p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {pains.map((pain, i) => (
-            <motion.div key={i} variants={fadeUp} className="p-6 rounded-2xl border border-brand-border hover:border-brand-accent/30 transition bg-brand-bg">
-              <pain.icon className="w-10 h-10 text-brand-accent mb-4" />
-              <h3 className="font-bold text-brand-text mb-2">{pain.title}</h3>
-              <p className="text-sm text-brand-text-secondary leading-relaxed">{pain.desc}</p>
+            <motion.div key={i} variants={fadeUp} className="p-4 sm:p-6 rounded-2xl border border-brand-border hover:border-brand-accent/30 transition bg-brand-bg">
+              <pain.icon className="w-8 h-8 sm:w-10 sm:h-10 text-brand-accent mb-3 sm:mb-4" />
+              <h3 className="font-bold text-brand-text mb-1 sm:mb-2 text-sm sm:text-base">{pain.title}</h3>
+              <p className="text-xs sm:text-sm text-brand-text-secondary leading-relaxed">{pain.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -397,26 +406,31 @@ function Pains() {
   );
 }
 
+// ═══════════════════════════════════════
+// SOLUTION
+// ═══════════════════════════════════════
+
 function Solution() {
   return (
-    <section className="py-20 px-6">
+    <section className="py-12 sm:py-20 px-4 sm:px-6">
       <motion.div className="max-w-4xl mx-auto text-center" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={stagger}>
-        <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-bold text-brand-text mb-6">
-          PsyContent — как ассистент,<br />который понимает психологию
+        <motion.h2 variants={fadeUp} className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-4 sm:mb-6">
+          PsyContent — как ассистент,{" "}
+          <span className="sm:block">который понимает психологию</span>
         </motion.h2>
-        <motion.p variants={fadeUp} className="text-lg text-brand-text-secondary max-w-2xl mx-auto mb-8">
+        <motion.p variants={fadeUp} className="text-base sm:text-lg text-brand-text-secondary max-w-2xl mx-auto mb-6 sm:mb-8">
           Это не просто &laquo;генератор текстов&raquo;. Мы сначала изучаем ваш подход, вашу нишу, ваш тон — и только потом создаём контент, который звучит как вы.
         </motion.p>
-        <motion.div variants={fadeUp} className="grid sm:grid-cols-3 gap-6 text-left">
+        <motion.div variants={fadeUp} className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 text-left">
           {[
             { icon: Target, title: "Ваш голос", desc: "Распаковка вашего стиля, подхода и уникальности" },
             { icon: FileText, title: "Ваш контент", desc: "Посты, рилс, сторис — в вашем тоне, на ваши темы" },
             { icon: BarChart3, title: "Ваши клиенты", desc: "Контент-стратегия, которая приводит заявки" },
           ].map((item, i) => (
-            <div key={i} className="p-6 rounded-2xl bg-white border border-brand-border">
-              <item.icon className="w-8 h-8 text-brand-accent mb-3" />
-              <h3 className="font-bold text-brand-text mb-1">{item.title}</h3>
-              <p className="text-sm text-brand-text-secondary">{item.desc}</p>
+            <div key={i} className="p-4 sm:p-6 rounded-2xl bg-white border border-brand-border">
+              <item.icon className="w-7 h-7 sm:w-8 sm:h-8 text-brand-accent mb-2 sm:mb-3" />
+              <h3 className="font-bold text-brand-text mb-1 text-sm sm:text-base">{item.title}</h3>
+              <p className="text-xs sm:text-sm text-brand-text-secondary">{item.desc}</p>
             </div>
           ))}
         </motion.div>
@@ -424,6 +438,10 @@ function Solution() {
     </section>
   );
 }
+
+// ═══════════════════════════════════════
+// HOW IT WORKS
+// ═══════════════════════════════════════
 
 const steps = [
   { num: "01", icon: MessageCircle, title: "Распаковка", desc: "Ответьте на вопросы о вашем подходе, нише и клиентах. 5 минут — и мы знаем ваш голос.", color: "bg-purple-100 text-purple-600" },
@@ -434,19 +452,19 @@ const steps = [
 
 function HowItWorks() {
   return (
-    <section id="how" className="py-20 px-6 bg-white">
+    <section id="how" className="py-12 sm:py-20 px-4 sm:px-6 bg-white">
       <motion.div className="max-w-6xl mx-auto" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={stagger}>
-        <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-bold text-center text-brand-text mb-4">Как это работает</motion.h2>
-        <motion.p variants={fadeUp} className="text-center text-brand-text-secondary mb-12">От регистрации до первого поста — 10 минут</motion.p>
-        <div className="grid md:grid-cols-4 gap-6">
+        <motion.h2 variants={fadeUp} className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-brand-text mb-3 sm:mb-4">Как это работает</motion.h2>
+        <motion.p variants={fadeUp} className="text-center text-brand-text-secondary text-sm sm:text-base mb-8 sm:mb-12">От регистрации до первого поста — 10 минут</motion.p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
           {steps.map((step, i) => (
-            <motion.div key={i} variants={fadeUp} className="relative p-6 rounded-2xl border border-brand-border bg-brand-bg">
-              <div className={`w-12 h-12 rounded-xl ${step.color} flex items-center justify-center mb-4`}>
-                <step.icon className="w-6 h-6" />
+            <motion.div key={i} variants={fadeUp} className="relative p-4 sm:p-6 rounded-2xl border border-brand-border bg-brand-bg">
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${step.color} flex items-center justify-center mb-3 sm:mb-4`}>
+                               <step.icon className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <span className="text-xs font-bold text-brand-accent">ШАГ {step.num}</span>
-              <h3 className="font-bold text-brand-text mt-1 mb-2">{step.title}</h3>
-              <p className="text-sm text-brand-text-secondary leading-relaxed">{step.desc}</p>
+              <span className="text-[10px] sm:text-xs font-bold text-brand-accent">ШАГ {step.num}</span>
+              <h3 className="font-bold text-brand-text mt-1 mb-1 sm:mb-2 text-xs sm:text-base">{step.title}</h3>
+              <p className="text-[11px] sm:text-sm text-brand-text-secondary leading-relaxed">{step.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -454,6 +472,10 @@ function HowItWorks() {
     </section>
   );
 }
+
+// ═══════════════════════════════════════
+// FEATURES
+// ═══════════════════════════════════════
 
 const features = [
   { icon: Sparkles, title: "Посты в вашем голосе", desc: "Не шаблонные тексты, а контент с вашим характером и подходом" },
@@ -466,15 +488,15 @@ const features = [
 
 function Features() {
   return (
-    <section className="py-20 px-6">
+    <section className="py-12 sm:py-20 px-4 sm:px-6">
       <motion.div className="max-w-6xl mx-auto" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={stagger}>
-        <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-bold text-center text-brand-text mb-12">Всё что нужно для блога</motion.h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <motion.h2 variants={fadeUp} className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-brand-text mb-8 sm:mb-12">Всё что нужно для блога</motion.h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {features.map((feature, i) => (
-            <motion.div key={i} variants={fadeUp} className="p-6 rounded-2xl bg-white border border-brand-border hover:shadow-md transition">
-              <feature.icon className="w-8 h-8 text-brand-accent mb-4" />
-              <h3 className="font-bold text-brand-text mb-2">{feature.title}</h3>
-              <p className="text-sm text-brand-text-secondary leading-relaxed">{feature.desc}</p>
+            <motion.div key={i} variants={fadeUp} className="p-4 sm:p-6 rounded-2xl bg-white border border-brand-border hover:shadow-md transition">
+              <feature.icon className="w-7 h-7 sm:w-8 sm:h-8 text-brand-accent mb-3 sm:mb-4" />
+              <h3 className="font-bold text-brand-text mb-1 sm:mb-2 text-sm sm:text-base">{feature.title}</h3>
+              <p className="text-xs sm:text-sm text-brand-text-secondary leading-relaxed">{feature.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -482,6 +504,10 @@ function Features() {
     </section>
   );
 }
+
+// ═══════════════════════════════════════
+// FOR WHOM
+// ═══════════════════════════════════════
 
 const audiences = [
   { title: "Начинающие психологи", desc: "Только получили образование и хотят набрать первых клиентов через блог", icon: "🌱" },
@@ -491,15 +517,15 @@ const audiences = [
 
 function ForWhom() {
   return (
-    <section className="py-20 px-6 bg-white">
+    <section className="py-12 sm:py-20 px-4 sm:px-6 bg-white">
       <motion.div className="max-w-6xl mx-auto" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={stagger}>
-        <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-bold text-center text-brand-text mb-12">Для кого PsyContent</motion.h2>
-        <div className="grid md:grid-cols-3 gap-6">
+        <motion.h2 variants={fadeUp} className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-brand-text mb-8 sm:mb-12">Для кого PsyContent</motion.h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
           {audiences.map((a, i) => (
-            <motion.div key={i} variants={fadeUp} className="p-6 rounded-2xl border border-brand-border bg-brand-bg text-center">
-              <div className="text-4xl mb-4">{a.icon}</div>
-              <h3 className="font-bold text-brand-text mb-2">{a.title}</h3>
-              <p className="text-sm text-brand-text-secondary leading-relaxed">{a.desc}</p>
+            <motion.div key={i} variants={fadeUp} className="p-4 sm:p-6 rounded-2xl border border-brand-border bg-brand-bg text-center">
+              <div className="text-3xl sm:text-4xl mb-3 sm:mb-4">{a.icon}</div>
+              <h3 className="font-bold text-brand-text mb-1 sm:mb-2 text-sm sm:text-base">{a.title}</h3>
+              <p className="text-xs sm:text-sm text-brand-text-secondary leading-relaxed">{a.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -507,6 +533,10 @@ function ForWhom() {
     </section>
   );
 }
+
+// ═══════════════════════════════════════
+// TESTIMONIALS
+// ═══════════════════════════════════════
 
 const testimonials = [
   { text: "Я гештальт-терапевт и думала что блог — не моё. PsyContent помог найти свой тон. Через месяц — 4 новых клиента из Instagram.", name: "Анна К.", role: "Гештальт-терапевт, Москва" },
@@ -516,18 +546,18 @@ const testimonials = [
 
 function Testimonials() {
   return (
-    <section className="py-20 px-6">
+    <section className="py-12 sm:py-20 px-4 sm:px-6">
       <motion.div className="max-w-6xl mx-auto" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={stagger}>
-        <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-bold text-center text-brand-text mb-12">Психологи уже используют PsyContent</motion.h2>
-        <div className="grid md:grid-cols-3 gap-6">
+        <motion.h2 variants={fadeUp} className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-brand-text mb-8 sm:mb-12">Психологи уже используют PsyContent</motion.h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {testimonials.map((t, i) => (
-            <motion.div key={i} variants={fadeUp} className="p-6 rounded-2xl bg-white border border-brand-border">
-              <div className="flex gap-1 mb-4">
+            <motion.div key={i} variants={fadeUp} className="p-4 sm:p-6 rounded-2xl bg-white border border-brand-border">
+              <div className="flex gap-1 mb-3 sm:mb-4">
                 {[...Array(5)].map((_, j) => (
-                  <Star key={j} className="w-4 h-4 fill-brand-accent text-brand-accent" />
+                  <Star key={j} className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-brand-accent text-brand-accent" />
                 ))}
               </div>
-              <p className="text-brand-text text-sm leading-relaxed mb-4 italic">&ldquo;{t.text}&rdquo;</p>
+              <p className="text-brand-text text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 italic">&ldquo;{t.text}&rdquo;</p>
               <p className="font-semibold text-brand-text text-sm">{t.name}</p>
               <p className="text-brand-text-secondary text-xs">{t.role}</p>
             </motion.div>
@@ -537,6 +567,10 @@ function Testimonials() {
     </section>
   );
 }
+
+// ═══════════════════════════════════════
+// PRICING
+// ═══════════════════════════════════════
 
 const plans = [
   {
@@ -560,28 +594,38 @@ const plans = [
 ];
 
 function Pricing() {
-  const [showAuth, setShowAuth] = useState(false); // NEW: modal instead of direct Google
+  const [showAuth, setShowAuth] = useState(false);
   return (
     <>
-      <section id="pricing" className="py-20 px-6 bg-white">
+      <section id="pricing" className="py-12 sm:py-20 px-4 sm:px-6 bg-white">
         <motion.div className="max-w-6xl mx-auto" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={stagger}>
-          <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-bold text-center text-brand-text mb-4">Начните бесплатно, растите с нами</motion.h2>
-          <motion.p variants={fadeUp} className="text-center text-brand-text-secondary mb-12">Один клиент из блога окупает подписку на год</motion.p>
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <motion.h2 variants={fadeUp} className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-brand-text mb-3 sm:mb-4">Начните бесплатно, растите с нами</motion.h2>
+          <motion.p variants={fadeUp} className="text-center text-brand-text-secondary text-sm sm:text-base mb-8 sm:mb-12">Один клиент из блога окупает подписку на год</motion.p>
+
+          {/* Pricing grid — на мобилке 1 колонка, популярный НЕ scale */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto">
             {plans.map((plan, i) => (
-              <motion.div key={i} variants={fadeUp} className={`relative p-6 rounded-2xl border ${plan.popular ? "border-brand-accent shadow-lg shadow-brand-accent/10 scale-105" : "border-brand-border"} bg-brand-bg`}>
+              <motion.div
+                key={i}
+                variants={fadeUp}
+                className={`relative p-4 sm:p-6 rounded-2xl border bg-brand-bg ${
+                  plan.popular
+                    ? "border-brand-accent shadow-lg shadow-brand-accent/10 md:scale-105"
+                    : "border-brand-border"
+                }`}
+              >
                 {plan.popular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-accent text-white text-xs font-semibold px-3 py-1 rounded-full">Популярный</span>
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-accent text-white text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">Популярный</span>
                 )}
-                <h3 className="text-lg font-bold text-brand-text">{plan.name}</h3>
-                <p className="text-brand-text-secondary text-sm mt-1 mb-4">{plan.description}</p>
-                <div className="mb-6">
-                  <span className="text-3xl font-extrabold text-brand-text">{plan.price}</span>
-                  <span className="text-brand-text-secondary text-sm">{plan.period}</span>
+                <h3 className="text-base sm:text-lg font-bold text-brand-text">{plan.name}</h3>
+                <p className="text-brand-text-secondary text-xs sm:text-sm mt-1 mb-3 sm:mb-4">{plan.description}</p>
+                <div className="mb-4 sm:mb-6">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-brand-text">{plan.price}</span>
+                  <span className="text-brand-text-secondary text-xs sm:text-sm">{plan.period}</span>
                 </div>
-                <ul className="space-y-3 mb-6">
+                <ul className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
                   {plan.features.map((f, j) => (
-                    <li key={j} className="flex items-start gap-2 text-sm text-brand-text">
+                    <li key={j} className="flex items-start gap-2 text-xs sm:text-sm text-brand-text">
                       <Check className="w-4 h-4 text-brand-accent mt-0.5 shrink-0" />
                       {f}
                     </li>
@@ -589,7 +633,11 @@ function Pricing() {
                 </ul>
                 <button
                   onClick={() => setShowAuth(true)}
-                  className={`block w-full text-center py-3 rounded-full font-semibold text-sm transition cursor-pointer ${plan.popular ? "bg-brand-accent text-white hover:bg-brand-accent-hover" : "bg-white border border-brand-border text-brand-text hover:border-brand-accent"}`}
+                  className={`block w-full text-center py-2.5 sm:py-3 rounded-full font-semibold text-sm transition cursor-pointer active:scale-[0.97] ${
+                    plan.popular
+                      ? "bg-brand-accent text-white hover:bg-brand-accent-hover"
+                      : "bg-white border border-brand-border text-brand-text hover:border-brand-accent"
+                  }`}
                 >
                   {plan.cta}
                 </button>
@@ -603,6 +651,10 @@ function Pricing() {
   );
 }
 
+// ═══════════════════════════════════════
+// FAQ
+// ═══════════════════════════════════════
+
 const faqs = [
   { q: "Это не будет звучать как ChatGPT?", a: "Нет. Мы сначала изучаем ваш тон, подход, язык через распаковку. Каждый пост — в вашем стиле, не в стиле робота." },
   { q: "Я только начинаю, подойдёт ли мне?", a: "Идеально подойдёт. Бесплатный тариф даёт распаковку и паспорт бренда — то что нужно на старте." },
@@ -614,21 +666,34 @@ const faqs = [
 function FAQ() {
   const [open, setOpen] = useState<number | null>(null);
   return (
-    <section className="py-20 px-6">
+    <section className="py-12 sm:py-20 px-4 sm:px-6">
       <motion.div className="max-w-3xl mx-auto" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={stagger}>
-        <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-bold text-center text-brand-text mb-12">Частые вопросы</motion.h2>
-        <div className="space-y-3">
+        <motion.h2 variants={fadeUp} className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-brand-text mb-8 sm:mb-12">Частые вопросы</motion.h2>
+        <div className="space-y-2 sm:space-y-3">
           {faqs.map((faq, i) => (
             <motion.div key={i} variants={fadeUp} className="border border-brand-border rounded-xl overflow-hidden">
-              <button onClick={() => setOpen(open === i ? null : i)} className="w-full flex items-center justify-between p-5 text-left cursor-pointer">
-                <span className="font-semibold text-brand-text text-sm">{faq.q}</span>
-                <ChevronDown className={`w-5 h-5 text-brand-text-secondary transition-transform ${open === i ? "rotate-180" : ""}`} />
+              <button
+                onClick={() => setOpen(open === i ? null : i)}
+                className="w-full flex items-center justify-between p-4 sm:p-5 text-left cursor-pointer gap-3"
+              >
+                <span className="font-semibold text-brand-text text-xs sm:text-sm">{faq.q}</span>
+                <ChevronDown className={`w-4 h-4 sm:w-5 sm:h-5 text-brand-text-secondary transition-transform shrink-0 ${open === i ? "rotate-180" : ""}`} />
               </button>
-              {open === i && (
-                <div className="px-5 pb-5">
-                  <p className="text-brand-text-secondary text-sm leading-relaxed">{faq.a}</p>
-                </div>
-              )}
+              <AnimatePresence>
+                {open === i && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-4 sm:px-5 pb-4 sm:pb-5">
+                      <p className="text-brand-text-secondary text-xs sm:text-sm leading-relaxed">{faq.a}</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           ))}
         </div>
@@ -637,29 +702,33 @@ function FAQ() {
   );
 }
 
+// ═══════════════════════════════════════
+// CTA
+// ═══════════════════════════════════════
+
 function CTA() {
-  const [showAuth, setShowAuth] = useState(false); // NEW
+  const [showAuth, setShowAuth] = useState(false);
   return (
     <>
-      <section id="cta" className="py-20 px-6 bg-brand-accent">
+      <section id="cta" className="py-12 sm:py-20 px-4 sm:px-6 bg-brand-accent">
         <motion.div className="max-w-3xl mx-auto text-center" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={stagger}>
-          <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-bold text-white mb-6">
+          <motion.h2 variants={fadeUp} className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4 sm:mb-6">
             Хватит откладывать свой блог
           </motion.h2>
-          <motion.p variants={fadeUp} className="text-lg text-white/80 mb-8">
+          <motion.p variants={fadeUp} className="text-base sm:text-lg text-white/80 mb-6 sm:mb-8">
             5 минут на распаковку — и вы получите стратегию, которая приведёт клиентов. Бесплатно.
           </motion.p>
           <motion.button
             variants={fadeUp}
             onClick={() => setShowAuth(true)}
-            className="inline-flex items-center gap-2 bg-white text-brand-accent px-8 py-4 rounded-full text-lg font-semibold hover:bg-gray-100 transition shadow-lg cursor-pointer"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white text-brand-accent px-8 py-4 rounded-full text-base sm:text-lg font-semibold hover:bg-gray-100 transition shadow-lg cursor-pointer active:scale-[0.97]"
           >
             Начать бесплатно <ArrowRight className="w-5 h-5" />
           </motion.button>
-          <motion.div variants={fadeUp} className="flex items-center justify-center gap-6 mt-6 text-white/60 text-sm">
-            <span className="flex items-center gap-1"><Shield className="w-4 h-4" /> Без карты</span>
-            <span className="flex items-center gap-1"><Zap className="w-4 h-4" /> За 5 минут</span>
-            <span className="flex items-center gap-1"><Star className="w-4 h-4" /> Бесплатно</span>
+          <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 mt-5 sm:mt-6 text-white/60 text-xs sm:text-sm">
+            <span className="flex items-center gap-1"><Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Без карты</span>
+            <span className="flex items-center gap-1"><Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> За 5 минут</span>
+            <span className="flex items-center gap-1"><Star className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Бесплатно</span>
           </motion.div>
         </motion.div>
       </section>
@@ -668,15 +737,19 @@ function CTA() {
   );
 }
 
+// ═══════════════════════════════════════
+// FOOTER
+// ═══════════════════════════════════════
+
 function Footer() {
   return (
-    <footer className="py-12 px-6 bg-brand-text">
-      <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+    <footer className="py-8 sm:py-12 px-4 sm:px-6 bg-brand-text">
+      <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-brand-accent" />
           <span className="text-white font-bold">PsyContent</span>
         </div>
-        <p className="text-gray-400 text-sm">&copy; 2025 PsyContent. Сделано для психологов с заботой.</p>
+        <p className="text-gray-400 text-xs sm:text-sm text-center">&copy; 2025 PsyContent. Сделано для психологов с заботой.</p>
       </div>
     </footer>
   );
