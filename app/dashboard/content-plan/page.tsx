@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
+import { generatePDF } from '@/lib/pdf-export'
 import {
   Sparkles, ArrowLeft, Loader2, CalendarDays,
   AlignLeft, Image, Film, FileText,
@@ -42,7 +43,7 @@ function getPillarMeta(pillar: string) {
 }
 
 // ============ EXPORT COMPONENT ============
-function ExportMenu({ plan, contentRef }: { plan: DayItem[]; contentRef: React.RefObject<HTMLDivElement | null> }) {
+function ExportMenu({ plan }: { plan: DayItem[] }) {
   const [copied, setCopied] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -86,42 +87,11 @@ ${day.hook ? `Хук: ${day.hook}` : ''}
   }
 
   const exportToPDF = async () => {
-    if (!contentRef.current) return
     setExporting(true)
     setShowMenu(false)
 
     try {
-      const html2canvas = (await import('html2canvas')).default
-      const { jsPDF } = await import('jspdf')
-
-      const canvas = await html2canvas(contentRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-      })
-
-      const imgData = canvas.toDataURL('image/png')
-      const pdf = new jsPDF('p', 'mm', 'a4')
-      const pdfWidth = pdf.internal.pageSize.getWidth()
-      const pdfHeight = pdf.internal.pageSize.getHeight()
-      const imgWidth = pdfWidth - 20
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
-
-      let heightLeft = imgHeight
-      let position = 10
-
-      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight)
-      heightLeft -= pdfHeight
-
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight + 10
-        pdf.addPage()
-        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight)
-        heightLeft -= pdfHeight
-      }
-
-      pdf.save(`content-plan-${new Date().toISOString().split('T')[0]}.pdf`)
+      await generatePDF(plan)
     } catch (error) {
       console.error('PDF export error:', error)
       alert('Ошибка при создании PDF')
@@ -160,7 +130,7 @@ ${day.hook ? `Хук: ${day.hook}` : ''}
               <FileText className="w-4 h-4 text-red-500" />
               <div>
                 <p>Скачать PDF</p>
-                <p className="text-xs text-brand-text-secondary">Для печати</p>
+                <p className="text-xs text-brand-text-secondary">Красивый дизайн</p>
               </div>
             </button>
           </div>
@@ -300,9 +270,9 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
 }
 
 // ============ BATCH CONFIG ============
-const BATCH_SIZE = 5 // дней в батче
+const BATCH_SIZE = 5
 const TOTAL_DAYS = 30
-const TOTAL_BATCHES = Math.ceil(TOTAL_DAYS / BATCH_SIZE) // = 6
+const TOTAL_BATCHES = Math.ceil(TOTAL_DAYS / BATCH_SIZE)
 
 // ============ MAIN PAGE ============
 export default function ContentPlan() {
@@ -315,7 +285,6 @@ export default function ContentPlan() {
   const [selected, setSelected] = useState<DayItem | null>(null)
   const [filter, setFilter] = useState<string>('all')
   const router = useRouter()
-  const contentRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const init = async () => {
@@ -335,7 +304,6 @@ export default function ContentPlan() {
     init()
   }, [router])
 
-  // Генерация по 5 дней (6 батчей)
   const handleGenerate = async () => {
     if (!user) return
     setGenerating(true)
@@ -356,7 +324,6 @@ export default function ContentPlan() {
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || 'Ошибка генерации')
         
-        // Обновляем план после каждого батча
         setPlan(data.plan)
         
         if (data.complete) break
@@ -389,7 +356,6 @@ export default function ContentPlan() {
   const done = plan.filter(d => d.done).length
   const progressPercent = plan.length > 0 ? Math.round((done / plan.length) * 100) : 0
 
-  // Вычисляем прогресс генерации
   const genProgress = currentBatch > 0 ? Math.round((currentBatch / TOTAL_BATCHES) * 100) : 0
   const currentDayStart = (currentBatch - 1) * BATCH_SIZE + 1
   const currentDayEnd = Math.min(currentBatch * BATCH_SIZE, TOTAL_DAYS)
@@ -413,7 +379,7 @@ export default function ContentPlan() {
           <div className="flex items-center gap-3">
             {plan.length > 0 && !generating && (
               <>
-                <ExportMenu plan={plan} contentRef={contentRef} />
+                <ExportMenu plan={plan} />
                 <button onClick={handleGenerate} disabled={generating} className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-1.5 rounded-lg hover:bg-brand-highlight">
                   <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
                   Обновить план
@@ -438,7 +404,6 @@ export default function ContentPlan() {
           <p className="text-brand-text-secondary">Персональный план на основе вашего паспорта бренда. Нажмите на карточку — получите готовый пост.</p>
         </motion.div>
 
-        {/* Empty state */}
         {!plan.length && !generating && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-lg mx-auto text-center py-20">
             <div className="w-20 h-20 bg-green-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
@@ -455,7 +420,6 @@ export default function ContentPlan() {
           </motion.div>
         )}
 
-        {/* Loading с прогрессом по батчам */}
         {generating && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-24">
             <div className="relative w-16 h-16 mx-auto mb-6">
@@ -467,14 +431,10 @@ export default function ContentPlan() {
             </h2>
             <p className="text-brand-text-secondary mb-6">AI подбирает темы под ваш голос и нишу</p>
             
-            {/* Прогресс бар с 6 секциями */}
-            <div className="max-w-md mx-auto">
+                      <div className="max-w-md mx-auto">
               <div className="flex justify-between text-xs text-brand-text-secondary mb-2">
                 {[1, 2, 3, 4, 5, 6].map(b => (
-                  <span 
-                    key={b} 
-                    className={currentBatch >= b ? 'text-brand-accent font-medium' : ''}
-                  >
+                  <span key={b} className={currentBatch >= b ? 'text-brand-accent font-medium' : ''}>
                     {(b-1)*5+1}-{b*5}
                   </span>
                 ))}
@@ -489,7 +449,6 @@ export default function ContentPlan() {
               </div>
             </div>
 
-            {/* Показываем уже сгенерированные дни */}
             {plan.length > 0 && (
               <p className="text-sm text-green-600 mt-4">
                 ✓ Готово: {plan.length} дней
@@ -498,7 +457,6 @@ export default function ContentPlan() {
           </motion.div>
         )}
 
-        {/* Plan grid */}
         {plan.length > 0 && !generating && (
           <div className={`flex gap-8 ${selected ? 'items-start' : ''}`}>
             <div className="flex-1 min-w-0">
@@ -536,7 +494,7 @@ export default function ContentPlan() {
                 ))}
               </div>
 
-              <div ref={contentRef} className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
                 <AnimatePresence>
                   {filtered.map((item, i) => (
                     <motion.div
@@ -555,7 +513,7 @@ export default function ContentPlan() {
               </div>
             </div>
 
-                       <AnimatePresence>
+            <AnimatePresence>
               {selected && (
                 <motion.div key="detail" initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 320 }} exit={{ opacity: 0, width: 0 }} className="shrink-0" style={{ width: 320 }}>
                   <DetailPanel item={selected} onClose={() => setSelected(null)} onGenerate={() => handleGoGenerate(selected)} />
@@ -565,7 +523,6 @@ export default function ContentPlan() {
           </div>
         )}
 
-        {/* Ошибка */}
         {error && !generating && (
           <div className="max-w-lg mx-auto mt-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm text-center">
             {error}
