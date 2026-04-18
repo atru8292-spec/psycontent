@@ -42,13 +42,22 @@ export async function POST(request: NextRequest) {
       .eq('user_id', userId)
       .single()
 
-    const approaches = profile.approach || []
-    const niches = profile.niche || []
+    const approaches = Array.isArray(profile.approaches) ? profile.approaches : []
+    const niches = Array.isArray(profile.niches) ? profile.niches : []
     
     // We just map simple things if not filled specifically
     const approachTerms = approaches.join(', ')
     const nicheTerms = niches.join(', ')
-    const toneDesc = profile.tone || ''
+    const toneDesc = profile.tone_verbal
+      ? `${profile.tone_verbal}. Формальность: ${profile.tone_formal ?? 50}%, серьёзность: ${profile.tone_serious ?? 50}%, осторожность: ${profile.tone_cautious ?? 50}%`
+      : `${profile.tone_formal ?? 50}% формальный, ${profile.tone_serious ?? 50}% серьёзный, ${profile.tone_cautious ?? 50}% осторожный`
+    const annoys = [Array.isArray(profile.anti_values) ? profile.anti_values.join(', ') : '', profile.anti_values_custom || '']
+      .filter(Boolean)
+      .join('. ')
+    const values = [Array.isArray(profile.values) ? profile.values.join(', ') : '', profile.values_custom || '']
+      .filter(Boolean)
+      .join('. ')
+    const hasApproach = (needle: string) => approaches.some((item: string) => item.toLowerCase().includes(needle.toLowerCase()))
 
     const prompt = `Ты — исследователь контент-трендов в русскоязычном сегменте психологии и mental health.
 Текущий период: 2025-2026 год.
@@ -62,12 +71,12 @@ export async function POST(request: NextRequest) {
   (ключевые термины и методы: ${approachTerms})
 - Специализация (ниша): ${niches.join(', ')}
   (конкретные проблемы моих клиентов: ${nicheTerms})
-- Тон общения: ${profile.tone} — ${toneDesc}
+- Тон общения: ${toneDesc}
 - Опыт: ${profile.experience || 'от 3 лет'}
 - Площадки: ${(profile.platforms || []).join(', ')}
-- Цель: ${profile.goal || 'Привлечение клиентов'}
-${profile.what_annoys ? `- Что меня бесит в индустрии: ${profile.what_annoys}` : ''}
-${profile.values_text ? `- Мои ценности: ${profile.values_text}` : ''}
+- Цель: ${profile.goal_3_months || 'Привлечение клиентов'}
+${annoys ? `- Что меня бесит в индустрии: ${annoys}` : ''}
+${values ? `- Мои ценности: ${values}` : ''}
 
 ${passport?.content ? `ВЫЖИМКА ИЗ МОЕГО ПАСПОРТА БРЕНДА (контентные столбы, позиционирование, аватар клиента):
 ${passport.content.substring(0, 1200)}` : ''}
@@ -111,10 +120,10 @@ ${passport.content.substring(0, 1200)}` : ''}
 - Могут стать отправной точкой для целого поста
 - Из ЭТИХ авторов (приоритет по подходу):
 
-${approaches.includes('КПТ') ? `КПТ-подход: Аарон Бек, Джудит Бек, Альберт Эллис, Дэвид Бернс, Стивен Хайес (ACT), Кристин Нефф (self-compassion)` : ''}
-${approaches.includes('Гештальт') ? `Гештальт: Фриц Перлз, Лаура Перлз, Ирвин Ялом, Клаудио Наранхо, Джон Энрайт` : ''}
-${approaches.includes('Психоанализ') ? `Психоанализ: Зигмунд Фрейд, Карл Юнг, Дональд Винникотт, Мелани Кляйн, Хайнц Кохут, Нэнси Мак-Вильямс` : ''}
-${approaches.includes('Экзистенциальный') ? `Экзистенциальный: Ирвин Ялом, Виктор Франкл, Ролло Мэй, Эмми ван Дорцен, Джеймс Бьюдженталь` : ''}
+${hasApproach('КПТ') ? `КПТ-подход: Аарон Бек, Джудит Бек, Альберт Эллис, Дэвид Бернс, Стивен Хайес (ACT), Кристин Нефф (self-compassion)` : ''}
+${hasApproach('Гештальт') ? `Гештальт: Фриц Перлз, Лаура Перлз, Ирвин Ялом, Клаудио Наранхо, Джон Энрайт` : ''}
+${hasApproach('Психоанализ') ? `Психоанализ: Зигмунд Фрейд, Карл Юнг, Дональд Винникотт, Мелани Кляйн, Хайнц Кохут, Нэнси Мак-Вильямс` : ''}
+${hasApproach('Экзистенциаль') ? `Экзистенциальный: Ирвин Ялом, Виктор Франкл, Ролло Мэй, Эмми ван Дорцен, Джеймс Бьюдженталь` : ''}
 Универсальные (подходят всем): Карл Роджерс, Ирвин Ялом, Виктор Франкл, Карл Юнг, Эрих Фромм, Дональд Винникотт, Вирджиния Сатир, Габор Матэ (Gabor Maté), Бессел ван дер Колк, Брене Браун
 
 Требования к цитатам:

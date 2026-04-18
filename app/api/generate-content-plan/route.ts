@@ -30,6 +30,12 @@ export async function POST(request: NextRequest) {
       .eq('user_id', userId)
       .single()
 
+    const approaches = Array.isArray(profile.approaches) ? profile.approaches : []
+    const niches = Array.isArray(profile.niches) ? profile.niches : []
+    const toneSummary = profile.tone_verbal
+      ? `${profile.tone_verbal}. Формальность: ${profile.tone_formal ?? 50}%, серьёзность: ${profile.tone_serious ?? 50}%, осторожность: ${profile.tone_cautious ?? 50}%`
+      : `${profile.tone_formal ?? 50}% формальный, ${profile.tone_serious ?? 50}% серьёзный, ${profile.tone_cautious ?? 50}% осторожный`
+
     const systemPrompt = `Ты — топовый контент-стратег для психологов. Твоя задача: составить контент-план на 30 дней, который не просто дает советы, а РЕАЛЬНО приводит клиентов.
 
 КЛЮЧЕВАЯ ИДЕЯ: Каждый пост — это микро-сессия. Человек читает и понимает "Она/он меня видит насквозь".
@@ -68,10 +74,10 @@ export async function POST(request: NextRequest) {
 
     const userPrompt = `ПРОФИЛЬ ПСИХОЛОГА:
 Имя: ${profile.full_name}
-Терапевтический подход: ${(profile.approach || []).join(', ')}
-Ниша: ${(profile.niche || []).join(', ')}
-Тон общения: ${profile.tone}
-Мечта в блоге: ${profile.blog_goal || 'Получать заявки'}
+Терапевтический подход: ${approaches.join(', ')}
+Ниша: ${niches.join(', ')}
+Тон общения: ${toneSummary}
+Цель в блоге: ${profile.goal_3_months || profile.dream_blog || 'Получать заявки'}
 
 ${passport?.content ? `Выжимка из Паспорта (Используй эти боли и аватары):
 ${passport.content.substring(0, 1500)}` : ''}

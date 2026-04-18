@@ -69,42 +69,42 @@ export async function POST(request: NextRequest) {
     const userPrompt = `Вот данные распаковки психолога:
 
 === БЛОК 1: КТО ЭТО ===
-ИМЯ И КАК ОБРАЩАЮТСЯ: \${profile.full_name} (\${profile.appeal || 'не указано'})
-ПОДХОДЫ: \${(profile.approaches || []).join(', ')}
-НИШИ: \${(profile.niches || []).join(', ')}
-ЛЮБИМАЯ НИША (ГЛАВНАЯ): \${profile.one_niche || '-'}
-ОПЫТ: \${profile.experience || '-'}
-КАК ПРИШЁЛ В ПРОФЕССИЮ: \${profile.path_to_profession || '-'}
-ФОРМАТЫ И ЦЕНА: \${(profile.formats || []).join(', ')}. Чек: \${profile.price || '-'}
+ИМЯ И КАК ОБРАЩАЮТСЯ: ${profile.full_name} (${profile.appeal || 'не указано'})
+ПОДХОДЫ: ${(profile.approaches || []).join(', ')}
+НИШИ: ${(profile.niches || []).join(', ')}
+ЛЮБИМАЯ НИША (ГЛАВНАЯ): ${profile.one_niche || '-'}
+ОПЫТ: ${profile.experience || '-'}
+КАК ПРИШЁЛ В ПРОФЕССИЮ: ${profile.path_to_profession || '-'}
+ФОРМАТЫ И ЦЕНА: ${(profile.formats || []).join(', ')}. Чек: ${profile.price || '-'}
 
 === БЛОК 2: ГОЛОС И ХАРАКТЕР ===
-ТОНАЛЬНОСТЬ: \${profile.tone_formal || 50}% формальный, \${profile.tone_serious || 50}% серьёзный, \${profile.tone_cautious || 50}% осторожный.
-КАК РАЗГОВАРИВАЕТ (ОБРАЗ): \${profile.tone_verbal || '-'}
-ЦЕННОСТИ: \${(profile.values || []).join(', ')}. \${profile.values_custom || ''}
-АНТИЦЕННОСТИ: \${(profile.anti_values || []).join(', ')}. \${profile.anti_values_custom || ''}
-СУПЕРСИЛЫ ПО СЛОВАМ КЛИЕНТОВ: \${(profile.superpowers || []).join(', ')}
-СЛОЖНОСТИ В КОНТЕНТЕ: \${(profile.content_struggles || []).join(', ')}
-ЖИВОЙ ГОЛОС (цитата о себе): "\${profile.live_voice || '-'}"
+ТОНАЛЬНОСТЬ: ${profile.tone_formal || 50}% формальный, ${profile.tone_serious || 50}% серьёзный, ${profile.tone_cautious || 50}% осторожный.
+КАК РАЗГОВАРИВАЕТ (ОБРАЗ): ${profile.tone_verbal || '-'}
+ЦЕННОСТИ: ${(profile.values || []).join(', ')}. ${profile.values_custom || ''}
+АНТИЦЕННОСТИ: ${(profile.anti_values || []).join(', ')}. ${profile.anti_values_custom || ''}
+СУПЕРСИЛЫ ПО СЛОВАМ КЛИЕНТОВ: ${(profile.superpowers || []).join(', ')}
+СЛОЖНОСТИ В КОНТЕНТЕ: ${(profile.content_struggles || []).join(', ')}
+ЖИВОЙ ГОЛОС (цитата о себе): "${profile.live_voice || '-'}"
 
 === БЛОК 3: ИДЕАЛЬНЫЙ КЛИЕНТ ===
-КТО КЛИЕНТ: \${profile.client_avatar || '-'}, Профессия/занятость: \${profile.client_job || '-'}
-ФРАЗЫ, КОТОРЫМИ ОПИСЫВАЕТ БОЛЬ: "\${profile.client_pain_phrases || '-'}"
-ЧТО ПРОБОВАЛ ДО: \${(profile.client_tried || []).join(', ')}
-ГЛАВНЫЕ СТРАХИ: \${(profile.client_fear || []).join(', ')}
-РЕЗУЛЬТАТ (МЕНЯЕТСЯ ЖИЗНЬ): \${profile.client_result || '-'}
+КТО КЛИЕНТ: ${profile.client_avatar || '-'}, Профессия/занятость: ${profile.client_job || '-'}
+ФРАЗЫ, КОТОРЫМИ ОПИСЫВАЕТ БОЛЬ: "${profile.client_pain_phrases || '-'}"
+ЧТО ПРОБОВАЛ ДО: ${(profile.client_tried || []).join(', ')}
+ГЛАВНЫЕ СТРАХИ: ${(profile.client_fear || []).join(', ')}
+РЕЗУЛЬТАТ (МЕНЯЕТСЯ ЖИЗНЬ): ${profile.client_result || '-'}
 
 === БЛОК 4 И 5: АКТУАЛЬНАЯ ТОЧКА И ЦЕЛИ ===
-БЛОГ И ПОДПИСЧИКИ: \${(profile.platforms || []).join(', ')}, \${profile.current_followers || '0'} подписчиков
-КЛИЕНТОВ В МЕСЯЦ: \${profile.current_clients || '0'} (\${(profile.client_source || []).join(', ')})
-ГЛАВНАЯ БОЛЬ БЛОГА: \${profile.content_pain || '-'}. \${profile.content_pain_detail || ''}
-ЦЕЛЬ (3 мес): \${profile.goal_3_months || '-'} (доход/клиенты: \${profile.desired_clients || '-'})
-ВРЕМЯ НА КОНТЕНТ: \${profile.time_available || '-'}
-ОТНОШЕНИЕ К ВИДЕО: \${profile.video_attitude || '-'}
-МЕЧТА О БЛОГЕ ЧЕРЕЗ ГОД: \${profile.dream_blog || '-'}
+БЛОГ И ПОДПИСЧИКИ: ${(profile.platforms || []).join(', ')}, ${profile.current_followers || '0'} подписчиков
+КЛИЕНТОВ В МЕСЯЦ: ${profile.current_clients || '0'} (${(profile.client_source || []).join(', ')})
+ГЛАВНАЯ БОЛЬ БЛОГА: ${profile.content_pain || '-'}. ${profile.content_pain_detail || ''}
+ЦЕЛЬ (3 мес): ${profile.goal_3_months || '-'} (доход/клиенты: ${profile.desired_clients || '-'})
+ВРЕМЯ НА КОНТЕНТ: ${profile.time_available || '-'}
+ОТНОШЕНИЕ К ВИДЕО: ${profile.video_attitude || '-'}
+МЕЧТА О БЛОГЕ ЧЕРЕЗ ГОД: ${profile.dream_blog || '-'}
 
 === БЛОК 6: РЕФЕРЕНСЫ ===
-НРАВЯТСЯ: \${profile.idols || '-'} (\${(profile.idols_why || []).join(', ')})
-ДОПОЛНИТЕЛЬНО: \${profile.something_else || '-'}
+НРАВЯТСЯ: ${profile.idols || '-'} (${(profile.idols_why || []).join(', ')})
+ДОПОЛНИТЕЛЬНО: ${profile.something_else || '-'}
 
 Создай ПОЛНЫЙ ПАСПОРТ БРЕНДА по следующей структуре:
 

@@ -66,6 +66,11 @@ export default function Dashboard() {
   }
 
   const displayName = profile?.full_name || user?.user_metadata?.full_name || 'Специалист'
+  const toneSummary = profile?.tone_verbal || (
+    profile
+      ? `${profile.tone_formal ?? 50}% формальный, ${profile.tone_serious ?? 50}% серьёзный, ${profile.tone_cautious ?? 50}% осторожный`
+      : '—'
+  )
 
   const tools = [
     {
@@ -215,25 +220,25 @@ export default function Dashboard() {
             <div className="p-4 rounded-xl bg-brand-bg">
               <p className="text-xs text-brand-text-secondary mb-1">Подход</p>
               <p className="text-sm font-semibold text-brand-text">
-                {profile?.approach?.join(', ') || '—'}
+                {profile?.approaches?.join(', ') || '—'}
               </p>
             </div>
             <div className="p-4 rounded-xl bg-brand-bg">
               <p className="text-xs text-brand-text-secondary mb-1">Ниша</p>
               <p className="text-sm font-semibold text-brand-text">
-                {profile?.niche?.join(', ') || '—'}
+                {profile?.niches?.join(', ') || '—'}
               </p>
             </div>
             <div className="p-4 rounded-xl bg-brand-bg">
               <p className="text-xs text-brand-text-secondary mb-1">Тон общения</p>
               <p className="text-sm font-semibold text-brand-text">
-                {profile?.tone || '—'}
+                {toneSummary}
               </p>
             </div>
             <div className="p-4 rounded-xl bg-brand-bg">
               <p className="text-xs text-brand-text-secondary mb-1">Цель</p>
               <p className="text-sm font-semibold text-brand-text">
-                {profile?.goal || '—'}
+                {profile?.goal_3_months || '—'}
               </p>
             </div>
           </div>

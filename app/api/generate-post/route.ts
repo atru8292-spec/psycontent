@@ -107,14 +107,14 @@ export async function POST(request: NextRequest) {
     const formatDesc = FORMAT_DESCRIPTIONS[format] || FORMAT_DESCRIPTIONS.post
 
     const userPrompt = `КОНТЕКСТ ДЛЯ ГЕНЕРАЦИИ (ВВОДНЫЕ ОТ ПСИХОЛОГА):
-Имя: \${profile.full_name}
-Терапевтический подход: \${(profile.approaches || []).join(', ')}
-Ниша: \${(profile.niches || []).join(', ')}
-Опыт: \${profile.experience || 'Опытный'}
-Тон общения: \${profile.tone_formal || 50}% формальный, \${profile.tone_serious || 50}% серьёзный, \${profile.tone_cautious || 50}% осторожный
-Ценности: \${(profile.values || []).join(', ')}. \${profile.values_custom || ''}
-Что бесит в индустрии (отрази этот подход к анти-шаблонам): \${(profile.anti_values || []).join(', ')}. \${profile.anti_values_custom || ''}
-Цель: \${profile.goal_3_months || 'Приводить клиентов'}
+Имя: ${profile.full_name}
+Терапевтический подход: ${(profile.approaches || []).join(', ')}
+Ниша: ${(profile.niches || []).join(', ')}
+Опыт: ${profile.experience || 'Опытный'}
+Тон общения: ${profile.tone_formal || 50}% формальный, ${profile.tone_serious || 50}% серьёзный, ${profile.tone_cautious || 50}% осторожный
+Ценности: ${(profile.values || []).join(', ')}. ${profile.values_custom || ''}
+Что бесит в индустрии (отрази этот подход к анти-шаблонам): ${(profile.anti_values || []).join(', ')}. ${profile.anti_values_custom || ''}
+Цель: ${profile.goal_3_months || 'Приводить клиентов'}
 
 ${passport?.content ? `ПАСПОРТ БРЕНДА (учитывай его аватар идеального клиента и позиционирование):
 ${passport.content.substring(0, 2000)}` : ''}

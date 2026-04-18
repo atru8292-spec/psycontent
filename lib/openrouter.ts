@@ -1,4 +1,9 @@
-export async function generateWithAI(systemPrompt: string, userPrompt: string) {
+type GenerateOptions = {
+  temperature?: number
+  max_tokens?: number
+}
+
+export async function generateWithAI(systemPrompt: string, userPrompt: string, options: GenerateOptions = {}) {
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -13,8 +18,8 @@ export async function generateWithAI(systemPrompt: string, userPrompt: string) {
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      max_tokens: 4000,
-      temperature: 0.7,
+      max_tokens: options.max_tokens ?? 4000,
+      temperature: options.temperature ?? 0.7,
     }),
   })
 

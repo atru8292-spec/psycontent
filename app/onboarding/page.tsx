@@ -576,9 +576,9 @@ export default function Onboarding() {
                       <button 
                         key={opt} onClick={() => isMulti ? toggleArrayItem(q.key, opt, q.maxChoice) : setAnswers({...answers, [q.key]: opt})}
                         className={`text-left p-4 rounded-xl border-2 transition font-medium cursor-pointer flex items-start gap-3 
-                          \${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                          ${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-gray-200 bg-white hover:border-gray-300'}`}
                       >
-                        <div className={`w-5 h-5 mt-0.5 rounded flex items-center justify-center shrink-0 border \${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
+                        <div className={`w-5 h-5 mt-0.5 rounded flex items-center justify-center shrink-0 border ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
                           {isSelected && <CheckCircle className="w-4 h-4 text-white" />}
                         </div>
                         {opt}
@@ -616,8 +616,8 @@ export default function Onboarding() {
                       const isSelected = isMulti ? (answers[tgtKey] || []).includes(opt) : answers[tgtKey] === opt
                       
                       return (
-                        <button key={opt} onClick={() => isMulti ? toggleArrayItem(tgtKey, opt) : setAnswers({...answers, [tgtKey]: opt})} className={`p-4 rounded-xl border-2 font-medium transition cursor-pointer text-left flex items-start gap-3 \${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-gray-200 hover:bg-gray-50'}`}>
-                          <div className={`w-5 h-5 mt-0.5 rounded-full flex items-center justify-center shrink-0 border \${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
+                        <button key={opt} onClick={() => isMulti ? toggleArrayItem(tgtKey, opt) : setAnswers({...answers, [tgtKey]: opt})} className={`p-4 rounded-xl border-2 font-medium transition cursor-pointer text-left flex items-start gap-3 ${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-gray-200 hover:bg-gray-50'}`}>
+                          <div className={`w-5 h-5 mt-0.5 rounded-full flex items-center justify-center shrink-0 border ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
                               {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
                           </div>
                           {opt}
