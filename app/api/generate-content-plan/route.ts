@@ -10,178 +10,115 @@ function getSupabaseAdmin() {
   )
 }
 
-function getApproachHookStyle(approaches: string[]): string {
-  const styles: Record<string, string> = {
-    'КПТ': 'Для КПТ: хуки через когнитивные искажения, цепочки мыслей, поведенческие эксперименты. "Ты веришь что если ошибёшься — всё рухнет. Давай проверим."',
-    'Психоанализ': 'Для психоанализа: хуки через бессознательное, повторения, детские паттерны. "Ты выбираешь одних и тех же людей. Вот кого ты на самом деле ищешь."',
-    'Гештальт': 'Для гештальта: хуки через телесные ощущения и "здесь и сейчас". "Прямо сейчас — где в теле напряжение? Вот ответ на твой вопрос."',
-    'Схема-терапия': 'Для схема-терапии: хуки через режимы и схемы как персонажей. "Внутренний Критик говорит тебе что ты недостаточен. Вот откуда он взялся."',
-    'ACT': 'Для ACT: хуки через парадокс борьбы с болью. "Чем больше ты пытаешься не тревожиться — тем сильнее тревога. Вот почему."',
-    'Экзистенциальный': 'Для экзистенциального: хуки через большие вопросы. "Что если кризис — это не конец, а единственный шанс встретиться с собой?"',
-    'ЭФТ': 'Для ЭФТ: хуки через скрытые эмоции в отношениях. "Он молчит после ссоры. Она думает ему всё равно. На самом деле он в ужасе."',
-    'EMDR': 'Для EMDR: хуки через застрявшие воспоминания. "Прошло 5 лет, но тело реагирует так, будто это происходит сейчас."',
-    'Нарративная терапия': 'Для нарративной: хуки через истории о себе. "Ты не равен своей проблеме. Тревога — это персонаж в твоей истории, а не ты сам."',
-    'Телесно-ориентированная': 'Для ТОТ: хуки через тело. "Твоя челюсть сжата с 7 лет. Тогда тебе нельзя было плакать. Сейчас можно."',
-    'Арт-терапия': 'Для арт-терапии: хуки через творчество и образы. "Твоя рука знает то, что ум отказывается признать."',
-  }
-
-  const parts: string[] = []
-  for (const approach of approaches) {
-    const key = Object.keys(styles).find(k =>
-      approach.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(approach.toLowerCase())
-    )
-    if (key) parts.push(styles[key])
-  }
-
-  return parts.length > 0 ? parts.join('\n') : 'Интегративный подход: комбинируй разные стили хуков, сохраняя авторский голос.'
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await request.json()
+    const { userId, batch = 1 } = await request.json()
     if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
 
     const supabaseAdmin = getSupabaseAdmin()
 
-    const [profileRes, passportRes] = await Promise.all([
+    const [profileRes, passportRes, existingPlanRes] = await Promise.all([
       supabaseAdmin.from('onboarding_profiles').select('*').eq('user_id', userId).single(),
-      supabaseAdmin.from('brand_passports').select('content').eq('user_id', userId).single()
+      supabaseAdmin.from('brand_passports').select('content').eq('user_id', userId).single(),
+      supabaseAdmin.from('content_plans').select('plan').eq('user_id', userId).single()
     ])
 
     const profile = profileRes.data
     if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
     const passport = passportRes.data?.content || ''
-    const approaches = Array.isArray(profile.approaches) ? profile.approaches : []
-    const profileContext = buildProfileContext(profile)
-    const approachHooks = getApproachHookStyle(approaches)
+    const existingPlan = existingPlanRes.data?.plan || []
+    
+    // Определяем какие дни генерируем
+    const startDay = (batch - 1) * 10 + 1
+    const endDay = batch * 10
 
-    const systemPrompt = `Ты — контент-стратег для практикующих психологов. Составляешь план на 30 дней который РЕАЛЬНО приводит клиентов на консультацию.
+    const systemPrompt = `Ты контент-стратег для психологов. Создай план на дни ${startDay}-${endDay}.
 
-═══════════════════════════════
-ПРИНЦИП: Каждый пост — это микро-сессия. Человек читает и думает "Он/она меня видит насквозь. Хочу к этому специалисту."
-═══════════════════════════════
+РУБРИКИ (распредели равномерно):
+- Психообразование — объясни что болит и почему
+- Истории — случаи из практики  
+- Личное — рефлексия, путь в профессию
+- Практика — техники и упражнения
+- Позиционирование — как я работаю
 
-ПРОПОРЦИИ РУБРИК (строго):
-- Психообразование: 9 дней (30%) — объясни ЧТО болит и ПОЧЕМУ (механизм)
-- Истории: 8 дней (25%) — случаи из практики, собирательные образы, мифы
-- Личное: 6 дней (20%) — бэкстейдж, рефлексия, путь в профессию, инсайты
-- Практика: 4 дня (15%) — конкретные техники, упражнения, ритуалы
-- Позиционирование: 3 дня (10%) — мягкое приглашение, "как я работаю", "с чем можно прийти"
+ФОРМАТЫ: post, carousel, reels, stories (чередуй)
 
-ФОРМАТЫ (чередуй обязательно):
-- post — глубокий текст (Instagram/Telegram)
-- carousel — карусель 7-10 слайдов (схемы, списки, механики)
-- reels — короткое видео (хук-проблема-инсайт)
-- stories — прогрев из 5-7 сторис
+ХУКИ — цепляющие, НЕ банальные:
+✓ "Если вы когда-нибудь извинялись за то что расстроились..."
+✓ "Чем больше стараетесь не тревожиться — тем сильнее тревога"
+✗ НЕ используй: "Как справиться с...", "5 признаков...", "А вы знали?"
 
-Примерное распределение: 10 post, 8 carousel, 7 reels, 5 stories
+Верни ТОЛЬКО JSON массив из 10 объектов:
+[{"day":${startDay},"pillar":"Психообразование","topic":"тема","format":"post","hook":"цепляющий хук","tip":"подсказка"}]`
 
-═══════════════════════════════
-ХУКИ — САМОЕ ВАЖНОЕ
-═══════════════════════════════
+    const userPrompt = `Психолог: ${profile.name || 'Психолог'}
+Ниша: ${profile.niche || 'общая практика'}
+Подходы: ${Array.isArray(profile.approaches) ? profile.approaches.slice(0, 3).join(', ') : 'интегративный'}
+Аудитория: ${profile.target_audience || 'взрослые'}
+Боли клиентов: ${profile.client_pain_phrases || 'тревога, отношения, самооценка'}
+Тон: ${profile.tone_of_voice || 'тёплый, профессиональный'}
+Обращение: ${profile.appeal || 'на вы'}
+${profile.video_attitude === 'не снимаю' ? 'НЕ использовать reels — заменить на post/carousel/stories' : ''}
 
-ЗАПРЕЩЁННЫЕ формулы хуков (мёртвые, банальные):
-- "Как справиться с...", "5 признаков...", "А вы знали...?"
-- "В современном мире...", "Каждый из нас...", "Ни для кого не секрет..."
-- "Сегодня поговорим о...", "В этом посте я расскажу..."
+${passport ? `Из паспорта: ${passport.substring(0, 400)}` : ''}
 
-РАБОЧИЕ формулы хуков 2025 (ИСПОЛЬЗУЙ):
-1. УЗНАВАЛКА: "Если вы когда-нибудь извинялись за то что расстроились — этот пост для вас"
-2. ПАРАДОКС: "Чем больше вы стараетесь не тревожиться, тем сильнее тревога"
-3. ПРОВОКАЦИЯ: "Работа над собой иногда делает людей хуже. Вот почему."
-4. ИСТОРИЯ С ПОРОГА: "В прошлый вторник клиентка сказала фразу, которую я не могу забыть"
-5. ВОПРОС-ЗЕРКАЛО: "Когда вы последний раз делали что-то просто потому что хотели?"
-6. АНТИМИФ: "'Просто думай позитивно' — это не совет. Это издевательство."
-7. ТЕЛЕСНОЕ: "Третий кофе в 14:00 и ощущение что грудь сдавило — знакомо?"
-8. ФАКТ: "7 из 10 людей которые приходят с проблемой отношений на самом деле приходят с другим"
-
-${approachHooks}
-
-═══════════════════════════════
-ТЕМЫ
-═══════════════════════════════
-
-Темы должны быть:
-- КОНКРЕТНЫМИ (не "про тревогу" а "почему тревога усиливается к вечеру когда все дела сделаны")
-- ПРИВЯЗАННЫМИ К БЫТУ клиента (утро, работа, отношения, вечер, выходные)
-- ПРИВЯЗАННЫМИ К НИШЕ и ПОДХОДУ психолога
-- НЕ повторяющимися по сути (30 разных углов, не 30 вариаций одного)
-
-Используй БОЛИ КЛИЕНТА из аватара — превращай их в темы.
-Используй АНТИЦЕННОСТИ психолога — делай из них посты-мнения.
-Используй СУПЕРСИЛЫ психолога — показывай экспертизу.
-
-═══════════════════════════════
-ФОРМАТ ОТВЕТА
-═══════════════════════════════
-
-Верни ТОЛЬКО валидный JSON массив из 30 объектов. Без текста вне массива, без markdown-оберток, без \`\`\`json:
-
-[
-  {
-    "day": 1,
-    "pillar": "Психообразование",
-    "topic": "Конкретная тема поста",
-    "format": "post",
-    "hook": "Первые 2-3 строки которые ОСТАНОВЯТ скролл. Пиши как готовый хук, не как описание.",
-    "tip": "Подсказка автору: на что обратить внимание при написании, какую технику использовать, какой CTA поставить"
-  }
-]
-
-Pillar строго из: "Психообразование", "Истории", "Личное", "Практика", "Позиционирование"
-Format строго из: "post", "carousel", "reels", "stories"`
-
-    const userPrompt = `${profileContext}
-
-${passport ? `ПАСПОРТ БРЕНДА:\n${passport.substring(0, 1200)}` : ''}
-
-ЗАДАНИЕ: Составь контент-план на 30 дней для этого конкретного психолога.
-
-ВАЖНО:
-- Обращение к аудитории: ${profile.appeal || 'на вы'}
-- Боли клиента (ИСПОЛЬЗУЙ в хуках): ${profile.client_pain_phrases || 'не указаны'}
-- Антиценности (ДЕЛАЙ посты-мнения): ${Array.isArray(profile.anti_values) ? profile.anti_values.join(', ') : ''}
-- Суперсилы (ПОКАЗЫВАЙ): ${Array.isArray(profile.superpowers) ? profile.superpowers.join(', ') : ''}
-- Цель на 3 месяца: ${profile.goal_3_months || ''}
-- Время на контент: ${profile.time_available || ''}
-- Отношение к видео: ${profile.video_attitude || ''}
-
-${profile.video_attitude === 'не снимаю' || profile.video_attitude === 'не хочу' ? 'УЧТИ: психолог НЕ хочет снимать видео. Замени reels на другие форматы (post, carousel, stories).' : ''}
-
-Верни JSON массив из 30 объектов.`
+Создай дни ${startDay}-${endDay}. Верни только JSON массив из 10 объектов.`
 
     const result = await generateWithAI(systemPrompt, userPrompt)
 
-    // Parse JSON — ищем массив
-    const jsonMatch = result.match(/$$[\s\S]*$$/)
-    if (!jsonMatch) throw new Error('AI не вернул валидный JSON')
-
-    let plan
+    // Parse JSON
+    let newDays
     try {
-      plan = JSON.parse(jsonMatch[0])
+      const jsonMatch = result.match(/\[[\s\S]*\]/)
+      if (!jsonMatch) throw new Error('No JSON array found')
+      newDays = JSON.parse(jsonMatch[0])
     } catch {
-      throw new Error('Не удалось распарсить JSON от AI')
+      throw new Error('AI не вернул валидный JSON')
     }
 
-    // Валидация: убедимся что 30 дней
-    if (!Array.isArray(plan) || plan.length < 20) {
-      throw new Error(`AI вернул ${plan?.length || 0} дней вместо 30`)
+    if (!Array.isArray(newDays) || newDays.length < 5) {
+      throw new Error(`AI вернул ${newDays?.length || 0} дней вместо 10`)
     }
 
-    // Save
+    // Нормализуем
+    newDays = newDays.map((item: any, index: number) => ({
+      day: item.day || startDay + index,
+      pillar: item.pillar || 'Психообразование',
+      topic: item.topic || 'Тема поста',
+      format: ['post', 'carousel', 'reels', 'stories'].includes(item.format) ? item.format : 'post',
+      hook: item.hook || '',
+      tip: item.tip || '',
+      done: false,
+    }))
+
+    // Объединяем с существующим планом
+    let fullPlan: any[]
+    if (batch === 1) {
+      // Первый batch — начинаем заново
+      fullPlan = newDays
+    } else {
+      // Добавляем к существующему
+      fullPlan = [...existingPlan.filter((d: any) => d.day < startDay), ...newDays]
+    }
+
+    // Сохраняем
     await supabaseAdmin
       .from('content_plans')
       .upsert({
         user_id: userId,
-        plan: plan,
+        plan: fullPlan,
         generated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' })
 
-    return NextResponse.json({ plan })
+    return NextResponse.json({ 
+      plan: fullPlan,
+      batch,
+      complete: batch >= 3
+    })
 
   } catch (error: any) {
     console.error('Content plan error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: error.message || 'Ошибка генерации' }, { status: 500 })
   }
 }
