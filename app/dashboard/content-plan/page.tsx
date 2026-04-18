@@ -23,18 +23,18 @@ type DayItem = {
 }
 
 const FORMAT_META: Record<string, { icon: any; label: string; color: string; bg: string }> = {
-  post:     { icon: AlignLeft, label: 'Пост',    color: 'text-purple-600', bg: 'bg-purple-100' },
+  post:     { icon: AlignLeft, label: 'Пост',     color: 'text-purple-600', bg: 'bg-purple-100' },
   carousel: { icon: Image,     label: 'Карусель', color: 'text-blue-600',   bg: 'bg-blue-100'   },
   reels:    { icon: Film,      label: 'Рилс',     color: 'text-pink-600',   bg: 'bg-pink-100'   },
   stories:  { icon: FileText,  label: 'Stories',  color: 'text-orange-600', bg: 'bg-orange-100' },
 }
 
 const PILLAR_META: Record<string, { color: string; dot: string }> = {
-  'Психообразование': { color: 'text-indigo-600 bg-indigo-50 border-indigo-200',  dot: 'bg-indigo-400' },
-  'Личное':          { color: 'text-rose-600 bg-rose-50 border-rose-200',         dot: 'bg-rose-400'   },
-  'Практика':        { color: 'text-green-600 bg-green-50 border-green-200',      dot: 'bg-green-400'  },
-  'Истории':         { color: 'text-amber-600 bg-amber-50 border-amber-200',      dot: 'bg-amber-400'  },
-  'Позиционирование':{ color: 'text-violet-600 bg-violet-50 border-violet-200',   dot: 'bg-violet-400' },
+  'Психообразование': { color: 'text-indigo-600 bg-indigo-50 border-indigo-200', dot: 'bg-indigo-400' },
+  'Личное':           { color: 'text-rose-600 bg-rose-50 border-rose-200',        dot: 'bg-rose-400'   },
+  'Практика':         { color: 'text-green-600 bg-green-50 border-green-200',     dot: 'bg-green-400'  },
+  'Истории':          { color: 'text-amber-600 bg-amber-50 border-amber-200',     dot: 'bg-amber-400'  },
+  'Позиционирование': { color: 'text-violet-600 bg-violet-50 border-violet-200',  dot: 'bg-violet-400' },
 }
 
 function getPillarMeta(pillar: string) {
@@ -74,11 +74,7 @@ ${day.hook ? `Хук: ${day.hook}` : ''}
       day.done ? 'Готово' : 'Не готово'
     ])
 
-    const csv = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n')
-
+    const csv = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -91,7 +87,6 @@ ${day.hook ? `Хук: ${day.hook}` : ''}
 
   const exportToPDF = async () => {
     if (!contentRef.current) return
-    
     setExporting(true)
     setShowMenu(false)
 
@@ -108,7 +103,6 @@ ${day.hook ? `Хук: ${day.hook}` : ''}
 
       const imgData = canvas.toDataURL('image/png')
       const pdf = new jsPDF('p', 'mm', 'a4')
-      
       const pdfWidth = pdf.internal.pageSize.getWidth()
       const pdfHeight = pdf.internal.pageSize.getHeight()
       const imgWidth = pdfWidth - 20
@@ -143,49 +137,26 @@ ${day.hook ? `Хук: ${day.hook}` : ''}
         disabled={exporting}
         className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand-text-secondary hover:text-brand-text bg-white border border-brand-border rounded-xl hover:border-brand-accent/50 transition cursor-pointer disabled:opacity-50"
       >
-        {exporting ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          <Download className="w-4 h-4" />
-        )}
+        {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
         {exporting ? 'Создаю PDF...' : 'Экспорт'}
       </button>
 
       {showMenu && (
         <>
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={() => setShowMenu(false)} 
-          />
-          
+          <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
           <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-brand-border rounded-xl shadow-lg z-50 overflow-hidden">
-            <button
-              onClick={copyAsText}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-brand-text hover:bg-brand-bg transition cursor-pointer text-left"
-            >
-              {copied ? (
-                <Check className="w-4 h-4 text-green-500" />
-              ) : (
-                <Copy className="w-4 h-4 text-brand-text-secondary" />
-              )}
+            <button onClick={copyAsText} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-brand-text hover:bg-brand-bg transition cursor-pointer text-left">
+              {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-brand-text-secondary" />}
               {copied ? 'Скопировано!' : 'Копировать текст'}
             </button>
-            
-            <button
-              onClick={exportToCSV}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-brand-text hover:bg-brand-bg transition cursor-pointer text-left border-t border-brand-border"
-            >
+            <button onClick={exportToCSV} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-brand-text hover:bg-brand-bg transition cursor-pointer text-left border-t border-brand-border">
               <FileSpreadsheet className="w-4 h-4 text-green-600" />
               <div>
                 <p>Google Sheets / Excel</p>
                 <p className="text-xs text-brand-text-secondary">Скачать CSV</p>
               </div>
             </button>
-            
-            <button
-              onClick={exportToPDF}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-brand-text hover:bg-brand-bg transition cursor-pointer text-left border-t border-brand-border"
-            >
+            <button onClick={exportToPDF} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-brand-text hover:bg-brand-bg transition cursor-pointer text-left border-t border-brand-border">
               <FileText className="w-4 h-4 text-red-500" />
               <div>
                 <p>Скачать PDF</p>
@@ -214,27 +185,20 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       className={`relative rounded-2xl border transition-all duration-200 overflow-hidden ${
-        item.done
-          ? 'border-green-200 bg-green-50/50 opacity-70'
-          : 'border-brand-border bg-white hover:border-brand-accent/40 hover:shadow-md'
+        item.done ? 'border-green-200 bg-green-50/50 opacity-70' : 'border-brand-border bg-white hover:border-brand-accent/40 hover:shadow-md'
       }`}
     >
       <div className="flex items-start justify-between p-4 pb-2">
         <div className="flex items-center gap-2">
-          <span className={`text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center ${
-            item.done ? 'bg-green-100 text-green-600' : 'bg-brand-highlight text-brand-accent'
-          }`}>
+          <span className={`text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center ${item.done ? 'bg-green-100 text-green-600' : 'bg-brand-highlight text-brand-accent'}`}>
             {item.day}
           </span>
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${pillar.color}`}>
             {item.pillar}
           </span>
         </div>
-        <button onClick={onToggle} className="cursor-pointer transition">
-          {item.done
-            ? <CheckCircle2 className="w-5 h-5 text-green-500" />
-            : <Circle className={`w-5 h-5 ${hover ? 'text-brand-accent' : 'text-gray-200'} transition`} />
-          }
+        <button onClick={(e) => { e.stopPropagation(); onToggle(); }} className="cursor-pointer transition">
+          {item.done ? <CheckCircle2 className="w-5 h-5 text-green-500" /> : <Circle className={`w-5 h-5 ${hover ? 'text-brand-accent' : 'text-gray-200'} transition`} />}
         </button>
       </div>
 
@@ -253,22 +217,15 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
 
       {item.hook && !item.done && (
         <div className="mx-4 mb-3 p-2 rounded-lg bg-brand-bg border border-brand-border">
-          <p className="text-xs text-brand-text-secondary italic leading-relaxed line-clamp-2">
-            «{item.hook}»
-          </p>
+          <p className="text-xs text-brand-text-secondary italic leading-relaxed line-clamp-2">«{item.hook}»</p>
         </div>
       )}
 
       <AnimatePresence>
         {hover && !item.done && (
-          <motion.div
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            className="px-4 pb-4"
-          >
+          <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }} className="px-4 pb-4">
             <button
-              onClick={onGenerate}
+              onClick={(e) => { e.stopPropagation(); onGenerate(); }}
               className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-brand-accent text-white text-xs font-semibold hover:bg-brand-accent-hover transition cursor-pointer"
             >
               <PenTool className="w-3.5 h-3.5" />
@@ -285,6 +242,7 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
 function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: () => void; onGenerate: () => void }) {
   const fmt = FORMAT_META[item.format] || FORMAT_META.post
   const pillar = getPillarMeta(item.pillar)
+  const Icon = fmt.icon
 
   return (
     <motion.div
@@ -295,24 +253,18 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-2">
-          <span className="w-8 h-8 rounded-full bg-brand-highlight text-brand-accent text-sm font-bold flex items-center justify-center">
-            {item.day}
-          </span>
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${pillar.color}`}>
-            {item.pillar}
-          </span>
+          <span className="w-8 h-8 rounded-full bg-brand-highlight text-brand-accent text-sm font-bold flex items-center justify-center">{item.day}</span>
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${pillar.color}`}>{item.pillar}</span>
         </div>
         <button onClick={onClose} className="cursor-pointer text-brand-text-secondary hover:text-brand-text transition">
           <X className="w-5 h-5" />
         </button>
       </div>
 
-      <h3 className="text-lg font-bold text-brand-text mb-4 leading-snug">
-        {item.topic}
-      </h3>
+      <h3 className="text-lg font-bold text-brand-text mb-4 leading-snug">{item.topic}</h3>
 
-      <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${FORMAT_META[item.format]?.bg || 'bg-gray-100'} mb-4`}>
-        {(() => { const Icon = fmt.icon; return <Icon className={`w-4 h-4 ${fmt.color}`} /> })()}
+      <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${fmt.bg} mb-4`}>
+        <Icon className={`w-4 h-4 ${fmt.color}`} />
         <span className={`text-sm font-semibold ${fmt.color}`}>{fmt.label}</span>
       </div>
 
@@ -398,9 +350,7 @@ export default function ContentPlan() {
   }
 
   const toggleDone = (day: number) => {
-    const updated = plan.map(item =>
-      item.day === day ? { ...item, done: !item.done } : item
-    )
+    const updated = plan.map(item => item.day === day ? { ...item, done: !item.done } : item)
     setPlan(updated)
     supabase.from('content_plans').upsert({
       user_id: user?.id,
@@ -410,11 +360,7 @@ export default function ContentPlan() {
   }
 
   const handleGoGenerate = (item: DayItem) => {
-    const params = new URLSearchParams({
-      topic: item.topic,
-      format: item.format,
-      pillar: item.pillar,
-    })
+    const params = new URLSearchParams({ topic: item.topic, format: item.format, pillar: item.pillar })
     router.push(`/dashboard/post-generator?${params}`)
   }
 
@@ -433,13 +379,9 @@ export default function ContentPlan() {
 
   return (
     <div className="min-h-screen bg-brand-bg">
-      {/* Header */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-brand-border">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="flex items-center gap-2 text-brand-text-secondary hover:text-brand-text transition cursor-pointer"
-          >
+          <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2 text-brand-text-secondary hover:text-brand-text transition cursor-pointer">
             <ArrowLeft className="w-5 h-5" />
             Назад в кабинет
           </button>
@@ -447,11 +389,7 @@ export default function ContentPlan() {
             {plan.length > 0 && (
               <>
                 <ExportMenu plan={plan} contentRef={contentRef} />
-                <button
-                  onClick={handleGenerate}
-                  disabled={generating}
-                  className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-1.5 rounded-lg hover:bg-brand-highlight"
-                >
+                <button onClick={handleGenerate} disabled={generating} className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-1.5 rounded-lg hover:bg-brand-highlight">
                   <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
                   Обновить план
                 </button>
@@ -466,55 +404,33 @@ export default function ContentPlan() {
       </nav>
 
       <div className="max-w-7xl mx-auto px-6 py-10">
-        {/* Title */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
             <CalendarDays className="w-4 h-4" />
             Контент-план
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-brand-text mb-2">
-            30 дней контента для вашего блога
-          </h1>
-          <p className="text-brand-text-secondary">
-            Персональный план на основе вашего паспорта бренда. Нажмите на карточку — получите готовый пост.
-          </p>
+          <h1 className="text-3xl md:text-4xl font-bold text-brand-text mb-2">30 дней контента для вашего блога</h1>
+          <p className="text-brand-text-secondary">Персональный план на основе вашего паспорта бренда. Нажмите на карточку — получите готовый пост.</p>
         </motion.div>
 
-        {/* Empty state */}
         {!plan.length && !generating && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="max-w-lg mx-auto text-center py-20"
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-lg mx-auto text-center py-20">
             <div className="w-20 h-20 bg-green-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
               <CalendarDays className="w-10 h-10 text-green-600" />
             </div>
             <h2 className="text-2xl font-bold text-brand-text mb-3">Создайте план на 30 дней</h2>
-            <p className="text-brand-text-secondary mb-8">
-              AI составит персональный контент-план с темами, форматами и хуками для каждого дня
-            </p>
-            <button
-              onClick={handleGenerate}
-              className="inline-flex items-center gap-3 bg-brand-accent text-white px-10 py-4 rounded-2xl text-lg font-semibold hover:bg-brand-accent-hover transition shadow-lg shadow-brand-accent/25 cursor-pointer"
-            >
+            <p className="text-brand-text-secondary mb-8">AI составит персональный контент-план с темами, форматами и хуками для каждого дня</p>
+            <button onClick={handleGenerate} className="inline-flex items-center gap-3 bg-brand-accent text-white px-10 py-4 rounded-2xl text-lg font-semibold hover:bg-brand-accent-hover transition shadow-lg shadow-brand-accent/25 cursor-pointer">
               <Sparkles className="w-5 h-5" />
               Сгенерировать план
             </button>
             <p className="text-sm text-brand-text-secondary mt-3">Займёт около 30 секунд</p>
-            {error && (
-              <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>
-            )}
+            {error && <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>}
           </motion.div>
         )}
 
-        {/* Loading */}
         {generating && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-24"
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-24">
             <div className="relative w-16 h-16 mx-auto mb-6">
               <Loader2 className="w-16 h-16 text-brand-accent animate-spin" />
               <CalendarDays className="w-6 h-6 text-brand-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
@@ -524,16 +440,10 @@ export default function ContentPlan() {
           </motion.div>
         )}
 
-        {/* Plan grid */}
         {plan.length > 0 && !generating && (
           <div className={`flex gap-8 ${selected ? 'items-start' : ''}`}>
             <div className="flex-1 min-w-0">
-              {/* Stats */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-2xl border border-brand-border p-5 mb-6"
-              >
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl border border-brand-border p-5 mb-6">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-6">
                     <div>
@@ -551,33 +461,22 @@ export default function ContentPlan() {
                   </div>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2">
-                  <motion.div
-                    className="bg-brand-accent h-2 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
-                    transition={{ duration: 0.6 }}
-                  />
+                  <motion.div className="bg-brand-accent h-2 rounded-full" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.6 }} />
                 </div>
               </motion.div>
 
-              {/* Filter */}
               <div className="flex gap-2 flex-wrap mb-5">
                 {pillars.map(p => (
                   <button
                     key={p}
                     onClick={() => setFilter(p)}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition cursor-pointer ${
-                      filter === p
-                        ? 'bg-brand-accent text-white'
-                        : 'bg-white border border-brand-border text-brand-text-secondary hover:border-brand-accent/50'
-                    }`}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition cursor-pointer ${filter === p ? 'bg-brand-accent text-white' : 'bg-white border border-brand-border text-brand-text-secondary hover:border-brand-accent/50'}`}
                   >
                     {p === 'all' ? 'Все 30 дней' : p}
                   </button>
                 ))}
               </div>
 
-              {/* Grid with ref for PDF export */}
               <div ref={contentRef} className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
                 <AnimatePresence>
                   {filtered.map((item, i) => (
@@ -590,33 +489,17 @@ export default function ContentPlan() {
                       onClick={() => setSelected(selected?.day === item.day ? null : item)}
                       className={`cursor-pointer ${selected?.day === item.day ? 'ring-2 ring-brand-accent ring-offset-1 rounded-2xl' : ''}`}
                     >
-                      <DayCard
-                        item={item}
-                        onToggle={() => toggleDone(item.day)}
-                        onGenerate={() => handleGoGenerate(item)}
-                      />
+                      <DayCard item={item} onToggle={() => toggleDone(item.day)} onGenerate={() => handleGoGenerate(item)} />
                     </motion.div>
                   ))}
                 </AnimatePresence>
               </div>
             </div>
 
-            {/* Detail panel */}
             <AnimatePresence>
               {selected && (
-                <motion.div
-                  key="detail"
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: 320 }}
-                  exit={{ opacity: 0, width: 0 }}
-                  className="shrink-0"
-                  style={{ width: 320 }}
-                >
-                  <DetailPanel
-                    item={selected}
-                    onClose={() => setSelected(null)}
-                    onGenerate={() => handleGoGenerate(selected)}
-                  />
+                <motion.div key="detail" initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 320 }} exit={{ opacity: 0, width: 0 }} className="shrink-0" style={{ width: 320 }}>
+                  <DetailPanel item={selected} onClose={() => setSelected(null)} onGenerate={() => handleGoGenerate(selected)} />
                 </motion.div>
               )}
             </AnimatePresence>
