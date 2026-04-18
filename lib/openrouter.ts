@@ -36,7 +36,7 @@ async function extractContent(response: Response) {
   throw new Error(`Empty model response: ${rawText}`)
 }
 
-async function callOpenRouter(body: Record<string, unknown>, timeoutMs = 25000) {
+async function callOpenRouter(body: Record<string, unknown>, timeoutMs = 55000) {
   const response = await fetch(OPENROUTER_URL, {
     method: 'POST',
     headers: getOpenRouterHeaders(),
@@ -46,8 +46,7 @@ async function callOpenRouter(body: Record<string, unknown>, timeoutMs = 25000) 
   return extractContent(response)
 }
 
-// Claude Sonnet — для генерации постов, рилсов, паспорта
-
+// Claude Sonnet — для генерации текстов (posts, reels, rewrite, content plan, passport, анализ конкурентов)
 export async function generateWithAI(systemPrompt: string, userPrompt: string) {
   return callOpenRouter(
     {
@@ -59,23 +58,7 @@ export async function generateWithAI(systemPrompt: string, userPrompt: string) {
       temperature: 0.7,
       max_tokens: 4000,
     },
-    30000
-  )
-}
-
-// Claude Haiku — быстрый анализ (анализ конкурентов, исследования)
-export async function analyzeWithHaiku(systemPrompt: string, userPrompt: string) {
-  return callOpenRouter(
-    {
-      model: 'anthropic/claude-haiku-4-5',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.5,
-      max_tokens: 1500,
-    },
-    20000
+    55000
   )
 }
 
