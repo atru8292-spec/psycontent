@@ -11,33 +11,47 @@ type DayItem = {
 }
 
 const PILLAR_COLORS: Record<string, [number, number, number]> = {
-  'Психообразование': [99, 102, 241],   // indigo
-  'Личное':           [244, 63, 94],    // rose
-  'Практика':         [34, 197, 94],    // green
-  'Истории':          [245, 158, 11],   // amber
-  'Позиционирование': [139, 92, 246],   // violet
+  'Психообразование': [99, 102, 241],
+  'Личное':           [244, 63, 94],
+  'Практика':         [34, 197, 94],
+  'Истории':          [245, 158, 11],
+  'Позиционирование': [139, 92, 246],
 }
 
 const FORMAT_LABELS: Record<string, string> = {
-  post: '📝 Пост',
-  carousel: '🖼 Карусель',
-  reels: '🎬 Рилс',
-  stories: '📱 Stories',
+  post: 'Пост',
+  carousel: 'Карусель',
+  reels: 'Рилс',
+  stories: 'Stories',
 }
 
 export async function generatePDF(plan: DayItem[]): Promise<void> {
   const pdf = new jsPDF('p', 'mm', 'a4')
+  
+  // ===== ЗАГРУЗКА РУССКОГО ШРИФТА =====
+  try {
+    const fontResponse = await fetch('/fonts/Roboto-Regular.ttf')
+    const fontBuffer = await fontResponse.arrayBuffer()
+    const fontBase64 = btoa(
+      new Uint8Array(fontBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+    )
+    pdf.addFileToVFS('Roboto-Regular.ttf', fontBase64)
+    pdf.addFont('Roboto-Regular.ttf', 'Roboto', 'normal')
+    pdf.setFont('Roboto')
+  } catch (e) {
+    console.warn('Font loading failed, using default font')
+  }
+  
   const pageWidth = pdf.internal.pageSize.getWidth()
   const pageHeight = pdf.internal.pageSize.getHeight()
   const margin = 15
   const contentWidth = pageWidth - margin * 2
   
   // ========== TITLE PAGE ==========
-  // Background gradient effect (simple rectangles)
-  pdf.setFillColor(139, 92, 246) // violet
+  pdf.setFillColor(139, 92, 246)
   pdf.rect(0, 0, pageWidth, 80, 'F')
   
-  pdf.setFillColor(99, 102, 241) // indigo
+  pdf.setFillColor(99, 102, 241)
   pdf.rect(0, 70, pageWidth, 20, 'F')
   
   // Title
@@ -61,14 +75,14 @@ export async function generatePDF(plan: DayItem[]): Promise<void> {
   
   pdf.setFontSize(10)
   pdf.setTextColor(100, 100, 100)
-  pdf.text(`Всего дней: ${plan.length}`, margin + 10, 118)
-  pdf.text(`Выполнено: ${done}`, margin + 70, 118)
-  pdf.text(`Прогресс: ${progress}%`, margin + 130, 118)
+  pdf.text('Всего дней: ' + plan.length, margin + 10, 118)
+  pdf.text('Выполнено: ' + done, margin + 70, 118)
+  pdf.text('Прогресс: ' + progress + '%', margin + 130, 118)
   
   // Date
   pdf.setFontSize(10)
   pdf.setTextColor(150, 150, 150)
-  pdf.text(`Создано: ${new Date().toLocaleDateString('ru-RU')}`, pageWidth / 2, 145, { align: 'center' })
+  pdf.text('Создано: ' + new Date().toLocaleDateString('ru-RU'), pageWidth / 2, 145, { align: 'center' })
   
   // Legend
   pdf.setFontSize(11)
@@ -98,7 +112,6 @@ export async function generatePDF(plan: DayItem[]): Promise<void> {
   const cardsPerPage = Math.floor((pageHeight - margin * 2) / (cardHeight + 5))
   
   plan.forEach((day, index) => {
-    // New page if needed
     if (index > 0 && index % cardsPerPage === 0) {
       pdf.addPage()
       y = margin
@@ -108,7 +121,7 @@ export async function generatePDF(plan: DayItem[]): Promise<void> {
     
     // Card background
     if (day.done) {
-      pdf.setFillColor(240, 253, 244) // green-50
+      pdf.setFillColor(240, 253, 244)
     } else {
       pdf.setFillColor(250, 250, 252)
     }
@@ -120,7 +133,7 @@ export async function generatePDF(plan: DayItem[]): Promise<void> {
     
     // Day number circle
     if (day.done) {
-      pdf.setFillColor(34, 197, 94) // green
+      pdf.setFillColor(34, 197, 94)
     } else {
       pdf.setFillColor(pillarColor[0], pillarColor[1], pillarColor[2])
     }
@@ -130,11 +143,10 @@ export async function generatePDF(plan: DayItem[]): Promise<void> {
     pdf.text(String(day.day), margin + 15, y + 12, { align: 'center' })
     
     // Pillar badge
-    pdf.setFillColor(pillarColor[0], pillarColor[1], pillarColor[2], 0.15)
-    const pillarWidth = pdf.getTextWidth(day.pillar) + 8
     pdf.setFillColor(pillarColor[0], pillarColor[1], pillarColor[2])
     pdf.setTextColor(255, 255, 255)
     pdf.setFontSize(7)
+    const pillarWidth = pdf.getTextWidth(day.pillar) + 8
     pdf.roundedRect(margin + 25, y + 5, pillarWidth, 10, 2, 2, 'F')
     pdf.text(day.pillar, margin + 29, y + 12)
     
@@ -151,7 +163,7 @@ export async function generatePDF(plan: DayItem[]): Promise<void> {
     if (day.done) {
       pdf.setTextColor(34, 197, 94)
       pdf.setFontSize(8)
-      pdf.text('✓ Готово', margin + contentWidth - 25, y + 12)
+      pdf.text('Готово', margin + contentWidth - 20, y + 12)
     }
     
     // Topic
@@ -164,18 +176,17 @@ export async function generatePDF(plan: DayItem[]): Promise<void> {
     if (day.hook && !day.done) {
       pdf.setTextColor(120, 120, 120)
       pdf.setFontSize(8)
-      const hookText = `"${day.hook.substring(0, 60)}${day.hook.length > 60 ? '...' : ''}"`
-      pdf.text(hookText, margin + 12, y + 38)
+      const hookPreview = day.hook.substring(0, 60) + (day.hook.length > 60 ? '...' : '')
+      pdf.text('"' + hookPreview + '"', margin + 12, y + 38)
     }
     
     y += cardHeight + 5
   })
   
-  // ========== FOOTER ON LAST PAGE ==========
+  // ========== FOOTER ==========
   pdf.setTextColor(180, 180, 180)
   pdf.setFontSize(8)
   pdf.text('Создано в PsyContent AI', pageWidth / 2, pageHeight - 10, { align: 'center' })
 
-  // Save
-  pdf.save(`content-plan-${new Date().toISOString().split('T')[0]}.pdf`)
+  pdf.save('content-plan-' + new Date().toISOString().split('T')[0] + '.pdf')
 }
