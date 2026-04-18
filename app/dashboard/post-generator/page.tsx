@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Lightbulb,
   CheckCircle,
+  CalendarDays,
 } from 'lucide-react'
 
 const formats = [
@@ -64,6 +65,10 @@ export default function PostGenerator() {
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null)
   const [customTopic, setCustomTopic] = useState('')
   const [useCustom, setUseCustom] = useState(false)
+  
+  // Флаг: пришли из контент-плана
+  const [fromPlan, setFromPlan] = useState(false)
+  const [planPillar, setPlanPillar] = useState<string | null>(null)
 
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState<string | null>(null)
@@ -72,6 +77,35 @@ export default function PostGenerator() {
   const [saved, setSaved] = useState(false)
 
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Чтение параметров из URL (из контент-плана)
+  useEffect(() => {
+    const topic = searchParams.get('topic')
+    const format = searchParams.get('format')
+    const pillar = searchParams.get('pillar')
+    const isFromPlan = searchParams.get('fromPlan') === 'true' || !!(topic && format)
+
+    if (topic) {
+      setCustomTopic(topic)
+      setUseCustom(true)
+      setSelectedTopic(null)
+      setSelectedPillar(null)
+    }
+
+    if (format && ['post', 'carousel', 'stories', 'reels'].includes(format)) {
+      // reels маппим на post для этого генератора
+      setSelectedFormat(format === 'reels' ? 'post' : format)
+    }
+
+    if (pillar) {
+      setPlanPillar(pillar)
+    }
+
+    if (isFromPlan) {
+      setFromPlan(true)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     const init = async () => {
@@ -103,6 +137,7 @@ export default function PostGenerator() {
     setSaved(false)
 
     const topic = useCustom ? customTopic : selectedTopic
+    const pillarLabel = planPillar || currentPillar?.label || 'Своя тема'
 
     try {
       const response = await fetch('/api/generate-post', {
@@ -110,10 +145,10 @@ export default function PostGenerator() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user.id,
-          topic: selectedTopic,
+          topic: useCustom ? undefined : selectedTopic,
           customTopic: useCustom ? customTopic : undefined,
           format: selectedFormat,
-          pillar: currentPillar?.label,
+          pillar: pillarLabel,
         }),
       })
 
@@ -129,9 +164,9 @@ export default function PostGenerator() {
           user_id: user.id,
           topic: topic,
           format: selectedFormat,
-          category: currentPillar?.label || 'Своя тема',
+          category: pillarLabel,
           content: data.post,
-          source: 'generator',
+          source: fromPlan ? 'content-plan' : 'generator',
         })
 
       if (saveError) {
@@ -153,6 +188,15 @@ export default function PostGenerator() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }
+  }
+
+  const clearFromPlan = () => {
+    setFromPlan(false)
+    setPlanPillar(null)
+    setCustomTopic('')
+    setUseCustom(false)
+    // Убираем параметры из URL
+    router.replace('/dashboard/post-generator')
   }
 
   if (loading) {
@@ -197,6 +241,42 @@ export default function PostGenerator() {
           </p>
         </motion.div>
 
+        {/* Banner: пришли из контент-плана */}
+        {fromPlan && customTopic && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 bg-green-50 border border-green-200 rounded-2xl"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
+                  <CalendarDays className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-green-800 mb-1">
+                    Тема из контент-плана
+                  </p>
+                  <p className="text-sm text-green-700">
+                    {customTopic}
+                  </p>
+                  {planPillar && (
+                    <span className="inline-block mt-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                      {planPillar}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={clearFromPlan}
+                className="text-sm text-green-600 hover:text-green-800 transition cursor-pointer"
+              >
+                Изменить тему
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Left — Settings */}
           <div className="space-y-6">
@@ -225,76 +305,78 @@ export default function PostGenerator() {
               </div>
             </motion.div>
 
-            {/* Step 2: Topic */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white rounded-2xl border border-brand-border p-6">
-              <h2 className="font-bold text-brand-text mb-4 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-brand-accent text-white text-xs flex items-center justify-center font-bold">2</span>
-                Тема поста
-              </h2>
+            {/* Step 2: Topic — скрываем если пришли из плана */}
+            {!fromPlan && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white rounded-2xl border border-brand-border p-6">
+                <h2 className="font-bold text-brand-text mb-4 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-brand-accent text-white text-xs flex items-center justify-center font-bold">2</span>
+                  Тема поста
+                </h2>
 
-              {/* Pillars */}
-              <div className="space-y-2 mb-4">
-                {defaultPillars.map(pillar => (
-                  <div key={pillar.id}>
-                    <button
-                      onClick={() => {
-                        setSelectedPillar(selectedPillar === pillar.id ? null : pillar.id)
-                        setUseCustom(false)
-                        setSelectedTopic(null)
-                      }}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition cursor-pointer text-sm font-medium ${selectedPillar === pillar.id ? 'border-brand-accent bg-brand-highlight text-brand-text' : 'border-brand-border bg-brand-bg text-brand-text-secondary hover:border-brand-accent/50'}`}
-                    >
-                      {pillar.label}
-                      <ChevronRight className={`w-4 h-4 transition-transform ${selectedPillar === pillar.id ? 'rotate-90' : ''}`} />
-                    </button>
+                {/* Pillars */}
+                <div className="space-y-2 mb-4">
+                  {defaultPillars.map(pillar => (
+                    <div key={pillar.id}>
+                      <button
+                        onClick={() => {
+                          setSelectedPillar(selectedPillar === pillar.id ? null : pillar.id)
+                          setUseCustom(false)
+                          setSelectedTopic(null)
+                        }}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition cursor-pointer text-sm font-medium ${selectedPillar === pillar.id ? 'border-brand-accent bg-brand-highlight text-brand-text' : 'border-brand-border bg-brand-bg text-brand-text-secondary hover:border-brand-accent/50'}`}
+                      >
+                        {pillar.label}
+                        <ChevronRight className={`w-4 h-4 transition-transform ${selectedPillar === pillar.id ? 'rotate-90' : ''}`} />
+                      </button>
 
-                    <AnimatePresence>
-                      {selectedPillar === pillar.id && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="pl-3 pt-2 space-y-1">
-                            {pillar.topics.map(topic => (
-                              <button
-                                key={topic}
-                                onClick={() => { setSelectedTopic(topic); setUseCustom(false) }}
-                                className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition cursor-pointer ${selectedTopic === topic && !useCustom ? 'bg-brand-accent text-white font-medium' : 'text-brand-text-secondary hover:bg-brand-highlight hover:text-brand-text'}`}
-                              >
-                                {topic}
-                              </button>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                ))}
-              </div>
+                      <AnimatePresence>
+                        {selectedPillar === pillar.id && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="pl-3 pt-2 space-y-1">
+                              {pillar.topics.map(topic => (
+                                <button
+                                  key={topic}
+                                  onClick={() => { setSelectedTopic(topic); setUseCustom(false) }}
+                                  className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition cursor-pointer ${selectedTopic === topic && !useCustom ? 'bg-brand-accent text-white font-medium' : 'text-brand-text-secondary hover:bg-brand-highlight hover:text-brand-text'}`}
+                                >
+                                  {topic}
+                                </button>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  ))}
+                </div>
 
-              {/* Custom topic */}
-              <div className="border-t border-brand-border pt-4">
-                <button
-                  onClick={() => { setUseCustom(!useCustom); setSelectedTopic(null); setSelectedPillar(null) }}
-                  className={`w-full flex items-center gap-2 px-4 py-3 rounded-xl border text-sm font-medium transition cursor-pointer ${useCustom ? 'border-brand-accent bg-brand-highlight text-brand-text' : 'border-brand-border bg-brand-bg text-brand-text-secondary hover:border-brand-accent/50'}`}
-                >
-                  <Lightbulb className="w-4 h-4" />
-                  Своя тема
-                </button>
-                {useCustom && (
-                  <textarea
-                    value={customTopic}
-                    onChange={e => setCustomTopic(e.target.value)}
-                    placeholder="Напишите тему или идею поста..."
-                    rows={2}
-                    className="w-full mt-2 px-4 py-3 rounded-xl border border-brand-border bg-white text-brand-text text-sm focus:outline-none focus:ring-2 focus:ring-brand-accent resize-none"
-                    autoFocus
-                  />
-                )}
-              </div>
-            </motion.div>
+                {/* Custom topic */}
+                <div className="border-t border-brand-border pt-4">
+                  <button
+                    onClick={() => { setUseCustom(!useCustom); setSelectedTopic(null); setSelectedPillar(null) }}
+                    className={`w-full flex items-center gap-2 px-4 py-3 rounded-xl border text-sm font-medium transition cursor-pointer ${useCustom ? 'border-brand-accent bg-brand-highlight text-brand-text' : 'border-brand-border bg-brand-bg text-brand-text-secondary hover:border-brand-accent/50'}`}
+                  >
+                    <Lightbulb className="w-4 h-4" />
+                    Своя тема
+                  </button>
+                  {useCustom && (
+                    <textarea
+                      value={customTopic}
+                      onChange={e => setCustomTopic(e.target.value)}
+                      placeholder="Напишите тему или идею поста..."
+                      rows={2}
+                      className="w-full mt-2 px-4 py-3 rounded-xl border border-brand-border bg-white text-brand-text text-sm focus:outline-none focus:ring-2 focus:ring-brand-accent resize-none"
+                      autoFocus
+                    />
+                  )}
+                </div>
+              </motion.div>
+            )}
 
             {/* Generate button */}
             <motion.button
@@ -325,7 +407,9 @@ export default function PostGenerator() {
                   className="h-full flex flex-col items-center justify-center text-center py-20 bg-white rounded-2xl border border-dashed border-brand-border"
                 >
                   <PenTool className="w-12 h-12 text-gray-200 mb-4" />
-                  <p className="text-brand-text-secondary font-medium">Выберите формат и тему</p>
+                  <p className="text-brand-text-secondary font-medium">
+                    {fromPlan ? 'Нажмите "Сгенерировать"' : 'Выберите формат и тему'}
+                  </p>
                   <p className="text-sm text-brand-text-secondary mt-1">Пост появится здесь</p>
                 </motion.div>
               )}
@@ -399,12 +483,22 @@ export default function PostGenerator() {
                   {/* Footer */}
                   <div className="px-6 pb-4 flex items-center justify-between">
                     <p className="text-xs text-brand-text-secondary">{result.length} символов</p>
-                    <button
-                      onClick={() => router.push('/dashboard/post-history')}
-                      className="text-xs text-brand-accent hover:underline cursor-pointer"
-                    >
-                      Смотреть историю →
-                    </button>
+                    <div className="flex items-center gap-4">
+                      {fromPlan && (
+                        <button
+                          onClick={() => router.push('/dashboard/content-plan')}
+                          className="text-xs text-brand-accent hover:underline cursor-pointer"
+                        >
+                          ← К контент-плану
+                        </button>
+                      )}
+                      <button
+                        onClick={() => router.push('/dashboard/post-history')}
+                        className="text-xs text-brand-accent hover:underline cursor-pointer"
+                      >
+                        История постов →
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               )}
