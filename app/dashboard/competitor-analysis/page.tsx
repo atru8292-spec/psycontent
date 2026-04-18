@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/utils/supabase/client'
+import { supabase } from '@/lib/supabase'
 import ReactMarkdown from 'react-markdown'
 
 interface Analysis {
@@ -21,16 +21,18 @@ export default function CompetitorAnalysisPage() {
   const [history, setHistory] = useState<Analysis[]>([])
   const [activeTab, setActiveTab] = useState<'analysis' | 'transcript'>('analysis')
 
-  const supabase = createClient()
-
   useEffect(() => {
     loadHistory()
   }, [])
 
   const loadHistory = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    
     const { data } = await supabase
       .from('competitor_analyses')
       .select('*')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(20)
     if (data) setHistory(data)
@@ -80,7 +82,6 @@ export default function CompetitorAnalysisPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
         <div>
-          {/* Input */}
           <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
             <input
               type="text"
@@ -114,7 +115,6 @@ export default function CompetitorAnalysisPage() {
             </button>
           </div>
 
-          {/* Loading */}
           {loading && (
             <div style={{ textAlign: 'center', padding: '3rem', background: '#f5f5f5', borderRadius: '0.5rem' }}>
               <p style={{ fontSize: '1.125rem', fontWeight: '500' }}>Анализирую видео...</p>
@@ -122,7 +122,6 @@ export default function CompetitorAnalysisPage() {
             </div>
           )}
 
-          {/* Result */}
           {result && !loading && (
             <div style={{ border: '1px solid #ddd', borderRadius: '0.5rem', padding: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -135,7 +134,6 @@ export default function CompetitorAnalysisPage() {
                 </button>
               </div>
 
-              {/* Metadata */}
               {result.metadata && (
                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', color: '#666', fontSize: '0.875rem' }}>
                   {result.metadata.viewCount && <span>👁 {result.metadata.viewCount.toLocaleString()}</span>}
@@ -144,7 +142,6 @@ export default function CompetitorAnalysisPage() {
                 </div>
               )}
 
-              {/* Tabs */}
               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
                 <button
                   onClick={() => setActiveTab('analysis')}
@@ -175,7 +172,7 @@ export default function CompetitorAnalysisPage() {
               </div>
 
               {activeTab === 'analysis' ? (
-                <div className="prose prose-sm max-w-none">
+                <div>
                   <ReactMarkdown>{result.analysis}</ReactMarkdown>
                 </div>
               ) : (
@@ -187,7 +184,6 @@ export default function CompetitorAnalysisPage() {
           )}
         </div>
 
-        {/* History */}
         <div style={{ border: '1px solid #ddd', borderRadius: '0.5rem', padding: '1rem' }}>
           <h3 style={{ fontWeight: '600', marginBottom: '1rem' }}>📜 История</h3>
           {history.length === 0 ? (
