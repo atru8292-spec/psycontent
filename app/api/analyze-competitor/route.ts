@@ -1,61 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { generateWithAI } from '@/lib/openrouter'
+import { analyzeWithHaiku } from '@/lib/openrouter'
 
-export const maxDuration = 30
+export const maxDuration = 25
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const SYSTEM_PROMPT = `Ты — эксперт по контент-стратегии для психологов. Анализируй видео конкурента.
+const SYSTEM_PROMPT = `Ты — эксперт по контент-стратегии для психологов. Анализируй видео конкурента. Отвечай без лишних вводных слов, сразу по структуре.
 
-Структура ответа:
+## 📊 АНАЛИЗ
 
-## 📊 АНАЛИЗ КОНТЕНТА
+### Тема и посыл
+[о чём видео, 2-3 предложения]
 
-### Тема и ключевые мысли
-[О чём видео, главный посыл]
+### Хук и приёмы
+[что цепляет в первые 3 сек, что работает]
 
-### Формат и структура
-[Какой формат, как построено]
-
-### Хуки и приёмы
-[Что цепляет в первые 3 секунды]
-
-### Что работает хорошо
-[Сильные стороны]
+### Что взять себе
+- [приём 1]
+- [приём 2]
+- [удачная формулировка]
 
 ---
 
-## 🎯 ЧТО ВЗЯТЬ СЕБЕ
+## 🎬 ГОТОВЫЙ СЦЕНАРИЙ ДЛЯ ПСИХОЛОГА (30-60 сек)
 
-- [Приём 1]
-- [Приём 2]
-- [Удачная формулировка]
-
----
-
-## ✍️ АДАПТАЦИЯ ДЛЯ ПСИХОЛОГА
-
-[Как адаптировать под психолога — конкретные советы]
-
----
-
-## 🎬 ГОТОВЫЙ СЦЕНАРИЙ (30-60 сек)
-
-**[0:00-0:03] ХУК:**
-[Цепляющее начало]
-
-**[0:03-0:10] ПРОБЛЕМА:**
-[Описание боли]
-
-**[0:10-0:25] ОСНОВА:**
-[Главный контент]
-
-**[0:25-0:30] CTA:**
-[Призыв к действию]
+**ХУК [0:00-0:03]:** [цепляющее начало]
+**ПРОБЛЕМА [0:03-0:10]:** [боль клиента]
+**ОСНОВА [0:10-0:25]:** [полезный контент]
+**CTA [0:25-0:30]:** [призыв]
 
 Пиши на русском, живым языком.`
 
@@ -74,10 +50,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Транскрипция обязательна' }, { status: 400 })
     }
 
-    const userPrompt = `Платформа: ${platform || 'Unknown'}\n\nТранскрипция видео:\n${transcript}`
-    const analysis = await generateWithAI(SYSTEM_PROMPT, userPrompt)
+    // Обрезаем транскрипт до 2000 символов — достаточно для анализа Reels
+    const trimmedTranscript = transcript.length > 2000
+      ? transcript.slice(0, 2000) + '...'
+      : transcript
 
-    // Сохраняем в базу
+    const userPrompt = `Платформа: ${platform || 'Unknown'}\n\nТранскрипция:\n${trimmedTranscript}`
+    const analysis = await analyzeWithHaiku(SYSTEM_PROMPT, userPrompt)
+
     await supabaseAdmin.from('competitor_analyses').insert({
       user_id: user.id,
       url: url || '',
@@ -87,11 +67,7 @@ export async function POST(request: NextRequest) {
       analysis,
     })
 
-    return NextResponse.json({
-      success: true,
-      analysis,
-      platform,
-    })
+    return NextResponse.json({ success: true, analysis, platform })
 
   } catch (error) {
     console.error('Competitor analysis error:', error)

@@ -2,11 +2,7 @@ const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 function getOpenRouterHeaders() {
   const apiKey = process.env.OPENROUTER_API_KEY
-
-  if (!apiKey) {
-    throw new Error('OPENROUTER_API_KEY is not set')
-  }
-
+  if (!apiKey) throw new Error('OPENROUTER_API_KEY is not set')
   return {
     Authorization: `Bearer ${apiKey}`,
     'Content-Type': 'application/json',
@@ -17,13 +13,9 @@ function getOpenRouterHeaders() {
 
 async function extractContent(response: Response) {
   const rawText = await response.text()
-
-  if (!response.ok) {
-    throw new Error(`OpenRouter error ${response.status}: ${rawText}`)
-  }
+  if (!response.ok) throw new Error(`OpenRouter error ${response.status}: ${rawText}`)
 
   let data: any
-
   try {
     data = JSON.parse(rawText)
   } catch {
@@ -31,43 +23,35 @@ async function extractContent(response: Response) {
   }
 
   const content = data?.choices?.[0]?.message?.content
-
-  if (typeof content === 'string' && content.trim()) {
-    return content.trim()
-  }
-
+  if (typeof content === 'string' && content.trim()) return content.trim()
   if (Array.isArray(content)) {
-    const joined = content
-      .map((item: any) => {
-        if (typeof item === 'string') return item
-        if (typeof item?.text === 'string') return item.text
-        return ''
-      })
-      .join('')
-      .trim()
-
+    const joined = content.map((item: any) => {
+      if (typeof item === 'string') return item
+      if (typeof item?.text === 'string') return item.text
+      return ''
+    }).join('').trim()
     if (joined) return joined
   }
 
   throw new Error(`Empty model response: ${rawText}`)
 }
 
-async function callOpenRouter(body: Record<string, unknown>, timeoutMs = 30000) {
+async function callOpenRouter(body: Record<string, unknown>, timeoutMs = 25000) {
   const response = await fetch(OPENROUTER_URL, {
     method: 'POST',
     headers: getOpenRouterHeaders(),
     signal: AbortSignal.timeout(timeoutMs),
     body: JSON.stringify(body),
   })
-
   return extractContent(response)
 }
 
-// Claude for text generation (posts, reels, rewrite, content plan, passport)
+// Claude Sonnet — для генерации постов, рилсов, паспорта
+
 export async function generateWithAI(systemPrompt: string, userPrompt: string) {
   return callOpenRouter(
     {
-      model: 'anthropic/claude-sonnet-4.5',
+      model: 'anthropic/claude-sonnet-4-5',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
@@ -79,7 +63,23 @@ export async function generateWithAI(systemPrompt: string, userPrompt: string) {
   )
 }
 
-// Perplexity for web search (research & trending topics)
+// Claude Haiku — быстрый анализ (анализ конкурентов, исследования)
+export async function analyzeWithHaiku(systemPrompt: string, userPrompt: string) {
+  return callOpenRouter(
+    {
+      model: 'anthropic/claude-haiku-4-5',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: 0.5,
+      max_tokens: 1500,
+    },
+    20000
+  )
+}
+
+// Perplexity — веб-поиск (исследование тем)
 export async function generateWithWebSearch(userPrompt: string) {
   return callOpenRouter(
     {
@@ -87,8 +87,7 @@ export async function generateWithWebSearch(userPrompt: string) {
       messages: [
         {
           role: 'system',
-          content:
-            'Ты — эксперт по контент-стратегии для психологов в Instagram. Отвечай только на русском языке. Возвращай только валидный JSON без markdown-оберток.',
+          content: 'Ты — эксперт по контент-стратегии для психологов в Instagram. Отвечай только на русском языке. Возвращай только валидный JSON без markdown-оберток.',
         },
         { role: 'user', content: userPrompt },
       ],
