@@ -305,6 +305,7 @@ export default function ContentPlan() {
   const [plan, setPlan] = useState<DayItem[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
+  const [progress, setProgress] = useState('') // ДОБАВЛЕНО
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<DayItem | null>(null)
   const [filter, setFilter] = useState<string>('all')
@@ -329,23 +330,37 @@ export default function ContentPlan() {
     init()
   }, [router])
 
+  // НОВАЯ ФУНКЦИЯ - постепенная генерация
   const handleGenerate = async () => {
     if (!user) return
     setGenerating(true)
     setError(null)
+    setPlan([]) // Очищаем старый план
+    
     try {
-      const res = await fetch('/api/generate-content-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Ошибка генерации')
-      setPlan(data.plan)
+      // Генерируем 3 батча по 10 дней
+      for (let batch = 1; batch <= 3; batch++) {
+        setProgress(`Генерирую дни ${(batch-1)*10 + 1}-${batch*10}...`)
+        
+        const res = await fetch('/api/generate-content-plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, batch }),
+        })
+        
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Ошибка генерации')
+        
+        // Обновляем план после каждого батча - показываем прогресс
+        setPlan(data.plan)
+        
+        if (data.complete) break
+      }
     } catch (err: any) {
       setError(err.message)
     } finally {
       setGenerating(false)
+      setProgress('')
     }
   }
 
@@ -367,7 +382,7 @@ export default function ContentPlan() {
   const pillars = ['all', 'Психообразование', 'Личное', 'Практика', 'Истории', 'Позиционирование']
   const filtered = filter === 'all' ? plan : plan.filter(d => d.pillar === filter)
   const done = plan.filter(d => d.done).length
-  const progress = plan.length > 0 ? Math.round((done / plan.length) * 100) : 0
+  const progressPercent = plan.length > 0 ? Math.round((done / plan.length) * 100) : 0
 
   if (loading) {
     return (
@@ -386,7 +401,7 @@ export default function ContentPlan() {
             Назад в кабинет
           </button>
           <div className="flex items-center gap-3">
-            {plan.length > 0 && (
+            {plan.length > 0 && !generating && (
               <>
                 <ExportMenu plan={plan} contentRef={contentRef} />
                 <button onClick={handleGenerate} disabled={generating} className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-1.5 rounded-lg hover:bg-brand-highlight">
@@ -413,6 +428,7 @@ export default function ContentPlan() {
           <p className="text-brand-text-secondary">Персональный план на основе вашего паспорта бренда. Нажмите на карточку — получите готовый пост.</p>
         </motion.div>
 
+        {/* Empty state */}
         {!plan.length && !generating && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-lg mx-auto text-center py-20">
             <div className="w-20 h-20 bg-green-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
@@ -429,17 +445,49 @@ export default function ContentPlan() {
           </motion.div>
         )}
 
+        {/* НОВЫЙ Loading с прогрессом */}
         {generating && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-24">
             <div className="relative w-16 h-16 mx-auto mb-6">
               <Loader2 className="w-16 h-16 text-brand-accent animate-spin" />
               <CalendarDays className="w-6 h-6 text-brand-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
             </div>
-            <h2 className="text-xl font-bold text-brand-text mb-2">Составляем план на 30 дней...</h2>
-            <p className="text-brand-text-secondary">AI подбирает темы под ваш голос и нишу</p>
+            <h2 className="text-xl font-bold text-brand-text mb-2">
+              {progress || 'Составляем план...'}
+            </h2>
+            <p className="text-brand-text-secondary mb-6">AI подбирает темы под ваш голос и нишу</p>
+            
+            {/* Прогресс бар */}
+            <div className="max-w-xs mx-auto">
+              <div className="flex justify-between text-xs text-brand-text-secondary mb-2">
+                <span className={progress.includes('1-10') ? 'text-brand-accent font-medium' : ''}>Дни 1-10</span>
+                <span className={progress.includes('11-20') ? 'text-brand-accent font-medium' : ''}>Дни 11-20</span>
+                <span className={progress.includes('21-30') ? 'text-brand-accent font-medium' : ''}>Дни 21-30</span>
+              </div>
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <motion.div 
+                  className="h-full bg-brand-accent"
+                  initial={{ width: '0%' }}
+                  animate={{ 
+                    width: progress.includes('21-30') ? '100%' : 
+                           progress.includes('11-20') ? '66%' : 
+                           progress.includes('1-10') ? '33%' : '10%'
+                  }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
+            </div>
+
+            {/* Показываем уже сгенерированные дни */}
+            {plan.length > 0 && (
+              <p className="text-sm text-green-600 mt-4">
+                ✓ Готово: {plan.length} дней
+              </p>
+            )}
           </motion.div>
         )}
 
+        {/* Plan grid - показываем даже во время генерации если есть дни */}
         {plan.length > 0 && !generating && (
           <div className={`flex gap-8 ${selected ? 'items-start' : ''}`}>
             <div className="flex-1 min-w-0">
@@ -455,13 +503,13 @@ export default function ContentPlan() {
                       <p className="text-xs text-brand-text-secondary">осталось</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-brand-text">{progress}%</p>
+                      <p className="text-2xl font-bold text-brand-text">{progressPercent}%</p>
                       <p className="text-xs text-brand-text-secondary">выполнено</p>
                     </div>
                   </div>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2">
-                  <motion.div className="bg-brand-accent h-2 rounded-full" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.6 }} />
+                  <motion.div className="bg-brand-accent h-2 rounded-full" initial={{ width: 0 }} animate={{ width: `${progressPercent}%` }} transition={{ duration: 0.6 }} />
                 </div>
               </motion.div>
 
@@ -472,7 +520,7 @@ export default function ContentPlan() {
                     onClick={() => setFilter(p)}
                     className={`px-4 py-1.5 rounded-full text-sm font-medium transition cursor-pointer ${filter === p ? 'bg-brand-accent text-white' : 'bg-white border border-brand-border text-brand-text-secondary hover:border-brand-accent/50'}`}
                   >
-                    {p === 'all' ? 'Все 30 дней' : p}
+                    {p === 'all' ? `Все ${plan.length} дней` : p}
                   </button>
                 ))}
               </div>
@@ -496,13 +544,26 @@ export default function ContentPlan() {
               </div>
             </div>
 
-            <AnimatePresence>
+                        <AnimatePresence>
               {selected && (
                 <motion.div key="detail" initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 320 }} exit={{ opacity: 0, width: 0 }} className="shrink-0" style={{ width: 320 }}>
                   <DetailPanel item={selected} onClose={() => setSelected(null)} onGenerate={() => handleGoGenerate(selected)} />
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
+        )}
+
+        {/* Ошибка */}
+        {error && !generating && (
+          <div className="max-w-lg mx-auto mt-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm text-center">
+            {error}
+            <button 
+              onClick={handleGenerate}
+              className="block mx-auto mt-3 text-brand-accent hover:underline"
+            >
+              Попробовать снова
+            </button>
           </div>
         )}
       </div>
