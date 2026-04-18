@@ -1,65 +1,141 @@
-// app/api/analyze-competitor/route.ts
-
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
 
 const SUPADATA_API_KEY = process.env.SUPADATA_API_KEY
 const SUPADATA_BASE_URL = 'https://api.supadata.ai/v1'
 
-// Получить транскрипцию
-async function getTranscript(url: string) {
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+// Определяем платформу
+function detectPlatform(url: string): 'youtube' | 'instagram' | 'tiktok' | 'other' {
+  if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube'
+  if (url.includes('instagram.com')) return 'instagram'
+  if (url.includes('tiktok.com')) return 'tiktok'
+  return 'other'
+}
+
+// Получаем транскрипцию для YouTube (синхронно)
+async function getYouTubeTranscript(url: string): Promise<string> {
   const response = await fetch(
+    `${SUPADATA_BASE_URL}/youtube/transcript?url=${encodeURIComponent(url)}&text=true`,
+    {
+      method: 'GET',
+      headers: { 'x-api-key': SUPADATA_API_KEY! },
+    }
+  )
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.message || `YouTube transcript error: ${response.status}`)
+  }
+  
+  const data = await response.json()
+  
+  // С text=true возвращается plain text
+  if (typeof data.content === 'string') {
+    return data.content
+  }
+  
+  // Если всё же массив чанков
+  if (Array.isArray(data.content)) {
+    return data.content.map((chunk: any) => chunk.text).join(' ')
+  }
+  
+  throw new Error('Unexpected transcript format')
+}
+
+// Получаем транскрипцию для Instagram/TikTok (асинхронно с polling)
+async function getSocialTranscript(url: string): Promise<string> {
+  // Шаг 1: Запускаем job
+  const startResponse = await fetch(
     `${SUPADATA_BASE_URL}/transcript?url=${encodeURIComponent(url)}`,
     {
       method: 'GET',
-      headers: {
-        'x-api-key': SUPADATA_API_KEY!,
-      },
+      headers: { 'x-api-key': SUPADATA_API_KEY! },
     }
   )
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.message || `Supadata error: ${response.status}`)
+  
+  // Если сразу 200 — транскрипция готова
+  if (startResponse.status === 200) {
+    const data = await startResponse.json()
+    if (typeof data.content === 'string') return data.content
+    if (Array.isArray(data.content)) {
+      return data.content.map((chunk: any) => chunk.text).join(' ')
+    }
   }
-
-  return response.json()
-}
-
-// Получить метадату
-async function getMetadata(url: string) {
-  try {
-    const response = await fetch(
-      `${SUPADATA_BASE_URL}/metadata?url=${encodeURIComponent(url)}`,
-      {
-        method: 'GET',
-        headers: {
-          'x-api-key': SUPADATA_API_KEY!,
-        },
+  
+  // Если 202 — асинхронная обработка
+  if (startResponse.status === 202) {
+    const { jobId } = await startResponse.json()
+    
+    if (!jobId) {
+      throw new Error('No jobId returned for async transcript')
+    }
+    
+    // Шаг 2: Polling — проверяем статус каждые 3 секунды (макс 60 сек)
+    const maxAttempts = 20
+    const delayMs = 3000
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, delayMs))
+      
+      const statusResponse = await fetch(
+        `${SUPADATA_BASE_URL}/job/${jobId}`,
+        {
+          method: 'GET',
+          headers: { 'x-api-key': SUPADATA_API_KEY! },
+        }
+      )
+      
+      if (!statusResponse.ok) {
+        continue // Пробуем ещё раз
       }
-    )
-
-    if (!response.ok) return null
-    return response.json()
-  } catch {
-    return null
+      
+      const statusData = await statusResponse.json()
+      
+      if (statusData.status === 'completed') {
+        if (typeof statusData.content === 'string') return statusData.content
+        if (Array.isArray(statusData.content)) {
+          return statusData.content.map((chunk: any) => chunk.text).join(' ')
+        }
+        if (statusData.result) {
+          if (typeof statusData.result === 'string') return statusData.result
+          if (typeof statusData.result.content === 'string') return statusData.result.content
+          if (Array.isArray(statusData.result.content)) {
+            return statusData.result.content.map((chunk: any) => chunk.text).join(' ')
+          }
+        }
+        throw new Error('Transcript completed but no content found')
+      }
+      
+      if (statusData.status === 'failed' || statusData.status === 'error') {
+        throw new Error(statusData.error || 'Transcript job failed')
+      }
+      
+      // Статус pending/processing — продолжаем polling
+    }
+    
+    throw new Error('Transcript timeout — video too long or service busy')
   }
+  
+  // Другие ошибки
+  const error = await startResponse.json().catch(() => ({}))
+  throw new Error(error.message || `Transcript error: ${startResponse.status}`)
 }
 
-// Определить платформу
-function detectPlatform(url: string): string {
-  if (url.includes('instagram.com')) return 'Instagram'
-  if (url.includes('youtube.com') || url.includes('youtu.be')) return 'YouTube'
-  if (url.includes('tiktok.com')) return 'TikTok'
-  if (url.includes('facebook.com') || url.includes('fb.watch')) return 'Facebook'
-  if (url.includes('twitter.com') || url.includes('x.com')) return 'X'
-  return 'Video'
+// Универсальная функция получения транскрипции
+async function getTranscript(url: string, platform: string): Promise<string> {
+  if (platform === 'youtube') {
+    return getYouTubeTranscript(url)
+  }
+  return getSocialTranscript(url)
 }
 
-const SYSTEM_PROMPT = `Ты — эксперт по контент-стратегии для психологов в социальных сетях. Тебе дают транскрипцию видео конкурента.
-
-Твоя задача — сделать глубокий анализ и помочь адаптировать контент.
+const SYSTEM_PROMPT = `Ты — эксперт по контент-стратегии для психологов. Анализируй видео конкурента.
 
 Структура ответа:
 
@@ -69,12 +145,10 @@ const SYSTEM_PROMPT = `Ты — эксперт по контент-страте�
 [О чём видео, главный посыл]
 
 ### Формат и структура
-[Какой формат: история, советы, разбор кейса, мотивация]
-[Как построено видео]
+[Какой формат, как построено]
 
 ### Хуки и приёмы
 [Что цепляет в первые 3 секунды]
-[Риторические приёмы]
 
 ### Что работает хорошо
 [Сильные стороны]
@@ -86,128 +160,100 @@ const SYSTEM_PROMPT = `Ты — эксперт по контент-страте�
 - [Приём 1]
 - [Приём 2]
 - [Удачная формулировка]
-- [Структурное решение]
 
 ---
 
-## ✍️ АДАПТАЦИЯ ПОД ТЕБЯ
+## ✍️ АДАПТАЦИЯ ДЛЯ ПСИХОЛОГА
 
-[Если есть паспорт бренда — как адаптировать под стиль и нишу]
-[Если нет — универсальные рекомендации для психолога]
+[Как адаптировать под психолога — конкретные советы]
 
 ---
 
-## 🎬 ГОТОВЫЙ СЦЕНАРИЙ
-
-**Хронометраж:** 30-60 секунд
+## 🎬 ГОТОВЫЙ СЦЕНАРИЙ (30-60 сек)
 
 **[0:00-0:03] ХУК:**
-[Сильное начало]
+[Цепляющее начало]
 
 **[0:03-0:10] ПРОБЛЕМА:**
-[Обозначение боли]
+[Описание боли]
 
-**[0:10-0:25] ОСНОВНАЯ ЧАСТЬ:**
-[Контент/советы]
+**[0:10-0:25] ОСНОВА:**
+[Главный контент]
 
 **[0:25-0:30] CTA:**
 [Призыв к действию]
 
----
-
-## 💡 ИДЕИ НА ПОТОМ
-
-1. [Тема 1]
-2. [Тема 2]
-3. [Тема 3]
-
----
-
-Пиши живым разговорным языком на русском. Сценарий — не копия, а вдохновение с другим углом.`
+Пиши на русском, живым языком.`
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) {
+      return NextResponse.json({ error: 'No authorization header' }, { status: 401 })
+    }
 
-    if (!user) {
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
+    
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     if (!SUPADATA_API_KEY) {
-      return NextResponse.json({ error: 'Supadata not configured' }, { status: 500 })
+      return NextResponse.json({ error: 'Supadata API key not configured' }, { status: 500 })
     }
 
-    const { url, brandPassport } = await request.json()
+    const { url } = await request.json()
 
     if (!url) {
       return NextResponse.json({ error: 'URL обязателен' }, { status: 400 })
     }
 
     const platform = detectPlatform(url)
+    
+    if (platform === 'other') {
+      return NextResponse.json(
+        { error: 'Поддерживаются только YouTube, Instagram и TikTok' },
+        { status: 400 }
+      )
+    }
 
-    // 1. Транскрипция
-    let transcriptData
+    // Получаем транскрипцию
+    let transcript: string
     try {
-      transcriptData = await getTranscript(url)
+      transcript = await getTranscript(url, platform)
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
       return NextResponse.json(
-        { error: `Не удалось получить транскрипцию: ${error instanceof Error ? error.message : 'Unknown'}` },
+        { error: `Не удалось получить транскрипцию: ${message}` },
         { status: 400 }
       )
     }
 
-    // Склеиваем текст
-    let transcript = ''
-    if (transcriptData.content && Array.isArray(transcriptData.content)) {
-      transcript = transcriptData.content.map((s: any) => s.text).join(' ')
-    }
-
-    if (!transcript.trim()) {
+    if (!transcript || transcript.trim().length < 20) {
       return NextResponse.json(
-        { error: 'В видео нет речи или субтитров' },
+        { error: 'В видео нет речи или субтитры слишком короткие' },
         { status: 400 }
       )
     }
 
-    // 2. Метадата
-    const metadata = await getMetadata(url)
-
-    // 3. Формируем промпт
-    const metaBlock = metadata
-      ? `
-Метаданные:
-- Автор: ${metadata.author || 'н/д'}
-- Название: ${metadata.title || 'н/д'}
-- Просмотры: ${metadata.viewCount?.toLocaleString() || 'н/д'}
-- Лайки: ${metadata.likeCount?.toLocaleString() || 'н/д'}
-- Комментарии: ${metadata.commentCount?.toLocaleString() || 'н/д'}
-- Длительность: ${metadata.duration ? `${Math.round(metadata.duration)} сек` : 'н/д'}`
-      : ''
-
-    const brandBlock = brandPassport
-      ? `
-Паспорт бренда пользователя:
-${brandPassport}`
-      : ''
-
-    const userPrompt = `Платформа: ${platform}
-
-Транскрипция видео:
-${transcript}
-${metaBlock}
-${brandBlock}`
-
-    // 4. Анализ через OpenRouter
+    // Анализируем через AI
+    const platformNames: Record<string, string> = {
+      youtube: 'YouTube',
+      instagram: 'Instagram Reels',
+      tiktok: 'TikTok',
+    }
+    
+    const userPrompt = `Платформа: ${platformNames[platform]}\n\nТранскрипция видео:\n${transcript}`
     const analysis = await generateWithAI(SYSTEM_PROMPT, userPrompt)
 
-    // 5. Сохраняем
-    await supabase.from('competitor_analyses').insert({
+    // Сохраняем в базу
+    await supabaseAdmin.from('competitor_analyses').insert({
       user_id: user.id,
       url,
-      platform,
+      platform: platformNames[platform],
       transcript,
-      metadata,
+      metadata: null,
       analysis,
     })
 
@@ -215,9 +261,10 @@ ${brandBlock}`
       success: true,
       analysis,
       transcript,
-      metadata,
-      platform,
+      metadata: null,
+      platform: platformNames[platform],
     })
+    
   } catch (error) {
     console.error('Competitor analysis error:', error)
     return NextResponse.json(
