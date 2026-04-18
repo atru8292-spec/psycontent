@@ -22,7 +22,7 @@ import {
   History,
   Layers,
   Search,
-  Zap, // ← Добавлена иконка для генератора хуков
+  Zap,
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -106,7 +106,6 @@ export default function Dashboard() {
       ready: true,
       badge: null,
     },
-    // ============ ГЕНЕРАТОР ХУКОВ (NEW) ============
     {
       icon: Zap,
       title: 'Генератор хуков',
@@ -162,7 +161,6 @@ export default function Dashboard() {
       ready: true,
       badge: null,
     },
-    // ============ АНАЛИЗ КОНКУРЕНТОВ ============
     {
       icon: Search,
       title: 'Анализ конкурентов',
@@ -222,172 +220,192 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-brand-bg">
-      {/* Header */}
+      {/* ═══════════════ HEADER ═══════════════ */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-brand-border">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
+          {/* Лого */}
           <div className="flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-brand-accent" />
-            <span className="text-xl font-bold text-brand-text">PsyContent</span>
+            <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-brand-accent" />
+            <span className="text-lg sm:text-xl font-bold text-brand-text">PsyContent</span>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-sm text-brand-text-secondary">
+
+          {/* Юзер + выход */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Имя — скрыто на совсем маленьких экранах */}
+            <div className="hidden sm:flex items-center gap-2 text-sm text-brand-text-secondary">
               <User className="w-4 h-4" />
-              {displayName}
+              <span className="max-w-[120px] truncate">{displayName}</span>
+            </div>
+            {/* На мобилке — только иконка юзера */}
+            <div className="flex sm:hidden items-center text-brand-text-secondary">
+              <User className="w-4 h-4" />
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1 text-sm text-brand-text-secondary hover:text-red-500 transition cursor-pointer"
+              className="flex items-center gap-1 text-sm text-brand-text-secondary hover:text-red-500 transition cursor-pointer p-2 -mr-2"
             >
               <LogOut className="w-4 h-4" />
-              Выйти
+              <span className="hidden sm:inline">Выйти</span>
             </button>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* Welcome */}
+      {/* ═══════════════ CONTENT ═══════════════ */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+
+        {/* ── Welcome ── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-10"
+          className="mb-6 sm:mb-10"
         >
-          <h1 className="text-3xl md:text-4xl font-bold text-brand-text mb-2">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-1 sm:mb-2">
             Привет, {displayName}! 👋
           </h1>
-          <p className="text-brand-text-secondary text-lg">
+          <p className="text-brand-text-secondary text-base sm:text-lg">
             Ваш кабинет готов. Вот что мы знаем о вас:
           </p>
         </motion.div>
 
-        {/* Profile Summary */}
+        {/* ── Profile Summary ── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-10 p-6 rounded-2xl bg-white border border-brand-border"
+          className="mb-6 sm:mb-10 p-4 sm:p-6 rounded-2xl bg-white border border-brand-border"
         >
+          {/* Заголовок профиля */}
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-brand-text flex items-center gap-2">
-              <MessageCircle className="w-5 h-5 text-brand-accent" />
-              Ваш профиль распаковки
+            <h2 className="text-base sm:text-lg font-bold text-brand-text flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-brand-accent shrink-0" />
+              <span className="hidden sm:inline">Ваш профиль распаковки</span>
+              <span className="sm:hidden">Профиль</span>
             </h2>
             <button
               onClick={() => router.push('/dashboard/edit-profile')}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand-text-secondary hover:text-brand-accent hover:bg-brand-highlight rounded-xl transition cursor-pointer"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-sm font-medium text-brand-text-secondary hover:text-brand-accent hover:bg-brand-highlight rounded-xl transition cursor-pointer"
             >
               <Settings className="w-4 h-4" />
-              Редактировать
+              <span className="hidden sm:inline">Редактировать</span>
             </button>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-4 rounded-xl bg-brand-bg">
+          {/* Верхний грид — 1 col на мобилке, 2 на md, 4 на lg */}
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="p-3 sm:p-4 rounded-xl bg-brand-bg">
               <p className="text-xs text-brand-text-secondary mb-1">Подход</p>
-              <p className="text-sm font-semibold text-brand-text">
+              <p className="text-xs sm:text-sm font-semibold text-brand-text">
                 {formatArray(profile?.approaches)}
               </p>
             </div>
-            <div className="p-4 rounded-xl bg-brand-bg">
+            <div className="p-3 sm:p-4 rounded-xl bg-brand-bg">
               <p className="text-xs text-brand-text-secondary mb-1">Ниша</p>
-              <p className="text-sm font-semibold text-brand-text">
+              <p className="text-xs sm:text-sm font-semibold text-brand-text">
                 {formatArray(profile?.niches)}
               </p>
             </div>
-            <div className="p-4 rounded-xl bg-brand-bg">
+            <div className="p-3 sm:p-4 rounded-xl bg-brand-bg col-span-2 lg:col-span-1">
               <p className="text-xs text-brand-text-secondary mb-1">Голос бренда</p>
-              <p className="text-sm font-semibold text-brand-text line-clamp-2">
+              <p className="text-xs sm:text-sm font-semibold text-brand-text line-clamp-2">
                 {profile?.live_voice || '—'}
               </p>
             </div>
-            <div className="p-4 rounded-xl bg-brand-bg">
+            <div className="p-3 sm:p-4 rounded-xl bg-brand-bg col-span-2 lg:col-span-1">
               <p className="text-xs text-brand-text-secondary mb-1">Цель на 3 месяца</p>
-              <p className="text-sm font-semibold text-brand-text line-clamp-2">
+              <p className="text-xs sm:text-sm font-semibold text-brand-text line-clamp-2">
                 {profile?.goal_3_months || '—'}
               </p>
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-4 mt-4">
-            <div className="p-4 rounded-xl bg-brand-bg">
+          {/* Нижний грид — 1 col на мобилке, 3 на md+ */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-3 sm:mt-4">
+            <div className="p-3 sm:p-4 rounded-xl bg-brand-bg">
               <p className="text-xs text-brand-text-secondary mb-1">Опыт</p>
-              <p className="text-sm font-semibold text-brand-text">
+              <p className="text-xs sm:text-sm font-semibold text-brand-text">
                 {profile?.experience || '—'}
               </p>
             </div>
-            <div className="p-4 rounded-xl bg-brand-bg">
+            <div className="p-3 sm:p-4 rounded-xl bg-brand-bg">
               <p className="text-xs text-brand-text-secondary mb-1">Площадки</p>
-              <p className="text-sm font-semibold text-brand-text">
+              <p className="text-xs sm:text-sm font-semibold text-brand-text">
                 {formatArray(profile?.platforms)}
               </p>
             </div>
-            <div className="p-4 rounded-xl bg-brand-bg">
+            <div className="p-3 sm:p-4 rounded-xl bg-brand-bg">
               <p className="text-xs text-brand-text-secondary mb-1">Клиентов сейчас</p>
-              <p className="text-sm font-semibold text-brand-text">
+              <p className="text-xs sm:text-sm font-semibold text-brand-text">
                 {profile?.current_clients || '—'}
               </p>
             </div>
           </div>
         </motion.div>
 
-        {/* Tools Grid */}
+        {/* ── Tools Heading ── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="mb-6"
+          className="mb-4 sm:mb-6"
         >
-          <h2 className="text-xl font-bold text-brand-text mb-6">
+          <h2 className="text-lg sm:text-xl font-bold text-brand-text">
             Ваши инструменты
           </h2>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* ── Tools Grid — 1 col на мобилке, 2 на md, 3 на lg ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
           {tools.map((tool, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 + i * 0.05 }}
+              transition={{ delay: 0.3 + i * 0.03 }}
               onClick={() => tool.ready && router.push(tool.href)}
-              className={`relative p-6 rounded-2xl bg-white border border-brand-border hover:shadow-md transition group ${
+              className={`relative p-4 sm:p-6 rounded-2xl bg-white border border-brand-border hover:shadow-md transition active:scale-[0.98] group ${
                 tool.ready ? 'cursor-pointer' : 'opacity-70'
               }`}
             >
               {/* NEW badge */}
               {tool.badge && (
-                <span className="absolute top-4 right-4 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 uppercase tracking-wider">
+                <span className="absolute top-3 right-3 sm:top-4 sm:right-4 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 uppercase tracking-wider">
                   {tool.badge}
                 </span>
               )}
 
-              <div className={`w-12 h-12 rounded-xl ${tool.bg} flex items-center justify-center mb-4 group-hover:scale-110 transition`}>
-                <tool.icon className={`w-6 h-6 ${tool.color}`} />
+              {/* Мобилка: горизонтальный лейаут. Десктоп: вертикальный */}
+              <div className="flex sm:block items-start gap-3">
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${tool.bg} flex items-center justify-center shrink-0 sm:mb-4 group-hover:scale-110 transition`}>
+                  <tool.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${tool.color}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-brand-text text-sm sm:text-base mb-0.5 sm:mb-2">{tool.title}</h3>
+                  <p className="text-xs sm:text-sm text-brand-text-secondary mb-2 sm:mb-4 line-clamp-2">{tool.desc}</p>
+                  <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full ${
+                    tool.ready
+                      ? 'text-brand-accent bg-brand-highlight'
+                      : 'text-gray-400 bg-gray-100'
+                  }`}>
+                    {tool.status} →
+                  </span>
+                </div>
               </div>
-              <h3 className="font-bold text-brand-text mb-2">{tool.title}</h3>
-              <p className="text-sm text-brand-text-secondary mb-4">{tool.desc}</p>
-              <span className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full ${
-                tool.ready
-                  ? 'text-brand-accent bg-brand-highlight'
-                  : 'text-gray-400 bg-gray-100'
-              }`}>
-                {tool.status} →
-              </span>
             </motion.div>
           ))}
         </div>
 
-        {/* Motivation */}
+        {/* ── Motivation ── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
-          className="mt-12 p-6 rounded-2xl bg-brand-accent text-white text-center"
+          className="mt-8 sm:mt-12 p-4 sm:p-6 rounded-2xl bg-brand-accent text-white text-center"
         >
-          <h3 className="text-xl font-bold mb-2">
+          <h3 className="text-lg sm:text-xl font-bold mb-2">
             Вы уже на шаг впереди 90% психологов 🚀
           </h3>
-          <p className="text-white/80 max-w-lg mx-auto">
+          <p className="text-white/80 text-sm sm:text-base max-w-lg mx-auto">
             Вы прошли распаковку и теперь мы знаем ваш голос. Используйте инструменты
             чтобы превратить знания в контент, привлекающий клиентов.
           </p>
