@@ -1,5 +1,3 @@
-// app/dashboard/carousel-generator/page.tsx
-
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
@@ -38,100 +36,61 @@ function CarouselGeneratorContent() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
-  // Шаг 1: Выбор темы
   const [step, setStep] = useState<'topics' | 'carousel'>('topics')
   const [suggestedTopics, setSuggestedTopics] = useState<TopicSuggestion[]>([])
   const [loadingTopics, setLoadingTopics] = useState(false)
   const [selectedTopic, setSelectedTopic] = useState<TopicSuggestion | null>(null)
-  
-  // Свой вариант
+
   const [customTopic, setCustomTopic] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
 
-  // Шаг 2: Генерация карусели
   const [generating, setGenerating] = useState(false)
   const [slides, setSlides] = useState<Slide[]>([])
   const [currentSlide, setCurrentSlide] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState<number | null>(null)
   const [copiedAll, setCopiedAll] = useState(false)
-  
-  // Показ подсказки
+
   const [showHelp, setShowHelp] = useState(false)
 
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // Если пришли из контент-плана с готовой темой
-  useEffect(() => {
-    const urlTopic = searchParams.get('topic')
-    const urlPillar = searchParams.get('pillar')
-    
-    if (urlTopic) {
-      setSelectedTopic({ title: urlTopic, description: urlPillar || '' })
-      setStep('carousel')
-    }
-  }, [searchParams])
+  const isFromPlan = !!searchParams.get('topic')
 
+  // Загружаем user
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
       setUser(user)
       setLoading(false)
-      
-      // Сразу загружаем темы
-      if (!searchParams.get('topic')) {
-        loadTopics(user.id)
-      }
     }
     init()
-  }, [router, searchParams])
+  }, [router])
 
-  // Загрузка предложенных тем
-  const loadTopics = async (userId: string) => {
-    setLoadingTopics(true)
-    setError(null)
-    
-    try {
-      const response = await fetch('/api/generate-carousel-topics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
-      })
+  // Когда user готов — проверяем URL параметры
+  useEffect(() => {
+    if (!user) return
 
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Ошибка загрузки тем')
-      
-      setSuggestedTopics(data.topics)
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setLoadingTopics(false)
+    const urlTopic = searchParams.get('topic')
+    const urlPillar = searchParams.get('pillar')
+
+    if (urlTopic) {
+      const topic = { title: urlTopic, description: urlPillar || '' }
+      setSelectedTopic(topic)
+      setStep('carousel')
+      // НЕ запускаем автоматически — пользователь нажмёт кнопку
+    } else {
+      loadTopics(user.id)
     }
-  }
-
-  // Выбор темы и переход к генерации
-  const handleSelectTopic = (topic: TopicSuggestion) => {
-    setSelectedTopic(topic)
-    setStep('carousel')
-    handleGenerate(topic.title)
-  }
-
-  // Свой вариант темы
-  const handleCustomTopic = () => {
-    if (!customTopic.trim()) return
-    const topic = { title: customTopic.trim(), description: 'Своя тема' }
-    setSelectedTopic(topic)
-    setStep('carousel')
-    handleGenerate(topic.title)
-  }
+  }, [user, searchParams])
 
   // Генерация карусели
   const handleGenerate = async (topic?: string) => {
     const topicToUse = topic || selectedTopic?.title
     if (!user || !topicToUse) return
-    
+
     setGenerating(true)
     setSlides([])
     setCurrentSlide(0)
@@ -144,14 +103,14 @@ function CarouselGeneratorContent() {
         body: JSON.stringify({
           userId: user.id,
           topic: topicToUse,
+          pillar: selectedTopic?.description || '',
         }),
       })
 
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Ошибка генерации')
-      
-      setSlides(data.slides)
 
+      setSlides(data.slides)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -159,13 +118,48 @@ function CarouselGeneratorContent() {
     }
   }
 
-  // Вернуться к выбору тем
+  // Загрузка предложенных тем
+  const loadTopics = async (userId: string) => {
+    setLoadingTopics(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/generate-carousel-topics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Ошибка загрузки тем')
+
+      setSuggestedTopics(data.topics)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoadingTopics(false)
+    }
+  }
+
+  const handleSelectTopic = (topic: TopicSuggestion) => {
+    setSelectedTopic(topic)
+    setStep('carousel')
+  }
+
+  const handleCustomTopic = () => {
+    if (!customTopic.trim()) return
+    const topic = { title: customTopic.trim(), description: 'Своя тема' }
+    setSelectedTopic(topic)
+    setStep('carousel')
+  }
+
   const backToTopics = () => {
     setStep('topics')
     setSelectedTopic(null)
     setSlides([])
     setShowCustomInput(false)
     setCustomTopic('')
+    setError(null)
   }
 
   const copySlide = (index: number) => {
@@ -182,15 +176,11 @@ function CarouselGeneratorContent() {
   }
 
   const nextSlide = () => {
-    if (currentSlide < slides.length - 1) {
-      setCurrentSlide(currentSlide + 1)
-    }
+    if (currentSlide < slides.length - 1) setCurrentSlide(currentSlide + 1)
   }
 
   const prevSlide = () => {
-    if (currentSlide > 0) {
-      setCurrentSlide(currentSlide - 1)
-    }
+    if (currentSlide > 0) setCurrentSlide(currentSlide - 1)
   }
 
   if (loading) {
@@ -207,11 +197,19 @@ function CarouselGeneratorContent() {
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-[#DCE1EB]">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <button
-            onClick={() => step === 'carousel' && !searchParams.get('topic') ? backToTopics() : router.push('/dashboard')}
+            onClick={() => {
+              if (isFromPlan) {
+                router.push('/dashboard/content-plan')
+              } else if (step === 'carousel') {
+                backToTopics()
+              } else {
+                router.push('/dashboard')
+              }
+            }}
             className="flex items-center gap-2 text-[#828AA0] hover:text-[#2D3748] transition cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />
-            {step === 'carousel' && !searchParams.get('topic') ? 'К выбору темы' : 'Назад в кабинет'}
+            {isFromPlan ? 'К контент-плану' : step === 'carousel' ? 'К выбору темы' : 'Назад в кабинет'}
           </button>
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-[#6B7AA1]" />
@@ -222,9 +220,9 @@ function CarouselGeneratorContent() {
 
       <div className="max-w-6xl mx-auto px-6 py-12">
         {/* Заголовок */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }} 
-          animate={{ opacity: 1, y: 0 }} 
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           className="mb-10"
         >
           <div className="flex items-center gap-3 mb-4">
@@ -244,14 +242,14 @@ function CarouselGeneratorContent() {
             {step === 'topics' ? 'Выберите тему для карусели' : 'Ваша карусель'}
           </h1>
           <p className="text-[#828AA0]">
-            {step === 'topics' 
+            {step === 'topics'
               ? 'AI подобрал 5 тем на основе вашей ниши — выберите одну или напишите свою'
               : `Тема: ${selectedTopic?.title}`
             }
           </p>
         </motion.div>
 
-        {/* Модальное окно с объяснением */}
+        {/* Модальное окно — Что такое карусель */}
         <AnimatePresence>
           {showHelp && (
             <motion.div
@@ -287,7 +285,7 @@ function CarouselGeneratorContent() {
                       <h3 className="font-semibold text-[#2D3748]">Что это?</h3>
                     </div>
                     <p className="text-sm text-[#828AA0] leading-relaxed">
-                      Карусель — это пост в Instagram из <strong>нескольких картинок</strong> (слайдов), 
+                      Карусель — это пост в Instagram из <strong>нескольких картинок</strong> (слайдов),
                       которые листаются влево-вправо. Обычно 5-10 слайдов с текстом на каждом.
                     </p>
                   </div>
@@ -344,10 +342,9 @@ function CarouselGeneratorContent() {
           )}
         </AnimatePresence>
 
-        {/* ШАГ 1: Выбор темы */}
+        {/* ═══ ШАГ 1: Выбор темы ═══ */}
         {step === 'topics' && (
           <div className="max-w-2xl mx-auto">
-            {/* Загрузка тем */}
             {loadingTopics && (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -360,7 +357,6 @@ function CarouselGeneratorContent() {
               </motion.div>
             )}
 
-            {/* Список тем */}
             {!loadingTopics && suggestedTopics.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -391,23 +387,19 @@ function CarouselGeneratorContent() {
                         <h3 className="font-semibold text-[#2D3748] mb-1 group-hover:text-[#6B7AA1] transition">
                           {topic.title}
                         </h3>
-                        <p className="text-sm text-[#828AA0]">
-                          {topic.description}
-                        </p>
+                        <p className="text-sm text-[#828AA0]">{topic.description}</p>
                       </div>
                       <ChevronRight className="w-5 h-5 text-[#DCE1EB] group-hover:text-[#6B7AA1] transition flex-shrink-0 mt-2" />
                     </div>
                   </motion.button>
                 ))}
 
-                {/* Разделитель */}
                 <div className="flex items-center gap-4 py-4">
                   <div className="flex-1 h-px bg-[#DCE1EB]" />
                   <span className="text-sm text-[#828AA0]">или</span>
                   <div className="flex-1 h-px bg-[#DCE1EB]" />
                 </div>
 
-                {/* Свой вариант */}
                 {!showCustomInput ? (
                   <motion.button
                     initial={{ opacity: 0 }}
@@ -462,7 +454,6 @@ function CarouselGeneratorContent() {
                   </motion.div>
                 )}
 
-                {/* Обновить темы */}
                 <div className="text-center pt-4">
                   <button
                     onClick={() => loadTopics(user.id)}
@@ -475,7 +466,6 @@ function CarouselGeneratorContent() {
               </motion.div>
             )}
 
-            {/* Ошибка */}
             {error && !loadingTopics && (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -494,20 +484,20 @@ function CarouselGeneratorContent() {
           </div>
         )}
 
-        {/* ШАГ 2: Карусель */}
+        {/* ═══ ШАГ 2: Карусель ═══ */}
         {step === 'carousel' && (
           <div className="grid lg:grid-cols-2 gap-8">
-            {/* Левая колонка — инфо */}
+            {/* Левая колонка */}
             <div className="space-y-6">
               {/* Выбранная тема */}
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }} 
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-white rounded-2xl border border-[#DCE1EB] p-6"
               >
                 <div className="flex items-start justify-between mb-4">
                   <h2 className="font-semibold text-[#2D3748]">Тема карусели</h2>
-                  {!searchParams.get('topic') && (
+                  {!isFromPlan && (
                     <button
                       onClick={backToTopics}
                       className="text-xs text-[#6B7AA1] hover:underline cursor-pointer"
@@ -516,13 +506,24 @@ function CarouselGeneratorContent() {
                     </button>
                   )}
                 </div>
-                
+
                 <div className="p-4 bg-[#F5F7FA] rounded-xl">
                   <p className="font-medium text-[#2D3748]">{selectedTopic?.title}</p>
                   {selectedTopic?.description && selectedTopic.description !== 'Своя тема' && (
                     <p className="text-sm text-[#828AA0] mt-1">{selectedTopic.description}</p>
                   )}
                 </div>
+
+                {/* ★ КНОПКА ГЕНЕРАЦИИ — когда нет слайдов и не генерируем */}
+                {slides.length === 0 && !generating && !error && (
+                  <button
+                    onClick={() => handleGenerate(selectedTopic?.title)}
+                    className="mt-4 w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[#6B7AA1] text-white font-semibold hover:bg-[#5A6890] transition shadow-lg shadow-[#6B7AA1]/25 cursor-pointer"
+                  >
+                    <Sparkles className="w-5 h-5" />
+                    Сгенерировать карусель
+                  </button>
+                )}
               </motion.div>
 
               {/* Список всех слайдов */}
@@ -545,7 +546,7 @@ function CarouselGeneratorContent() {
                       {copiedAll ? 'Скопировано!' : 'Копировать все'}
                     </button>
                   </div>
-                  
+
                   <div className="grid grid-cols-5 gap-2">
                     {slides.map((_, i) => (
                       <button
@@ -579,7 +580,7 @@ function CarouselGeneratorContent() {
                     <RefreshCw className="w-4 h-4" />
                     Переделать
                   </button>
-                  {!searchParams.get('topic') && (
+                  {!isFromPlan && (
                     <button
                       onClick={backToTopics}
                       className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#DCE1EB] text-[#828AA0] hover:text-[#2D3748] hover:border-[#6B7AA1] transition cursor-pointer text-sm font-medium bg-white"
@@ -627,6 +628,22 @@ function CarouselGeneratorContent() {
                   </motion.div>
                 )}
 
+                {/* Пустое состояние — подсказка справа */}
+                {slides.length === 0 && !generating && !error && (
+                  <motion.div
+                    key="empty"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="h-full flex flex-col items-center justify-center text-center py-20 bg-white rounded-2xl border border-[#DCE1EB]"
+                  >
+                    <div className="w-16 h-16 bg-[#6B7AA1]/10 rounded-2xl flex items-center justify-center mb-4">
+                      <Layers className="w-8 h-8 text-[#6B7AA1]" />
+                    </div>
+                                      <p className="font-semibold text-[#2D3748] mb-1">Готово к генерации</p>
+                    <p className="text-sm text-[#828AA0]">Нажмите кнопку слева чтобы создать карусель</p>
+                  </motion.div>
+                )}
+
                 {/* Результат */}
                 {slides.length > 0 && !generating && (
                   <motion.div
@@ -635,14 +652,13 @@ function CarouselGeneratorContent() {
                     animate={{ opacity: 1, y: 0 }}
                     className="space-y-4"
                   >
-                    {/* Подсказка */}
                     <div className="bg-green-50 border border-green-200 rounded-xl p-3">
                       <p className="text-xs text-green-700">
                         ✨ <strong>Готово!</strong> Скопируйте тексты и создайте картинки в Canva
                       </p>
                     </div>
 
-                                     {/* Превью слайда */}
+                    {/* Превью слайда */}
                     <div className="bg-white rounded-2xl border border-[#DCE1EB] overflow-hidden">
                       <div className="flex items-center justify-between px-5 py-3 border-b border-[#DCE1EB] bg-[#F5F7FA]">
                         <div className="flex items-center gap-2">
@@ -650,14 +666,10 @@ function CarouselGeneratorContent() {
                             Слайд {currentSlide + 1} из {slides.length}
                           </span>
                           {currentSlide === 0 && (
-                            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
-                              Хук
-                            </span>
+                            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Хук</span>
                           )}
                           {currentSlide === slides.length - 1 && (
-                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                              Финал
-                            </span>
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Финал</span>
                           )}
                         </div>
                         <button
@@ -672,7 +684,6 @@ function CarouselGeneratorContent() {
                         </button>
                       </div>
 
-                      {/* Контент слайда */}
                       <div className="relative">
                         <div className="aspect-square bg-gradient-to-br from-[#6B7AA1]/5 to-[#8E9CC2]/10 flex items-center justify-center p-8">
                           <div className="max-w-[280px] text-center">
@@ -685,7 +696,6 @@ function CarouselGeneratorContent() {
                           </div>
                         </div>
 
-                        {/* Навигация */}
                         <button
                           onClick={prevSlide}
                           disabled={currentSlide === 0}
@@ -695,7 +705,7 @@ function CarouselGeneratorContent() {
                         >
                           <ChevronLeft className="w-5 h-5 text-[#2D3748]" />
                         </button>
-                        
+
                         <button
                           onClick={nextSlide}
                           disabled={currentSlide === slides.length - 1}
@@ -706,7 +716,6 @@ function CarouselGeneratorContent() {
                           <ChevronRight className="w-5 h-5 text-[#2D3748]" />
                         </button>
 
-                        {/* Индикаторы */}
                         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
                           {slides.map((_, i) => (
                             <button
