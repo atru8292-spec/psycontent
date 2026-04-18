@@ -299,13 +299,18 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
   )
 }
 
+// ============ BATCH CONFIG ============
+const BATCH_SIZE = 5 // дней в батче
+const TOTAL_DAYS = 30
+const TOTAL_BATCHES = Math.ceil(TOTAL_DAYS / BATCH_SIZE) // = 6
+
 // ============ MAIN PAGE ============
 export default function ContentPlan() {
   const [user, setUser] = useState<any>(null)
   const [plan, setPlan] = useState<DayItem[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
-  const [progress, setProgress] = useState('') // ДОБАВЛЕНО
+  const [currentBatch, setCurrentBatch] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<DayItem | null>(null)
   const [filter, setFilter] = useState<string>('all')
@@ -330,17 +335,17 @@ export default function ContentPlan() {
     init()
   }, [router])
 
-  // НОВАЯ ФУНКЦИЯ - постепенная генерация
+  // Генерация по 5 дней (6 батчей)
   const handleGenerate = async () => {
     if (!user) return
     setGenerating(true)
     setError(null)
-    setPlan([]) // Очищаем старый план
+    setPlan([])
+    setCurrentBatch(0)
     
     try {
-      // Генерируем 3 батча по 10 дней
-      for (let batch = 1; batch <= 3; batch++) {
-        setProgress(`Генерирую дни ${(batch-1)*10 + 1}-${batch*10}...`)
+      for (let batch = 1; batch <= TOTAL_BATCHES; batch++) {
+        setCurrentBatch(batch)
         
         const res = await fetch('/api/generate-content-plan', {
           method: 'POST',
@@ -351,7 +356,7 @@ export default function ContentPlan() {
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || 'Ошибка генерации')
         
-        // Обновляем план после каждого батча - показываем прогресс
+        // Обновляем план после каждого батча
         setPlan(data.plan)
         
         if (data.complete) break
@@ -360,7 +365,7 @@ export default function ContentPlan() {
       setError(err.message)
     } finally {
       setGenerating(false)
-      setProgress('')
+      setCurrentBatch(0)
     }
   }
 
@@ -383,6 +388,11 @@ export default function ContentPlan() {
   const filtered = filter === 'all' ? plan : plan.filter(d => d.pillar === filter)
   const done = plan.filter(d => d.done).length
   const progressPercent = plan.length > 0 ? Math.round((done / plan.length) * 100) : 0
+
+  // Вычисляем прогресс генерации
+  const genProgress = currentBatch > 0 ? Math.round((currentBatch / TOTAL_BATCHES) * 100) : 0
+  const currentDayStart = (currentBatch - 1) * BATCH_SIZE + 1
+  const currentDayEnd = Math.min(currentBatch * BATCH_SIZE, TOTAL_DAYS)
 
   if (loading) {
     return (
@@ -440,12 +450,12 @@ export default function ContentPlan() {
               <Sparkles className="w-5 h-5" />
               Сгенерировать план
             </button>
-            <p className="text-sm text-brand-text-secondary mt-3">Займёт около 30 секунд</p>
+            <p className="text-sm text-brand-text-secondary mt-3">Займёт около 30-40 секунд</p>
             {error && <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>}
           </motion.div>
         )}
 
-        {/* НОВЫЙ Loading с прогрессом */}
+        {/* Loading с прогрессом по батчам */}
         {generating && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-24">
             <div className="relative w-16 h-16 mx-auto mb-6">
@@ -453,26 +463,27 @@ export default function ContentPlan() {
               <CalendarDays className="w-6 h-6 text-brand-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
             </div>
             <h2 className="text-xl font-bold text-brand-text mb-2">
-              {progress || 'Составляем план...'}
+              Генерирую дни {currentDayStart}-{currentDayEnd}...
             </h2>
             <p className="text-brand-text-secondary mb-6">AI подбирает темы под ваш голос и нишу</p>
             
-            {/* Прогресс бар */}
-            <div className="max-w-xs mx-auto">
+            {/* Прогресс бар с 6 секциями */}
+            <div className="max-w-md mx-auto">
               <div className="flex justify-between text-xs text-brand-text-secondary mb-2">
-                <span className={progress.includes('1-10') ? 'text-brand-accent font-medium' : ''}>Дни 1-10</span>
-                <span className={progress.includes('11-20') ? 'text-brand-accent font-medium' : ''}>Дни 11-20</span>
-                <span className={progress.includes('21-30') ? 'text-brand-accent font-medium' : ''}>Дни 21-30</span>
+                {[1, 2, 3, 4, 5, 6].map(b => (
+                  <span 
+                    key={b} 
+                    className={currentBatch >= b ? 'text-brand-accent font-medium' : ''}
+                  >
+                    {(b-1)*5+1}-{b*5}
+                  </span>
+                ))}
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <motion.div 
                   className="h-full bg-brand-accent"
                   initial={{ width: '0%' }}
-                  animate={{ 
-                    width: progress.includes('21-30') ? '100%' : 
-                           progress.includes('11-20') ? '66%' : 
-                           progress.includes('1-10') ? '33%' : '10%'
-                  }}
+                  animate={{ width: `${genProgress}%` }}
                   transition={{ duration: 0.3 }}
                 />
               </div>
@@ -487,7 +498,7 @@ export default function ContentPlan() {
           </motion.div>
         )}
 
-        {/* Plan grid - показываем даже во время генерации если есть дни */}
+        {/* Plan grid */}
         {plan.length > 0 && !generating && (
           <div className={`flex gap-8 ${selected ? 'items-start' : ''}`}>
             <div className="flex-1 min-w-0">
@@ -544,7 +555,7 @@ export default function ContentPlan() {
               </div>
             </div>
 
-                        <AnimatePresence>
+                       <AnimatePresence>
               {selected && (
                 <motion.div key="detail" initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 320 }} exit={{ opacity: 0, width: 0 }} className="shrink-0" style={{ width: 320 }}>
                   <DetailPanel item={selected} onClose={() => setSelected(null)} onGenerate={() => handleGoGenerate(selected)} />
@@ -560,7 +571,7 @@ export default function ContentPlan() {
             {error}
             <button 
               onClick={handleGenerate}
-              className="block mx-auto mt-3 text-brand-accent hover:underline"
+              className="block mx-auto mt-3 text-brand-accent hover:underline cursor-pointer"
             >
               Попробовать снова
             </button>
