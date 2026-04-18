@@ -10,12 +10,24 @@ type DayItem = {
   done?: boolean
 }
 
+// Приглушённая палитра в стиле рефа
+const COLORS = {
+  primary: [107, 122, 161] as [number, number, number],      // #6B7AA1 — основной сине-серый
+  accent: [142, 156, 194] as [number, number, number],       // #8E9CC2 — светлый акцент
+  dark: [45, 55, 72] as [number, number, number],            // #2D3748 — тёмный текст
+  muted: [130, 140, 160] as [number, number, number],        // #828AA0 — приглушённый текст
+  light: [245, 247, 250] as [number, number, number],        // #F5F7FA — светлый фон
+  white: [255, 255, 255] as [number, number, number],
+  line: [220, 225, 235] as [number, number, number],         // #DCE1EB — линии
+}
+
+// Минималистичные цвета рубрик (приглушённые)
 const PILLAR_COLORS: Record<string, [number, number, number]> = {
-  'Психообразование': [99, 102, 241],
-  'Личное':           [244, 63, 94],
-  'Практика':         [34, 197, 94],
-  'Истории':          [245, 158, 11],
-  'Позиционирование': [139, 92, 246],
+  'Психообразование': [107, 122, 161],   // сине-серый
+  'Личное':           [161, 122, 142],   // приглушённый розовый
+  'Практика':         [122, 161, 140],   // приглушённый зелёный
+  'Истории':          [161, 147, 107],   // приглушённый песочный
+  'Позиционирование': [140, 122, 161],   // приглушённый фиолетовый
 }
 
 const FORMAT_LABELS: Record<string, string> = {
@@ -44,249 +56,295 @@ export async function generatePDF(plan: DayItem[]): Promise<void> {
   
   const pageWidth = pdf.internal.pageSize.getWidth()
   const pageHeight = pdf.internal.pageSize.getHeight()
-  const margin = 15
+  const margin = 20
   const contentWidth = pageWidth - margin * 2
   
   // ========== ТИТУЛЬНАЯ СТРАНИЦА ==========
   
-  // Градиентный эффект (две полосы)
-  pdf.setFillColor(139, 92, 246)
-  pdf.rect(0, 0, pageWidth, 100, 'F')
+  // Чистый светлый фон
+  pdf.setFillColor(...COLORS.light)
+  pdf.rect(0, 0, pageWidth, pageHeight, 'F')
   
-  pdf.setFillColor(99, 102, 241)
-  pdf.triangle(0, 100, pageWidth, 60, pageWidth, 100, 'F')
+  // Тонкая акцентная линия сверху
+  pdf.setFillColor(...COLORS.primary)
+  pdf.rect(0, 0, pageWidth, 3, 'F')
+  
+  // Большой номер как декор (как на рефе 01, 02...)
+  pdf.setTextColor(235, 238, 245)
+  pdf.setFontSize(180)
+  pdf.text('30', pageWidth - 25, 85, { align: 'right' })
   
   // Заголовок
-  pdf.setTextColor(255, 255, 255)
-  pdf.setFontSize(36)
-  pdf.text('Контент-план', pageWidth / 2, 45, { align: 'center' })
+  pdf.setTextColor(...COLORS.dark)
+  pdf.setFontSize(32)
+  pdf.text('Контент-план', margin, 60)
   
-  pdf.setFontSize(20)
-  pdf.text('на 30 дней', pageWidth / 2, 60, { align: 'center' })
+  pdf.setFontSize(32)
+  pdf.setTextColor(...COLORS.primary)
+  pdf.text('для психолога', margin, 75)
   
+  // Подзаголовок
+  pdf.setTextColor(...COLORS.muted)
   pdf.setFontSize(12)
-  pdf.text('Готовая стратегия публикаций для психолога', pageWidth / 2, 80, { align: 'center' })
+  pdf.text('Готовая стратегия публикаций на 30 дней', margin, 90)
   
-  // Блок статистики
-  const statsY = 120
-  pdf.setFillColor(250, 250, 255)
-  pdf.roundedRect(margin, statsY, contentWidth, 45, 5, 5, 'F')
-  
-  // Обводка
-  pdf.setDrawColor(139, 92, 246)
+  // Тонкая линия
+  pdf.setDrawColor(...COLORS.line)
   pdf.setLineWidth(0.5)
-  pdf.roundedRect(margin, statsY, contentWidth, 45, 5, 5, 'S')
+  pdf.line(margin, 100, pageWidth - margin, 100)
   
+  // Статистика — минималистичные блоки
+  const statsY = 115
   const done = plan.filter(d => d.done).length
   const progress = Math.round((done / plan.length) * 100)
   
-  // Три колонки статистики
-  const colWidth = contentWidth / 3
+  // Три колонки
+  const stats = [
+    { value: String(plan.length), label: 'публикаций' },
+    { value: String(done), label: 'выполнено' },
+    { value: progress + '%', label: 'прогресс' },
+  ]
   
-  pdf.setFontSize(24)
-  pdf.setTextColor(139, 92, 246)
-  pdf.text(String(plan.length), margin + colWidth * 0.5, statsY + 20, { align: 'center' })
-  pdf.text(String(done), margin + colWidth * 1.5, statsY + 20, { align: 'center' })
-  pdf.text(progress + '%', margin + colWidth * 2.5, statsY + 20, { align: 'center' })
-  
-  pdf.setFontSize(10)
-  pdf.setTextColor(100, 100, 100)
-  pdf.text('публикаций', margin + colWidth * 0.5, statsY + 32, { align: 'center' })
-  pdf.text('выполнено', margin + colWidth * 1.5, statsY + 32, { align: 'center' })
-  pdf.text('прогресс', margin + colWidth * 2.5, statsY + 32, { align: 'center' })
-  
-  // Рубрики
-  pdf.setFontSize(14)
-  pdf.setTextColor(60, 60, 60)
-  pdf.text('Рубрики контента:', margin, 190)
-  
-  let legendX = margin
-  let legendY = 205
-  
-  Object.entries(PILLAR_COLORS).forEach(([name, color], index) => {
-    pdf.setFillColor(color[0], color[1], color[2])
-    pdf.roundedRect(legendX, legendY - 5, 55, 18, 3, 3, 'F')
+  stats.forEach((stat, i) => {
+    const x = margin + (contentWidth / 3) * i
     
-    pdf.setTextColor(255, 255, 255)
-    pdf.setFontSize(9)
-    pdf.text(name, legendX + 27.5, legendY + 3, { align: 'center' })
+    pdf.setTextColor(...COLORS.primary)
+    pdf.setFontSize(36)
+    pdf.text(stat.value, x + 25, statsY + 15, { align: 'center' })
     
-    legendX += 60
-    if (index === 2) {
-      legendX = margin + 30
-      legendY += 25
+    pdf.setTextColor(...COLORS.muted)
+    pdf.setFontSize(10)
+    pdf.text(stat.label, x + 25, statsY + 25, { align: 'center' })
+    
+    // Вертикальный разделитель
+    if (i < 2) {
+      pdf.setDrawColor(...COLORS.line)
+      pdf.line(x + 55, statsY, x + 55, statsY + 30)
     }
   })
   
-  // Дата
-  pdf.setFontSize(10)
-  pdf.setTextColor(150, 150, 150)
-  pdf.text('Создано: ' + new Date().toLocaleDateString('ru-RU'), pageWidth / 2, 270, { align: 'center' })
+  // Рубрики — минималистичные теги
+  pdf.setTextColor(...COLORS.dark)
+  pdf.setFontSize(11)
+  pdf.text('Рубрики:', margin, 165)
+  
+  let tagX = margin
+  const tagY = 175
+  
+  Object.entries(PILLAR_COLORS).forEach(([name, color]) => {
+    const textWidth = pdf.getTextWidth(name) + 12
+    
+    // Просто обводка, без заливки (минимализм)
+    pdf.setDrawColor(color[0], color[1], color[2])
+    pdf.setLineWidth(0.8)
+    pdf.roundedRect(tagX, tagY - 5, textWidth, 14, 2, 2, 'S')
+    
+    pdf.setTextColor(color[0], color[1], color[2])
+    pdf.setFontSize(9)
+    pdf.text(name, tagX + 6, tagY + 4)
+    
+    tagX += textWidth + 6
+  })
+  
+  // Дата внизу
+  pdf.setTextColor(...COLORS.muted)
+  pdf.setFontSize(9)
+  pdf.text(new Date().toLocaleDateString('ru-RU', { 
+    day: 'numeric', 
+    month: 'long', 
+    year: 'numeric' 
+  }), margin, pageHeight - 20)
+  
+  // Декоративная линия внизу
+  pdf.setDrawColor(...COLORS.line)
+  pdf.line(margin, pageHeight - 30, pageWidth - margin, pageHeight - 30)
   
   // ========== СТРАНИЦЫ КОНТЕНТА ==========
-  // Каждый день — полная информация
   
-  plan.forEach((day, index) => {
-    // Новая страница для каждого дня
+  plan.forEach((day) => {
     pdf.addPage()
     
-    const pillarColor = PILLAR_COLORS[day.pillar] || [100, 100, 100]
+    const pillarColor = PILLAR_COLORS[day.pillar] || COLORS.primary
     const formatLabel = FORMAT_LABELS[day.format] || day.format
     
-    // ===== ШАПКА ДНЯ =====
+    // Светлый фон
+    pdf.setFillColor(...COLORS.light)
+    pdf.rect(0, 0, pageWidth, pageHeight, 'F')
     
-    // Цветная полоса сверху
+    // Тонкая цветная линия сверху (акцент рубрики)
     pdf.setFillColor(pillarColor[0], pillarColor[1], pillarColor[2])
-    pdf.rect(0, 0, pageWidth, 35, 'F')
+    pdf.rect(0, 0, pageWidth, 2, 'F')
     
-    // Номер дня
-    pdf.setFillColor(255, 255, 255)
-    pdf.circle(25, 17, 12, 'F')
-    pdf.setTextColor(pillarColor[0], pillarColor[1], pillarColor[2])
-    pdf.setFontSize(16)
-    pdf.text(String(day.day), 25, 21, { align: 'center' })
+    // ===== ШАПКА =====
+    
+    // Большой номер дня (как на рефе)
+    pdf.setTextColor(235, 238, 245)
+    pdf.setFontSize(120)
+    const dayNum = day.day < 10 ? '0' + day.day : String(day.day)
+    pdf.text(dayNum, pageWidth - 20, 55, { align: 'right' })
     
     // День X
-    pdf.setTextColor(255, 255, 255)
-    pdf.setFontSize(20)
-    pdf.text('День ' + day.day, 45, 15)
+    pdf.setTextColor(...COLORS.dark)
+    pdf.setFontSize(14)
+    pdf.text('День ' + day.day, margin, 25)
     
-    // Рубрика и формат
-    pdf.setFontSize(12)
-    pdf.text(day.pillar + '  •  ' + formatLabel, 45, 27)
+    // Рубрика и формат — теги
+    pdf.setDrawColor(pillarColor[0], pillarColor[1], pillarColor[2])
+    pdf.setLineWidth(0.6)
+    const pillarWidth = pdf.getTextWidth(day.pillar) + 10
+    pdf.roundedRect(margin, 30, pillarWidth, 12, 2, 2, 'S')
+    pdf.setTextColor(pillarColor[0], pillarColor[1], pillarColor[2])
+    pdf.setFontSize(9)
+    pdf.text(day.pillar, margin + 5, 38)
     
-    // Статус
+    // Формат
+    pdf.setDrawColor(...COLORS.muted)
+    const formatWidth = pdf.getTextWidth(formatLabel) + 10
+    pdf.roundedRect(margin + pillarWidth + 5, 30, formatWidth, 12, 2, 2, 'S')
+    pdf.setTextColor(...COLORS.muted)
+    pdf.text(formatLabel, margin + pillarWidth + 10, 38)
+    
+    // Статус (если выполнено)
     if (day.done) {
-      pdf.setFillColor(34, 197, 94)
-      pdf.roundedRect(pageWidth - 45, 10, 35, 15, 3, 3, 'F')
-      pdf.setTextColor(255, 255, 255)
-      pdf.setFontSize(10)
-      pdf.text('Готово', pageWidth - 27.5, 20, { align: 'center' })
+      pdf.setTextColor(122, 161, 140)
+      pdf.setFontSize(9)
+      pdf.text('● Выполнено', pageWidth - margin - 30, 38)
     }
     
-    let y = 50
+    // Тонкая линия под шапкой
+    pdf.setDrawColor(...COLORS.line)
+    pdf.setLineWidth(0.3)
+    pdf.line(margin, 50, pageWidth - margin, 50)
+    
+    let y = 65
     
     // ===== ТЕМА =====
-    pdf.setFillColor(250, 250, 255)
-    pdf.roundedRect(margin, y, contentWidth, 30, 4, 4, 'F')
+    pdf.setTextColor(...COLORS.muted)
+    pdf.setFontSize(9)
+    pdf.text('ТЕМА', margin, y)
     
-    pdf.setTextColor(100, 100, 100)
-    pdf.setFontSize(10)
-    pdf.text('ТЕМА ПУБЛИКАЦИИ', margin + 10, y + 12)
+    y += 8
+    pdf.setTextColor(...COLORS.dark)
+    pdf.setFontSize(16)
+    const topicLines = pdf.splitTextToSize(day.topic, contentWidth)
+    pdf.text(topicLines, margin, y)
     
-    pdf.setTextColor(30, 30, 30)
-    pdf.setFontSize(14)
-    const topicLines = pdf.splitTextToSize(day.topic, contentWidth - 20)
-    pdf.text(topicLines, margin + 10, y + 24)
+    y += topicLines.length * 8 + 15
     
-    y += 40
+    // Линия-разделитель
+    pdf.setDrawColor(...COLORS.line)
+    pdf.line(margin, y, margin + 40, y)
+    
+    y += 15
     
     // ===== ХУК =====
-    pdf.setFillColor(255, 250, 245)
-    pdf.setDrawColor(245, 158, 11)
-    pdf.setLineWidth(0.5)
+    pdf.setTextColor(...COLORS.muted)
+    pdf.setFontSize(9)
+    pdf.text('ХУК / НАЧАЛО ПОСТА', margin, y)
     
-    // Рассчитываем высоту блока хука
+    y += 10
+    
+    // Кавычка как декор
+    pdf.setTextColor(220, 225, 235)
+    pdf.setFontSize(48)
+    pdf.text('«', margin - 2, y + 8)
+    
+    pdf.setTextColor(...COLORS.dark)
     pdf.setFontSize(12)
-    const hookLines = pdf.splitTextToSize(day.hook, contentWidth - 25)
-    const hookBlockHeight = Math.max(50, 25 + hookLines.length * 6)
+    const hookLines = pdf.splitTextToSize(day.hook, contentWidth - 15)
+    pdf.text(hookLines, margin + 12, y)
     
-    pdf.roundedRect(margin, y, contentWidth, hookBlockHeight, 4, 4, 'FD')
-    
-    // Иконка кавычки
-    pdf.setFillColor(245, 158, 11)
-    pdf.circle(margin + 12, y + 15, 6, 'F')
-    pdf.setTextColor(255, 255, 255)
-    pdf.setFontSize(14)
-    pdf.text('"', margin + 12, y + 19, { align: 'center' })
-    
-    pdf.setTextColor(100, 100, 100)
-    pdf.setFontSize(10)
-    pdf.text('ХУК / НАЧАЛО ПОСТА', margin + 25, y + 12)
-    
-    pdf.setTextColor(50, 50, 50)
-    pdf.setFontSize(12)
-    pdf.text(hookLines, margin + 25, y + 25)
-    
-    y += hookBlockHeight + 10
+    y += hookLines.length * 6 + 20
     
     // ===== СОВЕТ =====
     if (day.tip) {
-      pdf.setFillColor(240, 253, 244)
-      pdf.setDrawColor(34, 197, 94)
-      pdf.setLineWidth(0.5)
+      // Тонкая линия
+      pdf.setDrawColor(...COLORS.line)
+      pdf.line(margin, y, margin + 40, y)
       
+      y += 15
+      
+      pdf.setTextColor(...COLORS.muted)
+      pdf.setFontSize(9)
+      pdf.text('РЕКОМЕНДАЦИЯ', margin, y)
+      
+      y += 10
+      pdf.setTextColor(...COLORS.dark)
       pdf.setFontSize(11)
-      const tipLines = pdf.splitTextToSize(day.tip, contentWidth - 25)
-      const tipBlockHeight = Math.max(45, 25 + tipLines.length * 5.5)
+      const tipLines = pdf.splitTextToSize(day.tip, contentWidth)
+      pdf.text(tipLines, margin, y)
       
-      pdf.roundedRect(margin, y, contentWidth, tipBlockHeight, 4, 4, 'FD')
-      
-      // Иконка лампочки
-      pdf.setFillColor(34, 197, 94)
-      pdf.circle(margin + 12, y + 15, 6, 'F')
-      pdf.setTextColor(255, 255, 255)
-      pdf.setFontSize(12)
-      pdf.text('💡', margin + 8, y + 18)
-      
-      pdf.setTextColor(100, 100, 100)
-      pdf.setFontSize(10)
-      pdf.text('СОВЕТ ПО СОЗДАНИЮ', margin + 25, y + 12)
-      
-      pdf.setTextColor(50, 50, 50)
-      pdf.setFontSize(11)
-      pdf.text(tipLines, margin + 25, y + 25)
-      
-      y += tipBlockHeight + 10
+      y += tipLines.length * 5.5 + 15
     }
     
     // ===== ЧЕКЛИСТ =====
-    pdf.setFillColor(252, 252, 255)
-    pdf.roundedRect(margin, y, contentWidth, 55, 4, 4, 'F')
+    // Тонкая линия
+    pdf.setDrawColor(...COLORS.line)
+    pdf.line(margin, y, margin + 40, y)
     
-    pdf.setTextColor(100, 100, 100)
-    pdf.setFontSize(10)
-    pdf.text('ЧЕКЛИСТ ПЕРЕД ПУБЛИКАЦИЕЙ', margin + 10, y + 12)
+    y += 15
     
-    pdf.setTextColor(70, 70, 70)
-    pdf.setFontSize(10)
+    pdf.setTextColor(...COLORS.muted)
+    pdf.setFontSize(9)
+    pdf.text('ЧЕКЛИСТ', margin, y)
+    
+    y += 10
     
     const checklist = [
-      'Текст вычитан и отредактирован',
-      'Визуал подготовлен (фото/видео/карусель)',
+      'Текст вычитан',
+      'Визуал готов',
       'Хештеги добавлены',
-      'Время публикации выбрано'
+      'Время выбрано'
     ]
     
+    pdf.setTextColor(...COLORS.dark)
+    pdf.setFontSize(10)
+    
     checklist.forEach((item, i) => {
-      // Пустой квадрат для галочки
-      pdf.setDrawColor(180, 180, 180)
-      pdf.setLineWidth(0.3)
-      pdf.rect(margin + 10, y + 20 + i * 8, 4, 4, 'S')
-      pdf.text(item, margin + 20, y + 23 + i * 8)
+      // Минималистичный квадрат
+      pdf.setDrawColor(...COLORS.muted)
+      pdf.setLineWidth(0.4)
+      pdf.rect(margin, y + i * 10 - 3, 4, 4, 'S')
+      pdf.text(item, margin + 8, y + i * 10)
     })
     
-    // ===== ФУТЕР СТРАНИЦЫ =====
-    pdf.setTextColor(200, 200, 200)
+    // ===== ФУТЕР =====
+    pdf.setTextColor(...COLORS.line)
     pdf.setFontSize(8)
-    pdf.text('День ' + day.day + ' из ' + plan.length, pageWidth / 2, pageHeight - 10, { align: 'center' })
+    pdf.text(day.day + ' / ' + plan.length, pageWidth / 2, pageHeight - 15, { align: 'center' })
+    
+    // Линия внизу
+    pdf.setDrawColor(...COLORS.line)
+    pdf.line(margin, pageHeight - 25, pageWidth - margin, pageHeight - 25)
   })
   
   // ===== ФИНАЛЬНАЯ СТРАНИЦА =====
   pdf.addPage()
   
-  pdf.setFillColor(139, 92, 246)
+  pdf.setFillColor(...COLORS.light)
   pdf.rect(0, 0, pageWidth, pageHeight, 'F')
   
-  pdf.setTextColor(255, 255, 255)
-  pdf.setFontSize(28)
-  pdf.text('Удачи с контентом! 🚀', pageWidth / 2, pageHeight / 2 - 20, { align: 'center' })
+  // Акцентная линия
+  pdf.setFillColor(...COLORS.primary)
+  pdf.rect(0, 0, pageWidth, 2, 'F')
   
-  pdf.setFontSize(14)
-  pdf.text('Ты справишься!', pageWidth / 2, pageHeight / 2 + 5, { align: 'center' })
+  // Текст по центру
+  pdf.setTextColor(...COLORS.dark)
+  pdf.setFontSize(24)
+  pdf.text('Успешного продвижения', pageWidth / 2, pageHeight / 2 - 10, { align: 'center' })
   
-  pdf.setFontSize(12)
-  pdf.text('Создано в PsyContent AI', pageWidth / 2, pageHeight / 2 + 30, { align: 'center' })
+  pdf.setTextColor(...COLORS.primary)
+  pdf.setFontSize(24)
+  pdf.text('и вдохновения!', pageWidth / 2, pageHeight / 2 + 10, { align: 'center' })
+  
+  // Подпись
+  pdf.setTextColor(...COLORS.muted)
+  pdf.setFontSize(10)
+  pdf.text('Создано в PsyContent AI', pageWidth / 2, pageHeight - 30, { align: 'center' })
+  
+  // Линия внизу
+  pdf.setDrawColor(...COLORS.line)
+  pdf.line(margin, pageHeight - 40, pageWidth - margin, pageHeight - 40)
 
   pdf.save('content-plan-' + new Date().toISOString().split('T')[0] + '.pdf')
 }
