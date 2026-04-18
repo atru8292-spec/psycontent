@@ -44,9 +44,18 @@ export default function CompetitorAnalysisPage() {
     setResult(null)
 
     try {
+      // Получаем токен сессии
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        throw new Error('Не авторизован. Пожалуйста, войдите в систему.')
+      }
+
       const res = await fetch('/api/analyze-competitor', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ url }),
       })
       const data = await res.json()
