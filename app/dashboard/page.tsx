@@ -21,7 +21,8 @@ import {
   Settings,
   History,
   Layers,
-  Search, // ← Добавлена иконка для анализа конкурентов
+  Search,
+  Zap, // ← Добавлена иконка для генератора хуков
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -81,6 +82,7 @@ export default function Dashboard() {
       bg: 'bg-purple-50',
       href: '/dashboard/brand-passport',
       ready: true,
+      badge: null,
     },
     {
       icon: PenTool,
@@ -91,6 +93,7 @@ export default function Dashboard() {
       bg: 'bg-violet-50',
       href: '/dashboard/post-generator',
       ready: true,
+      badge: null,
     },
     {
       icon: Layers,
@@ -101,6 +104,19 @@ export default function Dashboard() {
       bg: 'bg-blue-50',
       href: '/dashboard/carousel-generator',
       ready: true,
+      badge: null,
+    },
+    // ============ ГЕНЕРАТОР ХУКОВ (NEW) ============
+    {
+      icon: Zap,
+      title: 'Генератор хуков',
+      desc: '12 цепляющих хуков для Reels, постов, каруселей и Stories',
+      status: 'Открыть',
+      color: 'text-amber-500',
+      bg: 'bg-amber-50',
+      href: '/dashboard/hooks-generator',
+      ready: true,
+      badge: 'NEW',
     },
     {
       icon: FileText,
@@ -111,6 +127,7 @@ export default function Dashboard() {
       bg: 'bg-green-50',
       href: '/dashboard/content-plan',
       ready: true,
+      badge: null,
     },
     {
       icon: Wrench,
@@ -121,6 +138,7 @@ export default function Dashboard() {
       bg: 'bg-orange-50',
       href: '/dashboard/research',
       ready: true,
+      badge: null,
     },
     {
       icon: Film,
@@ -131,6 +149,7 @@ export default function Dashboard() {
       bg: 'bg-indigo-50',
       href: '/dashboard/reels',
       ready: true,
+      badge: null,
     },
     {
       icon: RefreshCcw,
@@ -141,6 +160,7 @@ export default function Dashboard() {
       bg: 'bg-cyan-50',
       href: '/dashboard/rewrite',
       ready: true,
+      badge: null,
     },
     // ============ АНАЛИЗ КОНКУРЕНТОВ ============
     {
@@ -152,6 +172,7 @@ export default function Dashboard() {
       bg: 'bg-red-50',
       href: '/dashboard/competitor-analysis',
       ready: true,
+      badge: null,
     },
     {
       icon: History,
@@ -162,6 +183,7 @@ export default function Dashboard() {
       bg: 'bg-emerald-50',
       href: '/dashboard/post-history',
       ready: true,
+      badge: null,
     },
     {
       icon: Lightbulb,
@@ -172,6 +194,7 @@ export default function Dashboard() {
       bg: 'bg-fuchsia-50',
       href: '#',
       ready: false,
+      badge: null,
     },
     {
       icon: Star,
@@ -182,6 +205,7 @@ export default function Dashboard() {
       bg: 'bg-yellow-50',
       href: '#',
       ready: false,
+      badge: null,
     },
     {
       icon: BookOpen,
@@ -192,6 +216,7 @@ export default function Dashboard() {
       bg: 'bg-pink-50',
       href: '#',
       ready: false,
+      badge: null,
     },
   ]
 
@@ -325,10 +350,17 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 + i * 0.05 }}
               onClick={() => tool.ready && router.push(tool.href)}
-              className={`p-6 rounded-2xl bg-white border border-brand-border hover:shadow-md transition group ${
+              className={`relative p-6 rounded-2xl bg-white border border-brand-border hover:shadow-md transition group ${
                 tool.ready ? 'cursor-pointer' : 'opacity-70'
               }`}
             >
+              {/* NEW badge */}
+              {tool.badge && (
+                <span className="absolute top-4 right-4 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 uppercase tracking-wider">
+                  {tool.badge}
+                </span>
+              )}
+
               <div className={`w-12 h-12 rounded-xl ${tool.bg} flex items-center justify-center mb-4 group-hover:scale-110 transition`}>
                 <tool.icon className={`w-6 h-6 ${tool.color}`} />
               </div>
