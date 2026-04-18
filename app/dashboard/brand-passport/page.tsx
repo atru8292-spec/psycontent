@@ -26,7 +26,9 @@ import {
   ChevronUp,
   Copy,
   Check,
+  FileText,
 } from 'lucide-react'
+import { generatePassportPDF } from '@/lib/generate-passport-pdf'
 
 // Parse markdown into sections
 function parsePassport(content: string) {
@@ -106,7 +108,7 @@ function SectionCard({ section, index }: { section: { num: string; title: string
     >
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-4 p-5 text-left hover:bg-gray-50/50 transition"
+        className="w-full flex items-center gap-4 p-5 text-left hover:bg-gray-50/50 transition cursor-pointer"
       >
         <div className={`w-10 h-10 rounded-xl ${meta.bg} flex items-center justify-center shrink-0`}>
           <Icon className={`w-5 h-5 ${meta.color}`} />
@@ -144,6 +146,7 @@ export default function BrandPassport() {
   const [passport, setPassport] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
+  const [generatingPDF, setGeneratingPDF] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const router = useRouter()
@@ -205,7 +208,7 @@ export default function BrandPassport() {
     }
   }
 
-  const handleDownload = () => {
+  const handleDownloadTxt = () => {
     if (!passport) return
     const blob = new Blob([passport], { type: 'text/plain;charset=utf-8' })
     const url = URL.createObjectURL(blob)
@@ -214,6 +217,18 @@ export default function BrandPassport() {
     a.download = 'brand-passport.txt'
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  const handleDownloadPDF = async () => {
+    if (!passport) return
+    setGeneratingPDF(true)
+    try {
+      await generatePassportPDF(passport)
+    } catch (err) {
+      console.error('PDF generation error:', err)
+    } finally {
+      setGeneratingPDF(false)
+    }
   }
 
   const sections = passport ? parsePassport(passport) : []
@@ -232,7 +247,7 @@ export default function BrandPassport() {
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-brand-border">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <button
-            onClick={() => router.push('/dashboard')}
+                       onClick={() => router.push('/dashboard')}
             className="flex items-center gap-2 text-brand-text-secondary hover:text-brand-text transition cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -328,7 +343,7 @@ export default function BrandPassport() {
         {passport && !generating && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             {/* Stats bar */}
-            <div className="flex items-center justify-between mb-6 p-4 bg-white rounded-2xl border border-brand-border">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 p-4 bg-white rounded-2xl border border-brand-border">
               <div className="flex items-center gap-6">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-brand-accent">{sections.length}</p>
@@ -339,7 +354,8 @@ export default function BrandPassport() {
                   Персональный документ на основе вашей распаковки
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 flex-wrap">
+                {/* Копировать текст */}
                 <button
                   onClick={handleCopy}
                   className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-2 rounded-lg hover:bg-brand-highlight"
@@ -347,13 +363,36 @@ export default function BrandPassport() {
                   {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                   {copied ? 'Скопировано!' : 'Копировать'}
                 </button>
+
+                {/* Скачать TXT */}
                 <button
-                  onClick={handleDownload}
+                  onClick={handleDownloadTxt}
                   className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-2 rounded-lg hover:bg-brand-highlight"
                 >
                   <Download className="w-4 h-4" />
-                  Скачать
+                  TXT
                 </button>
+
+                {/* Скачать PDF */}
+                <button
+                  onClick={handleDownloadPDF}
+                  disabled={generatingPDF}
+                  className="flex items-center gap-2 text-sm text-white bg-brand-accent hover:bg-brand-accent-hover transition cursor-pointer px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {generatingPDF ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Создаю PDF...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4" />
+                      Скачать PDF
+                    </>
+                  )}
+                </button>
+
+                {/* Заново */}
                 <button
                   onClick={handleGenerate}
                   className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-2 rounded-lg hover:bg-brand-highlight"
@@ -377,12 +416,31 @@ export default function BrandPassport() {
               <p className="text-white/80 mb-4">
                 Используйте контентные столбы для генерации постов
               </p>
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="bg-white text-brand-accent px-6 py-2 rounded-full font-semibold hover:bg-white/90 transition cursor-pointer"
-              >
-                Вернуться в кабинет
-              </button>
+              <div className="flex items-center justify-center gap-3 flex-wrap">
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="bg-white text-brand-accent px-6 py-2 rounded-full font-semibold hover:bg-white/90 transition cursor-pointer"
+                >
+                  Вернуться в кабинет
+                </button>
+                <button
+                  onClick={handleDownloadPDF}
+                  disabled={generatingPDF}
+                  className="bg-white/20 text-white border border-white/30 px-6 py-2 rounded-full font-semibold hover:bg-white/30 transition cursor-pointer disabled:opacity-50"
+                >
+                  {generatingPDF ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Создаю...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      Скачать PDF
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
