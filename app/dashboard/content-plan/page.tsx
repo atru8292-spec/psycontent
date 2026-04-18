@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -9,6 +9,7 @@ import {
   AlignLeft, Image, Film, FileText,
   CheckCircle2, Circle, PenTool, X,
   RefreshCw, Lightbulb, ChevronRight,
+  Download, Copy, FileSpreadsheet, Check,
 } from 'lucide-react'
 
 type DayItem = {
@@ -40,6 +41,165 @@ function getPillarMeta(pillar: string) {
   return PILLAR_META[pillar] || { color: 'text-gray-600 bg-gray-50 border-gray-200', dot: 'bg-gray-400' }
 }
 
+// ============ EXPORT COMPONENT ============
+function ExportMenu({ plan, contentRef }: { plan: DayItem[]; contentRef: React.RefObject<HTMLDivElement | null> }) {
+  const [copied, setCopied] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
+  const [exporting, setExporting] = useState(false)
+
+  const copyAsText = () => {
+    const text = plan.map(day => 
+`День ${day.day}
+Рубрика: ${day.pillar}
+Формат: ${day.format}
+Тема: ${day.topic}
+${day.hook ? `Хук: ${day.hook}` : ''}
+---`
+    ).join('\n\n')
+
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setShowMenu(false)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const exportToCSV = () => {
+    const headers = ['День', 'Рубрика', 'Формат', 'Тема', 'Хук', 'Статус']
+    const rows = plan.map(day => [
+      day.day,
+      `"${day.pillar}"`,
+      `"${day.format}"`,
+      `"${day.topic.replace(/"/g, '""')}"`,
+      `"${(day.hook || '').replace(/"/g, '""')}"`,
+      day.done ? 'Готово' : 'Не готово'
+    ])
+
+    const csv = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n')
+
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `content-plan-${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+    setShowMenu(false)
+  }
+
+  const exportToPDF = async () => {
+    if (!contentRef.current) return
+    
+    setExporting(true)
+    setShowMenu(false)
+
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const { jsPDF } = await import('jspdf')
+
+      const canvas = await html2canvas(contentRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      })
+
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth()
+      const pdfHeight = pdf.internal.pageSize.getHeight()
+      const imgWidth = pdfWidth - 20
+      const imgHeight = (canvas.height * imgWidth) / canvas.width
+
+      let heightLeft = imgHeight
+      let position = 10
+
+      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight)
+      heightLeft -= pdfHeight
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight + 10
+        pdf.addPage()
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight)
+        heightLeft -= pdfHeight
+      }
+
+      pdf.save(`content-plan-${new Date().toISOString().split('T')[0]}.pdf`)
+    } catch (error) {
+      console.error('PDF export error:', error)
+      alert('Ошибка при создании PDF')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setShowMenu(!showMenu)}
+        disabled={exporting}
+        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand-text-secondary hover:text-brand-text bg-white border border-brand-border rounded-xl hover:border-brand-accent/50 transition cursor-pointer disabled:opacity-50"
+      >
+        {exporting ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Download className="w-4 h-4" />
+        )}
+        {exporting ? 'Создаю PDF...' : 'Экспорт'}
+      </button>
+
+      {showMenu && (
+        <>
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setShowMenu(false)} 
+          />
+          
+          <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-brand-border rounded-xl shadow-lg z-50 overflow-hidden">
+            <button
+              onClick={copyAsText}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-brand-text hover:bg-brand-bg transition cursor-pointer text-left"
+            >
+              {copied ? (
+                <Check className="w-4 h-4 text-green-500" />
+              ) : (
+                <Copy className="w-4 h-4 text-brand-text-secondary" />
+              )}
+              {copied ? 'Скопировано!' : 'Копировать текст'}
+            </button>
+            
+            <button
+              onClick={exportToCSV}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-brand-text hover:bg-brand-bg transition cursor-pointer text-left border-t border-brand-border"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-green-600" />
+              <div>
+                <p>Google Sheets / Excel</p>
+                <p className="text-xs text-brand-text-secondary">Скачать CSV</p>
+              </div>
+            </button>
+            
+            <button
+              onClick={exportToPDF}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-brand-text hover:bg-brand-bg transition cursor-pointer text-left border-t border-brand-border"
+            >
+              <FileText className="w-4 h-4 text-red-500" />
+              <div>
+                <p>Скачать PDF</p>
+                <p className="text-xs text-brand-text-secondary">Для печати</p>
+              </div>
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ============ DAY CARD ============
 function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () => void; onGenerate: () => void }) {
   const [hover, setHover] = useState(false)
   const fmt = FORMAT_META[item.format] || FORMAT_META.post
@@ -59,7 +219,6 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
           : 'border-brand-border bg-white hover:border-brand-accent/40 hover:shadow-md'
       }`}
     >
-      {/* Day number + done toggle */}
       <div className="flex items-start justify-between p-4 pb-2">
         <div className="flex items-center gap-2">
           <span className={`text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center ${
@@ -79,7 +238,6 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
         </button>
       </div>
 
-      {/* Format */}
       <div className="px-4 pb-2">
         <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg ${fmt.bg}`}>
           <Icon className={`w-3.5 h-3.5 ${fmt.color}`} />
@@ -87,14 +245,12 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
         </div>
       </div>
 
-      {/* Topic */}
       <div className="px-4 pb-3">
         <p className={`text-sm font-semibold leading-tight ${item.done ? 'text-gray-400 line-through' : 'text-brand-text'}`}>
           {item.topic}
         </p>
       </div>
 
-      {/* Hook preview */}
       {item.hook && !item.done && (
         <div className="mx-4 mb-3 p-2 rounded-lg bg-brand-bg border border-brand-border">
           <p className="text-xs text-brand-text-secondary italic leading-relaxed line-clamp-2">
@@ -103,7 +259,6 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
         </div>
       )}
 
-      {/* Generate button on hover */}
       <AnimatePresence>
         {hover && !item.done && (
           <motion.div
@@ -126,6 +281,7 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
   )
 }
 
+// ============ DETAIL PANEL ============
 function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: () => void; onGenerate: () => void }) {
   const fmt = FORMAT_META[item.format] || FORMAT_META.post
   const pillar = getPillarMeta(item.pillar)
@@ -191,6 +347,7 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
   )
 }
 
+// ============ MAIN PAGE ============
 export default function ContentPlan() {
   const [user, setUser] = useState<any>(null)
   const [plan, setPlan] = useState<DayItem[]>([])
@@ -200,6 +357,7 @@ export default function ContentPlan() {
   const [selected, setSelected] = useState<DayItem | null>(null)
   const [filter, setFilter] = useState<string>('all')
   const router = useRouter()
+  const contentRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const init = async () => {
@@ -207,7 +365,6 @@ export default function ContentPlan() {
       if (!user) { router.push('/'); return }
       setUser(user)
 
-      // Load saved plan
       const { data } = await supabase
         .from('content_plans')
         .select('plan')
@@ -241,19 +398,18 @@ export default function ContentPlan() {
   }
 
   const toggleDone = (day: number) => {
-    setPlan(prev => prev.map(item =>
+    const updated = plan.map(item =>
       item.day === day ? { ...item, done: !item.done } : item
-    ))
-    // Save to supabase
+    )
+    setPlan(updated)
     supabase.from('content_plans').upsert({
       user_id: user?.id,
-      plan: plan.map(item => item.day === day ? { ...item, done: !item.done } : item),
+      plan: updated,
       generated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' })
   }
 
   const handleGoGenerate = (item: DayItem) => {
-    // Navigate to post generator with pre-filled topic
     const params = new URLSearchParams({
       topic: item.topic,
       format: item.format,
@@ -289,14 +445,17 @@ export default function ContentPlan() {
           </button>
           <div className="flex items-center gap-3">
             {plan.length > 0 && (
-              <button
-                onClick={handleGenerate}
-                disabled={generating}
-                className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-1.5 rounded-lg hover:bg-brand-highlight"
-              >
-                <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
-                Обновить план
-              </button>
+              <>
+                <ExportMenu plan={plan} contentRef={contentRef} />
+                <button
+                  onClick={handleGenerate}
+                  disabled={generating}
+                  className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-1.5 rounded-lg hover:bg-brand-highlight"
+                >
+                  <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
+                  Обновить план
+                </button>
+              </>
             )}
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-brand-accent" />
@@ -362,23 +521,14 @@ export default function ContentPlan() {
             </div>
             <h2 className="text-xl font-bold text-brand-text mb-2">Составляем план на 30 дней...</h2>
             <p className="text-brand-text-secondary">AI подбирает темы под ваш голос и нишу</p>
-            <div className="mt-6 flex flex-col items-center gap-2 text-sm text-brand-text-secondary">
-              {['Анализируем ваш паспорт бренда...', 'Подбираем темы по рубрикам...', 'Составляем расписание...'].map((s, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse" style={{ animationDelay: `${i * 0.4}s` }} />
-                  {s}
-                </div>
-              ))}
-            </div>
           </motion.div>
         )}
 
-        {/* Plan */}
+        {/* Plan grid */}
         {plan.length > 0 && !generating && (
           <div className={`flex gap-8 ${selected ? 'items-start' : ''}`}>
-            {/* Left: calendar */}
             <div className="flex-1 min-w-0">
-              {/* Stats + progress */}
+              {/* Stats */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -399,19 +549,7 @@ export default function ContentPlan() {
                       <p className="text-xs text-brand-text-secondary">выполнено</p>
                     </div>
                   </div>
-
-                  {/* Legend */}
-                  <div className="hidden md:flex items-center gap-4">
-                    {Object.entries(PILLAR_META).map(([name, meta]) => (
-                      <div key={name} className="flex items-center gap-1.5">
-                        <div className={`w-2 h-2 rounded-full ${meta.dot}`} />
-                        <span className="text-xs text-brand-text-secondary">{name}</span>
-                      </div>
-                    ))}
-                  </div>
                 </div>
-
-                {/* Progress bar */}
                 <div className="w-full bg-gray-100 rounded-full h-2">
                   <motion.div
                     className="bg-brand-accent h-2 rounded-full"
@@ -422,7 +560,7 @@ export default function ContentPlan() {
                 </div>
               </motion.div>
 
-              {/* Filter pills */}
+              {/* Filter */}
               <div className="flex gap-2 flex-wrap mb-5">
                 {pillars.map(p => (
                   <button
@@ -439,8 +577,8 @@ export default function ContentPlan() {
                 ))}
               </div>
 
-              {/* Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+              {/* Grid with ref for PDF export */}
+              <div ref={contentRef} className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
                 <AnimatePresence>
                   {filtered.map((item, i) => (
                     <motion.div
@@ -454,7 +592,7 @@ export default function ContentPlan() {
                     >
                       <DayCard
                         item={item}
-                        onToggle={(e?: any) => { e?.stopPropagation?.(); toggleDone(item.day) }}
+                        onToggle={() => toggleDone(item.day)}
                         onGenerate={() => handleGoGenerate(item)}
                       />
                     </motion.div>
@@ -463,7 +601,7 @@ export default function ContentPlan() {
               </div>
             </div>
 
-            {/* Right: detail panel */}
+            {/* Detail panel */}
             <AnimatePresence>
               {selected && (
                 <motion.div
