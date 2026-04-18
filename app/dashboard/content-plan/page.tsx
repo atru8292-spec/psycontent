@@ -11,6 +11,7 @@ import {
   CheckCircle2, Circle, PenTool, X,
   RefreshCw, Lightbulb, ChevronRight,
   Download, Copy, FileSpreadsheet, Check,
+  Layers, // ← Добавил иконку для каруселей
 } from 'lucide-react'
 
 type DayItem = {
@@ -25,7 +26,7 @@ type DayItem = {
 
 const FORMAT_META: Record<string, { icon: any; label: string; color: string; bg: string }> = {
   post:     { icon: AlignLeft, label: 'Пост',     color: 'text-purple-600', bg: 'bg-purple-100' },
-  carousel: { icon: Image,     label: 'Карусель', color: 'text-blue-600',   bg: 'bg-blue-100'   },
+  carousel: { icon: Layers,    label: 'Карусель', color: 'text-blue-600',   bg: 'bg-blue-100'   },
   reels:    { icon: Film,      label: 'Рилс',     color: 'text-pink-600',   bg: 'bg-pink-100'   },
   stories:  { icon: FileText,  label: 'Stories',  color: 'text-orange-600', bg: 'bg-orange-100' },
 }
@@ -147,6 +148,9 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
   const pillar = getPillarMeta(item.pillar)
   const Icon = fmt.icon
 
+  // Текст кнопки в зависимости от формата
+  const buttonText = item.format === 'carousel' ? 'Создать карусель' : 'Написать пост'
+
   return (
     <motion.div
       layout
@@ -196,10 +200,14 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
           <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }} className="px-4 pb-4">
             <button
               onClick={(e) => { e.stopPropagation(); onGenerate(); }}
-              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-brand-accent text-white text-xs font-semibold hover:bg-brand-accent-hover transition cursor-pointer"
+              className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-white text-xs font-semibold transition cursor-pointer ${
+                item.format === 'carousel' 
+                  ? 'bg-blue-500 hover:bg-blue-600' 
+                  : 'bg-brand-accent hover:bg-brand-accent-hover'
+              }`}
             >
-              <PenTool className="w-3.5 h-3.5" />
-              Написать пост
+              {item.format === 'carousel' ? <Layers className="w-3.5 h-3.5" /> : <PenTool className="w-3.5 h-3.5" />}
+              {buttonText}
             </button>
           </motion.div>
         )}
@@ -213,6 +221,13 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
   const fmt = FORMAT_META[item.format] || FORMAT_META.post
   const pillar = getPillarMeta(item.pillar)
   const Icon = fmt.icon
+
+  // Текст и стиль кнопки в зависимости от формата
+  const isCarousel = item.format === 'carousel'
+  const buttonText = isCarousel ? 'Создать карусель' : 'Сгенерировать пост'
+  const buttonClass = isCarousel 
+    ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-500/20' 
+    : 'bg-brand-accent hover:bg-brand-accent-hover shadow-brand-accent/20'
 
   return (
     <motion.div
@@ -238,6 +253,15 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
         <span className={`text-sm font-semibold ${fmt.color}`}>{fmt.label}</span>
       </div>
 
+      {/* Подсказка для карусели */}
+      {isCarousel && (
+        <div className="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-200">
+          <p className="text-xs text-blue-700">
+            <strong>Карусель</strong> — это 8-10 слайдов с текстом. AI создаст хук, развитие мысли и CTA.
+          </p>
+        </div>
+      )}
+
       {item.hook && (
         <div className="mb-4">
           <p className="text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-2">Хук (первая строка)</p>
@@ -259,10 +283,10 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
 
       <button
         onClick={onGenerate}
-        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-brand-accent text-white font-semibold hover:bg-brand-accent-hover transition shadow-lg shadow-brand-accent/20 cursor-pointer"
+        className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold transition shadow-lg cursor-pointer ${buttonClass}`}
       >
-        <Sparkles className="w-4 h-4" />
-        Сгенерировать пост
+        {isCarousel ? <Layers className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+        {buttonText}
         <ChevronRight className="w-4 h-4" />
       </button>
     </motion.div>
@@ -346,9 +370,21 @@ export default function ContentPlan() {
     }, { onConflict: 'user_id' })
   }
 
+  // ============ ИЗМЕНЁННАЯ ФУНКЦИЯ ============
   const handleGoGenerate = (item: DayItem) => {
-    const params = new URLSearchParams({ topic: item.topic, format: item.format, pillar: item.pillar })
-    router.push(`/dashboard/post-generator?${params}`)
+    const params = new URLSearchParams({ 
+      topic: item.topic, 
+      pillar: item.pillar 
+    })
+    
+    // Карусели → отдельный генератор
+    if (item.format === 'carousel') {
+      router.push(`/dashboard/carousel-generator?${params}`)
+    } else {
+      // Посты, stories, reels → обычный генератор
+      params.append('format', item.format)
+      router.push(`/dashboard/post-generator?${params}`)
+    }
   }
 
   const pillars = ['all', 'Психообразование', 'Личное', 'Практика', 'Истории', 'Позиционирование']
@@ -431,7 +467,7 @@ export default function ContentPlan() {
             </h2>
             <p className="text-brand-text-secondary mb-6">AI подбирает темы под ваш голос и нишу</p>
             
-                      <div className="max-w-md mx-auto">
+            <div className="max-w-md mx-auto">
               <div className="flex justify-between text-xs text-brand-text-secondary mb-2">
                 {[1, 2, 3, 4, 5, 6].map(b => (
                   <span key={b} className={currentBatch >= b ? 'text-brand-accent font-medium' : ''}>
@@ -513,7 +549,7 @@ export default function ContentPlan() {
               </div>
             </div>
 
-            <AnimatePresence>
+                        <AnimatePresence>
               {selected && (
                 <motion.div key="detail" initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 320 }} exit={{ opacity: 0, width: 0 }} className="shrink-0" style={{ width: 320 }}>
                   <DetailPanel item={selected} onClose={() => setSelected(null)} onGenerate={() => handleGoGenerate(selected)} />
