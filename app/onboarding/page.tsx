@@ -5,14 +5,10 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Sparkles, ArrowRight, ArrowLeft, CheckCircle, User,
-  MessageCircle, Heart, MapPin, Flag, Star
+  Sparkles, ArrowRight, ArrowLeft, CheckCircle, User, MessageCircle, Heart, MapPin, Flag, Star
 } from 'lucide-react'
 
-// ═══════════════════════════════════════
 // БЛОКИ РАСПАКОВКИ
-// ═══════════════════════════════════════
-
 const blocks = [
   { id: 'who', title: 'Кто вы', icon: User, color: 'text-purple-600 bg-purple-100' },
   { id: 'voice', title: 'Ваш голос', icon: MessageCircle, color: 'text-orange-600 bg-orange-100' },
@@ -22,14 +18,12 @@ const blocks = [
   { id: 'final', title: 'Финальный штрих', icon: Star, color: 'text-yellow-600 bg-yellow-100' },
 ]
 
-// ═══════════════════════════════════════
 // ВОПРОСЫ
-// ═══════════════════════════════════════
-
-const questions: any[] = [
-  // --- БЛОК 1: Кто вы ---
+const questions = [
+  // --- БЛОК 1 ---
   {
-    block: 0, key: 'full_name',
+    block: 0,
+    key: 'full_name',
     title: 'Как вас зовут? И как клиенты к вам обращаются?',
     subtitle: 'Это влияет на тон ваших постов — будут они на "вы" или на "ты", формальные или дружеские.',
     type: 'text_and_single',
@@ -38,7 +32,8 @@ const questions: any[] = [
     optionsKey: 'appeal'
   },
   {
-    block: 0, key: 'approaches',
+    block: 0,
+    key: 'approaches',
     title: 'В каком подходе вы работаете?',
     subtitle: 'Какой подход ОСНОВНОЙ — тот, через который вы смотрите на мир?',
     type: 'multi',
@@ -50,7 +45,8 @@ const questions: any[] = [
     ]
   },
   {
-    block: 0, key: 'niches',
+    block: 0,
+    key: 'niches',
     title: 'С чем вы работаете чаще всего?',
     subtitle: 'А если бы вы могли работать ТОЛЬКО с одной проблемой до конца жизни — какая бы это была?',
     type: 'multi_and_text',
@@ -64,7 +60,8 @@ const questions: any[] = [
     textPlaceholder: 'Моя единственная проблема для работы — это... потому что...'
   },
   {
-    block: 0, key: 'experience',
+    block: 0,
+    key: 'experience',
     title: 'Ваш опыт и путь в профессию',
     subtitle: 'Как вы пришли в психологию? Не биография, а момент.',
     type: 'single_and_text',
@@ -73,7 +70,8 @@ const questions: any[] = [
     textPlaceholder: 'Например: Мне было 28, я сидела в офисе и поняла что ненавижу каждый понедельник...'
   },
   {
-    block: 0, key: 'formats',
+    block: 0,
+    key: 'formats',
     title: 'Как вы работаете и стоимость сессии?',
     subtitle: 'Форматы работы и примерная цена.',
     type: 'multi_and_single',
@@ -82,9 +80,10 @@ const questions: any[] = [
     singleOptions: ['до 3000₽', '3000-5000₽', '5000-7000₽', '7000-10000₽', '10000₽+']
   },
 
-  // --- БЛОК 2: Ваш голос ---
+  // --- БЛОК 2 ---
   {
-    block: 1, key: 'tone_sliders',
+    block: 1,
+    key: 'tone_sliders',
     title: 'Какой у вас тон общения?',
     subtitle: 'Представьте что вы пишете пост.',
     type: 'sliders',
@@ -95,7 +94,8 @@ const questions: any[] = [
     ]
   },
   {
-    block: 1, key: 'tone_verbal',
+    block: 1,
+    key: 'tone_verbal',
     title: 'Как вы обычно разговариваете с клиентами?',
     subtitle: 'Выберите самый близкий стиль',
     type: 'single',
@@ -108,7 +108,8 @@ const questions: any[] = [
     ],
   },
   {
-    block: 1, key: 'values',
+    block: 1,
+    key: 'values',
     title: 'Что для вас САМОЕ важное в работе?',
     subtitle: 'И что делаете не так, как другие? (допишите текстом)',
     type: 'multi_and_text',
@@ -122,7 +123,8 @@ const questions: any[] = [
     textPlaceholder: 'Я делаю не так как другие вот что...'
   },
   {
-    block: 1, key: 'anti_values',
+    block: 1,
+    key: 'anti_values',
     title: 'Что вас раздражает в индустрии?',
     subtitle: 'Ваши антиценности — золото для контента.',
     type: 'multi_and_text',
@@ -135,7 +137,8 @@ const questions: any[] = [
     textPlaceholder: 'Если бы я мог(ла) сказать ОДНУ вещь всем коллегам — я бы сказал(а)...'
   },
   {
-    block: 1, key: 'superpowers',
+    block: 1,
+    key: 'superpowers',
     title: 'Что вам говорят клиенты? За что ценят?',
     subtitle: 'Ваши суперсилы в глазах клиентов',
     type: 'multi',
@@ -146,7 +149,8 @@ const questions: any[] = [
     ]
   },
   {
-    block: 1, key: 'content_struggles',
+    block: 1,
+    key: 'content_struggles',
     title: 'Что СЛОЖНО в ведении блога?',
     subtitle: 'Честно — это поможет подобрать инструменты.',
     type: 'multi',
@@ -156,16 +160,18 @@ const questions: any[] = [
     ]
   },
   {
-    block: 1, key: 'live_voice',
+    block: 1,
+    key: 'live_voice',
     title: 'Самый важный вопрос — ваш живой голос',
     subtitle: 'Представьте: вы на вечеринке. Друг: «А чем вы занимаетесь? И чем отличаетесь от других?»',
     type: 'textarea',
-    placeholder: 'Говорите как есть. Без "оказание психологической помощи". Просто — кто вы и почему вам не всё равно.'
+    placeholder: 'Говорите как есть. Без "оказание психологической помощи". Просто — кто вы и почему вам не всё равно. Например: "Я работаю с людьми которые выгорели. Знаешь, те которые на работе — звезды..."'
   },
 
-  // --- БЛОК 3: Идеальный клиент ---
+  // --- БЛОК 3 ---
   {
-    block: 2, key: 'client_avatar',
+    block: 2,
+    key: 'client_avatar',
     title: 'Кто ваш идеальный клиент?',
     subtitle: 'После сессии с которым вы думаете "вот ради этого я в профессии".',
     type: 'single_and_text',
@@ -174,37 +180,46 @@ const questions: any[] = [
     textPlaceholder: 'Чем этот человек занимается? (Например: IT-менеджер, мама в декрете, предприниматель)'
   },
   {
-    block: 2, key: 'client_pain_phrases',
+    block: 2,
+    key: 'client_pain_phrases',
     title: 'Как ОН описывает свою боль?',
     subtitle: 'Не диагноз, а 2-3 прямые фразы, которые вы слышите на первых сессиях.',
     type: 'textarea',
-    placeholder: 'Например: "Я устала быть сильной", "Мозг не выключается"...'
+    placeholder: 'Например: "Я устала быть сильной", "Мозг не выключается", "Мы с мужем живём как соседи"...'
   },
   {
-    block: 2, key: 'client_tried',
+    block: 2,
+    key: 'client_tried',
     title: 'Что клиент уже пробовал ДО вас?',
     subtitle: 'И что ему мешает прийти (главный страх)?',
     type: 'multi',
-    options: ['Читал книги', 'Смотрел YouTube', 'Другой психолог', 'Таблетки', 'Пытался "не думать"', 'Медитации/Йога', 'Обращается впервые']
+    options: [
+      'Читал книги', 'Смотрел YouTube', 'Другой психолог', 'Таблетки', 'Пытался "не думать"', 'Медитации/Йога', 'Обращается впервые'
+    ]
   },
   {
-    block: 2, key: 'client_fear',
+    block: 2,
+    key: 'client_fear',
     title: 'Какой у него главный страх перед терапией?',
     subtitle: 'Что мешает записаться?',
     type: 'multi',
-    options: ['«Другим хуже»', '«Психолог для сумасшедших»', '«Дорого»', '«Не поможет»', '«Копаться в прошлом страшно»', '«Стыдно»']
+    options: [
+      '«Другим хуже»', '«Психолог для сумасшедших»', '«Дорого»', '«Не поможет»', '«Копаться в прошлом страшно»', '«Стыдно»'
+    ]
   },
   {
-    block: 2, key: 'client_result',
+    block: 2,
+    key: 'client_result',
     title: 'Результат работы. Что он ДЕЛАЕТ по-другому?',
     subtitle: 'Не «становится лучше», а конкретика.',
     type: 'textarea',
-    placeholder: 'Например: "Перестала звонить бывшему в 3 часа ночи"...'
+    placeholder: 'Например: "Перестала звонить бывшему в 3 часа ночи", "Впервые взял отпуск и не проверял почту"...'
   },
 
-  // --- БЛОК 4: Где вы сейчас ---
+  // --- БЛОК 4 ---
   {
-    block: 3, key: 'platforms',
+    block: 3,
+    key: 'platforms',
     title: 'Где ведёте (или хотите) блог?',
     subtitle: 'И сколько у вас подписчиков сегодня?',
     type: 'multi_and_single',
@@ -213,7 +228,8 @@ const questions: any[] = [
     singleOptions: ['0', 'до 500', '500-2000', '2000-5000', '5000+']
   },
   {
-    block: 3, key: 'client_source',
+    block: 3,
+    key: 'client_source',
     title: 'Откуда сейчас приходят клиенты?',
     subtitle: 'И сколько их в месяц?',
     type: 'multi_and_single',
@@ -222,25 +238,30 @@ const questions: any[] = [
     singleOptions: ['0-3', '3-8', '8-15', '15-25', '25+']
   },
   {
-    block: 3, key: 'content_pain',
+    block: 3,
+    key: 'content_pain',
     title: 'ОДНА главная проблема с контентом прямо сейчас',
     subtitle: 'Опишите подробнее как это проявляется в жизни.',
     type: 'single_and_text',
-    options: ['Не знаю о чём писать', 'Никто не читает', 'Забрасываю', 'Пишу как учебник', 'Стыдно', 'Нет времени'],
+    options: [
+      'Не знаю о чём писать', 'Никто не читает', 'Забрасываю', 'Пишу как учебник', 'Стыдно', 'Нет времени'
+    ],
     textKey: 'content_pain_detail',
-    textPlaceholder: 'Например: Я могу сидеть перед пустым листом 3 часа...'
+    textPlaceholder: 'Например: Я могу сидеть перед пустым листом 3 часа, потом пишу сухой текст, выкладываю — и 2 лайка...'
   },
 
-  // --- БЛОК 5: Куда хотите ---
+  // --- БЛОК 5 ---
   {
-    block: 4, key: 'desired_clients',
+    block: 4,
+    key: 'desired_clients',
     title: 'Сколько клиентов вы ХОТИТЕ?',
     subtitle: 'Ваша цель',
     type: 'single',
     options: ['5-10/мес (начать поток)', '10-20 (стабильно)', '20-30 (полная запись)', 'Повысить чек (запись полная)']
   },
   {
-    block: 4, key: 'goal_3_months',
+    block: 4,
+    key: 'goal_3_months',
     title: 'Цель на 3 месяца и время на контент',
     subtitle: 'Выберите главную цель и сколько ресурса есть.',
     type: 'single_and_single',
@@ -252,26 +273,28 @@ const questions: any[] = [
     single2Key: 'time_available'
   },
   {
-    block: 4, key: 'video_attitude',
+    block: 4,
+    key: 'video_attitude',
     title: 'Как относитесь к видео (Reels / Shorts)?',
     subtitle: 'Мы не будем заставлять.',
     type: 'single',
     options: [
-      'Нормально — нужны скрипты', 'Готов(а), но нужен телесуфлер',
-      'Пугает — но попробую', 'Категорически нет (только текст)'
+      'Нормально — нужны скрипты', 'Готов(а), но нужен телесуфлер', 'Пугает — но попробую', 'Категорически нет (только текст)'
     ]
   },
   {
-    block: 4, key: 'dream_blog',
+    block: 4,
+    key: 'dream_blog',
     title: 'Представьте идеальную картину через год.',
     subtitle: 'Что вы чувствуете открывая директ утром?',
     type: 'textarea',
-    placeholder: 'Мечтайте конкретно: "открываю директ — 3 заявки..."'
+    placeholder: 'Мечтайте конкретно: "открываю директ — 3 заявки, все по моей специализации, я выбираю с кем работать..."'
   },
 
-  // --- БЛОК 6: Финальный штрих ---
+  // --- БЛОК 6 ---
   {
-    block: 5, key: 'idols',
+    block: 5,
+    key: 'idols',
     title: 'Чей контент вам нравится?',
     subtitle: 'Есть психологи, которыми восхищаетесь?',
     type: 'text_and_multi',
@@ -280,17 +303,14 @@ const questions: any[] = [
     optionsKey: 'idols_why'
   },
   {
-    block: 5, key: 'something_else',
+    block: 5,
+    key: 'something_else',
     title: 'Что-то ещё?',
     subtitle: 'Необычный опыт, хобби, нестандартный путь?',
     type: 'textarea',
-    placeholder: 'Это может стать вашей отстройкой. Психолог-скалолаз...'
+    placeholder: 'Это может стать вашей отстройкой. Психолог-скалолаз. Психолог-бывший-бизнесмен...'
   }
 ]
-
-// ═══════════════════════════════════════
-// КОМПОНЕНТ
-// ═══════════════════════════════════════
 
 export default function Onboarding() {
   const [step, setStep] = useState(-1)
@@ -306,28 +326,18 @@ export default function Onboarding() {
       if (!user) { router.push('/'); return }
       setUserId(user.id)
 
-      const { data: existingProfile } = await supabase
+      const { data } = await supabase
         .from('onboarding_profiles')
         .select('id')
         .eq('user_id', user.id)
         .single()
 
-      if (existingProfile) { router.push('/dashboard'); return }
-
-      // Восстанавливаем черновик
-      const { data: draft } = await supabase
-        .from('onboarding_drafts')
-        .select('step, answers')
-        .eq('user_id', user.id)
-        .single()
-
-      if (draft) {
-        setAnswers(draft.answers || {})
-        setStep(typeof draft.step === 'number' ? draft.step : 0)
-      }
+      if (data) router.push('/dashboard')
     }
     checkUser()
   }, [router])
+
+  const handleStart = () => setStep(0)
 
   const currentQuestion = step >= 0 ? questions[step] : null
   const currentBlock = currentQuestion ? blocks[currentQuestion.block] : null
@@ -345,58 +355,38 @@ export default function Onboarding() {
 
   const canProceed = () => {
     if (!currentQuestion) return false
-    const q = currentQuestion
-    const { key, type } = q
+    const { key, type, textKey, singleKey, optionsKey, single2Key } = currentQuestion
 
     if (type === 'text' || type === 'textarea') return (answers[key]?.length > 2)
     if (type === 'single') return !!answers[key]
     if (type === 'multi') return (answers[key]?.length > 0)
-    if (type === 'text_and_single') return (answers[key]?.length > 2 && !!answers[q.optionsKey])
-    if (type === 'multi_and_text') return (answers[key]?.length > 0 && answers[q.textKey]?.length > 2)
-    if (type === 'single_and_text') return (answers[key] && answers[q.textKey]?.length > 2)
-    if (type === 'multi_and_single') return (answers[key]?.length > 0 && !!answers[q.singleKey])
-    if (type === 'single_and_single') return (answers[key] && !!answers[q.single2Key])
+
+    if (type === 'text_and_single') return (answers[key]?.length > 2 && !!answers[optionsKey!])
+    if (type === 'multi_and_text') return (answers[key]?.length > 0 && answers[textKey!]?.length > 2)
+    if (type === 'single_and_text') return (answers[key] && answers[textKey!]?.length > 2)
+    if (type === 'multi_and_single') return (answers[key]?.length > 0 && !!answers[singleKey!])
+    if (type === 'single_and_single') return (answers[key] && !!answers[single2Key!])
     if (type === 'text_and_multi') return true
     if (type === 'sliders') return true
     return true
   }
 
-  const saveDraft = async (nextStep: number, nextAnswers: Record<string, any>) => {
-    if (!userId) return
-    try {
-      await supabase.from('onboarding_drafts').upsert({
-        user_id: userId,
-        step: nextStep,
-        answers: nextAnswers,
-      })
-    } catch (e) {
-      console.error('draft save error', e)
-    }
-  }
-
-  const handleNext = async () => {
+  const handleNext = () => {
     if (step < questions.length - 1) {
-      const nextStep = step + 1
-      setStep(nextStep)
-      window.scrollTo(0, 0)
-      await saveDraft(nextStep, answers)
-    } else {
-      await handleSubmit()
-    }
-  }
-
-  const handleBack = () => {
-    if (step > 0) {
-      setStep(step - 1)
+      setStep(step + 1)
       window.scrollTo(0, 0)
     } else {
-      setStep(-1)
+      handleSubmit()
     }
   }
 
   const handleSubmit = async () => {
     if (!userId) return
     setLoading(true)
+
+    const t_form = answers.tone_formal || 50
+    const t_ser = answers.tone_serious || 50
+    const t_cau = answers.tone_cautious || 50
 
     const profileData = {
       user_id: userId,
@@ -409,10 +399,12 @@ export default function Onboarding() {
       path_to_profession: answers.path_to_profession || '',
       formats: answers.formats || [],
       price: answers.price || '',
-      tone_formal: answers.tone_formal || 50,
-      tone_serious: answers.tone_serious || 50,
-      tone_cautious: answers.tone_cautious || 50,
+
+      tone_formal: t_form,
+      tone_serious: t_ser,
+      tone_cautious: t_cau,
       tone_verbal: answers.tone_verbal || '',
+
       values: answers.values || [],
       values_custom: answers.values_custom || '',
       anti_values: answers.anti_values || [],
@@ -420,23 +412,27 @@ export default function Onboarding() {
       superpowers: answers.superpowers || [],
       content_struggles: answers.content_struggles || [],
       live_voice: answers.live_voice || '',
+
       client_avatar: answers.client_avatar || '',
       client_job: answers.client_job || '',
       client_pain_phrases: answers.client_pain_phrases || '',
       client_tried: answers.client_tried || [],
       client_fear: answers.client_fear || [],
       client_result: answers.client_result || '',
+
       platforms: answers.platforms || [],
       current_followers: answers.current_followers || '',
       current_clients: answers.current_clients || '',
       client_source: answers.client_source || [],
       content_pain: answers.content_pain || '',
       content_pain_detail: answers.content_pain_detail || '',
+
       desired_clients: answers.desired_clients || '',
       goal_3_months: answers.goal_3_months || '',
       time_available: answers.time_available || '',
       video_attitude: answers.video_attitude || '',
       dream_blog: answers.dream_blog || '',
+
       idols: answers.idols || '',
       idols_why: answers.idols_why || [],
       something_else: answers.something_else || '',
@@ -448,92 +444,54 @@ export default function Onboarding() {
 
     if (error) {
       console.error('Save error:', error)
-      alert('Ошибка при сохранении.')
+      alert('Ошибка при сохранении. Проверьте добавлены ли новые колонки в Supabase (см. инструкцию).')
       setLoading(false)
       return
     }
 
-    await supabase.from('onboarding_drafts').delete().eq('user_id', userId)
     setCompleted(true)
   }
 
-  // ═══════════════════════════════════════
-  // ЭКРАН ЗАВЕРШЕНИЯ
-  // ═══════════════════════════════════════
-
+  // --- ЭКРАН ЗАВЕРШЕНИЯ ---
   if (completed) {
     return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center px-4 py-8">
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="bg-white max-w-lg w-full rounded-2xl p-6 sm:p-8 border border-brand-border text-center shadow-xl"
-        >
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center p-4 sm:p-6">
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-lg w-full rounded-2xl p-5 sm:p-8 border border-brand-border text-center shadow-xl">
           <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
             <CheckCircle className="w-8 h-8 sm:w-10 sm:h-10 text-green-600" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-brand-text mb-3 sm:mb-4">
-            🎉 Распаковка завершена!
-          </h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-brand-text mb-3 sm:mb-4">🎉 Распаковка завершена!</h1>
           <p className="text-sm sm:text-base text-brand-text-secondary mb-4 sm:mb-6 leading-relaxed">
             Спасибо что были честны — это было не просто. Мы собрали достаточно, чтобы создать вашу уникальную стратегию.
           </p>
-                 <ul className="text-left text-xs sm:text-sm text-brand-text-secondary bg-gray-50 rounded-xl p-4 sm:p-5 mb-6 sm:mb-8 space-y-2.5 sm:space-y-3">
+          <ul className="text-left text-xs sm:text-sm text-brand-text-secondary bg-gray-50 rounded-xl p-4 sm:p-5 mb-6 sm:mb-8 space-y-2 sm:space-y-3">
             <li>✅ Мы поняли <strong>КТО</strong> вы и чем отличаетесь</li>
             <li>✅ Мы услышали ваш <strong>Живой голос</strong></li>
             <li>✅ Мы собрали боли вашего <strong>Идеального клиента</strong></li>
           </ul>
-          <button
-            onClick={() => router.push('/dashboard/brand-passport')}
-            className="w-full py-3.5 sm:py-4 bg-brand-accent hover:bg-brand-accent-hover text-white rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-lg cursor-pointer active:scale-[0.97]"
-          >
-            Создать мой Паспорт бренда <ArrowRight className="w-5 h-5" />
+          <button onClick={() => router.push('/dashboard/brand-passport')} className="w-full py-3.5 sm:py-4 bg-brand-accent hover:bg-brand-accent-hover text-white rounded-xl font-bold text-sm sm:text-base transition flex items-center justify-center gap-2 shadow-lg cursor-pointer">
+            Создать мой Паспорт бренда <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </motion.div>
       </div>
     )
   }
 
-  // ═══════════════════════════════════════
-  // ЛОАДЕР
-  // ═══════════════════════════════════════
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-brand-text-secondary text-sm">Сохраняем ваш профиль...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // ═══════════════════════════════════════
-  // WELCOME-ЭКРАН (step === -1)
-  // ═══════════════════════════════════════
-
+  // --- ЭКРАН ПРИВЕТСТВИЯ ---
   if (step === -1) {
     return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center px-4 py-8">
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="max-w-2xl w-full bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 border border-brand-border shadow-2xl"
-        >
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center p-4 sm:p-6">
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="max-w-2xl bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 md:p-12 border border-brand-border shadow-2xl">
           <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold mb-4 sm:mb-6">
-            <Sparkles className="w-4 h-4" /> Глубокая распаковка
+            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Глубокая распаковка
           </div>
-
-          <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold text-brand-text mb-4 sm:mb-6 leading-tight">
-            Давайте познакомимся. По-настоящему.
-          </h1>
+          <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold text-brand-text mb-4 sm:mb-6">Давайте познакомимся. По-настоящему.</h1>
 
           <div className="text-sm sm:text-base text-brand-text-secondary mb-6 sm:mb-8 leading-relaxed space-y-3 sm:space-y-4">
             <p>Сейчас будет 22 вопроса — это займёт около <strong>25 минут</strong>. Заварите чай ☕</p>
-            <p>Почему так долго? Потому что мы не делаем шаблонный контент. Мы создаём ВАШ голос. Чем больше мы о вас узнаем — тем точнее будут посты.</p>
+            <p>Почему так долго? Потому что мы не делаем шаблонный контент. Мы создаём ВАШ голос. Чем больше мы о вас узнаем — тем точнее будут посты. Они будут звучать как вы.</p>
 
-            <div className="bg-orange-50 border border-orange-100 p-4 sm:p-5 rounded-xl text-xs sm:text-sm">
+                        <div className="bg-orange-50 border border-orange-100 p-3.5 sm:p-5 rounded-xl text-xs sm:text-base">
               <span className="font-bold text-orange-800">Три совета:</span>
               <ul className="mt-2 space-y-1.5 sm:space-y-2 text-orange-700">
                 <li>1. Отвечайте честно, а не «правильно».</li>
@@ -543,22 +501,7 @@ export default function Onboarding() {
             </div>
           </div>
 
-          {/* Блоки-превью */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 mb-6 sm:mb-8">
-            {blocks.map((block) => (
-              <div key={block.id} className="flex items-center gap-2 p-2.5 sm:p-3 rounded-xl bg-brand-bg">
-                <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg ${block.color} flex items-center justify-center shrink-0`}>
-                  <block.icon className="w-4 h-4" />
-                </div>
-                <span className="text-xs sm:text-sm font-medium text-brand-text leading-tight">{block.title}</span>
-              </div>
-            ))}
-          </div>
-
-          <button
-            onClick={() => setStep(0)}
-            className="w-full sm:w-auto px-8 py-3.5 sm:py-4 bg-brand-text hover:bg-black text-white rounded-xl font-bold text-base sm:text-lg transition flex items-center justify-center gap-3 cursor-pointer active:scale-[0.97]"
-          >
+          <button onClick={handleStart} className="w-full md:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-brand-text hover:bg-black text-white rounded-xl font-bold text-base sm:text-lg transition flex items-center justify-center gap-2 sm:gap-3 cursor-pointer">
             Начать распаковку <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </motion.div>
@@ -566,331 +509,167 @@ export default function Onboarding() {
     )
   }
 
-  // ═══════════════════════════════════════
-  // ОСНОВНОЙ ЭКРАН ВОПРОСА
-  // ═══════════════════════════════════════
-
-  if (!currentQuestion || !currentBlock) return null
-
-  const q = currentQuestion
-  const BlockIcon = currentBlock.icon
-
-  // ─── Хелпер: кнопка-опция (single) ───
-  const OptionButton = ({ opt, targetKey, selected }: { opt: string; targetKey: string; selected: boolean }) => (
-    <button
-      onClick={() => setAnswers({ ...answers, [targetKey]: opt })}
-      className={`p-3 sm:p-4 rounded-xl border-2 text-left text-sm sm:text-base transition cursor-pointer active:scale-[0.98] flex items-start gap-3 ${
-        selected
-          ? 'border-indigo-600 bg-indigo-50 text-indigo-900 font-medium'
-          : 'border-gray-200 bg-white hover:border-gray-300'
-      }`}
-    >
-      <div className={`w-5 h-5 mt-0.5 rounded-full flex items-center justify-center shrink-0 border-2 ${
-        selected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'
-      }`}>
-        {selected && <div className="w-2 h-2 bg-white rounded-full" />}
-      </div>
-      {opt}
-    </button>
-  )
-
-  // ─── Хелпер: кнопка-опция (multi) ───
-  const MultiButton = ({ opt, targetKey, selected, max }: { opt: string; targetKey: string; selected: boolean; max?: number }) => (
-    <button
-      onClick={() => toggleArrayItem(targetKey, opt, max)}
-      className={`p-3 sm:p-4 rounded-xl border-2 text-left text-sm sm:text-base transition cursor-pointer active:scale-[0.98] flex items-start gap-3 ${
-        selected
-          ? 'border-indigo-600 bg-indigo-50 text-indigo-900 font-medium'
-          : 'border-gray-200 bg-white hover:border-gray-300'
-      }`}
-    >
-      <div className={`w-5 h-5 mt-0.5 rounded flex items-center justify-center shrink-0 border-2 ${
-        selected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'
-      }`}>
-        {selected && <CheckCircle className="w-3.5 h-3.5 text-white" />}
-      </div>
-      {opt}
-    </button>
-  )
-
-  // ─── Хелпер: текстовое поле ───
-  const TextInput = ({ targetKey, placeholder, multiline = false }: { targetKey: string; placeholder?: string; multiline?: boolean }) => (
-    multiline ? (
-      <textarea
-        value={answers[targetKey] || ''}
-        onChange={(e) => setAnswers({ ...answers, [targetKey]: e.target.value })}
-        placeholder={placeholder}
-        rows={3}
-        className="w-full px-4 py-3 sm:py-4 rounded-xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-base resize-none transition"
-      />
-    ) : (
-      <input
-        type="text"
-        value={answers[targetKey] || ''}
-        onChange={(e) => setAnswers({ ...answers, [targetKey]: e.target.value })}
-        placeholder={placeholder}
-        className="w-full px-4 py-3 sm:py-4 rounded-xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-base transition"
-      />
-    )
-  )
-
-  // ─── Рендер контента по типу вопроса ───
-  const renderQuestionContent = () => {
-    switch (q.type) {
-
-      case 'text':
-        return <TextInput targetKey={q.key} placeholder={q.placeholder} />
-
-      case 'textarea':
-        return <TextInput targetKey={q.key} placeholder={q.placeholder} multiline />
-
-      case 'single':
-        return (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-            {q.options.map((opt: string) => (
-              <OptionButton key={opt} opt={opt} targetKey={q.key} selected={answers[q.key] === opt} />
-            ))}
-          </div>
-        )
-
-      case 'multi':
-        return (
-          <div className="space-y-2">
-            {q.maxChoice && (
-              <p className="text-xs text-brand-text-secondary mb-1">
-                Выберите до {q.maxChoice} ({(answers[q.key] || []).length}/{q.maxChoice})
-              </p>
-            )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-              {q.options.map((opt: string) => (
-                <MultiButton
-                  key={opt} opt={opt} targetKey={q.key}
-                  selected={(answers[q.key] || []).includes(opt)}
-                  max={q.maxChoice}
-                />
-              ))}
-            </div>
-          </div>
-        )
-
-      case 'text_and_single':
-        return (
-          <div className="space-y-4 sm:space-y-6">
-            <TextInput targetKey={q.key} placeholder={q.placeholder} />
-            <div>
-              <p className="font-semibold text-brand-text text-sm sm:text-base mb-3">И как нам к вам обращаться?</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                {q.options.map((opt: string) => (
-                  <OptionButton key={opt} opt={opt} targetKey={q.optionsKey} selected={answers[q.optionsKey] === opt} />
-                ))}
-              </div>
-            </div>
-          </div>
-        )
-
-      case 'multi_and_text':
-        return (
-          <div className="space-y-4 sm:space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-              {q.options.map((opt: string) => (
-                <MultiButton
-                  key={opt} opt={opt} targetKey={q.key}
-                  selected={(answers[q.key] || []).includes(opt)}
-                  max={q.maxChoice}
-                />
-              ))}
-            </div>
-            <div className="pt-4 border-t border-gray-100">
-              <TextInput targetKey={q.textKey} placeholder={q.textPlaceholder} multiline />
-            </div>
-          </div>
-        )
-
-      case 'single_and_text':
-        return (
-          <div className="space-y-4 sm:space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-              {q.options.map((opt: string) => (
-                <OptionButton key={opt} opt={opt} targetKey={q.key} selected={answers[q.key] === opt} />
-              ))}
-            </div>
-            <div className="pt-4 border-t border-gray-100">
-              <TextInput targetKey={q.textKey} placeholder={q.textPlaceholder} multiline />
-            </div>
-          </div>
-        )
-
-      case 'multi_and_single':
-        return (
-          <div className="space-y-4 sm:space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-              {q.options.map((opt: string) => (
-                <MultiButton
-                  key={opt} opt={opt} targetKey={q.key}
-                  selected={(answers[q.key] || []).includes(opt)}
-                />
-              ))}
-            </div>
-            <div className="pt-4 border-t border-gray-100">
-              <p className="font-semibold text-brand-text text-sm sm:text-base mb-3">Примерная стоимость:</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
-                {q.singleOptions.map((opt: string) => (
-                  <OptionButton key={opt} opt={opt} targetKey={q.singleKey} selected={answers[q.singleKey] === opt} />
-                ))}
-              </div>
-            </div>
-          </div>
-        )
-
-      case 'single_and_single':
-        return (
-          <div className="space-y-4 sm:space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-              {(q.options1 || q.options || []).map((opt: string) => (
-                <OptionButton key={opt} opt={opt} targetKey={q.key} selected={answers[q.key] === opt} />
-              ))}
-            </div>
-            <div className="pt-4 border-t border-gray-100">
-              <p className="font-semibold text-brand-text text-sm sm:text-base mb-3">Сколько времени на блог?</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                {(q.options2 || []).map((opt: string) => (
-                  <OptionButton key={opt} opt={opt} targetKey={q.single2Key} selected={answers[q.single2Key] === opt} />
-                ))}
-              </div>
-            </div>
-          </div>
-        )
-
-      case 'text_and_multi':
-        return (
-          <div className="space-y-4 sm:space-y-6">
-            <TextInput targetKey={q.key} placeholder={q.placeholder} />
-            <div>
-              <p className="font-semibold text-brand-text text-sm sm:text-base mb-3">Что именно нравится?</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                {q.options.map((opt: string) => (
-                  <MultiButton
-                    key={opt} opt={opt} targetKey={q.optionsKey}
-                    selected={(answers[q.optionsKey] || []).includes(opt)}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        )
-
-      case 'sliders':
-        return (
-          <div className="space-y-8 sm:space-y-10 bg-white p-5 sm:p-8 rounded-2xl border border-gray-100 shadow-sm">
-            {q.sliders.map((slider: any) => {
-              const val = answers[slider.key] ?? 50
-              return (
-                <div key={slider.key}>
-                  <div className="flex justify-between text-xs sm:text-sm font-bold text-gray-400 mb-3 sm:mb-4 uppercase tracking-wide">
-                    <span className={val < 40 ? 'text-indigo-600' : ''}>{slider.left}</span>
-                    <span className={val > 60 ? 'text-indigo-600' : ''}>{slider.right}</span>
-                  </div>
-                  <input
-                    type="range" min="0" max="100"
-                    value={val}
-                    onChange={(e) => setAnswers({ ...answers, [slider.key]: Number(e.target.value) })}
-                    className="w-full h-2 sm:h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                  />
-                </div>
-              )
-            })}
-          </div>
-        )
-
-      default:
-        return null
-    }
-  }
-
-  // ═══════════════════════════════════════
-  // РЕНДЕР ШАГА
-  // ═══════════════════════════════════════
+  // --- ОНБОРДИНГ ШАГИ ---
+  const q = currentQuestion!
 
   return (
-    <div className="min-h-screen bg-brand-bg pb-20 sm:pb-24">
-
-      {/* ── Хедер с прогрессом ── */}
-      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-brand-border">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <div className="h-12 sm:h-14 flex items-center justify-between">
-            <span className={`${currentBlock.color} px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full flex items-center gap-1.5 text-xs sm:text-sm font-bold`}>
-              <BlockIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">{currentBlock.title}</span>
+    <div className="min-h-screen bg-brand-bg pb-24">
+      {/* HEADER ПРОГРЕСС */}
+      <div className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-brand-border">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-between text-xs sm:text-sm font-bold mb-2 sm:mb-3">
+            <span className={currentBlock?.color + ' px-2.5 sm:px-3 py-1 rounded-full flex items-center gap-1 sm:gap-1.5'}>
+              {currentBlock && <currentBlock.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+              {currentBlock?.title}
             </span>
-            <span className="text-xs sm:text-sm text-brand-text-secondary font-semibold">
-              {step + 1} / {questions.length}
-            </span>
+            <span className="text-brand-text-secondary">{step + 1} / {questions.length}</span>
           </div>
-          <div className="h-1 sm:h-1.5 bg-gray-100 rounded-full overflow-hidden -mx-4 sm:-mx-6">
-            <motion.div
-              className="h-full bg-indigo-600 rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${Math.max(progress, 2)}%` }}
-              transition={{ duration: 0.4 }}
-            />
+          <div className="w-full bg-gray-100 rounded-full h-1 sm:h-1.5 overflow-hidden">
+            <motion.div className="bg-indigo-600 h-full" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.4 }} />
           </div>
         </div>
-      </nav>
+      </div>
 
-      {/* ── Контент вопроса ── */}
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10">
+      {/* ВОПРОС */}
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12">
         <AnimatePresence mode="wait">
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.25 }}
-          >
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-brand-text mb-2 sm:mb-3 leading-tight">
+          <motion.div key={step} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.3 }}>
+
+            <h2 className="text-xl sm:text-2xl md:text-4xl font-extrabold text-brand-text mb-3 sm:mb-4 leading-tight">
               {q.title}
             </h2>
-            {q.subtitle && (
-              <p className="text-sm sm:text-base text-brand-text-secondary mb-6 sm:mb-8">
-                {q.subtitle}
-              </p>
-            )}
+            {q.subtitle && <p className="text-sm sm:text-lg text-brand-text-secondary mb-6 sm:mb-10">{q.subtitle}</p>}
 
-            {renderQuestionContent()}
+            <div className="space-y-4 sm:space-y-6">
+
+              {/* 1. Блок текстового ввода (для text, textarea) */}
+              {(q.type === 'text' || q.type === 'textarea' || q.type === 'text_and_single' || q.type === 'text_and_multi') && (
+                <div>
+                  {q.type.includes('textarea') ? (
+                    <textarea
+                      value={answers[q.key] || ''} onChange={e => setAnswers({...answers, [q.key]: e.target.value})}
+                      placeholder={q.placeholder} rows={3}
+                      className="w-full p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-sm sm:text-lg resize-none"
+                    />
+                  ) : (
+                    <input
+                      type="text" value={answers[q.key] || ''} onChange={e => setAnswers({...answers, [q.key]: e.target.value})}
+                      placeholder={q.placeholder}
+                      className="w-full p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-sm sm:text-lg"
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* 2. Основная сетка опций (для single, multi, _and_) */}
+              {(q.type === 'single' || q.type === 'multi' || q.type === 'multi_and_text' || q.type === 'single_and_text' || q.type === 'multi_and_single' || q.type === 'single_and_single') && (q.options || q.options1) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3 mt-3 sm:mt-4">
+                  {(q.options1 || q.options || []).map(opt => {
+                    const isMulti = q.type.includes('multi')
+                    const isSelected = isMulti ? (answers[q.key] || []).includes(opt) : answers[q.key] === opt
+
+                    return (
+                      <button
+                        key={opt} onClick={() => isMulti ? toggleArrayItem(q.key, opt, q.maxChoice) : setAnswers({...answers, [q.key]: opt})}
+                        className={`text-left p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition font-medium cursor-pointer flex items-start gap-2.5 sm:gap-3 text-sm sm:text-base
+                          ${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                      >
+                        <div className={`w-4 h-4 sm:w-5 sm:h-5 mt-0.5 rounded flex items-center justify-center shrink-0 border ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
+                          {isSelected && <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />}
+                        </div>
+                        {opt}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* 3. Дополнительный текстовый ввод (textarea) */}
+              {(q.textKey) && (
+                <div className="pt-4 sm:pt-6 mt-4 sm:mt-6 border-t border-gray-100">
+                  <textarea
+                    value={answers[q.textKey] || ''} onChange={e => setAnswers({...answers, [q.textKey]: e.target.value})}
+                    placeholder={q.textPlaceholder} rows={3}
+                    className="w-full p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-sm sm:text-lg resize-none"
+                  />
+                </div>
+              )}
+
+              {/* 4. Дополнительная сетка опций */}
+              {(q.optionsKey || q.singleKey || q.single2Key) && (
+                <div className="pt-4 sm:pt-6 mt-4 sm:mt-6 border-t border-gray-100">
+                  <p className="font-bold text-brand-text mb-3 sm:mb-4 text-sm sm:text-lg">
+                    {q.type === 'text_and_single' ? 'И как нам к вам обращаться?' :
+                     q.type === 'multi_and_single' ? 'Примерная стоимость вашей сессии?' :
+                     q.single2Key === 'time_available' ? 'Сколько времени вы готовы тратить на блог?' :
+                     'Укажите дополнительно:'}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+                    {(q.singleOptions || q.options2 || q.options || []).map(opt => {
+                      const tgtKey = q.optionsKey || q.singleKey || q.single2Key!
+                      const isMulti = q.type.includes('multi') && !!q.optionsKey
+                      const isSelected = isMulti ? (answers[tgtKey] || []).includes(opt) : answers[tgtKey] === opt
+
+                      return (
+                        <button key={opt} onClick={() => isMulti ? toggleArrayItem(tgtKey, opt) : setAnswers({...answers, [tgtKey]: opt})}
+                          className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 font-medium transition cursor-pointer text-left flex items-start gap-2.5 sm:gap-3 text-sm sm:text-base
+                            ${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-gray-200 hover:bg-gray-50'}`}
+                        >
+                          <div className={`w-4 h-4 sm:w-5 sm:h-5 mt-0.5 rounded-full flex items-center justify-center shrink-0 border ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
+                            {isSelected && <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-white rounded-full" />}
+                          </div>
+                          {opt}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Sliders (Tone of voice) */}
+              {q.type === 'sliders' && q.sliders && (
+                <div className="space-y-8 sm:space-y-10 bg-white p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-gray-100 mt-4 sm:mt-6 shadow-sm">
+                  {q.sliders.map(slider => (
+                    <div key={slider.key}>
+                      <div className="flex justify-between text-xs sm:text-sm font-bold text-gray-400 mb-3 sm:mb-4 px-1 sm:px-2 uppercase tracking-wide">
+                        <span className={answers[slider.key] < 50 ? 'text-indigo-600' : ''}>{slider.left}</span>
+                        <span className={answers[slider.key] > 50 ? 'text-indigo-600' : ''}>{slider.right}</span>
+                      </div>
+                      <input
+                        type="range" min="0" max="100"
+                        value={answers[slider.key] || 50}
+                        onChange={e => setAnswers({...answers, [slider.key]: Number(e.target.value)})}
+                        className="w-full accent-indigo-600 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+            </div>
+
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* ── Навигация (sticky снизу) ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-t border-brand-border">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
+      {/* FOOTER НАВИГАЦИЯ */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-brand-border py-3 sm:py-4 px-4 sm:px-6 z-50">
+        <div className="max-w-3xl mx-auto flex items-center justify-between">
           <button
-            onClick={handleBack}
-            className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 sm:py-3 text-sm font-semibold text-gray-500 hover:text-brand-text rounded-xl border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition cursor-pointer active:scale-[0.97]"
+            onClick={() => setStep(step - 1)} disabled={step === 0}
+            className={`flex items-center gap-1.5 sm:gap-2 font-semibold transition cursor-pointer px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl border-2 text-sm sm:text-base ${step === 0 ? 'text-gray-300 border-transparent' : 'text-gray-500 border-gray-200 hover:text-black hover:bg-gray-50'}`}
           >
-            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="hidden sm:inline">Назад</span>
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" /> Назад
           </button>
 
           <button
-            onClick={handleNext}
-            disabled={!canProceed() || loading}
-            className={`flex items-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 rounded-full font-bold text-sm transition shadow-lg cursor-pointer active:scale-[0.97] ${
-              canProceed() && !loading
-                ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200'
-                : 'bg-gray-100 text-gray-400 shadow-none cursor-not-allowed'
-            }`}
+            onClick={handleNext} disabled={!canProceed() || loading}
+            className={`px-5 sm:px-8 py-2.5 sm:py-3 rounded-full font-bold flex items-center gap-1.5 sm:gap-2 transition shadow-lg cursor-pointer text-sm sm:text-base
+              ${canProceed() && !loading ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200' : 'bg-gray-100 text-gray-400 shadow-none'}`}
           >
-            {loading
-              ? 'Сохраняем...'
-              : step === questions.length - 1
-                ? <>Завершить 🎉</>
-                : <>Далее <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" /></>
-            }
+            {loading ? 'Сохраняем...' : step === questions.length - 1 ? 'Завершить 🎉' : <>Далее <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5"/></>}
           </button>
         </div>
-        {/* safe area для iPhone с notch */}
-        <div className="h-[env(safe-area-inset-bottom)]" />
       </div>
     </div>
   )
