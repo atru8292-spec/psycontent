@@ -47,7 +47,7 @@ const BLOCK_META: Record<string, { label: string, icon: any, color: string }> = 
 function TopicCard({ topic, index, onGenerate }: { topic: Topic; index: number; onGenerate: (t: Topic) => void }) {
   const fmt = FORMAT_META[topic.format] || FORMAT_META.post
   const Icon = fmt.icon
-  const pillarColor = PILLAR_COLORS[topic.pillar] || 'bg-gray-100 text-gray-700'
+  const pillarColor = PILLAR_COLORS[topic.pillar] || 'bg-gray-100 text-brand-text'
   const blk = BLOCK_META[topic.block] || { label: topic.block, icon: Zap, color: 'text-gray-600' }
   const BlockIcon = blk.icon
 
@@ -61,16 +61,16 @@ function TopicCard({ topic, index, onGenerate }: { topic: Topic; index: number; 
       {/* Header row */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
+          <div className="flex items-center gap-1 bg-brand-bg px-2 py-0.5 rounded-md border border-brand-border">
              <BlockIcon className={`w-3 h-3 ${blk.color}`} />
-             <span className={`text-[10px] font-bold uppercase tracking-wider ${blk.color}`}>{blk.label}</span>
+             <span className={`text-xs font-bold uppercase tracking-wider ${blk.color}`}>{blk.label}</span>
           </div>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${pillarColor}`}>
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${pillarColor}`}>
             {topic.pillar}
           </span>
           <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${fmt.bg}`}>
             <Icon className={`w-3 h-3 ${fmt.color}`} />
-            <span className={`text-[10px] font-bold uppercase tracking-wider ${fmt.color}`}>{fmt.label}</span>
+            <span className={`text-xs font-bold uppercase tracking-wider ${fmt.color}`}>{fmt.label}</span>
           </div>
         </div>
       </div>
@@ -91,19 +91,19 @@ function TopicCard({ topic, index, onGenerate }: { topic: Topic; index: number; 
 
       {/* Details */}
       <div className="space-y-2 mb-4 grow">
-        <p className="text-[11px] text-brand-text-secondary leading-relaxed">
+        <p className="text-xs text-brand-text-secondary leading-relaxed">
           <span className="font-semibold text-brand-text">Почему зайдёт: </span>
           {topic.why}
         </p>
-        <div className="flex items-start gap-1.5 bg-gray-50 p-2 rounded-lg">
+        <div className="flex items-start gap-1.5 bg-brand-bg p-2 rounded-lg">
           <Globe className="w-3.5 h-3.5 text-brand-text-secondary shrink-0 mt-0.5" />
-          <p className="text-[11px] text-brand-text-secondary leading-snug">
-             <span className="font-semibold text-gray-700">Источник: </span>
+          <p className="text-xs text-brand-text-secondary leading-snug">
+             <span className="font-semibold text-brand-text">Источник: </span>
              {topic.source}
           </p>
         </div>
         {topic.cta && (
-           <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mt-2">
+           <p className="text-xs uppercase tracking-wider font-bold text-brand-text-secondary mt-2">
               CTA: <span className="text-brand-accent">{topic.cta}</span>
            </p>
         )}
@@ -112,7 +112,7 @@ function TopicCard({ topic, index, onGenerate }: { topic: Topic; index: number; 
       {/* CTA Button */}
       <button
         onClick={() => onGenerate(topic)}
-        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand-accent text-white text-xs font-semibold opacity-0 group-hover:opacity-100 transition cursor-pointer hover:bg-brand-accent-hover mt-auto"
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand-accent text-white text-xs font-semibold opacity-100 transition cursor-pointer hover:bg-brand-accent-hover mt-auto"
       >
         <PenTool className="w-3.5 h-3.5" />
         Написать пост
@@ -268,7 +268,7 @@ export default function ResearchTopics() {
                     <Icon className="w-5 h-5" />
                   </div>
                   <p className="font-bold text-brand-text text-[13px]">{label}</p>
-                  <p className="text-[11px] text-brand-text-secondary mt-1">{desc}</p>
+                  <p className="text-xs text-brand-text-secondary mt-1">{desc}</p>
                 </div>
               ))}
             </div>
@@ -333,8 +333,8 @@ export default function ResearchTopics() {
                     }`}
                   >
                     {b.label}
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                       filterBlock === b.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
+                       filterBlock === b.id ? 'bg-white/20 text-white' : 'bg-brand-highlight text-brand-text-secondary'
                     }`}>
                        {count}
                     </span>
