@@ -46,7 +46,7 @@ const FORMAT_COLORS: Record<string, string> = {
   пост: 'bg-blue-100 text-blue-700',
   карусель: 'bg-purple-100 text-purple-700',
   stories: 'bg-amber-100 text-amber-700',
-  универсальный: 'bg-gray-100 text-gray-600',
+  универсальный: 'bg-brand-highlight text-brand-text-secondary',
 }
 
 const TYPE_EMOJIS: Record<string, string> = {
@@ -247,27 +247,27 @@ export default function HooksGeneratorPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-[#6B7AA1] border-t-transparent rounded-full" />
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F7FA]">
+    <div className="min-h-screen bg-brand-bg">
       {/* ─── Навбар ─── */}
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-[#DCE1EB]">
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-brand-border">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <button
             onClick={() => router.push('/dashboard')}
-            className="flex items-center gap-2 text-[#828AA0] hover:text-[#2D3748] transition cursor-pointer"
+            className="flex items-center gap-2 text-brand-text-secondary hover:text-brand-text transition cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="hidden sm:inline">Назад в кабинет</span>
           </button>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-[#6B7AA1]" />
-            <span className="font-bold text-[#2D3748]">PsyContent</span>
+            <Sparkles className="w-5 h-5 text-brand-accent" />
+            <span className="font-bold text-brand-text">PsyContent</span>
           </div>
         </div>
       </nav>
@@ -282,16 +282,16 @@ export default function HooksGeneratorPage() {
             </div>
             <button
               onClick={() => setShowEducation(!showEducation)}
-              className="inline-flex items-center gap-1.5 text-sm text-[#6B7AA1] hover:text-[#5A6890] transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-sm text-brand-accent hover:text-brand-accent/80 transition cursor-pointer"
             >
               <HelpCircle className="w-4 h-4" />
               Что такое хук?
             </button>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-[#2D3748] mb-2">
+          <h1 className="text-3xl md:text-4xl font-bold text-brand-text mb-2">
             12 цепляющих хуков за один клик
           </h1>
-          <p className="text-[#828AA0]">
+          <p className="text-brand-text-secondary">
             Для Reels, постов, каруселей и Stories — чтобы остановить скролл за 1.5 секунды
           </p>
         </motion.div>
@@ -305,71 +305,65 @@ export default function HooksGeneratorPage() {
               exit={{ opacity: 0, height: 0 }}
               className="mb-8 overflow-hidden"
             >
-              <div className="bg-white rounded-2xl border border-[#DCE1EB] p-6 md:p-8">
-                {/* Закрыть */}
+              <div className="bg-white rounded-2xl border border-brand-border p-6 md:p-8">
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
                       <Lightbulb className="w-5 h-5 text-amber-600" />
                     </div>
-                    <h2 className="text-xl font-bold text-[#2D3748]">{HOOK_EDUCATION.title}</h2>
+                    <h2 className="text-xl font-bold text-brand-text">{HOOK_EDUCATION.title}</h2>
                   </div>
                   <button
                     onClick={() => setShowEducation(false)}
-                    className="p-1.5 text-[#828AA0] hover:text-[#2D3748] transition cursor-pointer"
+                    className="p-1.5 text-brand-text-secondary hover:text-brand-text transition cursor-pointer"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
-                {/* Что такое */}
-                <p className="text-[#4A5568] mb-6 leading-relaxed">{HOOK_EDUCATION.intro}</p>
+                <p className="text-brand-text leading-relaxed mb-6">{HOOK_EDUCATION.intro}</p>
 
-                {/* Наука */}
-                <div className="bg-[#F5F7FA] rounded-xl p-5 mb-6">
-                  <p className="text-sm text-[#4A5568] mb-4">{HOOK_EDUCATION.science}</p>
+                <div className="bg-brand-bg rounded-xl p-5 mb-6">
+                  <p className="text-sm text-brand-text mb-4">{HOOK_EDUCATION.science}</p>
                   <div className="grid sm:grid-cols-3 gap-3">
                     {HOOK_EDUCATION.triggers.map((t) => (
-                      <div key={t.name} className="bg-white rounded-lg p-4 border border-[#DCE1EB]">
+                      <div key={t.name} className="bg-white rounded-lg p-4 border border-brand-border">
                         <div className="text-2xl mb-2">{t.icon}</div>
-                        <div className="font-semibold text-[#2D3748] text-sm mb-1">{t.name}</div>
-                        <div className="text-xs text-[#828AA0]">{t.desc}</div>
+                        <div className="font-semibold text-brand-text text-sm mb-1">{t.name}</div>
+                        <div className="text-sm text-brand-text-secondary">{t.desc}</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* 12 типов */}
-                <h3 className="font-bold text-[#2D3748] mb-4">12 типов хуков</h3>
+                <h3 className="font-bold text-brand-text mb-4">12 типов хуков</h3>
                 <div className="grid sm:grid-cols-2 gap-2 mb-6">
                   {HOOK_EDUCATION.types.map((t) => (
                     <div
                       key={t.name}
-                      className="flex items-start gap-3 p-3 rounded-lg bg-[#F5F7FA] hover:bg-[#EDF0F7] transition"
+                      className="flex items-start gap-3 p-3 rounded-lg bg-brand-bg hover:bg-brand-highlight transition"
                     >
                       <span className="text-lg flex-shrink-0">{t.emoji}</span>
                       <div>
-                        <div className="text-sm font-semibold text-[#2D3748]">{t.name}</div>
-                        <div className="text-xs text-[#828AA0] italic">«{t.example}»</div>
+                        <div className="text-sm font-semibold text-brand-text">{t.name}</div>
+                        <div className="text-sm text-brand-text-secondary italic">«{t.example}»</div>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                             {/* Где использовать */}
-                <h3 className="font-bold text-[#2D3748] mb-3">Где использовать хуки</h3>
+                <h3 className="font-bold text-brand-text mb-3">Где использовать хуки</h3>
                 <div className="grid sm:grid-cols-2 gap-2">
                   {HOOK_EDUCATION.whereToUse.map((w) => (
-                    <div key={w.format} className="flex items-center gap-3 p-3 rounded-lg bg-[#F5F7FA]">
-                      <span className="text-sm font-bold text-[#6B7AA1] w-20 flex-shrink-0">
+                    <div key={w.format} className="flex items-center gap-3 p-3 rounded-lg bg-brand-bg">
+                      <span className="text-sm font-bold text-brand-accent w-20 flex-shrink-0">
                         {w.format}
                       </span>
-                      <span className="text-xs text-[#828AA0]">{w.desc}</span>
+                      <span className="text-sm text-brand-text-secondary">{w.desc}</span>
                     </div>
                   ))}
                 </div>
 
-                {/* Совет */}
                 <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
                   <p className="text-sm text-amber-800">
                     💡 <strong>Совет:</strong> Один хук можно использовать в разных форматах.
@@ -388,9 +382,9 @@ export default function HooksGeneratorPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-2xl border border-[#DCE1EB] p-6 mb-8"
+          className="bg-white rounded-2xl border border-brand-border p-6 mb-8"
         >
-          <label className="block text-sm font-semibold text-[#2D3748] mb-3">
+          <label className="block text-sm font-semibold text-brand-text mb-3">
             О чём хуки?
           </label>
 
@@ -402,12 +396,12 @@ export default function HooksGeneratorPage() {
                 onChange={(e) => setTopic(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !generating && topic.trim() && handleGenerate()}
                 placeholder="Например: тревога, границы, самооценка..."
-                className="w-full px-4 py-3.5 rounded-xl border border-[#DCE1EB] bg-white text-[#2D3748] focus:outline-none focus:ring-2 focus:ring-[#6B7AA1]/50 focus:border-[#6B7AA1] transition pr-12"
+                className="w-full px-4 py-3.5 rounded-xl border border-brand-border bg-white text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition pr-12"
               />
               <button
                 onClick={pickRandomTopic}
                 title="Случайная тема"
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-[#828AA0] hover:text-[#6B7AA1] transition cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-brand-text-secondary hover:text-brand-accent transition cursor-pointer"
               >
                 <Shuffle className="w-4 h-4" />
               </button>
@@ -418,8 +412,8 @@ export default function HooksGeneratorPage() {
               disabled={generating || !topic.trim()}
               className={`px-6 py-3.5 rounded-xl font-medium transition flex items-center gap-2 cursor-pointer ${
                 generating || !topic.trim()
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-[#6B7AA1] text-white hover:bg-[#5A6890]'
+                  ? 'bg-brand-highlight text-brand-text-secondary cursor-not-allowed'
+                  : 'bg-brand-accent text-white hover:bg-brand-accent/90 shadow-sm'
               }`}
             >
               {generating ? (
@@ -442,10 +436,10 @@ export default function HooksGeneratorPage() {
               <button
                 key={t}
                 onClick={() => setTopic(t)}
-                className={`text-xs px-3 py-1.5 rounded-full border transition cursor-pointer ${
+                className={`text-sm px-3 py-1.5 rounded-full border transition cursor-pointer ${
                   topic === t
-                    ? 'bg-[#6B7AA1] text-white border-[#6B7AA1]'
-                    : 'border-[#DCE1EB] text-[#828AA0] hover:border-[#6B7AA1] hover:text-[#6B7AA1]'
+                    ? 'bg-brand-accent text-white border-brand-accent'
+                    : 'border-brand-border text-brand-text-secondary hover:border-brand-accent hover:text-brand-accent'
                 }`}
               >
                 {t}
@@ -477,9 +471,9 @@ export default function HooksGeneratorPage() {
               exit={{ opacity: 0 }}
               className="text-center py-16"
             >
-              <Loader2 className="w-10 h-10 text-[#6B7AA1] animate-spin mx-auto mb-4" />
-              <p className="font-semibold text-[#2D3748]">AI придумывает хуки...</p>
-              <p className="text-sm text-[#828AA0] mt-1">10-15 секунд</p>
+              <Loader2 className="w-10 h-10 text-brand-accent animate-spin mx-auto mb-4" />
+              <p className="font-semibold text-brand-text">AI придумывает хуки...</p>
+              <p className="text-sm text-brand-text-secondary mt-1">10–15 секунд</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -492,58 +486,58 @@ export default function HooksGeneratorPage() {
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={() => setFilterFormat(null)}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition cursor-pointer ${
+                  className={`text-sm px-3 py-1.5 rounded-full border transition cursor-pointer ${
                     !filterFormat
-                      ? 'bg-[#6B7AA1] text-white border-[#6B7AA1]'
-                      : 'border-[#DCE1EB] text-[#828AA0] hover:border-[#6B7AA1]'
+                      ? 'bg-brand-accent text-white border-brand-accent'
+                      : 'border-brand-border text-brand-text-secondary hover:border-brand-accent hover:text-brand-accent'
                   }`}
                 >
                   Все ({hooks.length})
                 </button>
-                {['reels', 'пост', 'карусель', 'stories'].map((f) => {
-                  const count = hooks.filter((h) => h.use?.toLowerCase().includes(f)).length
-                  if (count === 0) return null
+                {Object.keys(FORMAT_ICONS).map((fmt) => {
+                  const count = hooks.filter((h) => h.use?.toLowerCase().includes(fmt)).length
+                  if (!count) return null
                   return (
                     <button
-                      key={f}
-                      onClick={() => setFilterFormat(filterFormat === f ? null : f)}
-                      className={`text-xs px-3 py-1.5 rounded-full border transition cursor-pointer capitalize ${
-                        filterFormat === f
-                          ? 'bg-[#6B7AA1] text-white border-[#6B7AA1]'
-                          : 'border-[#DCE1EB] text-[#828AA0] hover:border-[#6B7AA1]'
+                      key={fmt}
+                      onClick={() => setFilterFormat(filterFormat === fmt ? null : fmt)}
+                      className={`text-sm px-3 py-1.5 rounded-full border transition cursor-pointer capitalize ${
+                        filterFormat === fmt
+                          ? 'bg-brand-accent text-white border-brand-accent'
+                          : 'border-brand-border text-brand-text-secondary hover:border-brand-accent hover:text-brand-accent'
                       }`}
                     >
-                      {f} ({count})
+                      {fmt} ({count})
                     </button>
                   )
                 })}
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={copyAll}
-                  className="flex items-center gap-1.5 text-xs text-[#6B7AA1] hover:text-[#5A6890] transition cursor-pointer"
+                  className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-1.5 rounded-lg hover:bg-brand-highlight border border-brand-border"
                 >
-                  {copiedAll ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copiedAll ? 'Скопировано!' : 'Копировать все'}
+                  {copiedAll ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                  Скопировать все
                 </button>
                 <button
                   onClick={handleGenerate}
-                  className="flex items-center gap-1.5 text-xs text-[#6B7AA1] hover:text-[#5A6890] transition cursor-pointer"
+                  className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-1.5 rounded-lg hover:bg-brand-highlight border border-brand-border"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  Ещё 12
+                  <RefreshCw className="w-4 h-4" />
+                  <span className="hidden sm:inline">Перегенерировать</span>
                 </button>
               </div>
             </div>
 
             {/* Карточки хуков */}
-            <div className="grid gap-4">
+            <div className="space-y-3">
               {filteredHooks.map((hook, index) => {
-                const formatKey = getFormatKey(hook.use)
-                const IconComponent = FORMAT_ICONS[formatKey] || Zap
-                const colorClass = FORMAT_COLORS[formatKey] || FORMAT_COLORS.универсальный
                 const emoji = getTypeEmoji(hook.type)
+                const formatKey = getFormatKey(hook.use)
+                const colorClass = FORMAT_COLORS[formatKey] || FORMAT_COLORS['универсальный']
+                const IconComponent = FORMAT_ICONS[formatKey] || Zap
                 const isExpanded = expandedHook === index
 
                 return (
@@ -552,40 +546,35 @@ export default function HooksGeneratorPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.04 }}
-                    className="group bg-white rounded-xl border border-[#DCE1EB] hover:border-[#6B7AA1] hover:shadow-md transition"
+                    className="group bg-white rounded-xl border border-brand-border hover:border-brand-accent/40 hover:shadow-md transition"
                   >
                     <div className="p-5">
                       <div className="flex items-start gap-4">
                         {/* Номер + эмодзи */}
-                        <div className="w-10 h-10 rounded-full bg-[#F5F7FA] flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-brand-bg flex items-center justify-center flex-shrink-0">
                           <span className="text-lg">{emoji}</span>
                         </div>
 
                         {/* Контент */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-[#2D3748] text-lg font-medium leading-snug mb-3">
+                          <p className="text-brand-text text-base font-medium leading-snug mb-3">
                             &laquo;{hook.hook}&raquo;
                           </p>
 
                           <div className="flex items-center gap-2 flex-wrap">
-                            {/* Тип хука */}
-                            <span className="text-xs bg-[#F5F7FA] text-[#828AA0] px-2.5 py-1 rounded-full capitalize">
+                            <span className="text-sm bg-brand-bg text-brand-text-secondary px-2.5 py-1 rounded-full capitalize">
                               {hook.type}
                             </span>
 
-                            {/* Где использовать */}
-                            <span
-                              className={`text-xs px-2.5 py-1 rounded-full flex items-center gap-1 ${colorClass}`}
-                            >
+                            <span className={`text-sm px-2.5 py-1 rounded-full flex items-center gap-1 ${colorClass}`}>
                               <IconComponent className="w-3 h-3" />
                               {hook.use}
                             </span>
 
-                            {/* Почему работает */}
                             {hook.why && (
                               <button
                                 onClick={() => setExpandedHook(isExpanded ? null : index)}
-                                className="text-xs text-[#6B7AA1] hover:text-[#5A6890] flex items-center gap-1 transition cursor-pointer"
+                                className="text-sm text-brand-accent hover:text-brand-accent/80 flex items-center gap-1 transition cursor-pointer"
                               >
                                 {isExpanded ? (
                                   <ChevronUp className="w-3 h-3" />
@@ -601,7 +590,7 @@ export default function HooksGeneratorPage() {
                         {/* Копировать */}
                         <button
                           onClick={() => copyHook(index)}
-                          className="p-2 text-[#DCE1EB] group-hover:text-[#6B7AA1] hover:bg-[#F5F7FA] rounded-lg transition cursor-pointer flex-shrink-0"
+                          className="p-2 text-brand-border group-hover:text-brand-accent hover:bg-brand-bg rounded-lg transition cursor-pointer flex-shrink-0"
                           title="Копировать хук"
                         >
                           {copiedIndex === index ? (
@@ -623,8 +612,8 @@ export default function HooksGeneratorPage() {
                           className="overflow-hidden"
                         >
                           <div className="px-5 pb-4 pt-0">
-                            <div className="p-3 bg-[#F5F7FA] rounded-lg border border-[#DCE1EB]">
-                              <p className="text-xs text-[#828AA0] leading-relaxed">
+                            <div className="p-3 bg-brand-bg rounded-lg border border-brand-border">
+                              <p className="text-sm text-brand-text-secondary leading-relaxed">
                                 <Lightbulb className="w-3 h-3 inline mr-1 text-amber-500" />
                                 {hook.why}
                               </p>
@@ -643,24 +632,16 @@ export default function HooksGeneratorPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="mt-8 p-5 bg-gradient-to-r from-[#6B7AA1]/5 to-[#8E9CC2]/10 rounded-xl border border-[#DCE1EB]"
+              className="mt-8 p-5 bg-brand-highlight rounded-xl border border-brand-border"
             >
-              <h4 className="font-semibold text-[#2D3748] text-sm mb-2">
+              <h4 className="font-semibold text-brand-text text-sm mb-3">
                 🎯 Как выбрать лучший хук?
               </h4>
-              <ul className="text-sm text-[#828AA0] space-y-1.5">
-                <li>
-                  • <strong>Для охватов</strong> — выбирайте парадокс, провокацию или ломающий шаблон
-                </li>
-                <li>
-                  • <strong>Для вовлечения</strong> — вопрос, самоидентичность или пост-диагностика
-                </li>
-                <li>
-                  • <strong>Для доверия</strong> — признание, история или метафора
-                </li>
-                <li>
-                  • <strong>Для продаж</strong> — боль/узнавание + цифра/факт
-                </li>
+              <ul className="text-sm text-brand-text-secondary space-y-2">
+                <li>• <strong className="text-brand-text">Для охватов</strong> — выбирайте парадокс, провокацию или ломающий шаблон</li>
+                <li>• <strong className="text-brand-text">Для вовлечения</strong> — вопрос, самоидентичность или пост-диагностика</li>
+                <li>• <strong className="text-brand-text">Для доверия</strong> — признание, история или метафора</li>
+                <li>• <strong className="text-brand-text">Для продаж</strong> — боль/узнавание + цифра/факт</li>
               </ul>
             </motion.div>
           </motion.div>
@@ -677,8 +658,8 @@ export default function HooksGeneratorPage() {
             <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-4">
               <Zap className="w-8 h-8 text-amber-600" />
             </div>
-            <h3 className="font-semibold text-[#2D3748] mb-2">Введите тему и нажмите «Сгенерировать»</h3>
-            <p className="text-sm text-[#828AA0] max-w-md mx-auto">
+            <h3 className="font-semibold text-brand-text mb-2">Введите тему и нажмите «Сгенерировать»</h3>
+            <p className="text-sm text-brand-text-secondary max-w-md mx-auto">
               AI создаст 12 хуков разных типов — для Reels, постов, каруселей и Stories.
               Каждый хук персонализирован под ваш стиль и подход.
             </p>
