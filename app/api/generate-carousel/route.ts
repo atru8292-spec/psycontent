@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
     ])
 
     const profile = profileRes.data || {}
-    const passport = passportRes.data?.content || ''
+    const passport = typeof passportRes.data?.content === 'string' ? passportRes.data.content : (passportRes.data?.content ? JSON.stringify(passportRes.data.content) : '')
 
     let profileContext = ''
     try {

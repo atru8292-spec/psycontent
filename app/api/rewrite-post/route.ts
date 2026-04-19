@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
     ])
 
     const profile = profileRes.data || {}
-    const passport = passportRes.data?.content || ''
+    const passport = typeof passportRes.data?.content === 'string' ? passportRes.data.content : (passportRes.data?.content ? JSON.stringify(passportRes.data.content) : '')
     const approaches = Array.isArray(profile.approaches) ? profile.approaches : []
 
     const profileContext = buildProfileContext(profile)
@@ -215,6 +215,6 @@ ${sourceText}
     return NextResponse.json({ post })
   } catch (error: any) {
     console.error('Rewrite API error:', error)
-    return NextResponse.json({ error: 'Не удалось переписать текст' }, { status: 500 })
+    return NextResponse.json({ error: `Не удалось переписать текст: ${error?.message || String(error)}` }, { status: 500 })
   }
 }

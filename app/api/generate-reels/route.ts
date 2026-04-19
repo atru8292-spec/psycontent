@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
     ])
 
     const profile = profileRes.data || {}
-    const passport = passportRes.data?.content || ''
+    const passport = typeof passportRes.data?.content === 'string' ? passportRes.data.content : (passportRes.data?.content ? JSON.stringify(passportRes.data.content) : '')
     const approaches = Array.isArray(profile.approaches) ? profile.approaches : []
 
     const profileContext = buildProfileContext(profile)
@@ -196,6 +196,6 @@ ${getStyleInstruction(videoStyle)}
     return NextResponse.json({ script })
   } catch (error: any) {
     console.error('Reels API error:', error)
-    return NextResponse.json({ error: 'Не удалось сгенерировать скрипт' }, { status: 500 })
+    return NextResponse.json({ error: `Не удалось сгенерировать скрипт: ${error?.message || error}` }, { status: 500 })
   }
 }
