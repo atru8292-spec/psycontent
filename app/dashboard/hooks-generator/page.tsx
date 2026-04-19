@@ -400,7 +400,8 @@ export default function HooksGeneratorPage() {
             О чём хуки?
           </label>
 
-          <div className="flex gap-3">
+          {/* Инпут + кнопка */}
+          <div className="flex gap-3 mb-3">
             <div className="flex-1 relative">
               <input
                 type="text"
@@ -418,17 +419,10 @@ export default function HooksGeneratorPage() {
                 <Shuffle className="w-4 h-4" />
               </button>
             </div>
-              {/* Выбор модели AI */}
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs text-brand-text-secondary">AI-модель:</span>
-                <ModelPicker value={selectedModel} onChange={setSelectedModel} />
-              </div>
-
-
             <button
               onClick={handleGenerate}
               disabled={generating || !topic.trim()}
-              className={`px-6 py-3.5 rounded-xl font-medium transition flex items-center gap-2 cursor-pointer ${
+              className={`px-5 py-3.5 rounded-xl font-medium transition flex items-center gap-2 cursor-pointer shrink-0 ${
                 generating || !topic.trim()
                   ? 'bg-brand-highlight text-brand-text-secondary cursor-not-allowed'
                   : 'bg-brand-accent text-white hover:bg-brand-accent/90 shadow-sm'
@@ -446,6 +440,12 @@ export default function HooksGeneratorPage() {
                 </>
               )}
             </button>
+          </div>
+
+          {/* Выбор модели AI */}
+          <div className="flex items-center justify-between mt-2 mb-1">
+            <span className="text-xs text-brand-text-secondary">AI-модель:</span>
+            <ModelPicker value={selectedModel} onChange={setSelectedModel} />
           </div>
 
           {/* Быстрые темы */}
