@@ -146,22 +146,7 @@ function PostGeneratorContent() {
       
       setResult(data.post)
 
-      const { error: saveError } = await supabase
-        .from('generated_posts')
-        .insert({
-          user_id: user.id,
-          topic: topic,
-          format: selectedFormat,
-          category: pillarLabel,
-          content: data.post,
-          source: fromPlan ? 'content-plan' : 'generator',
-        })
-
-      if (saveError) {
-        console.error('Save error:', saveError)
-      } else {
-        setSaved(true)
-      }
+      setSaved(true)
 
     } catch (err: any) {
       setError(err.message)
