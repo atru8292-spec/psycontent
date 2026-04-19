@@ -195,23 +195,22 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
         </div>
       )}
 
-      <AnimatePresence>
-        {hover && !item.done && (
-          <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }} className="px-4 pb-4">
-            <button
-              onClick={(e) => { e.stopPropagation(); onGenerate(); }}
-              className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-white text-xs font-semibold transition cursor-pointer ${
-                item.format === 'carousel' 
-                  ? 'bg-blue-500 hover:bg-blue-600' 
-                  : 'bg-brand-accent hover:bg-brand-accent-hover'
-              }`}
-            >
-              {item.format === 'carousel' ? <Layers className="w-3.5 h-3.5" /> : <PenTool className="w-3.5 h-3.5" />}
-              {buttonText}
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Кнопка: всегда на мобиле, при hover на десктопе */}
+      {!item.done && (
+        <div className={`px-4 pb-4 md:transition-all md:duration-200 ${hover ? 'md:block' : 'md:hidden'} block`}>
+          <button
+            onClick={(e) => { e.stopPropagation(); onGenerate(); }}
+            className={`w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white text-xs font-semibold transition cursor-pointer ${
+              item.format === 'carousel' 
+                ? 'bg-blue-500 hover:bg-blue-600' 
+                : 'bg-brand-accent hover:bg-brand-accent-hover'
+            }`}
+          >
+            {item.format === 'carousel' ? <Layers className="w-3.5 h-3.5" /> : <PenTool className="w-3.5 h-3.5" />}
+            {buttonText}
+          </button>
+        </div>
+      )}
     </motion.div>
   )
 }
@@ -407,24 +406,28 @@ export default function ContentPlan() {
   return (
     <div className="min-h-screen bg-brand-bg">
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-brand-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
-          <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2 text-brand-text-secondary hover:text-brand-text transition cursor-pointer">
-            <ArrowLeft className="w-5 h-5" />
-            Назад в кабинет
-          </button>
-          <div className="flex items-center gap-3">
-            {plan.length > 0 && !generating && (
-              <>
-                <ExportMenu plan={plan} />
-                <button onClick={handleGenerate} disabled={generating} className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-1.5 rounded-lg hover:bg-brand-highlight">
-                  <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
-                  Обновить план
-                </button>
-              </>
-            )}
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-brand-accent" />
-              <span className="font-bold text-brand-text">PsyContent</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          {/* Основная строка */}
+          <div className="h-14 sm:h-16 flex items-center justify-between gap-2">
+            <button onClick={() => router.push('/dashboard')} className="flex items-center gap-1.5 text-brand-text-secondary hover:text-brand-text transition cursor-pointer shrink-0">
+              <ArrowLeft className="w-5 h-5" />
+              <span className="hidden xs:inline text-sm">Назад</span>
+            </button>
+            <div className="flex items-center gap-2 sm:gap-3">
+              {plan.length > 0 && !generating && (
+                <>
+                  <ExportMenu plan={plan} />
+                  <button onClick={handleGenerate} disabled={generating} className="flex items-center gap-1.5 text-xs sm:text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-2.5 py-1.5 rounded-lg hover:bg-brand-highlight whitespace-nowrap">
+                    <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${generating ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">Обновить план</span>
+                    <span className="sm:hidden">Обновить</span>
+                  </button>
+                </>
+              )}
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-brand-accent" />
+                <span className="font-bold text-brand-text text-sm sm:text-base">PsyContent</span>
+              </div>
             </div>
           </div>
         </div>
@@ -518,19 +521,19 @@ export default function ContentPlan() {
                 </div>
               </motion.div>
 
-              <div className="flex gap-2 flex-wrap mb-5">
+              <div className="flex gap-2 overflow-x-auto pb-1 mb-5 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
                 {pillars.map(p => (
                   <button
                     key={p}
                     onClick={() => setFilter(p)}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition cursor-pointer ${filter === p ? 'bg-brand-accent text-white' : 'bg-white border border-brand-border text-brand-text-secondary hover:border-brand-accent/50'}`}
+                    className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition cursor-pointer whitespace-nowrap ${filter === p ? 'bg-brand-accent text-white' : 'bg-white border border-brand-border text-brand-text-secondary hover:border-brand-accent/50'}`}
                   >
                     {p === 'all' ? `Все ${plan.length} дней` : p}
                   </button>
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
                 <AnimatePresence>
                   {filtered.map((item, i) => (
                     <motion.div
