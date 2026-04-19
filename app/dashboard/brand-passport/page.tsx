@@ -192,6 +192,7 @@ export default function BrandPassport() {
           throw new Error(`Ошибка на этапе ${step.chunk}`)
         }
 
+        // Собираем весь чанк целиком, не показываем по дельтам
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
         let chunkText = ''
@@ -207,17 +208,16 @@ export default function BrandPassport() {
             try {
               const parsed = JSON.parse(json)
               if (parsed.error) throw new Error(parsed.error)
-              if (parsed.delta) {
-                chunkText += parsed.delta
-                setPassport([...parts, chunkText].join('\n\n'))
-              }
+              if (parsed.delta) chunkText += parsed.delta
             } catch (e: any) {
               if (e.message) throw e
             }
           }
         }
 
+        // Чанк готов — показываем всё накопленное сразу
         parts.push(chunkText)
+        setPassport(parts.join('\n\n'))
       }
     } catch (err: any) {
       setError(err.message)
