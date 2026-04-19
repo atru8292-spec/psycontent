@@ -5,504 +5,232 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion } from 'framer-motion'
 import {
-  Sparkles,
-  FileText,
-  PenTool,
-  LogOut,
-  User,
-  BookOpen,
-  Target,
-  Wrench,
-  Star,
-  MessageCircle,
-  Film,
-  RefreshCcw,
-  Lightbulb,
-  Settings,
-  Cpu,
-  History,
-  Layers,
-  Search,
-  Zap,
-  CheckCircle2,
-  Circle,
-  ChevronRight,
+  Sparkles, Target, PenTool, Layers, Zap, FileText,
+  Wrench, Film, RefreshCcw, Search, History,
+  CheckCircle2, Circle, ArrowRight, TrendingUp,
+  BookOpen, Star,
 } from 'lucide-react'
 
+const toolGroups = [
+  {
+    label: 'Создать контент',
+    items: [
+      { icon: PenTool,    title: 'Генератор постов',   desc: 'Пост за 30 секунд под ваш голос',    href: '/dashboard/post-generator',      badge: null,    color: 'bg-violet-100 text-violet-600' },
+      { icon: Layers,     title: 'Карусели',            desc: '8–10 слайдов с хуком и структурой',  href: '/dashboard/carousel-generator',  badge: null,    color: 'bg-blue-100 text-blue-600' },
+      { icon: Film,       title: 'Рилс-скрипты',        desc: 'Сценарии 30 и 60 сек',               href: '/dashboard/reels',               badge: null,    color: 'bg-indigo-100 text-indigo-600' },
+      { icon: Zap,        title: 'Генератор хуков',     desc: '12 хуков для любого формата',        href: '/dashboard/hooks-generator',     badge: 'NEW',   color: 'bg-amber-100 text-amber-600' },
+    ],
+  },
+  {
+    label: 'Стратегия',
+    items: [
+      { icon: FileText,   title: 'Контент-план',        desc: '30 дней публикаций',                 href: '/dashboard/content-plan',        badge: null,    color: 'bg-green-100 text-green-600' },
+      { icon: Target,     title: 'Паспорт бренда',      desc: 'Позиционирование и TOV',             href: '/dashboard/brand-passport',      badge: null,    color: 'bg-purple-100 text-purple-600' },
+      { icon: Wrench,     title: 'Исследование тем',    desc: '30 трендовых тем под вашу нишу',     href: '/dashboard/research',            badge: null,    color: 'bg-orange-100 text-orange-600' },
+      { icon: Search,     title: 'Анализ конкурентов',  desc: 'Разбор Reels/TikTok/YouTube',        href: '/dashboard/competitor-analysis', badge: null,    color: 'bg-red-100 text-red-600' },
+    ],
+  },
+  {
+    label: 'Инструменты',
+    items: [
+      { icon: RefreshCcw, title: 'Переписать текст',    desc: 'Превратим мысли в вирусный пост',    href: '/dashboard/rewrite',             badge: null,    color: 'bg-cyan-100 text-cyan-600' },
+      { icon: History,    title: 'История постов',      desc: 'Все сгенерированные посты',           href: '/dashboard/post-history',        badge: null,    color: 'bg-emerald-100 text-emerald-600' },
+      { icon: BookOpen,   title: 'Промпты',             desc: 'Готовые схемы для ChatGPT',          href: '#',                              badge: 'Скоро', color: 'bg-fuchsia-100 text-fuchsia-600' },
+      { icon: Star,       title: 'Портфолио отзывов',   desc: 'Соберите отзывы клиентов',           href: '#',                              badge: 'Скоро', color: 'bg-yellow-100 text-yellow-600' },
+    ],
+  },
+]
+
+const quickActions = [
+  { icon: PenTool, label: 'Написать пост', href: '/dashboard/post-generator', color: 'bg-[#7C5CFC] text-white hover:bg-[#6A4CE0]' },
+  { icon: Zap,     label: 'Придумать хук', href: '/dashboard/hooks-generator', color: 'bg-white text-[#1E1E2E] hover:bg-[#F4F3FF] border border-[#E5E7EB]' },
+  { icon: Film,    label: 'Скрипт Reels',  href: '/dashboard/reels',           color: 'bg-white text-[#1E1E2E] hover:bg-[#F4F3FF] border border-[#E5E7EB]' },
+]
+
+const checklistSteps = [
+  { key: 'onboarding', label: 'Заполнить профиль',         href: '/dashboard/edit-profile' },
+  { key: 'passport',   label: 'Создать паспорт бренда',    href: '/dashboard/brand-passport' },
+  { key: 'post',       label: 'Сгенерировать первый пост', href: '/dashboard/post-generator' },
+  { key: 'plan',       label: 'Составить контент-план',    href: '/dashboard/content-plan' },
+]
+
 export default function Dashboard() {
-  const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [profile, setProfile] = useState<any>(null)
-  const router = useRouter()
+  const [profile, setProfile]     = useState<any>(null)
+  const [loading, setLoading]     = useState(true)
   const [checklist, setChecklist] = useState<string[]>([])
+  const [stats, setStats]         = useState({ posts: 0, plan: false, passport: false })
+  const router = useRouter()
 
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
-      setUser(user)
 
-      const { data } = await supabase
-        .from('onboarding_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
+      const { data: prof } = await supabase
+        .from('onboarding_profiles').select('*').eq('user_id', user.id).single()
+      if (!prof) { router.push('/onboarding'); return }
+      setProfile(prof)
 
-      if (!data) { router.push('/onboarding'); return }
-      setProfile(data)
+      const completed: string[] = ['onboarding']
+      const [passRes, postsRes, planRes] = await Promise.all([
+        supabase.from('brand_passports').select('id').eq('user_id', user.id).maybeSingle(),
+        supabase.from('generated_posts').select('id', { count: 'exact' }).eq('user_id', user.id),
+        supabase.from('content_plans').select('id').eq('user_id', user.id).maybeSingle(),
+      ])
 
-      // Чеклист: что уже сделал пользователь
-      const completed: string[] = []
-      if (data) completed.push('onboarding')
-      const { data: passport } = await supabase
-        .from('brand_passports')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle()
-      if (passport) completed.push('passport')
-      const { data: posts } = await supabase
-        .from('generated_posts')
-        .select('id')
-        .eq('user_id', user.id)
-        .limit(1)
-      if (posts && posts.length > 0) completed.push('post')
-      const { data: plan } = await supabase
-        .from('content_plans')
-        .select('id')
-        .eq('user_id', user.id)
-        .limit(1)
-      if (plan && plan.length > 0) completed.push('plan')
+      if (passRes.data) completed.push('passport')
+      if (postsRes.data && postsRes.data.length > 0) completed.push('post')
+      if (planRes.data) completed.push('plan')
+
       setChecklist(completed)
+      setStats({
+        posts: postsRes.count || postsRes.data?.length || 0,
+        plan: !!planRes.data,
+        passport: !!passRes.data,
+      })
       setLoading(false)
     }
     init()
   }, [router])
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
-  }
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full" />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-[#7C5CFC] border-t-transparent rounded-full" />
       </div>
     )
   }
 
-  const displayName = profile?.full_name || 'Специалист'
-
-  const formatArray = (val: any) => {
-    if (!val) return '—'
-    if (Array.isArray(val)) return val.join(', ')
-    if (typeof val === 'string') return val
-    return '—'
-  }
-
-  const tools = [
-    {
-      icon: Target,
-      title: 'Паспорт бренда',
-      desc: 'Ваше позиционирование, тон голоса и аватар клиента',
-      status: 'Открыть',
-      color: 'text-purple-500',
-      bg: 'bg-purple-50',
-      href: '/dashboard/brand-passport',
-      ready: true,
-      badge: null,
-    },
-    {
-      icon: PenTool,
-      title: 'Генератор постов',
-      desc: 'Создавайте посты и stories за 30 секунд',
-      status: 'Открыть',
-      color: 'text-violet-500',
-      bg: 'bg-violet-50',
-      href: '/dashboard/post-generator',
-      ready: true,
-      badge: null,
-    },
-    {
-      icon: Layers,
-      title: 'Генератор каруселей',
-      desc: '8-10 слайдов с хуком и структурой',
-      status: 'Открыть',
-      color: 'text-blue-500',
-      bg: 'bg-blue-50',
-      href: '/dashboard/carousel-generator',
-      ready: true,
-      badge: null,
-    },
-    {
-      icon: Zap,
-      title: 'Генератор хуков',
-      desc: '12 цепляющих хуков для Reels, постов, каруселей и Stories',
-      status: 'Открыть',
-      color: 'text-amber-500',
-      bg: 'bg-amber-50',
-      href: '/dashboard/hooks-generator',
-      ready: true,
-      badge: 'NEW',
-    },
-    {
-      icon: FileText,
-      title: 'Контент-план',
-      desc: 'Персональный план публикаций на 30 дней',
-      status: 'Открыть',
-      color: 'text-green-500',
-      bg: 'bg-green-50',
-      href: '/dashboard/content-plan',
-      ready: true,
-      badge: null,
-    },
-    {
-      icon: Wrench,
-      title: 'Исследование тем',
-      desc: 'AI найдёт 30 трендовых тем под вашу нишу',
-      status: 'Открыть',
-      color: 'text-orange-500',
-      bg: 'bg-orange-50',
-      href: '/dashboard/research',
-      ready: true,
-      badge: null,
-    },
-    {
-      icon: Film,
-      title: 'Рилс-скрипты',
-      desc: 'Готовые сценарии на 30 и 60 секунд',
-      status: 'Открыть',
-      color: 'text-indigo-500',
-      bg: 'bg-indigo-50',
-      href: '/dashboard/reels',
-      ready: true,
-      badge: null,
-    },
-    {
-      icon: RefreshCcw,
-      title: 'Переписывание текста',
-      desc: 'Превратим ваши мысли в вирусный пост',
-      status: 'Открыть',
-      color: 'text-cyan-500',
-      bg: 'bg-cyan-50',
-      href: '/dashboard/rewrite',
-      ready: true,
-      badge: null,
-    },
-    {
-      icon: Search,
-      title: 'Анализ конкурентов',
-      desc: 'Разбор Reels/TikTok/YouTube — получите сценарий',
-      status: 'Открыть',
-      color: 'text-red-500',
-      bg: 'bg-red-50',
-      href: '/dashboard/competitor-analysis',
-      ready: true,
-      badge: null,
-    },
-    {
-      icon: History,
-      title: 'История постов',
-      desc: 'Все сгенерированные посты в одном месте',
-      status: 'Открыть',
-      color: 'text-emerald-500',
-      bg: 'bg-emerald-50',
-      href: '/dashboard/post-history',
-      ready: true,
-      badge: null,
-    },
-    {
-      icon: Lightbulb,
-      title: 'Промпты и инструкции',
-      desc: 'Готовые схемы для ChatGPT',
-      status: 'Скоро',
-      color: 'text-fuchsia-500',
-      bg: 'bg-fuchsia-50',
-      href: '#',
-      ready: false,
-      badge: null,
-    },
-    {
-      icon: Star,
-      title: 'Портфолио отзывов',
-      desc: 'Соберите и оформите отзывы клиентов',
-      status: 'Скоро',
-      color: 'text-yellow-500',
-      bg: 'bg-yellow-50',
-      href: '#',
-      ready: false,
-      badge: null,
-    },
-    {
-      icon: BookOpen,
-      title: 'База знаний',
-      desc: 'Мини-курс по SMM для психологов',
-      status: 'Скоро',
-      color: 'text-pink-500',
-      bg: 'bg-pink-50',
-      href: '#',
-      ready: false,
-      badge: null,
-    },
-  ]
+  const firstName = profile?.full_name?.split(' ')[0] || 'Специалист'
+  const progress  = Math.round((checklist.length / 4) * 100)
+  const hour      = new Date().getHours()
+  const greeting  = hour < 12 ? 'Доброе утро' : hour < 18 ? 'Добрый день' : 'Добрый вечер'
 
   return (
-    <div className="min-h-screen bg-brand-bg">
-      {/* ═══════════════ HEADER ═══════════════ */}
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-brand-border">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
-          {/* Лого */}
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-brand-accent" />
-            <span className="text-lg sm:text-xl font-bold text-brand-text">PsyContent</span>
-          </div>
+    <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-8 max-w-5xl mx-auto">
 
-          {/* Юзер + выход */}
-          <div className="flex items-center gap-2 sm:gap-4">
-            {/* Имя — скрыто на совсем маленьких экранах */}
-            <div className="hidden sm:flex items-center gap-2 text-sm text-brand-text-secondary">
-              <User className="w-4 h-4" />
-              <span className="max-w-[120px] truncate">{displayName}</span>
+      {/* Hero */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <p className="text-sm text-[#6B7280] mb-1">{greeting} 👋</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#1E1E2E] leading-tight">{firstName}</h1>
+            <p className="text-[#6B7280] text-sm mt-1">
+              {profile?.niches ? `Психолог · ${Array.isArray(profile.niches) ? profile.niches[0] : profile.niches}` : 'Психолог'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[#E5E7EB] text-sm text-[#1E1E2E] font-medium">
+              <TrendingUp className="w-3.5 h-3.5 text-[#7C5CFC]" />
+              {stats.posts} постов
             </div>
-            {/* На мобилке — только иконка юзера */}
-            <div className="flex sm:hidden items-center text-brand-text-secondary">
-              <User className="w-4 h-4" />
-            </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1 text-sm text-brand-text-secondary hover:text-red-500 transition cursor-pointer p-2 -mr-2"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Выйти</span>
-            </button>
+            {stats.passport && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-50 border border-purple-100 text-sm text-purple-700 font-medium">
+                <Target className="w-3.5 h-3.5" />
+                Паспорт готов
+              </div>
+            )}
+            {stats.plan && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 border border-green-100 text-sm text-green-700 font-medium">
+                <FileText className="w-3.5 h-3.5" />
+                Есть план
+              </div>
+            )}
           </div>
         </div>
-      </nav>
+      </motion.div>
 
-      {/* ═══════════════ CONTENT ═══════════════ */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
-
-        {/* ── Welcome ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 sm:mb-10"
-        >
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-1 sm:mb-2">
-            Привет, {displayName}! 👋
-          </h1>
-          <p className="text-brand-text-secondary text-base sm:text-lg">
-            Ваш кабинет готов. Вот что мы знаем о вас:
-          </p>
-        </motion.div>
-
-
-        {/* ── Onboarding Checklist — показываем если не все шаги пройдены ── */}
-        {checklist.length < 4 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            className="mb-6 sm:mb-8 p-4 sm:p-6 rounded-2xl bg-gradient-to-br from-brand-accent/5 to-brand-accent/10 border border-brand-accent/20"
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-5 h-5 text-brand-accent" />
-              <h2 className="font-bold text-brand-text text-base sm:text-lg">С чего начать</h2>
-              <span className="ml-auto text-sm text-brand-text-secondary font-medium">
-                {checklist.length}/4 выполнено
-              </span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-              {[
-                { key: 'onboarding', label: 'Заполнить профиль', desc: 'Распаковка уже пройдена', href: '/dashboard/edit-profile' },
-                { key: 'passport', label: 'Создать паспорт бренда', desc: 'Позиционирование и TOV', href: '/dashboard/brand-passport' },
-                { key: 'post', label: 'Сгенерировать первый пост', desc: 'Попробуйте генератор постов', href: '/dashboard/post-generator' },
-                { key: 'plan', label: 'Составить контент-план', desc: 'На 30 дней вперёд', href: '/dashboard/content-plan' },
-              ].map((step) => {
-                const done = checklist.includes(step.key)
-                return (
-                  <button
-                    key={step.key}
-                    onClick={() => !done && router.push(step.href)}
-                    className={`flex items-start gap-3 p-3 sm:p-4 rounded-xl border text-left transition cursor-pointer ${
-                      done
-                        ? 'bg-white/60 border-brand-accent/20 opacity-60 cursor-default'
-                        : 'bg-white border-brand-border hover:border-brand-accent/40 hover:shadow-sm active:scale-[0.98]'
-                    }`}
-                  >
-                    {done
-                      ? <CheckCircle2 className="w-5 h-5 text-brand-accent shrink-0 mt-0.5" />
-                      : <Circle className="w-5 h-5 text-brand-border shrink-0 mt-0.5" />
-                    }
-                    <div className="min-w-0">
-                      <p className={`text-sm font-semibold leading-tight ${done ? 'text-brand-text-secondary line-through' : 'text-brand-text'}`}>
-                        {step.label}
-                      </p>
-                      <p className="text-xs text-brand-text-secondary mt-0.5">{step.desc}</p>
-                    </div>
-                    {!done && <ChevronRight className="w-4 h-4 text-brand-text-secondary shrink-0 ml-auto mt-0.5" />}
-                  </button>
-                )
-              })}
-            </div>
-          </motion.div>
-        )}
-
-        {/* ── Profile Summary ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-6 sm:mb-10 p-4 sm:p-6 rounded-2xl bg-white border border-brand-border"
-        >
-          {/* Заголовок профиля */}
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base sm:text-lg font-bold text-brand-text flex items-center gap-2">
-              <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-brand-accent shrink-0" />
-              <span className="hidden sm:inline">Ваш профиль распаковки</span>
-              <span className="sm:hidden">Профиль</span>
-            </h2>
-            <div className="flex items-center gap-1 sm:gap-2">
-              <button
-                onClick={() => router.push('/dashboard/settings')}
-                title="Настройки AI модели"
-                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-brand-text-secondary hover:text-brand-accent hover:bg-brand-highlight rounded-xl transition cursor-pointer"
-              >
-                <Cpu className="w-4 h-4" />
-                <span className="hidden sm:inline text-xs">AI</span>
-              </button>
-              <button
-                onClick={() => router.push('/dashboard/edit-profile')}
-                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-sm font-medium text-brand-text-secondary hover:text-brand-accent hover:bg-brand-highlight rounded-xl transition cursor-pointer"
-              >
-                <Settings className="w-4 h-4" />
-                <span className="hidden sm:inline">Редактировать</span>
-              </button>
-            </div>
-          </div>
-          
-          {/* Верхний грид — 1 col на мобилке, 2 на md, 4 на lg */}
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="p-3 sm:p-4 rounded-xl bg-brand-bg">
-              <p className="text-xs text-brand-text-secondary mb-1">Подход</p>
-              <p className="text-xs sm:text-sm font-semibold text-brand-text">
-                {formatArray(profile?.approaches)}
-              </p>
-            </div>
-            <div className="p-3 sm:p-4 rounded-xl bg-brand-bg">
-              <p className="text-xs text-brand-text-secondary mb-1">Ниша</p>
-              <p className="text-xs sm:text-sm font-semibold text-brand-text">
-                {formatArray(profile?.niches)}
-              </p>
-            </div>
-            <div className="p-3 sm:p-4 rounded-xl bg-brand-bg col-span-2 lg:col-span-1">
-              <p className="text-xs text-brand-text-secondary mb-1">Голос бренда</p>
-              <p className="text-xs sm:text-sm font-semibold text-brand-text line-clamp-2">
-                {profile?.live_voice || '—'}
-              </p>
-            </div>
-            <div className="p-3 sm:p-4 rounded-xl bg-brand-bg col-span-2 lg:col-span-1">
-              <p className="text-xs text-brand-text-secondary mb-1">Цель на 3 месяца</p>
-              <p className="text-xs sm:text-sm font-semibold text-brand-text line-clamp-2">
-                {profile?.goal_3_months || '—'}
-              </p>
-            </div>
-          </div>
-
-          {/* Нижний грид — 1 col на мобилке, 3 на md+ */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-3 sm:mt-4">
-            <div className="p-3 sm:p-4 rounded-xl bg-brand-bg">
-              <p className="text-xs text-brand-text-secondary mb-1">Опыт</p>
-              <p className="text-xs sm:text-sm font-semibold text-brand-text">
-                {profile?.experience || '—'}
-              </p>
-            </div>
-            <div className="p-3 sm:p-4 rounded-xl bg-brand-bg">
-              <p className="text-xs text-brand-text-secondary mb-1">Площадки</p>
-              <p className="text-xs sm:text-sm font-semibold text-brand-text">
-                {formatArray(profile?.platforms)}
-              </p>
-            </div>
-            <div className="p-3 sm:p-4 rounded-xl bg-brand-bg">
-              <p className="text-xs text-brand-text-secondary mb-1">Клиентов сейчас</p>
-              <p className="text-xs sm:text-sm font-semibold text-brand-text">
-                {profile?.current_clients || '—'}
-              </p>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* ── Tools Heading ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-4 sm:mb-6"
-        >
-          <h2 className="text-lg sm:text-xl font-bold text-brand-text">
-            Ваши инструменты
-          </h2>
-        </motion.div>
-
-        {/* ── Tools Grid — 1 col на мобилке, 2 на md, 3 на lg ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-          {tools.map((tool, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 + i * 0.03 }}
-              onClick={() => tool.ready && router.push(tool.href)}
-              className={`relative p-4 sm:p-6 rounded-2xl bg-white border border-brand-border transition group ${
-                tool.ready
-                  ? 'hover:shadow-md active:scale-[0.98] cursor-pointer'
-                  : 'opacity-50 cursor-not-allowed select-none'
-              }`}
-            >
-              {/* NEW badge */}
-              {tool.badge && (
-                <span className="absolute top-3 right-3 sm:top-4 sm:right-4 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 uppercase tracking-wider">
-                  {tool.badge}
-                </span>
-              )}
-
-              {/* Мобилка: горизонтальный лейаут. Десктоп: вертикальный */}
-              <div className="flex sm:block items-start gap-3">
-                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${tool.bg} flex items-center justify-center shrink-0 sm:mb-4 group-hover:scale-110 transition`}>
-                  <tool.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${tool.color}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-brand-text text-sm sm:text-base mb-0.5 sm:mb-2">{tool.title}</h3>
-                  <p className="text-xs sm:text-sm text-brand-text-secondary mb-2 sm:mb-4 line-clamp-2">{tool.desc}</p>
-                  <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full ${
-                    tool.ready
-                      ? 'text-brand-accent bg-brand-highlight'
-                      : 'text-gray-400 bg-gray-100'
-                  }`}>
-                    {tool.status} →
-                  </span>
-                </div>
-              </div>
-            </motion.div>
+      {/* Quick actions */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-8">
+        <div className="flex gap-2 flex-wrap">
+          {quickActions.map((a) => (
+            <button key={a.href} onClick={() => router.push(a.href)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition cursor-pointer ${a.color}`}>
+              <a.icon className="w-4 h-4" />
+              {a.label}
+            </button>
           ))}
         </div>
+      </motion.div>
 
-        {/* ── Motivation ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="mt-8 sm:mt-12 p-4 sm:p-6 rounded-2xl bg-brand-accent text-white text-center"
-        >
-          <h3 className="text-lg sm:text-xl font-bold mb-2">
-            Вы уже на шаг впереди 90% психологов 🚀
-          </h3>
-          <p className="text-white/80 text-sm sm:text-base max-w-lg mx-auto">
-            Вы прошли распаковку и теперь мы знаем ваш голос. Используйте инструменты
-            чтобы превратить знания в контент, привлекающий клиентов.
-          </p>
+      {/* Checklist */}
+      {checklist.length < 4 && (
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          className="mb-8 p-5 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#7C5CFC]" />
+              <span className="font-bold text-[#1E1E2E] text-sm">Быстрый старт</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-1.5 w-24 bg-[#F4F3FF] rounded-full overflow-hidden">
+                <div className="h-full bg-[#7C5CFC] rounded-full transition-all" style={{ width: `${progress}%` }} />
+              </div>
+              <span className="text-xs text-[#6B7280] font-medium">{checklist.length}/4</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {checklistSteps.map((step) => {
+              const done = checklist.includes(step.key)
+              return (
+                <button key={step.key} onClick={() => !done && router.push(step.href)}
+                  className={`flex items-center gap-3 p-3 rounded-xl text-left transition cursor-pointer ${
+                    done ? 'bg-[#F4F3FF] opacity-60 cursor-default' : 'bg-[#F9F8FF] hover:bg-[#F4F3FF] border border-[#E5E7EB] hover:border-[#7C5CFC]/30'
+                  }`}>
+                  {done
+                    ? <CheckCircle2 className="w-4 h-4 text-[#7C5CFC] shrink-0" />
+                    : <Circle className="w-4 h-4 text-[#D1D5DB] shrink-0" />}
+                  <span className={`text-sm font-medium ${done ? 'line-through text-[#9CA3AF]' : 'text-[#1E1E2E]'}`}>{step.label}</span>
+                  {!done && <ArrowRight className="w-3.5 h-3.5 text-[#9CA3AF] ml-auto shrink-0" />}
+                </button>
+              )
+            })}
+          </div>
         </motion.div>
-      </div>
+      )}
+
+      {/* Tool Groups */}
+      {toolGroups.map((group, gi) => (
+        <motion.div key={group.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + gi * 0.05 }} className="mb-8">
+          <h2 className="text-xs font-bold text-[#9CA3AF] uppercase tracking-widest mb-3">{group.label}</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {group.items.map((tool) => {
+              const disabled = tool.href === '#'
+              return (
+                <div key={tool.title} onClick={() => !disabled && router.push(tool.href)}
+                  className={`relative p-4 rounded-2xl bg-white border border-[#E5E7EB] transition group ${
+                    disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#7C5CFC]/30 hover:shadow-md cursor-pointer active:scale-[0.98]'
+                  }`}>
+                  {tool.badge && (
+                    <span className={`absolute top-3 right-3 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide ${
+                      tool.badge === 'NEW' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'
+                    }`}>{tool.badge}</span>
+                  )}
+                  <div className={`w-9 h-9 rounded-xl ${tool.color} flex items-center justify-center mb-3 group-hover:scale-110 transition`}>
+                    <tool.icon className="w-4 h-4" />
+                  </div>
+                  <p className="text-[13px] font-bold text-[#1E1E2E] leading-tight mb-1">{tool.title}</p>
+                  <p className="text-[11px] text-[#9CA3AF] leading-snug line-clamp-2">{tool.desc}</p>
+                </div>
+              )
+            })}
+          </div>
+        </motion.div>
+      ))}
+
+      {/* Banner */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+        className="rounded-2xl bg-gradient-to-r from-[#7C5CFC] to-[#9B7FFF] p-6 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <p className="font-bold text-lg leading-tight mb-1">Вы на шаг впереди 90% психологов 🚀</p>
+          <p className="text-white/75 text-sm">Регулярный контент — это клиенты без холодных продаж</p>
+        </div>
+        <button onClick={() => router.push('/dashboard/content-plan')}
+          className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-white text-[#7C5CFC] font-semibold text-sm rounded-xl hover:bg-[#F4F3FF] transition cursor-pointer">
+          Составить план <ArrowRight className="w-4 h-4" />
+        </button>
+      </motion.div>
+
     </div>
   )
 }
