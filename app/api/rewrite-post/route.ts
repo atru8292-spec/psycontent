@@ -192,8 +192,16 @@ ${sourceText}
 """
 
 Перепиши. Только готовый текст, без предисловий.`
+  // Получаем предпочитаемую модель пользователя
+  const { data: userSettings } = await supabase
+    .from('user_settings')
+    .select('preferred_model')
+    .eq('user_id', userId)
+    .maybeSingle()
+  const model = userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
-    const post = await generateWithAI(SYSTEM_PROMPT, prompt)
+
+    const post = await generateWithAI(SYSTEM_PROMPT, prompt, model)
 
     await supabase.from('generated_posts').insert({
       user_id: userId,

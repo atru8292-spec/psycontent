@@ -75,7 +75,15 @@ export async function POST(request: NextRequest) {
     }
 
     const userPrompt = `Платформа: ${platform || 'Unknown'}\n\nТранскрипция видео:\n${transcript}`
-    const analysis = await generateWithAI(SYSTEM_PROMPT, userPrompt)
+  // Получаем предпочитаемую модель пользователя
+  const { data: userSettings } = await supabase
+    .from('user_settings')
+    .select('preferred_model')
+    .eq('user_id', userId)
+    .maybeSingle()
+  const model = userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
+
+    const analysis = await generateWithAI(SYSTEM_PROMPT, userPrompt, model)
 
     await supabaseAdmin.from('competitor_analyses').insert({
       user_id: user.id,

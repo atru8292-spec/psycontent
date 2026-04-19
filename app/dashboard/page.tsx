@@ -19,6 +19,7 @@ import {
   RefreshCcw,
   Lightbulb,
   Settings,
+  Cpu,
   History,
   Layers,
   Search,
@@ -361,13 +362,23 @@ export default function Dashboard() {
               <span className="hidden sm:inline">Ваш профиль распаковки</span>
               <span className="sm:hidden">Профиль</span>
             </h2>
-            <button
-              onClick={() => router.push('/dashboard/edit-profile')}
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-sm font-medium text-brand-text-secondary hover:text-brand-accent hover:bg-brand-highlight rounded-xl transition cursor-pointer"
-            >
-              <Settings className="w-4 h-4" />
-              <span className="hidden sm:inline">Редактировать</span>
-            </button>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <button
+                onClick={() => router.push('/dashboard/settings')}
+                title="Настройки AI модели"
+                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-brand-text-secondary hover:text-brand-accent hover:bg-brand-highlight rounded-xl transition cursor-pointer"
+              >
+                <Cpu className="w-4 h-4" />
+                <span className="hidden sm:inline text-xs">AI</span>
+              </button>
+              <button
+                onClick={() => router.push('/dashboard/edit-profile')}
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-sm font-medium text-brand-text-secondary hover:text-brand-accent hover:bg-brand-highlight rounded-xl transition cursor-pointer"
+              >
+                <Settings className="w-4 h-4" />
+                <span className="hidden sm:inline">Редактировать</span>
+              </button>
+            </div>
           </div>
           
           {/* Верхний грид — 1 col на мобилке, 2 на md, 4 на lg */}

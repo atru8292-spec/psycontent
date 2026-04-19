@@ -48,8 +48,16 @@ export async function POST(req: NextRequest) {
     const prompt = `${profileContext}
 
 Предложи 5 тем для каруселей. Возвращай только JSON массив.`
+  // Получаем предпочитаемую модель пользователя
+  const { data: userSettings } = await supabase
+    .from('user_settings')
+    .select('preferred_model')
+    .eq('user_id', userId)
+    .maybeSingle()
+  const model = userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
-    const response = await generateWithAI(SYSTEM_PROMPT, prompt)
+
+    const response = await generateWithAI(SYSTEM_PROMPT, prompt, model)
 
     if (!response) {
       throw new Error('AI returned empty response')

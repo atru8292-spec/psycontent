@@ -46,11 +46,77 @@ async function callOpenRouter(body: Record<string, unknown>, timeoutMs = 55000) 
   return extractContent(response)
 }
 
-// Claude Sonnet — для генерации текстов (posts, reels, rewrite, content plan, passport, анализ конкурентов)
-export async function generateWithAI(systemPrompt: string, userPrompt: string) {
+// Доступные модели для выбора пользователем
+export const AI_MODELS = [
+  {
+    id: 'anthropic/claude-sonnet-4-5',
+    name: 'Claude Sonnet 4.5',
+    provider: 'Anthropic',
+    desc: 'Лучшее качество текста, глубокое понимание контекста',
+    badge: 'Рекомендуем',
+    speed: 'Средняя',
+    quality: 5,
+  },
+  {
+    id: 'anthropic/claude-haiku-3-5',
+    name: 'Claude Haiku 3.5',
+    provider: 'Anthropic',
+    desc: 'Быстрее и дешевле, хорошо для простых постов',
+    badge: 'Быстрый',
+    speed: 'Быстрая',
+    quality: 4,
+  },
+  {
+    id: 'openai/gpt-4o',
+    name: 'GPT-4o',
+    provider: 'OpenAI',
+    desc: 'Мощная модель OpenAI, отлично с инструкциями',
+    badge: null,
+    speed: 'Средняя',
+    quality: 5,
+  },
+  {
+    id: 'openai/gpt-4o-mini',
+    name: 'GPT-4o mini',
+    provider: 'OpenAI',
+    desc: 'Быстрый и экономичный вариант от OpenAI',
+    badge: null,
+    speed: 'Быстрая',
+    quality: 3,
+  },
+  {
+    id: 'google/gemini-2.0-flash-001',
+    name: 'Gemini 2.0 Flash',
+    provider: 'Google',
+    desc: 'Очень быстрый, хорошо справляется с длинными промптами',
+    badge: 'Новый',
+    speed: 'Очень быстрая',
+    quality: 4,
+  },
+  {
+    id: 'meta-llama/llama-4-scout',
+    name: 'Llama 4 Scout',
+    provider: 'Meta',
+    desc: 'Бесплатная open-source модель от Meta',
+    badge: 'Бесплатно',
+    speed: 'Быстрая',
+    quality: 3,
+  },
+] as const
+
+export type ModelId = typeof AI_MODELS[number]['id']
+
+export const DEFAULT_MODEL: ModelId = 'anthropic/claude-sonnet-4-5'
+
+// Claude Sonnet — основная функция генерации текстов
+export async function generateWithAI(
+  systemPrompt: string,
+  userPrompt: string,
+  model: string = DEFAULT_MODEL
+) {
   return callOpenRouter(
     {
-      model: 'anthropic/claude-sonnet-4-5',
+      model,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },

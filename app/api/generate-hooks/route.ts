@@ -194,7 +194,15 @@ ${passport ? `ПАСПОРТ БРЕНДА (кратко):\n${passport.substring(
 ТОЛЬКО JSON массив.`
 
     console.log('Generating hooks for topic:', topic)
-    const response = await generateWithAI(HOOKS_SYSTEM_PROMPT, userPrompt)
+  // Получаем предпочитаемую модель пользователя
+  const { data: userSettings } = await supabase
+    .from('user_settings')
+    .select('preferred_model')
+    .eq('user_id', userId)
+    .maybeSingle()
+  const model = userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
+
+    const response = await generateWithAI(HOOKS_SYSTEM_PROMPT, userPrompt, model)
 
     // Парсим JSON
     let hooks: Array<{ type: string; hook: string; use: string; why: string }>
