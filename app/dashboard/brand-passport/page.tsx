@@ -18,6 +18,11 @@ function parsePassport(content: string) {
   let current: { num: string; title: string; lines: string[] } | null = null
 
   for (const line of lines) {
+    // Пропускаем заголовки верхнего уровня типа "# ПАСПОРТ БРЕНДА — ЧАСТЬ 2"
+    if (/^#\s+[^#]/.test(line) && !line.startsWith('##')) {
+      continue
+    }
+
     const headingMatch = line.match(/^##\s+(\d+)\.\s+(.+)/)
     if (headingMatch) {
       if (current) {
