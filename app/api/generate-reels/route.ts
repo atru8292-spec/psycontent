@@ -185,13 +185,15 @@ ${getStyleInstruction(videoStyle)}
 
     const script = await generateWithAI(SYSTEM_PROMPT, prompt, model)
 
-    await supabase.from('generated_posts').insert({
-      user_id: userId,
-      topic: finalTopic,
-      format: `reels (${videoLength}, ${videoStyle})`,
-      content: script,
-      category: pillar || 'Своя тема'
-    }).catch(() => {})
+    try {
+      await supabase.from('generated_posts').insert({
+        user_id: userId,
+        topic: finalTopic,
+        format: `reels (${videoLength}, ${videoStyle})`,
+        content: script,
+        category: pillar || 'Своя тема'
+      })
+    } catch (_) {}
 
     return NextResponse.json({ script })
   } catch (error: any) {

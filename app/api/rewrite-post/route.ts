@@ -204,13 +204,15 @@ ${sourceText}
 
     const post = await generateWithAI(SYSTEM_PROMPT, prompt, model)
 
-    await supabase.from('generated_posts').insert({
-      user_id: userId,
-      topic: 'Переписанный текст',
-      format: `rewrite_${format}`,
-      content: post,
-      category: 'Rewrite'
-    }).catch(() => {})
+    try {
+      await supabase.from('generated_posts').insert({
+        user_id: userId,
+        topic: 'Переписанный текст',
+        format: `rewrite_${format}`,
+        content: post,
+        category: 'Rewrite'
+      })
+    } catch (_) {}
 
     return NextResponse.json({ post })
   } catch (error: any) {
