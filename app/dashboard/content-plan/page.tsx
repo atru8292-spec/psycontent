@@ -183,15 +183,27 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
         </div>
       </div>
 
-      <div className="px-4 pb-3">
-        <p className={`text-sm font-semibold leading-tight ${item.done ? 'text-gray-400 line-through' : 'text-brand-text'}`}>
+      {/* Тема поста */}
+      <div className="px-4 pb-2">
+        <p className={`text-base font-bold leading-snug ${item.done ? 'text-gray-400 line-through' : 'text-brand-text'}`}>
           {item.topic}
         </p>
       </div>
 
+      {/* Идея/тезис */}
+      {(item as any).tip && !item.done && (
+        <div className="px-4 pb-2">
+          <p className="text-sm text-brand-text-secondary leading-relaxed">
+            {(item as any).tip}
+          </p>
+        </div>
+      )}
+
+      {/* Хук — первая строка поста */}
       {item.hook && !item.done && (
-        <div className="mx-4 mb-3 p-2 rounded-lg bg-brand-bg border border-brand-border">
-          <p className="text-sm text-brand-text-secondary italic leading-relaxed line-clamp-2">«{item.hook}»</p>
+        <div className="mx-4 mb-3 p-3 rounded-xl bg-brand-highlight/50 border border-brand-accent/20">
+          <p className="text-xs text-brand-text-muted uppercase tracking-wide font-semibold mb-1">Хук</p>
+          <p className="text-sm text-brand-text italic leading-relaxed">«{item.hook}»</p>
         </div>
       )}
 
