@@ -127,6 +127,7 @@ export default function BrandPassport() {
   const [passport, setPassport] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
+  const [generatingChunk, setGeneratingChunk] = useState<1 | 2 | 0>(0)
   const [generatingPDF, setGeneratingPDF] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -158,26 +159,44 @@ export default function BrandPassport() {
   const handleGenerate = async () => {
     if (!user) return
     setGenerating(true)
+    setGeneratingChunk(1)
     setError(null)
+    setPassport(null)
 
     try {
-      const response = await fetch('/api/generate-passport', {
+      const response1 = await fetch('/api/generate-passport', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id }),
+        body: JSON.stringify({ userId: user.id, chunk: 1 }),
       })
 
-      const data = await response.json()
+      const data1 = await response1.json()
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Ошибка генерации')
+      if (!response1.ok) {
+        throw new Error(data1.error || 'Ошибка генерации первой части')
       }
 
-      setPassport(data.passport)
+      setPassport(data1.part)
+      setGeneratingChunk(2)
+
+      const response2 = await fetch('/api/generate-passport', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, chunk: 2 }),
+      })
+
+      const data2 = await response2.json()
+
+      if (!response2.ok) {
+        throw new Error(data2.error || 'Ошибка генерации второй части')
+      }
+
+      setPassport(prev => [prev, data2.part].filter(Boolean).join('\n\n'))
     } catch (err: any) {
       setError(err.message)
     } finally {
       setGenerating(false)
+      setGeneratingChunk(0)
     }
   }
 
@@ -224,7 +243,6 @@ export default function BrandPassport() {
 
   return (
     <div className="min-h-screen bg-brand-bg">
-      {/* Header */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-brand-border">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <button
@@ -242,7 +260,6 @@ export default function BrandPassport() {
       </nav>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-        {/* Title */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -261,7 +278,6 @@ export default function BrandPassport() {
           </p>
         </motion.div>
 
-        {/* Generate button */}
         {!passport && !generating && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -277,7 +293,7 @@ export default function BrandPassport() {
               Сгенерировать паспорт бренда
             </button>
             <p className="text-xs sm:text-sm text-brand-text-secondary mt-3 sm:mt-4">
-              Генерация занимает 30–60 секунд
+              Генерация идёт поэтапно в 2 запроса
             </p>
             {error && (
               <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs sm:text-sm">
@@ -287,7 +303,6 @@ export default function BrandPassport() {
           </motion.div>
         )}
 
-        {/* Loading */}
         {generating && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -299,14 +314,16 @@ export default function BrandPassport() {
               AI создаёт ваш паспорт бренда...
             </h2>
             <p className="text-brand-text-secondary mb-6 sm:mb-8 text-sm sm:text-base">
-              Анализируем распаковку, подбираем архетип, формулируем позиционирование
+              {generatingChunk === 1
+                ? 'Шаг 1 из 2: миссия, позиционирование, архетип и УТП'
+                : 'Шаг 2 из 2: контентные столбы, сообщения и примеры постов'}
             </p>
             <div className="max-w-md mx-auto space-y-2.5 sm:space-y-3 text-left px-2">
               {[
-                'Определяем миссию и позиционирование...',
-                'Подбираем архетип бренда...',
-                'Формулируем тон голоса и контентные столбы...',
-                'Пишем примеры постов в вашем тоне...',
+                generatingChunk === 1 ? 'Определяем миссию и позиционирование...' : 'Пишем био для Instagram и Telegram...',
+                generatingChunk === 1 ? 'Подбираем архетип бренда...' : 'Собираем контентные столбы...',
+                generatingChunk === 1 ? 'Формулируем тон голоса...' : 'Формулируем ключевые сообщения и стоп-темы...',
+                generatingChunk === 1 ? 'Описываем аватар клиента и УТП...' : 'Пишем примеры постов в вашем тоне...',
               ].map((step, i) => (
                 <div key={i} className="flex items-center gap-2.5 sm:gap-3 text-xs sm:text-sm text-brand-text-secondary">
                   <div
@@ -320,10 +337,14 @@ export default function BrandPassport() {
           </motion.div>
         )}
 
-        {/* Result */}
-        {passport && !generating && (
+        {passport && !loading && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            {/* Stats bar */}
+            {error && (
+              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-xs sm:text-sm">
+                {error}
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 p-3 sm:p-4 bg-white rounded-xl sm:rounded-2xl border border-brand-border">
               <div className="flex items-center gap-4 sm:gap-6">
                 <div className="text-center">
@@ -336,7 +357,6 @@ export default function BrandPassport() {
                 </p>
               </div>
               <div className="flex items-center gap-1 flex-wrap">
-                {/* Копировать текст */}
                 <button
                   onClick={handleCopy}
                   className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-2.5 sm:px-3 py-2 rounded-lg hover:bg-brand-highlight"
@@ -345,7 +365,6 @@ export default function BrandPassport() {
                   {copied ? 'Скопировано!' : 'Копировать'}
                 </button>
 
-                {/* Скачать TXT */}
                 <button
                   onClick={handleDownloadTxt}
                   className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-2.5 sm:px-3 py-2 rounded-lg hover:bg-brand-highlight"
@@ -354,7 +373,6 @@ export default function BrandPassport() {
                   TXT
                 </button>
 
-                {/* Скачать PDF */}
                 <button
                   onClick={handleDownloadPDF}
                   disabled={generatingPDF}
@@ -373,7 +391,6 @@ export default function BrandPassport() {
                   )}
                 </button>
 
-                {/* Заново */}
                 <button
                   onClick={handleGenerate}
                   className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-2.5 sm:px-3 py-2 rounded-lg hover:bg-brand-highlight"
@@ -384,14 +401,12 @@ export default function BrandPassport() {
               </div>
             </div>
 
-            {/* Sections */}
             <div className="space-y-3 sm:space-y-4">
               {sections.map((section, i) => (
                 <SectionCard key={section.num} section={section} index={i} />
               ))}
             </div>
 
-            {/* Next step */}
             <div className="mt-6 sm:mt-8 p-4 sm:p-6 bg-brand-accent rounded-xl sm:rounded-2xl text-white text-center">
               <h3 className="text-base sm:text-lg font-bold mb-1.5 sm:mb-2">Паспорт готов! Что дальше? 🚀</h3>
               <p className="text-white/80 mb-3 sm:mb-4 text-xs sm:text-sm">
