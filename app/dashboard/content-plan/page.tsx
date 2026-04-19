@@ -191,7 +191,7 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
 
       {item.hook && !item.done && (
         <div className="mx-4 mb-3 p-2 rounded-lg bg-brand-bg border border-brand-border">
-          <p className="text-xs text-brand-text-secondary italic leading-relaxed line-clamp-2">«{item.hook}»</p>
+          <p className="text-sm text-brand-text-secondary italic leading-relaxed line-clamp-2">«{item.hook}»</p>
         </div>
       )}
 
@@ -256,7 +256,7 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
       {/* Подсказка для карусели */}
       {isCarousel && (
         <div className="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-200">
-          <p className="text-xs text-blue-700">
+          <p className="text-sm text-blue-700">
             <strong>Карусель</strong> — это 8-10 слайдов с текстом. AI создаст хук, развитие мысли и CTA.
           </p>
         </div>

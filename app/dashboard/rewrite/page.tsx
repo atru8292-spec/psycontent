@@ -180,7 +180,7 @@ export default function RewriteGenerator() {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-brand-text mb-2 flex items-center gap-3">
-              <RefreshCcw className="w-7 h-7 text-cyan-500" />
+              <RefreshCcw className="w-7 h-7 text-brand-accent" />
               Превратить мысли в пост
             </h1>
             <p className="text-brand-text-secondary">
@@ -192,7 +192,7 @@ export default function RewriteGenerator() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             onClick={handleRewrite}
             disabled={!canGenerate || generating}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition cursor-pointer ${canGenerate && !generating ? 'bg-cyan-500 text-white hover:bg-cyan-600 shadow-lg shadow-cyan-500/25' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition cursor-pointer ${canGenerate && !generating ? 'bg-brand-accent text-white hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/25' : 'bg-brand-highlight text-brand-text-secondary cursor-not-allowed'}`}
           >
             {generating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wand2 className="w-5 h-5" />}
             {generating ? 'Магия в процессе...' : 'Переписать'}
@@ -208,7 +208,7 @@ export default function RewriteGenerator() {
             {/* Input area */}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex-1 flex flex-col bg-white rounded-2xl border border-brand-border overflow-hidden">
               <div className="bg-gray-50 border-b border-brand-border px-4 py-3 font-semibold text-brand-text flex items-center gap-2">
-                <span className="w-6 h-6 rounded bg-gray-200 flex items-center justify-center text-xs">1</span>
+                <span className="w-6 h-6 rounded bg-brand-highlight flex items-center justify-center text-xs">1</span>
                 Ваш исходный текст
               </div>
               <textarea
@@ -218,7 +218,7 @@ export default function RewriteGenerator() {
                 className="flex-1 w-full p-4 resize-none focus:outline-none text-brand-text leading-relaxed"
               />
               <div className="bg-gray-50 border-t border-brand-border px-4 py-2 flex justify-end">
-                <span className={`text-xs ${sourceText.length > 20 ? 'text-gray-500' : 'text-red-400'}`}>
+                <span className={`text-xs ${sourceText.length > 20 ? 'text-brand-text-secondary' : 'text-red-400'}`}>
                   {sourceText.length} символов {sourceText.length <= 20 && '(нужно больше)'}
                 </span>
               </div>
@@ -227,7 +227,7 @@ export default function RewriteGenerator() {
             {/* Settings area */}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white rounded-2xl border border-brand-border p-5">
               <div className="font-semibold text-brand-text mb-4 flex items-center gap-2">
-                <span className="w-6 h-6 rounded bg-gray-200 flex items-center justify-center text-xs">2</span>
+                <span className="w-6 h-6 rounded bg-brand-highlight flex items-center justify-center text-xs">2</span>
                 Настройки адаптации
               </div>
 
@@ -242,7 +242,7 @@ export default function RewriteGenerator() {
                       <button
                         key={f.id}
                         onClick={() => setSelectedFormat(f.id)}
-                        className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-lg border cursor-pointer transition ${isSelected ? 'border-cyan-500 bg-cyan-50 text-cyan-700' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:bg-gray-50'}`}
+                        className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-lg border cursor-pointer transition ${isSelected ? 'border-brand-accent bg-brand-highlight text-brand-accent' : 'border-brand-border bg-white text-brand-text-secondary hover:border-brand-border/80 hover:bg-brand-bg'}`}
                       >
                         <Icon className="w-5 h-5" />
                         <span className="text-xs font-medium">{f.label}</span>
@@ -263,12 +263,12 @@ export default function RewriteGenerator() {
                       <button
                         key={g.id}
                         onClick={() => setSelectedGoal(g.id)}
-                        className={`flex items-start gap-3 p-3 rounded-lg border text-left cursor-pointer transition ${isSelected ? 'border-cyan-500 bg-cyan-50' : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'}`}
+                        className={`flex items-start gap-3 p-3 rounded-lg border text-left cursor-pointer transition ${isSelected ? 'border-brand-accent bg-brand-highlight' : 'border-brand-border bg-white hover:border-brand-accent/40 hover:bg-brand-bg'}`}
                       >
-                        <Icon className={`w-5 h-5 mt-0.5 ${isSelected ? 'text-cyan-600' : 'text-gray-400'}`} />
+                        <Icon className={`w-5 h-5 mt-0.5 ${isSelected ? 'text-brand-accent' : 'text-brand-text-secondary'}`} />
                         <div>
-                          <p className={`text-sm font-medium ${isSelected ? 'text-cyan-800' : 'text-gray-700'}`}>{g.label}</p>
-                          <p className={`text-[10px] mt-0.5 ${isSelected ? 'text-cyan-600' : 'text-gray-500'}`}>{g.desc}</p>
+                          <p className={`text-sm font-medium ${isSelected ? 'text-brand-text' : 'text-brand-text'}`}>{g.label}</p>
+                          <p className={`text-xs mt-0.5 ${isSelected ? 'text-brand-accent' : 'text-brand-text-secondary'}`}>{g.desc}</p>
                         </div>
                       </button>
                     )
@@ -301,7 +301,7 @@ export default function RewriteGenerator() {
                   className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-white rounded-2xl border border-brand-border"
                 >
                   <div className="relative">
-                    <Loader2 className="w-12 h-12 text-cyan-500 animate-spin mb-4" />
+                    <Loader2 className="w-12 h-12 text-brand-accent animate-spin mb-4" />
                     <Sparkles className="w-5 h-5 text-yellow-400 absolute top-0 -right-2 animate-pulse" />
                   </div>
                   <p className="font-semibold text-brand-text text-lg">Улучшаем текст...</p>
@@ -334,7 +334,7 @@ export default function RewriteGenerator() {
                     </div>
                     <button
                       onClick={handleCopy}
-                      className="flex items-center gap-1.5 text-xs font-semibold text-cyan-700 bg-cyan-100 hover:bg-cyan-200 transition cursor-pointer px-3 py-1.5 rounded-lg"
+                      className="flex items-center gap-1.5 text-xs font-semibold text-brand-accent bg-brand-highlight hover:bg-brand-highlight/80 transition cursor-pointer px-3 py-1.5 rounded-lg"
                     >
                       {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                       {copied ? 'Скопировано!' : 'Скопировать'}
