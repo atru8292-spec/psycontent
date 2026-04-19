@@ -318,6 +318,51 @@ const questions = [
   }
 ]
 
+
+// ═══════ ДЕМО ДАННЫЕ ═══════
+const DEMO_DATA: Record<string, any> = {
+  full_name: "Анна Соколова",
+  appeal: "По имени (Анна)",
+  approaches: ["Гештальт-терапия", "ACT (терапия принятия)"],
+  niches: ["Тревожные расстройства (ГТР, паника, ОКР)", "Выгорание и стресс", "Самооценка и синдром самозванца"],
+  one_niche: "Тревога — потому что за ней почти всегда прячется что-то важное про то как человек живёт. Это не симптом, это сигнал.",
+  experience: "5-10 лет",
+  path_to_profession: "Мне было 27, я работала маркетологом в крупном агентстве. Всё было хорошо — зарплата, карьера, путешествия. Только по ночам я лежала и думала: зачем это всё. Я пошла к психологу и после третьей сессии поняла — вот что хочу делать.",
+  formats: ["Индивидуально (взрослые)", "Онлайн"],
+  price: "5000-7000₽",
+  tone_formal: 30,
+  tone_serious: 40,
+  tone_cautious: 70,
+  tone_verbal: "Как честный собеседник — прямо, без обёрток",
+  values: ["Честность — говорить правду", "Глубина — докопаться до сути", "Человечность — быть живым"],
+  values_custom: "Я не делаю вид что у меня всё под контролем. Иногда говорю клиентам что сама прохожу терапию. Это не слабость — это честность.",
+  anti_values: ["Попсовая психология («мысли позитивно»)", "Инфоцыганство («вылечу за 1 сессию»)", "Шаблонные советы («подыши»)"],
+  anti_values_custom: "Перестаньте продавать людям быстрые результаты. Психика — не зуб вылечить. Кто обещает избавить от тревоги навсегда за 8 сессий — либо не понимает что делает, либо врёт.",
+  superpowers: ["«Вы объясняете сложное просто»", "«Вы задаёте вопросы от которых мурашки»", "«После вас я вижу всё по-другому»"],
+  content_struggles: ["Стыдно продвигаться", "Нет регулярности", "Лайки есть, клиентов нет"],
+  live_voice: "Я работаю с людьми которые устали от своей тревоги. Не с теми кто просто немного нервничает перед презентацией — а с теми, кто просыпается в 4 утра и час лежит с мыслью что если всё рухнет. Гештальт для меня это не техника, это способ слышать человека. Я не лечу, я помогаю разобраться.",
+  client_avatar: "Женщина 35-45 лет",
+  client_job: "Чаще всего — умная, достигающая женщина. IT, маркетинг, управление. Снаружи — успешная. Внутри — постоянное ощущение что вот-вот облажается.",
+  client_pain_phrases: "«Я устала контролировать всё»\n«Мозг не выключается даже в отпуске»\n«Не понимаю почему мне плохо — объективно же всё хорошо»",
+  client_tried: ["Читал книги", "Смотрел YouTube", "Медитации/Йога"],
+  client_fear: ["«Другим хуже — мне не положено»", "«Копаться в прошлом страшно»"],
+  client_result: "Клиентка перестала извиняться за каждое своё слово на работе. Другая впервые сказала маме «нет» — и не поехала на дачу когда не хотела. Один мужчина взял отпуск и не открыл ноутбук ни разу.",
+  platforms: ["Instagram", "Telegram"],
+  current_followers: "500-2000",
+  current_clients: "3-8",
+  client_source: ["Сарафан", "Соцсети"],
+  content_pain: "Пишу раз в месяц и теряю импульс",
+  content_pain_detail: "Садлюсь писать — и всё кажется банальным. Ощущение что это уже тысячу раз написали до меня.",
+  desired_clients: "15-25",
+  goal_3_months: "Хочу чтобы блог работал без меня — писать пост и получать запросы. Сейчас это не связано вообще.",
+  time_available: "3-5 часов в неделю",
+  video_attitude: "Сторис могу, reels пугают",
+  dream_blog: "Хочу чтобы люди читали и думали она про меня написала. Не массовый блог — а такой где каждый пост что-то меняет в голове.",
+  idols: "Адриана Имж, Нурия Гатауллина",
+  idols_why: ["Пишут просто о сложном", "Не боятся быть собой"],
+  something_else: "",
+}
+
 export default function Onboarding() {
   const [step, setStep] = useState(-1)
   const [answers, setAnswers] = useState<Record<string, any>>({})
@@ -342,6 +387,26 @@ export default function Onboarding() {
     }
     checkUser()
   }, [router])
+
+
+  const handleDemoFill = async () => {
+    if (!userId) return
+    setLoading(true)
+    const profileData = {
+      user_id: userId,
+      ...DEMO_DATA,
+    }
+    const { error } = await supabase
+      .from('onboarding_profiles')
+      .upsert(profileData, { onConflict: 'user_id' })
+    if (error) {
+      alert('Ошибка: ' + error.message)
+      setLoading(false)
+      return
+    }
+    setCompleted(true)
+    setLoading(false)
+  }
 
   const handleStart = () => setStep(0)
 
@@ -507,9 +572,23 @@ export default function Onboarding() {
             </div>
           </div>
 
-          <button onClick={handleStart} className="w-full md:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-brand-text hover:bg-black text-white rounded-xl font-bold text-base sm:text-lg transition flex items-center justify-center gap-2 sm:gap-3 cursor-pointer">
-            Начать распаковку <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <button onClick={handleStart} className="flex-1 sm:flex-none px-6 sm:px-8 py-3.5 sm:py-4 bg-brand-text hover:bg-black text-white rounded-xl font-bold text-base sm:text-lg transition flex items-center justify-center gap-2 sm:gap-3 cursor-pointer">
+              Начать распаковку <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
+            </button>
+            <button
+              onClick={handleDemoFill}
+              disabled={loading}
+              className="flex-1 sm:flex-none px-5 sm:px-6 py-3.5 sm:py-4 border-2 border-dashed border-indigo-300 text-indigo-600 hover:bg-indigo-50 rounded-xl font-semibold text-sm sm:text-base transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {loading ? (
+                <><span className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" /> Заполняю...</>
+              ) : (
+                <><Sparkles className="w-4 h-4" /> Демо-режим</>
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-brand-text-secondary mt-2 opacity-60">Демо-режим заполнит анкету готовыми данными — можно сразу посмотреть как работает генерация</p>
         </motion.div>
       </div>
     )
