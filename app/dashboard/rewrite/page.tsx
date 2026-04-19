@@ -300,12 +300,25 @@ export default function RewriteGenerator() {
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                   className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-white rounded-2xl border border-brand-border"
                 >
-                  <div className="relative">
-                    <Loader2 className="w-12 h-12 text-brand-accent animate-spin mb-4" />
+                  <div className="relative mb-6">
+                    <Loader2 className="w-12 h-12 text-brand-accent animate-spin" />
                     <Sparkles className="w-5 h-5 text-yellow-400 absolute top-0 -right-2 animate-pulse" />
                   </div>
-                  <p className="font-semibold text-brand-text text-lg">Улучшаем текст...</p>
-                  <p className="text-sm text-brand-text-secondary mt-1">Добавляем хуки, убираем воду, настраиваем ваш Tone of Voice.</p>
+                  <p className="font-semibold text-brand-text text-lg mb-2">Улучшаем текст...</p>
+                  <p className="text-sm text-brand-text-secondary mb-6">Добавляем хуки, убираем воду, настраиваем ваш Tone of Voice.</p>
+                  <div className="flex flex-col items-center gap-2 text-sm text-brand-text-secondary">
+                    {[
+                      'Анализируем структуру текста...',
+                      'Усиливаем хук и первую строку...',
+                      'Убираем воду и канцелярит...',
+                      'Настраиваем под ваш Tone of Voice...',
+                    ].map((s, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse" style={{ animationDelay: `${i * 0.4}s` }} />
+                        {s}
+                      </div>
+                    ))}
+                  </div>
                 </motion.div>
               )}
 

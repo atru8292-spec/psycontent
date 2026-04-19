@@ -605,8 +605,21 @@ function CarouselGeneratorContent() {
                     className="h-full flex flex-col items-center justify-center text-center py-20 bg-white rounded-2xl border border-brand-border"
                   >
                     <Loader2 className="w-10 h-10 text-brand-accent animate-spin mb-4" />
-                    <p className="font-semibold text-brand-text">AI создаёт карусель...</p>
-                    <p className="text-sm text-brand-text-secondary mt-1">Обычно 15–30 секунд</p>
+                    <p className="font-semibold text-brand-text mb-1">AI создаёт карусель...</p>
+                    <p className="text-sm text-brand-text-secondary mb-6">Обычно 15–30 секунд</p>
+                    <div className="flex flex-col items-center gap-2 text-sm text-brand-text-secondary">
+                      {[
+                        'Придумываем структуру слайдов...',
+                        'Пишем цепляющий заголовок...',
+                        'Наполняем каждый слайд контентом...',
+                        'Добавляем призыв к действию...',
+                      ].map((s, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse" style={{ animationDelay: `${i * 0.4}s` }} />
+                          {s}
+                        </div>
+                      ))}
+                    </div>
                   </motion.div>
                 )}
 

@@ -267,7 +267,7 @@ function PostGeneratorContent() {
                     >
                       <Icon className={`w-5 h-5 mb-2 ${active ? fmt.color : 'text-brand-text-secondary'}`} />
                       <p className={`font-semibold text-sm ${active ? 'text-brand-text' : 'text-brand-text-secondary'}`}>{fmt.label}</p>
-                      <p className="text-xs text-brand-text-secondary mt-0.5">{fmt.desc}</p>
+                      <p className="text-sm text-brand-text-secondary mt-0.5">{fmt.desc}</p>
                     </button>
                   )
                 })}
