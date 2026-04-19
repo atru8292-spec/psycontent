@@ -20,7 +20,7 @@ const blocks = [
 
 // ВОПРОСЫ
 const questions = [
-  // --- БЛОК 1 ---
+  // --- БЛОК 1: Кто вы ---
   {
     block: 0,
     key: 'full_name',
@@ -29,7 +29,8 @@ const questions = [
     type: 'text_and_single',
     placeholder: 'Например: Анна Петрова',
     options: ['По имени (Анна)', 'По имени-отчеству (Анна Сергеевна)', 'На «ты» по имени'],
-    optionsKey: 'appeal'
+    optionsKey: 'appeal',
+    secondLabel: 'Как к вам обращаться?'
   },
   {
     block: 0,
@@ -72,20 +73,21 @@ const questions = [
   {
     block: 0,
     key: 'formats',
-    title: 'Как вы работаете и стоимость сессии?',
-    subtitle: 'Форматы работы и примерная цена.',
+    title: 'В каких форматах вы работаете?',
+    subtitle: 'Выберите все подходящие форматы и укажите стоимость сессии.',
     type: 'multi_and_single',
     options: ['Индивидуально (взрослые)', 'Индивидуально (подростки)', 'Детская', 'Семейная/парная', 'Групповая', 'Онлайн', 'Очно', 'Супервизия'],
     singleKey: 'price',
-    singleOptions: ['до 3000₽', '3000-5000₽', '5000-7000₽', '7000-10000₽', '10000₽+']
+    singleOptions: ['до 3000₽', '3000-5000₽', '5000-7000₽', '7000-10000₽', '10000₽+'],
+    secondLabel: 'Примерная стоимость вашей сессии:'
   },
 
-  // --- БЛОК 2 ---
+  // --- БЛОК 2: Ваш голос ---
   {
     block: 1,
     key: 'tone_sliders',
     title: 'Какой у вас тон общения?',
-    subtitle: 'Представьте что вы пишете пост.',
+    subtitle: 'Представьте что вы пишете пост. Двигайте ползунки.',
     type: 'sliders',
     sliders: [
       { key: 'tone_formal', left: 'Формальный', right: 'Разговорный' },
@@ -97,7 +99,7 @@ const questions = [
     block: 1,
     key: 'tone_verbal',
     title: 'Как вы обычно разговариваете с клиентами?',
-    subtitle: 'Выберите самый близкий стиль',
+    subtitle: 'Выберите самый близкий стиль.',
     type: 'single',
     options: [
       'Как мудрый старший друг — тепло и с заботой',
@@ -111,7 +113,7 @@ const questions = [
     block: 1,
     key: 'values',
     title: 'Что для вас САМОЕ важное в работе?',
-    subtitle: 'И что делаете не так, как другие? (допишите текстом)',
+    subtitle: 'Выберите до 3-х ценностей и допишите — что вы делаете не так, как другие.',
     type: 'multi_and_text',
     maxChoice: 3,
     options: [
@@ -140,7 +142,7 @@ const questions = [
     block: 1,
     key: 'superpowers',
     title: 'Что вам говорят клиенты? За что ценят?',
-    subtitle: 'Ваши суперсилы в глазах клиентов',
+    subtitle: 'Ваши суперсилы в глазах клиентов.',
     type: 'multi',
     options: [
       '«Вы объясняете сложное просто»', '«С вами я чувствую что меня слышат»',
@@ -152,7 +154,7 @@ const questions = [
     block: 1,
     key: 'content_struggles',
     title: 'Что СЛОЖНО в ведении блога?',
-    subtitle: 'Честно — это поможет подобрать инструменты.',
+    subtitle: 'Честно — это поможет нам подобрать правильные инструменты.',
     type: 'multi',
     options: [
       'Не знаю о чём писать (ступор)', 'Пишу слишком сложно', 'Стыдно продвигаться',
@@ -163,17 +165,17 @@ const questions = [
     block: 1,
     key: 'live_voice',
     title: 'Самый важный вопрос — ваш живой голос',
-    subtitle: 'Представьте: вы на вечеринке. Друг: «А чем вы занимаетесь? И чем отличаетесь от других?»',
+    subtitle: 'Представьте: вы на вечеринке. Друг спрашивает: «А чем ты занимаешься? И чем отличаешься от других психологов?»',
     type: 'textarea',
     placeholder: 'Говорите как есть. Без "оказание психологической помощи". Просто — кто вы и почему вам не всё равно. Например: "Я работаю с людьми которые выгорели. Знаешь, те которые на работе — звезды..."'
   },
 
-  // --- БЛОК 3 ---
+  // --- БЛОК 3: Идеальный клиент ---
   {
     block: 2,
     key: 'client_avatar',
     title: 'Кто ваш идеальный клиент?',
-    subtitle: 'После сессии с которым вы думаете "вот ради этого я в профессии".',
+    subtitle: 'Тот, после сессии с которым вы думаете: «вот ради этого я в профессии».',
     type: 'single_and_text',
     options: ['Женщина 25-35 лет', 'Женщина 35-45 лет', 'Мужчина 25-35 лет', 'Мужчина 35-45 лет', 'Подросток 14-18 лет', 'Пара', 'Семья'],
     textKey: 'client_job',
@@ -191,7 +193,7 @@ const questions = [
     block: 2,
     key: 'client_tried',
     title: 'Что клиент уже пробовал ДО вас?',
-    subtitle: 'И что ему мешает прийти (главный страх)?',
+    subtitle: 'Что он делал, чтобы справиться самостоятельно?',
     type: 'multi',
     options: [
       'Читал книги', 'Смотрел YouTube', 'Другой психолог', 'Таблетки', 'Пытался "не думать"', 'Медитации/Йога', 'Обращается впервые'
@@ -204,111 +206,115 @@ const questions = [
     subtitle: 'Что мешает записаться?',
     type: 'multi',
     options: [
-      '«Другим хуже»', '«Психолог для сумасшедших»', '«Дорого»', '«Не поможет»', '«Копаться в прошлом страшно»', '«Стыдно»'
+      '«Другим хуже — мне не положено»', '«Психолог — это для сумасшедших»', '«Дорого»', '«Не поможет»', '«Копаться в прошлом страшно»', '«Стыдно рассказывать»'
     ]
   },
   {
     block: 2,
     key: 'client_result',
-    title: 'Результат работы. Что он ДЕЛАЕТ по-другому?',
-    subtitle: 'Не «становится лучше», а конкретика.',
+    title: 'Результат работы. Что клиент ДЕЛАЕТ по-другому?',
+    subtitle: 'Не «становится лучше», а конкретное изменение в поведении.',
     type: 'textarea',
-    placeholder: 'Например: "Перестала звонить бывшему в 3 часа ночи", "Впервые взял отпуск и не проверял почту"...'
+    placeholder: 'Например: "Перестала звонить бывшему в 3 часа ночи", "Впервые взял отпуск и не проверял почту", "Сказала маме «нет» и мир не рухнул"...'
   },
 
-  // --- БЛОК 4 ---
+  // --- БЛОК 4: Где вы сейчас ---
   {
     block: 3,
     key: 'platforms',
-    title: 'Где ведёте (или хотите) блог?',
-    subtitle: 'И сколько у вас подписчиков сегодня?',
+    title: 'Где вы ведёте (или хотите вести) блог?',
+    subtitle: 'Выберите платформы и укажите текущее количество подписчиков.',
     type: 'multi_and_single',
     options: ['Instagram', 'Telegram', 'Пока нигде'],
     singleKey: 'current_followers',
-    singleOptions: ['0', 'до 500', '500-2000', '2000-5000', '5000+']
+    singleOptions: ['0', 'до 500', '500-2000', '2000-5000', '5000+'],
+    secondLabel: 'Сколько у вас подписчиков сейчас?'
   },
   {
     block: 3,
     key: 'client_source',
     title: 'Откуда сейчас приходят клиенты?',
-    subtitle: 'И сколько их в месяц?',
+    subtitle: 'Выберите источники и укажите примерное количество клиентов в месяц.',
     type: 'multi_and_single',
-    options: ['Сарафан', 'Соцсети', 'Агрегаторы', 'Реклама', 'Рекомендации', 'Пока нет'],
+    options: ['Сарафан', 'Соцсети', 'Агрегаторы (Профи.ру и т.д.)', 'Реклама', 'Рекомендации коллег', 'Пока нет клиентов'],
     singleKey: 'current_clients',
-    singleOptions: ['0-3', '3-8', '8-15', '15-25', '25+']
+    singleOptions: ['0-3', '3-8', '8-15', '15-25', '25+'],
+    secondLabel: 'Сколько клиентов в месяц?'
   },
   {
     block: 3,
     key: 'content_pain',
-    title: 'ОДНА главная проблема с контентом прямо сейчас',
-    subtitle: 'Опишите подробнее как это проявляется в жизни.',
+    title: 'ОДНА главная проблема с контентом прямо сейчас?',
+    subtitle: 'Выберите и опишите подробнее — как это проявляется.',
     type: 'single_and_text',
     options: [
-      'Не знаю о чём писать', 'Никто не читает', 'Забрасываю', 'Пишу как учебник', 'Стыдно', 'Нет времени'
+      'Не знаю о чём писать', 'Никто не читает', 'Забрасываю через неделю', 'Пишу как учебник', 'Стыдно себя продвигать', 'Нет времени'
     ],
     textKey: 'content_pain_detail',
-    textPlaceholder: 'Например: Я могу сидеть перед пустым листом 3 часа, потом пишу сухой текст, выкладываю — и 2 лайка...'
+    textPlaceholder: 'Например: Я могу сидеть перед пустым листом 3 часа, потом пишу сухой текст, выкладываю — и 2 лайка от мамы...'
   },
 
-  // --- БЛОК 5 ---
+  // --- БЛОК 5: Куда хотите ---
   {
     block: 4,
     key: 'desired_clients',
-    title: 'Сколько клиентов вы ХОТИТЕ?',
-    subtitle: 'Ваша цель',
+    title: 'Сколько клиентов вы ХОТИТЕ в месяц?',
+    subtitle: 'Ваша цель по загрузке.',
     type: 'single',
-    options: ['5-10/мес (начать поток)', '10-20 (стабильно)', '20-30 (полная запись)', 'Повысить чек (запись полная)']
+    options: ['5-10 (начать стабильный поток)', '10-20 (стабильная практика)', '20-30 (полная запись)', 'Повысить чек (запись уже полная)']
   },
   {
     block: 4,
     key: 'goal_3_months',
-    title: 'Цель на 3 месяца и время на контент',
-    subtitle: 'Выберите главную цель и сколько ресурса есть.',
+    title: 'Главная цель на 3 месяца',
+    subtitle: 'Выберите цель и укажите сколько времени готовы тратить на контент.',
     type: 'single_and_single',
     options1: [
       'Первые клиенты из соцсетей', 'Увеличить поток в 2 раза', 'Выйти на полную запись',
-      'Запустить курс/марафон', 'Узнаваемость', 'Супервизия'
+      'Запустить курс/марафон', 'Стать узнаваемым в нише', 'Начать вести супервизии'
     ],
-    options2: ['15-30 минут в день', '30-60 минут в день', '1-2 часа', 'Один день в неделю (3+ ч)'],
-    single2Key: 'time_available'
+    options2: ['15-30 минут в день', '30-60 минут в день', '1-2 часа в день', 'Один день в неделю (3+ часа)'],
+    single2Key: 'time_available',
+    secondLabel: 'Сколько времени готовы тратить на контент?'
   },
   {
     block: 4,
     key: 'video_attitude',
     title: 'Как относитесь к видео (Reels / Shorts)?',
-    subtitle: 'Мы не будем заставлять.',
+    subtitle: 'Мы не будем заставлять — просто хотим понять.',
     type: 'single',
     options: [
-      'Нормально — нужны скрипты', 'Готов(а), но нужен телесуфлер', 'Пугает — но попробую', 'Категорически нет (только текст)'
+      'Нормально, нужны скрипты', 'Готов(а), но нужен телесуфлёр', 'Пугает, но готов(а) попробовать', 'Категорически нет — только текст и картинки'
     ]
   },
   {
     block: 4,
     key: 'dream_blog',
     title: 'Представьте идеальную картину через год.',
-    subtitle: 'Что вы чувствуете открывая директ утром?',
+    subtitle: 'Что вы чувствуете, открывая телефон утром?',
     type: 'textarea',
-    placeholder: 'Мечтайте конкретно: "открываю директ — 3 заявки, все по моей специализации, я выбираю с кем работать..."'
+    placeholder: 'Мечтайте конкретно: "Открываю директ — 3 заявки на консультацию, все по моей теме, я выбираю с кем работать. Подписчиков 5000, и каждый пост собирает живые комментарии..."'
   },
 
-  // --- БЛОК 6 ---
+  // --- БЛОК 6: Финальный штрих ---
   {
     block: 5,
     key: 'idols',
     title: 'Чей контент вам нравится?',
-    subtitle: 'Есть психологи, которыми восхищаетесь?',
+    subtitle: 'Есть психологи или блогеры, которыми восхищаетесь? И что именно нравится?',
     type: 'text_and_multi',
     placeholder: 'Имена или ссылки (необязательно)',
-    options: ['Пишут просто о сложном', 'Быть собой', 'Красивое оформление', 'Глубокие тексты', 'Комьюнити', 'Нативные продажи'],
-    optionsKey: 'idols_why'
+    options: ['Пишут просто о сложном', 'Не боятся быть собой', 'Красивое оформление', 'Глубокие тексты', 'Живое комьюнити', 'Нативные продажи'],
+    optionsKey: 'idols_why',
+    secondLabel: 'Что именно вам нравится в их контенте?'
   },
   {
     block: 5,
     key: 'something_else',
-    title: 'Что-то ещё?',
-    subtitle: 'Необычный опыт, хобби, нестандартный путь?',
+    title: 'Что-то ещё, что мы должны знать?',
+    subtitle: 'Необычный опыт, хобби, нестандартный путь — всё что делает вас уникальным.',
     type: 'textarea',
-    placeholder: 'Это может стать вашей отстройкой. Психолог-скалолаз. Психолог-бывший-бизнесмен...'
+    placeholder: 'Это может стать вашей отстройкой. Психолог-скалолаз. Психолог который 10 лет работал в бизнесе. Психолог-мама четверых...'
   }
 ]
 
@@ -444,7 +450,7 @@ export default function Onboarding() {
 
     if (error) {
       console.error('Save error:', error)
-      alert('Ошибка при сохранении. Проверьте добавлены ли новые колонки в Supabase (см. инструкцию).')
+      alert('Ошибка при сохранении. Проверьте добавлены ли новые колонки в Supabase.')
       setLoading(false)
       return
     }
@@ -466,10 +472,10 @@ export default function Onboarding() {
           </p>
           <ul className="text-left text-xs sm:text-sm text-brand-text-secondary bg-gray-50 rounded-xl p-4 sm:p-5 mb-6 sm:mb-8 space-y-2 sm:space-y-3">
             <li>✅ Мы поняли <strong>КТО</strong> вы и чем отличаетесь</li>
-            <li>✅ Мы услышали ваш <strong>Живой голос</strong></li>
-            <li>✅ Мы собрали боли вашего <strong>Идеального клиента</strong></li>
+            <li>✅ Мы услышали ваш <strong>живой голос</strong></li>
+            <li>✅ Мы собрали боли вашего <strong>идеального клиента</strong></li>
           </ul>
-          <button onClick={() => router.push('/dashboard/brand-passport')} className="w-full py-3.5 sm:py-4 bg-brand-accent hover:bg-brand-accent-hover text-white rounded-xl font-bold text-sm sm:text-base transition flex items-center justify-center gap-2 shadow-lg cursor-pointer">
+                   <button onClick={() => router.push('/dashboard/brand-passport')} className="w-full py-3.5 sm:py-4 bg-brand-accent hover:bg-brand-accent-hover text-white rounded-xl font-bold text-sm sm:text-base transition flex items-center justify-center gap-2 shadow-lg cursor-pointer">
             Создать мой Паспорт бренда <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </motion.div>
@@ -491,7 +497,7 @@ export default function Onboarding() {
             <p>Сейчас будет 22 вопроса — это займёт около <strong>25 минут</strong>. Заварите чай ☕</p>
             <p>Почему так долго? Потому что мы не делаем шаблонный контент. Мы создаём ВАШ голос. Чем больше мы о вас узнаем — тем точнее будут посты. Они будут звучать как вы.</p>
 
-                        <div className="bg-orange-50 border border-orange-100 p-3.5 sm:p-5 rounded-xl text-xs sm:text-base">
+            <div className="bg-orange-50 border border-orange-100 p-3.5 sm:p-5 rounded-xl text-xs sm:text-base">
               <span className="font-bold text-orange-800">Три совета:</span>
               <ul className="mt-2 space-y-1.5 sm:space-y-2 text-orange-700">
                 <li>1. Отвечайте честно, а не «правильно».</li>
@@ -542,10 +548,10 @@ export default function Onboarding() {
 
             <div className="space-y-4 sm:space-y-6">
 
-              {/* 1. Блок текстового ввода (для text, textarea) */}
+              {/* 1. Текстовый ввод (text, textarea, text_and_single, text_and_multi) */}
               {(q.type === 'text' || q.type === 'textarea' || q.type === 'text_and_single' || q.type === 'text_and_multi') && (
                 <div>
-                  {q.type.includes('textarea') ? (
+                  {q.type === 'textarea' ? (
                     <textarea
                       value={answers[q.key] || ''} onChange={e => setAnswers({...answers, [q.key]: e.target.value})}
                       placeholder={q.placeholder} rows={3}
@@ -561,7 +567,7 @@ export default function Onboarding() {
                 </div>
               )}
 
-              {/* 2. Основная сетка опций (для single, multi, _and_) */}
+              {/* 2. Основная сетка опций */}
               {(q.type === 'single' || q.type === 'multi' || q.type === 'multi_and_text' || q.type === 'single_and_text' || q.type === 'multi_and_single' || q.type === 'single_and_single') && (q.options || q.options1) && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3 mt-3 sm:mt-4">
                   {(q.options1 || q.options || []).map(opt => {
@@ -584,8 +590,8 @@ export default function Onboarding() {
                 </div>
               )}
 
-              {/* 3. Дополнительный текстовый ввод (textarea) */}
-              {(q.textKey) && (
+              {/* 3. Дополнительный текстовый ввод (textKey) */}
+              {q.textKey && (
                 <div className="pt-4 sm:pt-6 mt-4 sm:mt-6 border-t border-gray-100">
                   <textarea
                     value={answers[q.textKey] || ''} onChange={e => setAnswers({...answers, [q.textKey]: e.target.value})}
@@ -595,14 +601,11 @@ export default function Onboarding() {
                 </div>
               )}
 
-              {/* 4. Дополнительная сетка опций */}
+              {/* 4. Дополнительная сетка опций (optionsKey / singleKey / single2Key) */}
               {(q.optionsKey || q.singleKey || q.single2Key) && (
                 <div className="pt-4 sm:pt-6 mt-4 sm:mt-6 border-t border-gray-100">
                   <p className="font-bold text-brand-text mb-3 sm:mb-4 text-sm sm:text-lg">
-                    {q.type === 'text_and_single' ? 'И как нам к вам обращаться?' :
-                     q.type === 'multi_and_single' ? 'Примерная стоимость вашей сессии?' :
-                     q.single2Key === 'time_available' ? 'Сколько времени вы готовы тратить на блог?' :
-                     'Укажите дополнительно:'}
+                    {q.secondLabel || 'Укажите дополнительно:'}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                     {(q.singleOptions || q.options2 || q.options || []).map(opt => {
@@ -626,7 +629,7 @@ export default function Onboarding() {
                 </div>
               )}
 
-              {/* Sliders (Tone of voice) */}
+              {/* 5. Слайдеры */}
               {q.type === 'sliders' && q.sliders && (
                 <div className="space-y-8 sm:space-y-10 bg-white p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-gray-100 mt-4 sm:mt-6 shadow-sm">
                   {q.sliders.map(slider => (
