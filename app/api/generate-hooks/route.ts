@@ -135,7 +135,8 @@ export const maxDuration = 45
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, topic } = await req.json()
+    const reqBody = await req.json()
+    const { userId, topic } = reqBody
 
     if (!userId) {
       return NextResponse.json({ error: 'userId required' }, { status: 400 })
@@ -200,7 +201,7 @@ ${passport ? `ПАСПОРТ БРЕНДА (кратко):\n${passport.substring(
     .select('preferred_model')
     .eq('user_id', userId)
     .maybeSingle()
-  const model = (body as any).model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
+  const model = reqBody.model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
     const response = await generateWithAI(HOOKS_SYSTEM_PROMPT, userPrompt, model)
 

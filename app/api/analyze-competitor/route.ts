@@ -68,7 +68,8 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
     if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { url, transcript, platform } = await request.json()
+    const reqBody = await request.json()
+    const { url, transcript, platform } = reqBody
 
     if (!transcript || transcript.trim().length < 20) {
       return NextResponse.json({ error: 'Транскрипция обязательна' }, { status: 400 })
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
     .select('preferred_model')
     .eq('user_id', userId)
     .maybeSingle()
-  const model = (body as any).model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
+  const model = reqBody.model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
     const analysis = await generateWithAI(SYSTEM_PROMPT, userPrompt, model)
 

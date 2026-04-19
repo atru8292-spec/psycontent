@@ -11,7 +11,8 @@ function getSupabaseAdmin() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, batch = 1 } = await request.json()
+    const reqBody = await request.json()
+    const { userId, batch = 1 } = reqBody
     if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
 
     const supabaseAdmin = getSupabaseAdmin()
@@ -235,7 +236,7 @@ ${profile.video_attitude === 'не снимаю' ? '• ⚠️ НЕ исполь
     .select('preferred_model')
     .eq('user_id', userId)
     .maybeSingle()
-  const model = (body as any).model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
+  const model = reqBody.model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
 
     const result = await generateWithAI(systemPrompt, userPrompt, model)

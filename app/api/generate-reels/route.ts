@@ -103,7 +103,8 @@ CTA ДЛЯ REELS (мягкие):
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, topic, customTopic, videoLength, videoStyle, pillar } = await req.json()
+    const reqBody = await req.json()
+    const { userId, topic, customTopic, videoLength, videoStyle, pillar } = reqBody
 
     if (!userId) return NextResponse.json({ error: 'Не указан userId' }, { status: 400 })
 
@@ -179,7 +180,7 @@ ${getStyleInstruction(videoStyle)}
     .select('preferred_model')
     .eq('user_id', userId)
     .maybeSingle()
-  const model = (body as any).model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
+  const model = reqBody.model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
 
     const script = await generateWithAI(SYSTEM_PROMPT, prompt, model)

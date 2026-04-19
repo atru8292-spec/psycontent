@@ -141,7 +141,8 @@ const SYSTEM_PROMPT = `Ты — ghostwriter для практикующего п
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, sourceText, format, goal } = await req.json()
+    const reqBody = await req.json()
+    const { userId, sourceText, format, goal } = reqBody
 
     if (!userId || !sourceText) {
       return NextResponse.json({ error: 'Не указаны userId или текст' }, { status: 400 })
@@ -198,7 +199,7 @@ ${sourceText}
     .select('preferred_model')
     .eq('user_id', userId)
     .maybeSingle()
-  const model = (body as any).model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
+  const model = reqBody.model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
 
     const post = await generateWithAI(SYSTEM_PROMPT, prompt, model)
