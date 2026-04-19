@@ -18,17 +18,21 @@ function parsePassport(content: string) {
   let current: { num: string; title: string; lines: string[] } | null = null
 
   for (const line of lines) {
-    // Пропускаем заголовки верхнего уровня типа "# ПАСПОРТ БРЕНДА — ЧАСТЬ 2"
-    if (/^#\s+[^#]/.test(line) && !line.startsWith('##')) {
-      continue
-    }
+    // Пропускаем # заголовки верхнего уровня
+    if (/^#\s+[^#]/.test(line) && !line.startsWith('##')) continue
 
-    const headingMatch = line.match(/^##\s+(\d+)\.\s+(.+)/)
+    // Формат 1: ## 1. Заголовок
+    let headingMatch = line.match(/^##\s+(\d+)\.\s+(.+)/)
+    // Формат 2: **1. Заголовок** (новый формат после промпт-фикса)
+    if (!headingMatch) headingMatch = line.match(/^\*\*(\d+)\.\s+(.+?)\*\*\s*$/)
+    // Формат 3: **1. Заголовок** с доп текстом
+    if (!headingMatch) headingMatch = line.match(/^\*\*(\d+)\.\s+([^*]+)/)
+
     if (headingMatch) {
       if (current) {
         sections.push({ num: current.num, title: current.title, content: current.lines.join('\n').trim() })
       }
-      current = { num: headingMatch[1], title: headingMatch[2], lines: [] }
+      current = { num: headingMatch[1], title: headingMatch[2].replace(/\*+$/, '').trim(), lines: [] }
     } else if (current) {
       current.lines.push(line)
     }
@@ -44,20 +48,20 @@ function renderContent(text: string) {
   return lines.map((line, i) => {
     if (line.startsWith('- ')) {
       return (
-        <li key={i} className="flex items-start gap-2 text-brand-text-secondary text-xs sm:text-sm leading-relaxed">
-          <span className="w-1.5 h-1.5 rounded-full bg-brand-accent mt-1.5 sm:mt-2 shrink-0" />
-          <span dangerouslySetInnerHTML={{ __html: line.slice(2).replace(/\*\*(.+?)\*\*/g, '<strong class="text-brand-text font-semibold">$1</strong>') }} />
+        <li key={i} className="flex items-start gap-2 text-brand-text text-sm leading-relaxed">
+          <span className="w-1.5 h-1.5 rounded-full bg-brand-accent mt-[0.45rem] shrink-0" />
+          <span dangerouslySetInnerHTML={{ __html: line.slice(2).replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>') }} />
         </li>
       )
     }
-    if (line.startsWith('### ') || line.startsWith('**')) {
-      const clean = line.replace(/^###\s+/, '').replace(/\*\*/g, '')
-      return <p key={i} className="font-semibold text-brand-text mt-3 mb-1 text-xs sm:text-sm">{clean}</p>
+    if (line.startsWith('### ') || /^\*\*[^\d]/.test(line)) {
+      const clean = line.replace(/^###\s+/, '').replace(/^\*\*/, '').replace(/\*\*$/, '').replace(/:\s*$/, ':').trim()
+      return <p key={i} className="font-semibold text-brand-text mt-5 mb-2 text-sm">{clean}</p>
     }
-    if (line.trim() === '') return <div key={i} className="h-2" />
+    if (line.trim() === '') return <div key={i} className="h-3" />
     return (
-      <p key={i} className="text-brand-text-secondary text-xs sm:text-sm leading-relaxed"
-        dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.+?)\*\*/g, '<strong class="text-brand-text font-semibold">$1</strong>') }}
+      <p key={i} className="text-brand-text text-sm leading-[1.75]"
+        dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>') }}
       />
     )
   })
@@ -113,12 +117,12 @@ function SectionCard({ section, index }: { section: { num: string; title: string
       </button>
 
       {open && (
-        <div className={`px-3.5 sm:px-5 pb-3.5 sm:pb-5 border-t ${meta.accent}`}>
-          <div className="pt-3 sm:pt-4">
+        <div className={`px-4 sm:px-6 pb-5 sm:pb-7 border-t ${meta.accent}`}>
+          <div className="pt-4 sm:pt-5">
             {hasList ? (
-              <ul className="space-y-1.5 sm:space-y-2">{renderContent(section.content)}</ul>
+              <ul className="space-y-2 sm:space-y-2.5">{renderContent(section.content)}</ul>
             ) : (
-              <div className="space-y-1">{renderContent(section.content)}</div>
+              <div className="space-y-0">{renderContent(section.content)}</div>
             )}
           </div>
         </div>
