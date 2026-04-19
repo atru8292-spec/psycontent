@@ -142,7 +142,7 @@ export default function PostHistory() {
     <div className="min-h-screen bg-brand-bg">
       {/* Header */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-brand-border">
-        <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <button
             onClick={() => router.push('/dashboard')}
             className="flex items-center gap-2 text-brand-text-secondary hover:text-brand-text transition cursor-pointer"
@@ -157,12 +157,12 @@ export default function PostHistory() {
         </div>
       </nav>
 
-      <div className="max-w-4xl mx-auto px-6 py-12">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
         {/* Title */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }} 
           animate={{ opacity: 1, y: 0 }} 
-          className="mb-8"
+          className="mb-5 sm:mb-8"
         >
           <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-600 px-4 py-2 rounded-full text-sm font-medium mb-4">
             <History className="w-4 h-4" />

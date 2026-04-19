@@ -197,7 +197,7 @@ function PostGeneratorContent() {
   return (
     <div className="min-h-screen bg-brand-bg">
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-brand-border">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <button
             onClick={() => router.push('/dashboard')}
             className="flex items-center gap-2 text-brand-text-secondary hover:text-brand-text transition cursor-pointer"
@@ -212,13 +212,13 @@ function PostGeneratorContent() {
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 sm:mb-10">
           <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-600 px-4 py-2 rounded-full text-sm font-medium mb-4">
             <PenTool className="w-4 h-4" />
             Генератор постов
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-brand-text mb-2">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-2">
             Создайте пост в вашем голосе
           </h1>
           <p className="text-brand-text-secondary">
@@ -259,7 +259,7 @@ function PostGeneratorContent() {
           </motion.div>
         )}
 
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
           <div className="space-y-6">
             {/* Формат */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white rounded-2xl border border-brand-border p-6">
@@ -444,7 +444,7 @@ function PostGeneratorContent() {
                   animate={{ opacity: 1, y: 0 }}
                   className="bg-white rounded-2xl border border-brand-border overflow-hidden"
                 >
-                  <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border bg-brand-bg">
+                  <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-brand-border bg-brand-bg">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-green-400" />
                       <span className="text-sm font-semibold text-brand-text">Готово!</span>
@@ -476,7 +476,7 @@ function PostGeneratorContent() {
                     <p className="text-brand-text text-sm leading-relaxed whitespace-pre-wrap">{result}</p>
                   </div>
 
-                  <div className="px-6 pb-4 flex items-center justify-between">
+                  <div className="px-4 sm:px-6 pb-3 sm:pb-4 flex flex-wrap items-center justify-between gap-2">
                     <p className="text-xs text-brand-text-secondary">{result.length} символов</p>
                     <div className="flex items-center gap-4">
                       {fromPlan && (

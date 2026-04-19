@@ -407,7 +407,7 @@ export default function ContentPlan() {
   return (
     <div className="min-h-screen bg-brand-bg">
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-brand-border">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2 text-brand-text-secondary hover:text-brand-text transition cursor-pointer">
             <ArrowLeft className="w-5 h-5" />
             Назад в кабинет
@@ -430,7 +430,7 @@ export default function ContentPlan() {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-6 py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
             <CalendarDays className="w-4 h-4" />
@@ -441,7 +441,7 @@ export default function ContentPlan() {
         </motion.div>
 
         {!plan.length && !generating && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-lg mx-auto text-center py-20">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-lg mx-auto text-center py-10 sm:py-20">
             <div className="w-20 h-20 bg-green-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
               <CalendarDays className="w-10 h-10 text-green-600" />
             </div>
@@ -530,7 +530,7 @@ export default function ContentPlan() {
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
                 <AnimatePresence>
                   {filtered.map((item, i) => (
                     <motion.div

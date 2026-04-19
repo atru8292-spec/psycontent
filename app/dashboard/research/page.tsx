@@ -206,7 +206,7 @@ export default function ResearchTopics() {
     <div className="min-h-screen bg-brand-bg">
       {/* Header */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-brand-border">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <button
             onClick={() => router.push('/dashboard')}
             className="flex items-center gap-2 text-brand-text-secondary hover:text-brand-text transition cursor-pointer"
@@ -235,12 +235,12 @@ export default function ResearchTopics() {
 
       <div className="max-w-7xl mx-auto px-6 py-10">
         {/* Title */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-5 sm:mb-8">
           <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
             <TrendingUp className="w-4 h-4" />
             Исследовательский модуль
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-brand-text mb-2">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-2">
             Идеи на базе данных и трендов
           </h1>
           <p className="text-brand-text-secondary max-w-xl">

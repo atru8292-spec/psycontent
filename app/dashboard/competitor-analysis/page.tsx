@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import ReactMarkdown from 'react-markdown'
+import { ArrowLeft, Search, Clipboard, RotateCcw, Trash2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 
 interface Analysis {
   id: string
@@ -26,6 +27,7 @@ export default function CompetitorAnalysisPage() {
   const [analysis, setAnalysis] = useState('')
   const [history, setHistory] = useState<Analysis[]>([])
   const [error, setError] = useState('')
+  const [expandedHistory, setExpandedHistory] = useState<string | null>(null)
 
   useEffect(() => { loadHistory() }, [])
 
@@ -55,9 +57,7 @@ export default function CompetitorAnalysisPage() {
     })
     const text = await res.text()
     let data: any
-    try {
-      data = JSON.parse(text)
-    } catch {
+    try { data = JSON.parse(text) } catch {
       throw new Error(`Сервер не ответил (${res.status}). Попробуйте ещё раз.`)
     }
     if (!res.ok) throw new Error(data.error || `Ошибка ${res.status}`)
@@ -66,54 +66,35 @@ export default function CompetitorAnalysisPage() {
 
   const handleTranscribe = async () => {
     if (!url.trim()) return setError('Вставь ссылку')
-    setError('')
-    setTranscript('')
-    setAnalysis('')
-    setStep('transcribing')
+    setError(''); setTranscript(''); setAnalysis(''); setStep('transcribing')
     try {
       const token = await getToken()
       const data = await safeFetch('/api/transcribe', token, { url })
-      setTranscript(data.transcript)
-      setPlatform(data.platform)
-      setStep('transcribed')
+      setTranscript(data.transcript); setPlatform(data.platform); setStep('transcribed')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Ошибка транскрипции')
-      setStep('idle')
+      setError(e instanceof Error ? e.message : 'Ошибка транскрипции'); setStep('idle')
     }
   }
 
   const handleAnalyze = async () => {
     if (!transcript) return
-    setError('')
-    setStep('analyzing')
+    setError(''); setStep('analyzing')
     try {
       const token = await getToken()
       const data = await safeFetch('/api/analyze-competitor', token, { url, transcript, platform })
-      setAnalysis(data.analysis)
-      setStep('done')
-      loadHistory()
+      setAnalysis(data.analysis); setStep('done'); loadHistory()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Ошибка анализа')
-      setStep('transcribed')
+      setError(e instanceof Error ? e.message : 'Ошибка анализа'); setStep('transcribed')
     }
   }
 
   const handleReset = () => {
-    setStep('idle')
-    setUrl('')
-    setTranscript('')
-    setAnalysis('')
-    setPlatform('')
-    setError('')
+    setStep('idle'); setUrl(''); setTranscript(''); setAnalysis(''); setPlatform(''); setError('')
   }
 
   const loadFromHistory = (item: Analysis) => {
-    setUrl(item.url)
-    setPlatform(item.platform)
-    setTranscript(item.transcript)
-    setAnalysis(item.analysis)
-    setStep('done')
-    setError('')
+    setUrl(item.url); setPlatform(item.platform); setTranscript(item.transcript)
+    setAnalysis(item.analysis); setStep('done'); setError('')
   }
 
   const handleDelete = async (id: string) => {
@@ -121,155 +102,238 @@ export default function CompetitorAnalysisPage() {
     setHistory(history.filter(h => h.id !== id))
   }
 
-  const copyText = (text: string) => {
-    navigator.clipboard.writeText(text)
-    alert('Скопировано!')
-  }
-
+  const copyText = (text: string) => navigator.clipboard.writeText(text)
   const isLoading = step === 'transcribing' || step === 'analyzing'
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Кнопка назад */}
-      <button
-        onClick={() => router.push('/dashboard')}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-          marginBottom: '1.5rem', padding: '0.5rem 1rem',
-          border: '1px solid #ddd', borderRadius: '0.5rem',
-          background: '#fff', cursor: 'pointer', fontSize: '0.875rem', color: '#444',
-        }}
-      >
-        ← На дашборд
-      </button>
-
-      <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>🔍 Анализ конкурентов</h1>
-      <p style={{ color: '#666', marginBottom: '2rem' }}>Вставь ссылку на Reels/TikTok/YouTube — получи анализ и сценарий</p>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
-        <div>
-          {/* Шаг-индикатор */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', fontSize: '0.875rem', color: '#888' }}>
-            <span style={{ color: step !== 'idle' ? '#22c55e' : '#000', fontWeight: step === 'idle' || step === 'transcribing' ? '600' : '400' }}>1. Транскрипция</span>
-            <span>→</span>
-            <span style={{ color: step === 'done' ? '#22c55e' : step === 'analyzing' ? '#000' : '#ccc', fontWeight: step === 'analyzing' || step === 'transcribed' ? '600' : '400' }}>2. Анализ</span>
+    <div className="min-h-screen bg-brand-bg">
+      {/* Nav */}
+      <nav className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-brand-border">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="flex items-center gap-2 text-brand-text-secondary hover:text-brand-text transition cursor-pointer"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="hidden sm:inline text-sm font-medium">Назад в кабинет</span>
+          </button>
+          <div className="flex items-center gap-2">
+            <Search className="w-5 h-5 text-brand-accent" />
+            <span className="font-bold text-brand-text text-sm sm:text-base">Анализ конкурентов</span>
           </div>
+        </div>
+      </nav>
 
-          {(step === 'idle' || step === 'transcribing') && (
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
-              <input
-                type="text"
-                placeholder="https://instagram.com/reel/..."
-                value={url}
-                onChange={e => setUrl(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && !isLoading && handleTranscribe()}
-                disabled={isLoading}
-                style={{ flex: 1, padding: '0.75rem 1rem', border: '1px solid #ddd', borderRadius: '0.5rem', fontSize: '1rem' }}
-              />
-              <button
-                onClick={handleTranscribe}
-                disabled={isLoading || !url.trim()}
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  background: isLoading || !url.trim() ? '#ccc' : '#000',
-                  color: '#fff', border: 'none', borderRadius: '0.5rem',
-                  cursor: isLoading || !url.trim() ? 'not-allowed' : 'pointer',
-                  fontWeight: '500', whiteSpace: 'nowrap',
-                }}
-              >
-                {step === 'transcribing' ? '⏳ Получаю...' : '📝 Транскрибировать'}
-              </button>
-            </div>
-          )}
-
-          {error && (
-            <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '0.5rem', padding: '0.75rem 1rem', marginBottom: '1rem', color: '#dc2626' }}>
-              {error}
-            </div>
-          )}
-
-          {step === 'transcribing' && (
-            <div style={{ textAlign: 'center', padding: '3rem', background: '#f5f5f5', borderRadius: '0.5rem' }}>
-              <p style={{ fontSize: '1.125rem', fontWeight: '500' }}>📝 Получаю транскрипцию...</p>
-              <p style={{ color: '#666', marginTop: '0.5rem' }}>Обычно 5-15 секунд</p>
-            </div>
-          )}
-
-          {(step === 'transcribed' || step === 'analyzing' || step === 'done') && (
-            <div style={{ border: '1px solid #ddd', borderRadius: '0.5rem', padding: '1.5rem', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                <h2 style={{ fontSize: '1rem', fontWeight: '600' }}>📝 Транскрипция ({platform})</h2>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => copyText(transcript)} style={{ padding: '0.4rem 0.75rem', border: '1px solid #ddd', borderRadius: '0.25rem', background: '#fff', cursor: 'pointer', fontSize: '0.875rem' }}>
-                    📋 Копировать
-                  </button>
-                  <button onClick={handleReset} style={{ padding: '0.4rem 0.75rem', border: '1px solid #ddd', borderRadius: '0.25rem', background: '#fff', cursor: 'pointer', fontSize: '0.875rem', color: '#666' }}>
-                    ✕ Сбросить
-                  </button>
-                </div>
-              </div>
-              <div style={{ background: '#f9f9f9', padding: '1rem', borderRadius: '0.5rem', maxHeight: '200px', overflowY: 'auto', fontSize: '0.875rem', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
-                {transcript}
-              </div>
-
-              {step === 'transcribed' && (
-                <button
-                  onClick={handleAnalyze}
-                  style={{ marginTop: '1rem', width: '100%', padding: '0.875rem', background: '#000', color: '#fff', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '600', fontSize: '1rem' }}
-                >
-                  🔍 Анализировать под психолога
-                </button>
-              )}
-
-              {step === 'analyzing' && (
-                <div style={{ marginTop: '1rem', textAlign: 'center', padding: '1.5rem', background: '#f5f5f5', borderRadius: '0.5rem' }}>
-                  <p style={{ fontWeight: '500' }}>🤖 Анализирую и готовлю сценарий...</p>
-                  <p style={{ color: '#666', fontSize: '0.875rem', marginTop: '0.25rem' }}>Claude Sonnet — обычно 15-30 секунд</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {step === 'done' && analysis && (
-            <div style={{ border: '1px solid #ddd', borderRadius: '0.5rem', padding: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: '600' }}>✅ Анализ готов</h2>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => copyText(analysis)} style={{ padding: '0.5rem 1rem', border: '1px solid #ddd', borderRadius: '0.25rem', background: '#fff', cursor: 'pointer' }}>
-                    📋 Копировать
-                  </button>
-                  <button onClick={handleReset} style={{ padding: '0.5rem 1rem', border: '1px solid #ddd', borderRadius: '0.25rem', background: '#fff', cursor: 'pointer', color: '#666' }}>
-                    🔄 Новый анализ
-                  </button>
-                </div>
-              </div>
-              <ReactMarkdown>{analysis}</ReactMarkdown>
-            </div>
-          )}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        {/* Заголовок */}
+        <div className="mb-6 sm:mb-8">
+          <div className="inline-flex items-center gap-2 bg-slate-100 text-slate-700 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium mb-3">
+            <Search className="w-4 h-4" />
+            Анализ видео конкурентов
+          </div>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-2">
+            Разбери чужой контент
+          </h1>
+          <p className="text-sm sm:text-base text-brand-text-secondary">
+            Вставь ссылку на Reels / TikTok / YouTube — получи транскрипцию и разбор для психолога
+          </p>
         </div>
 
-        <div style={{ border: '1px solid #ddd', borderRadius: '0.5rem', padding: '1rem' }}>
-          <h3 style={{ fontWeight: '600', marginBottom: '1rem' }}>📜 История</h3>
-          {history.length === 0 ? (
-            <p style={{ color: '#666', textAlign: 'center' }}>Пока пусто</p>
-          ) : (
-            <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
-              {history.map(item => (
-                <div key={item.id} onClick={() => loadFromHistory(item)} style={{ padding: '0.75rem', borderBottom: '1px solid #eee', cursor: 'pointer' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontWeight: '500', fontSize: '0.875rem' }}>{item.platform}</span>
-                    <button onClick={e => { e.stopPropagation(); handleDelete(item.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999' }}>🗑</button>
-                  </div>
-                  <p style={{ fontSize: '0.75rem', color: '#999', marginTop: '0.25rem' }}>
-                    {new Date(item.created_at).toLocaleDateString('ru-RU')}
-                  </p>
-                  <p style={{ fontSize: '0.75rem', color: '#666', marginTop: '0.125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {item.transcript?.slice(0, 60)}...
-                  </p>
+        {/* Шаг-индикатор */}
+        <div className="flex items-center gap-2 sm:gap-3 mb-5 sm:mb-6">
+          {['Транскрипция', 'Анализ'].map((label, i) => {
+            const active = i === 0 ? (step === 'idle' || step === 'transcribing') : (step === 'analyzing' || step === 'transcribed')
+            const done = i === 0 ? step !== 'idle' && step !== 'transcribing' : step === 'done'
+            return (
+              <div key={i} className="flex items-center gap-2">
+                {i > 0 && <span className="text-brand-text-faint text-xs">→</span>}
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition ${
+                  done ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                  active ? 'bg-brand-accent/10 text-brand-accent border-brand-accent/30' :
+                  'bg-white text-brand-text-faint border-brand-border'
+                }`}>
+                  <span>{done ? '✓' : (i + 1)}</span>
+                  <span>{label}</span>
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          {/* Главная рабочая область */}
+          <div className="lg:col-span-2 space-y-4">
+
+            {/* Ввод ссылки */}
+            {(step === 'idle' || step === 'transcribing') && (
+              <div className="bg-white rounded-2xl border border-brand-border p-4 sm:p-6">
+                <label className="block text-sm font-semibold text-brand-text mb-2">Ссылка на видео</label>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="text"
+                    placeholder="https://instagram.com/reel/..."
+                    value={url}
+                    onChange={e => setUrl(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && !isLoading && handleTranscribe()}
+                    disabled={isLoading}
+                    className="flex-1 px-4 py-3 rounded-xl border border-brand-border bg-brand-bg text-brand-text text-sm focus:outline-none focus:ring-2 focus:ring-brand-accent disabled:opacity-50"
+                  />
+                  <button
+                    onClick={handleTranscribe}
+                    disabled={isLoading || !url.trim()}
+                    className={`flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition cursor-pointer whitespace-nowrap ${
+                      isLoading || !url.trim()
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'bg-brand-accent text-white hover:bg-brand-accent-hover shadow-lg shadow-brand-accent/25'
+                    }`}
+                  >
+                    {step === 'transcribing'
+                      ? <><span className="animate-spin">⏳</span> Получаю...</>
+                      : <><Sparkles className="w-4 h-4" /> Транскрибировать</>
+                    }
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Ошибка */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Загрузка транскрипции */}
+            {step === 'transcribing' && (
+              <div className="bg-white rounded-2xl border border-brand-border p-8 text-center">
+                <div className="text-3xl mb-3 animate-pulse">📝</div>
+                <p className="font-semibold text-brand-text">Получаю транскрипцию...</p>
+                <p className="text-sm text-brand-text-secondary mt-1">Обычно 5–15 секунд</p>
+              </div>
+            )}
+
+            {/* Транскрипция */}
+            {(step === 'transcribed' || step === 'analyzing' || step === 'done') && (
+              <div className="bg-white rounded-2xl border border-brand-border overflow-hidden">
+                <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-brand-border bg-brand-bg">
+                  <span className="text-sm font-semibold text-brand-text">📝 Транскрипция · {platform}</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => copyText(transcript)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-brand-border bg-white text-xs text-brand-text hover:border-brand-accent/50 transition cursor-pointer"
+                    >
+                      <Clipboard className="w-3.5 h-3.5" /> Копировать
+                    </button>
+                    <button
+                      onClick={handleReset}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-brand-border bg-white text-xs text-brand-text-secondary hover:text-brand-text transition cursor-pointer"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" /> Сбросить
+                    </button>
+                  </div>
+                </div>
+                <div className="px-4 sm:px-5 py-4 max-h-44 overflow-y-auto text-sm text-brand-text leading-relaxed whitespace-pre-wrap bg-brand-bg/50">
+                  {transcript}
+                </div>
+
+                {step === 'transcribed' && (
+                  <div className="px-4 sm:px-5 py-4 border-t border-brand-border">
+                    <button
+                      onClick={handleAnalyze}
+                      className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-brand-accent text-white font-semibold text-sm hover:bg-brand-accent-hover transition shadow-lg shadow-brand-accent/25 cursor-pointer"
+                    >
+                      <Search className="w-4 h-4" /> Анализировать под психолога
+                    </button>
+                  </div>
+                )}
+
+                {step === 'analyzing' && (
+                  <div className="px-5 py-6 text-center border-t border-brand-border">
+                    <div className="text-2xl mb-2 animate-pulse">🤖</div>
+                    <p className="font-semibold text-brand-text text-sm">Анализирую и готовлю сценарий...</p>
+                    <p className="text-xs text-brand-text-secondary mt-1">Обычно 15–30 секунд</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Анализ */}
+            {step === 'done' && analysis && (
+              <div className="bg-white rounded-2xl border border-brand-border overflow-hidden">
+                <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-brand-border bg-brand-bg">
+                  <span className="text-sm font-semibold text-brand-text">✅ Анализ готов</span>
+                  <button
+                    onClick={() => copyText(analysis)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-brand-border bg-white text-xs text-brand-text hover:border-brand-accent/50 transition cursor-pointer"
+                  >
+                    <Clipboard className="w-3.5 h-3.5" /> Копировать
+                  </button>
+                </div>
+                <div className="px-4 sm:px-5 py-4 prose prose-sm max-w-none text-brand-text max-h-[500px] overflow-y-auto">
+                  <ReactMarkdown>{analysis}</ReactMarkdown>
+                </div>
+                <div className="px-4 sm:px-5 py-4 border-t border-brand-border">
+                  <button
+                    onClick={handleReset}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-brand-border text-sm font-medium text-brand-text-secondary hover:text-brand-text hover:border-brand-accent/50 transition cursor-pointer"
+                  >
+                    <RotateCcw className="w-4 h-4" /> Новый анализ
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* История */}
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold text-brand-text-secondary uppercase tracking-wide px-1">История</h2>
+            {history.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-brand-border p-6 text-center">
+                <p className="text-2xl mb-2">📂</p>
+                <p className="text-sm text-brand-text-secondary">Здесь появятся ваши анализы</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-1">
+                {history.map(item => (
+                  <div key={item.id} className="bg-white rounded-xl border border-brand-border overflow-hidden">
+                    <div className="flex items-start justify-between gap-2 p-3">
+                      <button
+                        onClick={() => { loadFromHistory(item); setExpandedHistory(null) }}
+                        className="flex-1 text-left min-w-0 cursor-pointer"
+                      >
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="text-xs font-semibold text-brand-accent uppercase">{item.platform}</span>
+                          <span className="text-xs text-brand-text-faint">
+                            {new Date(item.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-brand-text-secondary truncate">{item.url}</p>
+                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => setExpandedHistory(expandedHistory === item.id ? null : item.id)}
+                          className="p-1.5 rounded-lg hover:bg-brand-bg text-brand-text-secondary hover:text-brand-text transition cursor-pointer"
+                        >
+                          {expandedHistory === item.id ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-brand-text-faint hover:text-red-500 transition cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    {expandedHistory === item.id && (
+                      <div className="px-3 pb-3 border-t border-brand-border pt-2">
+                        <p className="text-xs text-brand-text-secondary line-clamp-4 leading-relaxed">{item.analysis.slice(0, 300)}...</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

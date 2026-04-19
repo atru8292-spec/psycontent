@@ -300,7 +300,7 @@ export default function BrandPassport() {
             <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Паспорт бренда
           </div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-2 sm:mb-3">
+          <h1 className="text-2xl sm:text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-2 sm:mb-3">
             Ваш персональный паспорт бренда
           </h1>
           <p className="text-brand-text-secondary max-w-xl mx-auto text-sm sm:text-base">

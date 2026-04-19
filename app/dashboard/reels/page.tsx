@@ -158,7 +158,7 @@ export default function ReelsGenerator() {
     <div className="min-h-screen bg-brand-bg">
       {/* Header */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-brand-border">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <button
             onClick={() => router.push('/dashboard')}
             className="flex items-center gap-2 text-brand-text-secondary hover:text-brand-text transition cursor-pointer"
@@ -173,14 +173,14 @@ export default function ReelsGenerator() {
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
         {/* Title */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 sm:mb-10">
           <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-600 px-4 py-2 rounded-full text-sm font-medium mb-4">
             <Film className="w-4 h-4" />
             Рилс-скрипты
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-brand-text mb-2">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-2">
             Сценарии для видео
           </h1>
           <p className="text-brand-text-secondary">
@@ -188,7 +188,7 @@ export default function ReelsGenerator() {
           </p>
         </motion.div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
           {/* Settings Left */}
           <div className="space-y-6">
             
@@ -385,7 +385,7 @@ export default function ReelsGenerator() {
                   className="bg-white rounded-2xl border border-brand-border overflow-hidden"
                 >
                   {/* Result header */}
-                  <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border bg-brand-bg">
+                  <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-brand-border bg-brand-bg">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-indigo-500" />
                       <span className="text-sm font-semibold text-brand-text">Скрипт готов!</span>

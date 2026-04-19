@@ -172,7 +172,7 @@ export default function RewriteGenerator() {
     <div className="min-h-screen bg-brand-bg flex flex-col">
       {/* Header */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-brand-border">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <button
             onClick={() => router.push('/dashboard')}
             className="flex items-center gap-2 text-brand-text-secondary hover:text-brand-text transition cursor-pointer"
@@ -187,11 +187,11 @@ export default function RewriteGenerator() {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-6 py-8 w-full flex-1 flex flex-col">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 w-full flex-1 flex flex-col">
         {/* Title */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-brand-text mb-2 flex items-center gap-3">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-brand-text mb-2 flex items-center gap-3">
               <RefreshCcw className="w-7 h-7 text-brand-accent" />
               Превратить мысли в пост
             </h1>
@@ -218,7 +218,7 @@ export default function RewriteGenerator() {
         </motion.div>
 
         {/* Workspace */}
-        <div className="grid lg:grid-cols-2 gap-6 flex-1 min-h-[600px]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 flex-1 min-h-[400px] sm:min-h-[600px]">
           
           {/* Left Panel: Input & Settings */}
           <div className="flex flex-col gap-6">
