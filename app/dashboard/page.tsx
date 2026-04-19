@@ -23,6 +23,9 @@ import {
   Layers,
   Search,
   Zap,
+  CheckCircle2,
+  Circle,
+  ChevronRight,
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -30,6 +33,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
   const router = useRouter()
+  const [checklist, setChecklist] = useState<string[]>([])
 
   useEffect(() => {
     const init = async () => {
@@ -45,6 +49,29 @@ export default function Dashboard() {
 
       if (!data) { router.push('/onboarding'); return }
       setProfile(data)
+
+      // Чеклист: что уже сделал пользователь
+      const completed: string[] = []
+      if (data) completed.push('onboarding')
+      const { data: passport } = await supabase
+        .from('brand_passports')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (passport) completed.push('passport')
+      const { data: posts } = await supabase
+        .from('generated_posts')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1)
+      if (posts && posts.length > 0) completed.push('post')
+      const { data: plan } = await supabase
+        .from('content_plans')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1)
+      if (plan && plan.length > 0) completed.push('plan')
+      setChecklist(completed)
       setLoading(false)
     }
     init()
@@ -268,6 +295,58 @@ export default function Dashboard() {
           </p>
         </motion.div>
 
+
+        {/* ── Onboarding Checklist — показываем если не все шаги пройдены ── */}
+        {checklist.length < 4 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="mb-6 sm:mb-8 p-4 sm:p-6 rounded-2xl bg-gradient-to-br from-brand-accent/5 to-brand-accent/10 border border-brand-accent/20"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-5 h-5 text-brand-accent" />
+              <h2 className="font-bold text-brand-text text-base sm:text-lg">С чего начать</h2>
+              <span className="ml-auto text-sm text-brand-text-secondary font-medium">
+                {checklist.length}/4 выполнено
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+              {[
+                { key: 'onboarding', label: 'Заполнить профиль', desc: 'Распаковка уже пройдена', href: '/dashboard/edit-profile' },
+                { key: 'passport', label: 'Создать паспорт бренда', desc: 'Позиционирование и TOV', href: '/dashboard/brand-passport' },
+                { key: 'post', label: 'Сгенерировать первый пост', desc: 'Попробуйте генератор постов', href: '/dashboard/post-generator' },
+                { key: 'plan', label: 'Составить контент-план', desc: 'На 30 дней вперёд', href: '/dashboard/content-plan' },
+              ].map((step) => {
+                const done = checklist.includes(step.key)
+                return (
+                  <button
+                    key={step.key}
+                    onClick={() => !done && router.push(step.href)}
+                    className={`flex items-start gap-3 p-3 sm:p-4 rounded-xl border text-left transition cursor-pointer ${
+                      done
+                        ? 'bg-white/60 border-brand-accent/20 opacity-60 cursor-default'
+                        : 'bg-white border-brand-border hover:border-brand-accent/40 hover:shadow-sm active:scale-[0.98]'
+                    }`}
+                  >
+                    {done
+                      ? <CheckCircle2 className="w-5 h-5 text-brand-accent shrink-0 mt-0.5" />
+                      : <Circle className="w-5 h-5 text-brand-border shrink-0 mt-0.5" />
+                    }
+                    <div className="min-w-0">
+                      <p className={`text-sm font-semibold leading-tight ${done ? 'text-brand-text-secondary line-through' : 'text-brand-text'}`}>
+                        {step.label}
+                      </p>
+                      <p className="text-xs text-brand-text-secondary mt-0.5">{step.desc}</p>
+                    </div>
+                    {!done && <ChevronRight className="w-4 h-4 text-brand-text-secondary shrink-0 ml-auto mt-0.5" />}
+                  </button>
+                )
+              })}
+            </div>
+          </motion.div>
+        )}
+
         {/* ── Profile Summary ── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -363,8 +442,10 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 + i * 0.03 }}
               onClick={() => tool.ready && router.push(tool.href)}
-              className={`relative p-4 sm:p-6 rounded-2xl bg-white border border-brand-border hover:shadow-md transition active:scale-[0.98] group ${
-                tool.ready ? 'cursor-pointer' : 'opacity-70'
+              className={`relative p-4 sm:p-6 rounded-2xl bg-white border border-brand-border transition group ${
+                tool.ready
+                  ? 'hover:shadow-md active:scale-[0.98] cursor-pointer'
+                  : 'opacity-50 cursor-not-allowed select-none'
               }`}
             >
               {/* NEW badge */}
