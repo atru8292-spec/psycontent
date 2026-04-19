@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { generateWithAI } from '@/lib/openrouter'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -96,16 +95,19 @@ const SYSTEM_PROMPT = `Ты — бренд-стратег с 15-летним о�
 - Каждый раздел 200-400 слов`
 
 function getChunkInstructions(chunk: number) {
-  if (chunk === 1) {
-    return `
-СОЗДАЙ ПЕРВУЮ ЧАСТЬ ПАСПОРТА БРЕНДА (разделы 1-6)
+  const chunks: Record<number, string> = {
+    1: `
+СОЗДАЙ ЧАСТЬ 1 ПАСПОРТА БРЕНДА (разделы 1-2)
 
 ## 1. Миссия
 Почему этот психолог делает то что делает. 2-3 предложения от сердца. Фреймворк Синека (начни с "Почему"). Бери слова из "живого голоса".
 
 ## 2. Позиционирование
 Формула: "Я помогаю [кому] [с чем] через [как], чтобы они [результат]"
-+ развёрнутое описание 3-4 предложения.
++ развёрнутое описание 3-4 предложения.`,
+
+    2: `
+СОЗДАЙ ЧАСТЬ 2 ПАСПОРТА БРЕНДА (разделы 3-4)
 
 ## 3. Архетип бренда
 1 основной + 1 дополнительный из 12 юнгианских. Объясни почему. Как проявляется в контенте.
@@ -117,17 +119,19 @@ function getChunkInstructions(chunk: number) {
 - Дерзость (уважительный ↔ провокационный)
 - Энтузиазм (сдержанный ↔ энергичный)
 + 5 фраз которые ИСПОЛЬЗУЕТ (бери из живого голоса!)
-+ 5 фраз которые НИКОГДА не использует
++ 5 фраз которые НИКОГДА не использует`,
+
+    3: `
+СОЗДАЙ ЧАСТЬ 3 ПАСПОРТА БРЕНДА (разделы 5-6)
 
 ## 5. Аватар идеального клиента
 Опиши как реального человека с именем, возрастом, профессией. Что болит, чего боится, о чём мечтает, что триггерит обращение. Используй данные из раздела "Идеальный клиент".
 
 ## 6. УТП (3 штуки)
-Конкретные отличия. Не "индивидуальный подход". Реальные, ощутимые, основанные на суперсилах и подходе.`
-  }
+Конкретные отличия. Не "индивидуальный подход". Реальные, ощутимые, основанные на суперсилах и подходе.`,
 
-  return `
-СОЗДАЙ ВТОРУЮ ЧАСТЬ ПАСПОРТА БРЕНДА (разделы 7-12)
+    4: `
+СОЗДАЙ ЧАСТЬ 4 ПАСПОРТА БРЕНДА (разделы 7-10)
 
 ## 7. Био для Instagram
 2 варианта (до 150 символов). С эмодзи. Сразу понятно для кого и про что.
@@ -140,7 +144,10 @@ function getChunkInstructions(chunk: number) {
 Рубрики должны отражать подход и нишу!
 
 ## 10. Ключевые сообщения
-5 фраз-мантр которые повторяет регулярно. Узнаваемые, запоминающиеся, в тоне этого психолога.
+5 фраз-мантр которые повторяет регулярно. Узнаваемые, запоминающиеся, в тоне этого психолога.`,
+
+    5: `
+СОЗДАЙ ЧАСТЬ 5 ПАСПОРТА БРЕНДА (разделы 11-12)
 
 ## 11. Стоп-темы
 5 тем о которых НЕ писать. С объяснениями почему. Основаны на антиценностях.
@@ -157,7 +164,9 @@ function getChunkInstructions(chunk: number) {
 - Тон = голос этого психолога (бери из live_voice)
 - Стиль = подход (КПТ: структурно, Гештальт: через ощущения, итд)
 - Конкретика: цифры, ситуации, эмоции
-- БЕЗ длинных тире в каждом предложении`
+- БЕЗ длинных тире в каждом предложении`,
+  }
+  return chunks[chunk] || chunks[1]
 }
 
 export async function POST(request: NextRequest) {
@@ -251,36 +260,102 @@ ${approachGuidance}
 Почему: ${arr(profile.idols_why)}
 Дополнительно: ${profile.something_else || 'не указано'}`
 
-    const result = await generateWithAI(SYSTEM_PROMPT, `${basePrompt}\n\n═══════════════════════════════\nЗАДАНИЕ\n═══════════════════════════════\n${getChunkInstructions(chunk)}`)
+    const encoder = new TextEncoder()
 
-    if (chunk === 1) {
-      await supabaseAdmin
-        .from('brand_passports')
-        .upsert({
-          user_id: userId,
-          content: result,
-          generated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' })
-    } else {
-      const { data: existing } = await supabaseAdmin
-        .from('brand_passports')
-        .select('content')
-        .eq('user_id', userId)
-        .single()
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          const aiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://psycontent.vercel.app',
+              'X-Title': 'PsyContent',
+            },
+            body: JSON.stringify({
+              model: 'anthropic/claude-sonnet-4-5',
+              stream: true,
+              temperature: 0.7,
+              max_tokens: 4000,
+              messages: [
+                { role: 'system', content: SYSTEM_PROMPT },
+                {
+                  role: 'user',
+                  content: `${basePrompt}\n\n═══════════════════════════════\nЗАДАНИЕ\n═══════════════════════════════\n${getChunkInstructions(chunk)}`,
+                },
+              ],
+            }),
+          })
 
-      const fullContent = [existing?.content, result].filter(Boolean).join('\n\n')
+          if (!aiResponse.ok) {
+            const errText = await aiResponse.text()
+            throw new Error(`OpenRouter error ${aiResponse.status}: ${errText}`)
+          }
 
-      await supabaseAdmin
-        .from('brand_passports')
-        .upsert({
-          user_id: userId,
-          content: fullContent,
-          generated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' })
-    }
+          const reader = aiResponse.body!.getReader()
+          const dec = new TextDecoder()
+          let fullText = ''
 
-    return NextResponse.json({ part: result, chunk })
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            const lines = dec.decode(value).split('\n')
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue
+              const json = line.slice(6).trim()
+              if (json === '[DONE]') continue
+              try {
+                const delta = JSON.parse(json).choices?.[0]?.delta?.content
+                if (delta) {
+                  fullText += delta
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta })}\n\n`))
+                }
+              } catch {}
+            }
+          }
 
+          // Сохраняем в Supabase
+          if (chunk === 1) {
+            await supabaseAdmin
+              .from('brand_passports')
+              .upsert(
+                { user_id: userId, content: fullText, generated_at: new Date().toISOString() },
+                { onConflict: 'user_id' }
+              )
+          } else {
+            const { data: existing } = await supabaseAdmin
+              .from('brand_passports')
+              .select('content')
+              .eq('user_id', userId)
+              .single()
+
+            const fullContent = [existing?.content, fullText].filter(Boolean).join('\n\n')
+
+            await supabaseAdmin
+              .from('brand_passports')
+              .upsert(
+                { user_id: userId, content: fullContent, generated_at: new Date().toISOString() },
+                { onConflict: 'user_id' }
+              )
+          }
+
+          controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
+          controller.close()
+        } catch (err: any) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: err.message })}\n\n`))
+          controller.close()
+        }
+      },
+    })
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no',
+      },
+    })
   } catch (error: any) {
     console.error('Generate passport error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })

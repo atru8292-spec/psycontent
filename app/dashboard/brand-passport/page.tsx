@@ -127,7 +127,7 @@ export default function BrandPassport() {
   const [passport, setPassport] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
-  const [generatingChunk, setGeneratingChunk] = useState<1 | 2 | 0>(0)
+  const [generatingChunk, setGeneratingChunk] = useState<0|1|2|3|4|5>(0)
   const [generatingPDF, setGeneratingPDF] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -156,42 +156,64 @@ export default function BrandPassport() {
     init()
   }, [router])
 
+  const STEPS = [
+    { chunk: 1 as const, label: 'Миссия и позиционирование' },
+    { chunk: 2 as const, label: 'Архетип и тон голоса' },
+    { chunk: 3 as const, label: 'Аватар клиента и УТП' },
+    { chunk: 4 as const, label: 'Био, столбы и ключевые сообщения' },
+    { chunk: 5 as const, label: 'Стоп-темы и примеры постов' },
+  ]
+
   const handleGenerate = async () => {
     if (!user) return
     setGenerating(true)
-    setGeneratingChunk(1)
     setError(null)
     setPassport(null)
+    setGeneratingChunk(0)
+
+    const parts: string[] = []
 
     try {
-      const response1 = await fetch('/api/generate-passport', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, chunk: 1 }),
-      })
+      for (const step of STEPS) {
+        setGeneratingChunk(step.chunk)
 
-      const data1 = await response1.json()
+        const response = await fetch('/api/generate-passport', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, chunk: step.chunk }),
+        })
 
-      if (!response1.ok) {
-        throw new Error(data1.error || 'Ошибка генерации первой части')
+        if (!response.ok || !response.body) {
+          throw new Error(`Ошибка на этапе ${step.chunk}`)
+        }
+
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let chunkText = ''
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          const lines = decoder.decode(value).split('\n\n').filter(Boolean)
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue
+            const json = line.slice(6).trim()
+            if (json === '[DONE]') continue
+            try {
+              const parsed = JSON.parse(json)
+              if (parsed.error) throw new Error(parsed.error)
+              if (parsed.delta) {
+                chunkText += parsed.delta
+                setPassport([...parts, chunkText].join('\n\n'))
+              }
+            } catch (e: any) {
+              if (e.message) throw e
+            }
+          }
+        }
+
+        parts.push(chunkText)
       }
-
-      setPassport(data1.part)
-      setGeneratingChunk(2)
-
-      const response2 = await fetch('/api/generate-passport', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, chunk: 2 }),
-      })
-
-      const data2 = await response2.json()
-
-      if (!response2.ok) {
-        throw new Error(data2.error || 'Ошибка генерации второй части')
-      }
-
-      setPassport(prev => [prev, data2.part].filter(Boolean).join('\n\n'))
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -293,7 +315,7 @@ export default function BrandPassport() {
               Сгенерировать паспорт бренда
             </button>
             <p className="text-xs sm:text-sm text-brand-text-secondary mt-3 sm:mt-4">
-              Генерация идёт поэтапно в 2 запроса
+              Генерация идёт поэтапно в 5 шагов
             </p>
             {error && (
               <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs sm:text-sm">
@@ -307,30 +329,35 @@ export default function BrandPassport() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center py-14 sm:py-20"
+            className="py-10 sm:py-14"
           >
-            <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 text-brand-accent animate-spin mx-auto mb-4 sm:mb-6" />
-            <h2 className="text-lg sm:text-xl font-bold text-brand-text mb-2">
-              AI создаёт ваш паспорт бренда...
-            </h2>
-            <p className="text-brand-text-secondary mb-6 sm:mb-8 text-sm sm:text-base">
-              {generatingChunk === 1
-                ? 'Шаг 1 из 2: миссия, позиционирование, архетип и УТП'
-                : 'Шаг 2 из 2: контентные столбы, сообщения и примеры постов'}
-            </p>
-            <div className="max-w-md mx-auto space-y-2.5 sm:space-y-3 text-left px-2">
-              {[
-                generatingChunk === 1 ? 'Определяем миссию и позиционирование...' : 'Пишем био для Instagram и Telegram...',
-                generatingChunk === 1 ? 'Подбираем архетип бренда...' : 'Собираем контентные столбы...',
-                generatingChunk === 1 ? 'Формулируем тон голоса...' : 'Формулируем ключевые сообщения и стоп-темы...',
-                generatingChunk === 1 ? 'Описываем аватар клиента и УТП...' : 'Пишем примеры постов в вашем тоне...',
-              ].map((step, i) => (
-                <div key={i} className="flex items-center gap-2.5 sm:gap-3 text-xs sm:text-sm text-brand-text-secondary">
-                  <div
-                    className="animate-pulse w-1.5 h-1.5 sm:w-2 sm:h-2 bg-brand-accent rounded-full shrink-0"
-                    style={{ animationDelay: `${i * 0.5}s` }}
-                  />
-                  {step}
+            <div className="flex items-center gap-3 mb-6">
+              <Loader2 className="w-5 h-5 text-brand-accent animate-spin shrink-0" />
+              <h2 className="text-base sm:text-lg font-bold text-brand-text">
+                AI создаёт ваш паспорт бренда...
+              </h2>
+            </div>
+            <div className="max-w-md space-y-3">
+              {STEPS.map((step) => (
+                <div key={step.chunk} className="flex items-center gap-3">
+                  <div className={[
+                    'w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold transition-all duration-300',
+                    generatingChunk > step.chunk ? 'bg-green-500 text-white' : '',
+                    generatingChunk === step.chunk ? 'bg-brand-accent text-white' : '',
+                    generatingChunk < step.chunk ? 'bg-gray-100 text-gray-400' : '',
+                  ].join(' ')}>
+                    {generatingChunk > step.chunk ? '✓' : step.chunk}
+                  </div>
+                  <span className={[
+                    'text-sm transition-all duration-300',
+                    generatingChunk === step.chunk ? 'text-brand-text font-semibold' : '',
+                    generatingChunk > step.chunk ? 'text-green-600' : 'text-brand-text-secondary',
+                  ].join(' ')}>
+                    {step.label}
+                  </span>
+                  {generatingChunk === step.chunk && (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-accent ml-auto shrink-0" />
+                  )}
                 </div>
               ))}
             </div>
