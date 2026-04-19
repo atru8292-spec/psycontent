@@ -231,7 +231,7 @@ ${profile.video_attitude === 'не снимаю' ? '• ⚠️ НЕ исполь
 
 Верни ТОЛЬКО JSON массив. Без пояснений.`
   // Получаем предпочитаемую модель пользователя
-  const { data: userSettings } = await supabase
+  const { data: userSettings } = await supabaseAdmin
     .from('user_settings')
     .select('preferred_model')
     .eq('user_id', userId)
