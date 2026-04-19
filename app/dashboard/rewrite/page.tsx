@@ -1,4 +1,6 @@
 'use client'
+import ModelPicker from '@/components/ModelPicker'
+import { type ModelId, DEFAULT_MODEL } from '@/lib/openrouter'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -38,6 +40,7 @@ const rewriteGoals = [
 export default function RewriteGenerator() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL)
 
   const [sourceText, setSourceText] = useState('')
   const [selectedFormat, setSelectedFormat] = useState('post')
@@ -54,6 +57,14 @@ export default function RewriteGenerator() {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
+
+      // Загружаем предпочитаемую модель
+      const { data: settingsData } = await supabase
+        .from('user_settings')
+        .select('preferred_model')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (settingsData?.preferred_model) setSelectedModel(settingsData.preferred_model as ModelId)
       setUser(user)
 
       const { data } = await supabase
@@ -81,6 +92,7 @@ export default function RewriteGenerator() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          model: selectedModel,
           userId: user.id,
           sourceText,
           format: selectedFormat,
@@ -187,6 +199,12 @@ export default function RewriteGenerator() {
               Вставьте свои заметки, скучный текст или расшифровку аудио, а ИИ упакует это в вирусный контент.
             </p>
           </div>
+              {/* Выбор модели AI */}
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs text-brand-text-secondary">AI-модель:</span>
+                <ModelPicker value={selectedModel} onChange={setSelectedModel} />
+              </div>
+
           
           <motion.button
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}

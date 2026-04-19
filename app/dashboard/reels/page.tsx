@@ -1,4 +1,6 @@
 'use client'
+import ModelPicker from '@/components/ModelPicker'
+import { type ModelId, DEFAULT_MODEL } from '@/lib/openrouter'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -41,6 +43,7 @@ const defaultPillars = [
 export default function ReelsGenerator() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL)
 
   const [selectedLength, setSelectedLength] = useState('30s')
   const [selectedStyle, setSelectedStyle] = useState('talking_head')
@@ -60,6 +63,14 @@ export default function ReelsGenerator() {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
+
+      // Загружаем предпочитаемую модель
+      const { data: settingsData } = await supabase
+        .from('user_settings')
+        .select('preferred_model')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (settingsData?.preferred_model) setSelectedModel(settingsData.preferred_model as ModelId)
       setUser(user)
 
       const { data } = await supabase
@@ -88,6 +99,7 @@ export default function ReelsGenerator() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          model: selectedModel,
           userId: user.id,
           topic: selectedTopic,
           customTopic: useCustom ? customTopic : undefined,
@@ -300,6 +312,12 @@ export default function ReelsGenerator() {
             </motion.div>
 
             {/* Generate button */}
+              {/* Выбор модели AI */}
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs text-brand-text-secondary">AI-модель:</span>
+                <ModelPicker value={selectedModel} onChange={setSelectedModel} />
+              </div>
+
             <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

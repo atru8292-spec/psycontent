@@ -140,7 +140,7 @@ ${pillar ? `Рубрика: ${pillar}` : ''}
     .select('preferred_model')
     .eq('user_id', userId)
     .maybeSingle()
-  const model = userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
+  const model = (body as any).model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
 
     const response = await generateWithAI(CAROUSEL_SYSTEM_PROMPT, prompt, model)

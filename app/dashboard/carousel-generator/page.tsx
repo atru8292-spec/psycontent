@@ -1,4 +1,6 @@
 'use client'
+import ModelPicker from '@/components/ModelPicker'
+import { type ModelId, DEFAULT_MODEL } from '@/lib/openrouter'
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -35,6 +37,7 @@ type TopicSuggestion = {
 function CarouselGeneratorContent() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL)
 
   const [step, setStep] = useState<'topics' | 'carousel'>('topics')
   const [suggestedTopics, setSuggestedTopics] = useState<TopicSuggestion[]>([])
@@ -63,6 +66,14 @@ function CarouselGeneratorContent() {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
+
+      // Загружаем предпочитаемую модель
+      const { data: settingsData } = await supabase
+        .from('user_settings')
+        .select('preferred_model')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (settingsData?.preferred_model) setSelectedModel(settingsData.preferred_model as ModelId)
       setUser(user)
       setLoading(false)
     }
@@ -101,6 +112,7 @@ function CarouselGeneratorContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          model: selectedModel,
           userId: user.id,
           topic: topicToUse,
           pillar: selectedTopic?.description || '',
@@ -516,13 +528,19 @@ function CarouselGeneratorContent() {
 
                 {/* ★ КНОПКА ГЕНЕРАЦИИ — когда нет слайдов и не генерируем */}
                 {slides.length === 0 && !generating && !error && (
-                  <button
-                    onClick={() => handleGenerate(selectedTopic?.title)}
-                    className="mt-4 w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-brand-accent text-white font-semibold hover:bg-brand-accent/90 transition shadow-lg shadow-brand-accent/25 cursor-pointer"
-                  >
-                    <Sparkles className="w-5 h-5" />
-                    Сгенерировать карусель
-                  </button>
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs text-brand-text-secondary">AI-модель:</span>
+                      <ModelPicker value={selectedModel} onChange={setSelectedModel} />
+                    </div>
+                    <button
+                      onClick={() => handleGenerate(selectedTopic?.title)}
+                      className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-brand-accent text-white font-semibold hover:bg-brand-accent/90 transition shadow-lg shadow-brand-accent/25 cursor-pointer"
+                    >
+                      <Sparkles className="w-5 h-5" />
+                      Сгенерировать карусель
+                    </button>
+                  </div>
                 )}
               </motion.div>
 

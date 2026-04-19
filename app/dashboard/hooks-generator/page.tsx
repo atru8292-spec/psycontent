@@ -1,4 +1,6 @@
 'use client'
+import ModelPicker from '@/components/ModelPicker'
+import { type ModelId, DEFAULT_MODEL } from '@/lib/openrouter'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -153,6 +155,7 @@ const HOOK_EDUCATION = {
 export default function HooksGeneratorPage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL)
   const [topic, setTopic] = useState('')
   const [generating, setGenerating] = useState(false)
   const [hooks, setHooks] = useState<Hook[]>([])
@@ -171,6 +174,14 @@ export default function HooksGeneratorPage() {
         data: { user },
       } = await supabase.auth.getUser()
       if (!user) {
+
+      // Загружаем предпочитаемую модель
+      const { data: settingsData } = await supabase
+        .from('user_settings')
+        .select('preferred_model')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (settingsData?.preferred_model) setSelectedModel(settingsData.preferred_model as ModelId)
         router.push('/')
         return
       }
@@ -192,7 +203,8 @@ export default function HooksGeneratorPage() {
       const response = await fetch('/api/generate-hooks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, topic: topic.trim() }),
+        body: JSON.stringify({
+          model: selectedModel, userId: user.id, topic: topic.trim() }),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Ошибка генерации')
@@ -406,6 +418,12 @@ export default function HooksGeneratorPage() {
                 <Shuffle className="w-4 h-4" />
               </button>
             </div>
+              {/* Выбор модели AI */}
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs text-brand-text-secondary">AI-модель:</span>
+                <ModelPicker value={selectedModel} onChange={setSelectedModel} />
+              </div>
+
 
             <button
               onClick={handleGenerate}
