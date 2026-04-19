@@ -195,13 +195,13 @@ ${passport ? `ПАСПОРТ БРЕНДА (кратко):\n${passport.substring(
 ТОЛЬКО JSON массив.`
 
     console.log('Generating hooks for topic:', topic)
-  // Получаем предпочитаемую модель пользователя
-  const { data: userSettings } = await supabase
-    .from('user_settings')
-    .select('preferred_model')
-    .eq('user_id', userId)
-    .maybeSingle()
-  const model = reqBody.model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
+    // Получаем предпочитаемую модель пользователя
+    const { data: userSettings } = await supabase
+      .from('user_settings')
+      .select('preferred_model')
+      .eq('user_id', userId)
+      .maybeSingle()
+    const model = reqBody.model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
     const response = await generateWithAI(HOOKS_SYSTEM_PROMPT, userPrompt, model)
 

@@ -230,13 +230,13 @@ ${profile.video_attitude === 'не снимаю' ? '• ⚠️ НЕ исполь
 5. Хуки — живые, эмоциональные, на языке человека
 
 Верни ТОЛЬКО JSON массив. Без пояснений.`
-  // Получаем предпочитаемую модель пользователя
-  const { data: userSettings } = await supabaseAdmin
-    .from('user_settings')
-    .select('preferred_model')
-    .eq('user_id', userId)
-    .maybeSingle()
-  const model = reqBody.model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
+    // Получаем предпочитаемую модель пользователя
+    const { data: userSettings } = await supabaseAdmin
+      .from('user_settings')
+      .select('preferred_model')
+      .eq('user_id', userId)
+      .maybeSingle()
+    const model = reqBody.model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
 
     const result = await generateWithAI(systemPrompt, userPrompt, model)

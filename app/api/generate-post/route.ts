@@ -315,13 +315,13 @@ ${formatInstruction}
 Напиши пост. Только текст, без предисловий.`
 
     console.log('Calling generateWithAI...')
-  // Получаем предпочитаемую модель пользователя
-  const { data: userSettings } = await supabase
-    .from('user_settings')
-    .select('preferred_model')
-    .eq('user_id', userId)
-    .maybeSingle()
-  const model = (body as any).model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
+    // Получаем предпочитаемую модель пользователя
+    const { data: userSettings } = await supabase
+      .from('user_settings')
+      .select('preferred_model')
+      .eq('user_id', userId)
+      .maybeSingle()
+    const model = (body as any).model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
     const post = await generateWithAI(SYSTEM_PROMPT, prompt, model)
     console.log('Post generated, length:', post?.length)
