@@ -31,7 +31,9 @@ function getApproachBrandGuidance(approaches: string[]): string {
     if (key) parts.push(guidance[key])
   }
 
-  return parts.length > 0 ? parts.join('\n\n') : 'Интегративный бренд: гибкий, берущий лучшее из разных подходов. Нужна чёткая авторская "ось" чтобы не быть "обо всём и ни о чём".'
+  return parts.length > 0
+    ? parts.join('\n\n')
+    : 'Интегративный бренд: гибкий, берущий лучшее из разных подходов. Нужна чёткая авторская "ось" чтобы не быть "обо всём и ни о чём".'
 }
 
 const SYSTEM_PROMPT = `Ты — бренд-стратег с 15-летним опытом работы с психологами.
@@ -187,7 +189,7 @@ export async function POST(request: NextRequest) {
 
     const supabaseAdmin = getSupabaseAdmin()
 
-    const {  profile, error: profileError } = await supabaseAdmin
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('onboarding_profiles')
       .select('*')
       .eq('user_id', userId)
@@ -310,14 +312,14 @@ ${approachGuidance}
             if (done) break
             const lines = dec.decode(value).split('\n')
             for (const line of lines) {
-              if (!line.startsWith(' ')) continue
-              const json = line.slice(6).trim()
+              if (!line.startsWith('data:')) continue
+              const json = line.slice(5).trim()
               if (json === '[DONE]') continue
               try {
                 const delta = JSON.parse(json).choices?.[0]?.delta?.content
                 if (delta) {
                   fullText += delta
-                  controller.enqueue(encoder.encode(` ${JSON.stringify({ delta })}\n\n`))
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta })}\n\n`))
                 }
               } catch {}
             }
@@ -331,23 +333,23 @@ ${approachGuidance}
                 {
                   user_id: userId,
                   content: fullText,
-                  chunks_done: [1],
                   generated_at: new Date().toISOString(),
+                  chunks_done: [1],
                 },
                 { onConflict: 'user_id' }
               )
           } else {
-            const {  existing } = await supabaseAdmin
+            const { data: existing } = await supabaseAdmin
               .from('brand_passports')
               .select('content, chunks_done')
               .eq('user_id', userId)
               .single()
 
-            const chunksDone: number[] = existing?.chunks_done || []
+            const chunksDone: number[] = existing?.chunks_done ?? []
 
-            // Защита от дублирования: если чанк уже сохранён — пропускаем
             if (chunksDone.includes(chunk)) {
-              controller.enqueue(encoder.encode(` [DONE]\n\n`))
+              // Чанк уже сохранён — закрываем стрим без записи
+              controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
               controller.close()
               return
             }
@@ -360,17 +362,17 @@ ${approachGuidance}
                 {
                   user_id: userId,
                   content: fullContent,
-                  chunks_done: [...chunksDone, chunk],
                   generated_at: new Date().toISOString(),
+                  chunks_done: [...chunksDone, chunk],
                 },
                 { onConflict: 'user_id' }
               )
           }
 
-          controller.enqueue(encoder.encode(` [DONE]\n\n`))
+          controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
           controller.close()
         } catch (err: any) {
-          controller.enqueue(encoder.encode(` ${JSON.stringify({ error: err.message })}\n\n`))
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: err.message })}\n\n`))
           controller.close()
         }
       },
