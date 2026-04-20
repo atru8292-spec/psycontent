@@ -18,28 +18,42 @@ function parsePassport(content: string) {
   let current: { num: string; title: string; lines: string[] } | null = null
 
   for (const line of lines) {
-    // Пропускаем # заголовки верхнего уровня
-    if (/^#\s+[^#]/.test(line) && !line.startsWith('##')) continue
+    const trimmed = line.trim()
 
     // Формат 1: ## 1. Заголовок
-    let headingMatch = line.match(/^##\s+(\d+)\.\s+(.+)/)
-    // Формат 2: **1. Заголовок** (новый формат после промпт-фикса)
-    if (!headingMatch) headingMatch = line.match(/^\*\*(\d+)\.\s+(.+?)\*\*\s*$/)
-    // Формат 3: **1. Заголовок** с доп текстом
-    if (!headingMatch) headingMatch = line.match(/^\*\*(\d+)\.\s+([^*]+)/)
+    let headingMatch = trimmed.match(/^##\s+(1[0-2]|[1-9])\.\s+(.+)/)
+
+    // Формат 2: **1. Заголовок** — строка целиком в звёздочках, число 1-12
+    if (!headingMatch) {
+      headingMatch = trimmed.match(/^\*\*(1[0-2]|[1-9])\.\s+(.+?)\*\*$/)
+    }
 
     if (headingMatch) {
       if (current) {
-        sections.push({ num: current.num, title: current.title, content: current.lines.join('\n').trim() })
+        sections.push({
+          num: current.num,
+          title: current.title,
+          content: current.lines.join('\n').trim(),
+        })
       }
-      current = { num: headingMatch[1], title: headingMatch[2].replace(/\*+$/, '').trim(), lines: [] }
+      current = {
+        num: headingMatch[1],
+        title: headingMatch[2].trim(),
+        lines: [],
+      }
     } else if (current) {
       current.lines.push(line)
     }
   }
+
   if (current) {
-    sections.push({ num: current.num, title: current.title, content: current.lines.join('\n').trim() })
+    sections.push({
+      num: current.num,
+      title: current.title,
+      content: current.lines.join('\n').trim(),
+    })
   }
+
   return sections
 }
 
@@ -50,44 +64,71 @@ function renderContent(text: string) {
       return (
         <li key={i} className="flex items-start gap-2 text-brand-text text-sm leading-relaxed">
           <span className="w-1.5 h-1.5 rounded-full bg-brand-accent mt-[0.45rem] shrink-0" />
-          <span dangerouslySetInnerHTML={{ __html: line.slice(2).replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>') }} />
+          <span
+            dangerouslySetInnerHTML={{
+              __html: line
+                .slice(2)
+                .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>'),
+            }}
+          />
         </li>
       )
     }
     if (line.startsWith('### ') || /^\*\*[^\d]/.test(line)) {
-      const clean = line.replace(/^###\s+/, '').replace(/^\*\*/, '').replace(/\*\*$/, '').replace(/:\s*$/, ':').trim()
-      return <p key={i} className="font-semibold text-brand-text mt-5 mb-2 text-sm">{clean}</p>
+      const clean = line
+        .replace(/^###\s+/, '')
+        .replace(/^\*\*/, '')
+        .replace(/\*\*$/, '')
+        .replace(/:\s*$/, ':')
+        .trim()
+      return (
+        <p key={i} className="font-semibold text-brand-text mt-5 mb-2 text-sm">
+          {clean}
+        </p>
+      )
     }
     if (line.trim() === '') return <div key={i} className="h-3" />
     return (
-      <p key={i} className="text-brand-text text-sm leading-[1.75]"
-        dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>') }}
+      <p
+        key={i}
+        className="text-brand-text text-sm leading-[1.75]"
+        dangerouslySetInnerHTML={{
+          __html: line.replace(
+            /\*\*(.+?)\*\*/g,
+            '<strong class="font-semibold">$1</strong>'
+          ),
+        }}
       />
     )
   })
 }
 
 const sectionMeta: Record<string, { icon: any; color: string; bg: string; accent: string }> = {
-  '1': { icon: Heart, color: 'text-red-500', bg: 'bg-red-50', accent: 'border-red-200' },
-  '2': { icon: Target, color: 'text-purple-500', bg: 'bg-purple-50', accent: 'border-purple-200' },
-  '3': { icon: Layers, color: 'text-indigo-500', bg: 'bg-indigo-50', accent: 'border-indigo-200' },
-  '4': { icon: Volume2, color: 'text-blue-500', bg: 'bg-blue-50', accent: 'border-blue-200' },
-  '5': { icon: Users, color: 'text-green-500', bg: 'bg-green-50', accent: 'border-green-200' },
-  '6': { icon: Star, color: 'text-yellow-500', bg: 'bg-yellow-50', accent: 'border-yellow-200' },
-  '7': { icon: Instagram, color: 'text-pink-500', bg: 'bg-pink-50', accent: 'border-pink-200' },
-  '8': { icon: Send, color: 'text-cyan-500', bg: 'bg-cyan-50', accent: 'border-cyan-200' },
-  '9': { icon: LayoutGrid, color: 'text-orange-500', bg: 'bg-orange-50', accent: 'border-orange-200' },
-  '10': { icon: MessageSquare, color: 'text-teal-500', bg: 'bg-teal-50', accent: 'border-teal-200' },
-  '11': { icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-50', accent: 'border-amber-200' },
-  '12': { icon: PenTool, color: 'text-brand-accent', bg: 'bg-brand-highlight', accent: 'border-brand-accent/30' },
+  '1':  { icon: Heart,         color: 'text-red-500',        bg: 'bg-red-50',          accent: 'border-red-200' },
+  '2':  { icon: Target,        color: 'text-purple-500',     bg: 'bg-purple-50',       accent: 'border-purple-200' },
+  '3':  { icon: Layers,        color: 'text-indigo-500',     bg: 'bg-indigo-50',       accent: 'border-indigo-200' },
+  '4':  { icon: Volume2,       color: 'text-blue-500',       bg: 'bg-blue-50',         accent: 'border-blue-200' },
+  '5':  { icon: Users,         color: 'text-green-500',      bg: 'bg-green-50',        accent: 'border-green-200' },
+  '6':  { icon: Star,          color: 'text-yellow-500',     bg: 'bg-yellow-50',       accent: 'border-yellow-200' },
+  '7':  { icon: Instagram,     color: 'text-pink-500',       bg: 'bg-pink-50',         accent: 'border-pink-200' },
+  '8':  { icon: Send,          color: 'text-cyan-500',       bg: 'bg-cyan-50',         accent: 'border-cyan-200' },
+  '9':  { icon: LayoutGrid,    color: 'text-orange-500',     bg: 'bg-orange-50',       accent: 'border-orange-200' },
+  '10': { icon: MessageSquare, color: 'text-teal-500',       bg: 'bg-teal-50',         accent: 'border-teal-200' },
+  '11': { icon: AlertTriangle, color: 'text-amber-500',      bg: 'bg-amber-50',        accent: 'border-amber-200' },
+  '12': { icon: PenTool,       color: 'text-brand-accent',   bg: 'bg-brand-highlight', accent: 'border-brand-accent/30' },
 }
 
-function SectionCard({ section, index }: { section: { num: string; title: string; content: string }; index: number }) {
+function SectionCard({
+  section,
+  index,
+}: {
+  section: { num: string; title: string; content: string }
+  index: number
+}) {
   const [open, setOpen] = useState(index < 3)
   const meta = sectionMeta[section.num] || sectionMeta['1']
   const Icon = meta.icon
-  const lines = section.content.split('\n')
-  const hasList = lines.some(l => l.startsWith('- '))
+  const hasList = section.content.split('\n').some(l => l.startsWith('- '))
 
   return (
     <motion.div
@@ -100,14 +141,18 @@ function SectionCard({ section, index }: { section: { num: string; title: string
         onClick={() => setOpen(!open)}
         className="w-full flex items-center gap-3 sm:gap-4 p-3.5 sm:p-5 text-left hover:bg-gray-50/50 transition cursor-pointer"
       >
-        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl ${meta.bg} flex items-center justify-center shrink-0`}>
+        <div
+          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl ${meta.bg} flex items-center justify-center shrink-0`}
+        >
           <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${meta.color}`} />
         </div>
         <div className="flex-1 min-w-0">
           <span className={`text-[10px] sm:text-xs font-bold ${meta.color} uppercase tracking-wider`}>
             Раздел {section.num}
           </span>
-          <h3 className="font-bold text-brand-text text-sm sm:text-base leading-tight">{section.title}</h3>
+          <h3 className="font-bold text-brand-text text-sm sm:text-base leading-tight">
+            {section.title}
+          </h3>
         </div>
         {open ? (
           <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5 text-brand-text-secondary shrink-0" />
@@ -131,12 +176,20 @@ function SectionCard({ section, index }: { section: { num: string; title: string
   )
 }
 
+const STEPS = [
+  { chunk: 1 as const, label: 'Миссия и позиционирование' },
+  { chunk: 2 as const, label: 'Архетип и тон голоса' },
+  { chunk: 3 as const, label: 'Аватар клиента и УТП' },
+  { chunk: 4 as const, label: 'Био, столбы и ключевые сообщения' },
+  { chunk: 5 as const, label: 'Стоп-темы и примеры постов' },
+]
+
 export default function BrandPassport() {
   const [user, setUser] = useState<any>(null)
   const [passport, setPassport] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
-  const [generatingChunk, setGeneratingChunk] = useState<0|1|2|3|4|5>(0)
+  const [generatingChunk, setGeneratingChunk] = useState<0 | 1 | 2 | 3 | 4 | 5>(0)
   const [generatingPDF, setGeneratingPDF] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -144,7 +197,9 @@ export default function BrandPassport() {
 
   useEffect(() => {
     const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) {
         router.push('/')
         return
@@ -157,21 +212,11 @@ export default function BrandPassport() {
         .eq('user_id', user.id)
         .single()
 
-      if (data?.content) {
-        setPassport(data.content)
-      }
+      if (data?.content) setPassport(data.content)
       setLoading(false)
     }
     init()
   }, [router])
-
-  const STEPS = [
-    { chunk: 1 as const, label: 'Миссия и позиционирование' },
-    { chunk: 2 as const, label: 'Архетип и тон голоса' },
-    { chunk: 3 as const, label: 'Аватар клиента и УТП' },
-    { chunk: 4 as const, label: 'Био, столбы и ключевые сообщения' },
-    { chunk: 5 as const, label: 'Стоп-темы и примеры постов' },
-  ]
 
   const handleGenerate = async () => {
     if (!user) return
@@ -196,30 +241,34 @@ export default function BrandPassport() {
           throw new Error(`Ошибка на этапе ${step.chunk}`)
         }
 
-        // Собираем весь чанк целиком, не показываем по дельтам
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
         let chunkText = ''
+        let buffer = ''
 
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
-          const lines = decoder.decode(value).split('\n\n').filter(Boolean)
+
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() ?? ''
+
           for (const line of lines) {
-            if (!line.startsWith('data: ')) continue
-            const json = line.slice(6).trim()
+            const trimmed = line.trim()
+            if (!trimmed.startsWith('data:')) continue
+            const json = trimmed.slice(5).trim()
             if (json === '[DONE]') continue
             try {
               const parsed = JSON.parse(json)
               if (parsed.error) throw new Error(parsed.error)
               if (parsed.delta) chunkText += parsed.delta
             } catch (e: any) {
-              if (e.message) throw e
+              if (e.message && !e.message.includes('JSON')) throw e
             }
           }
         }
 
-        // Чанк готов — показываем всё накопленное сразу
         parts.push(chunkText)
         setPassport(parts.join('\n\n'))
       }
@@ -232,11 +281,10 @@ export default function BrandPassport() {
   }
 
   const handleCopy = () => {
-    if (passport) {
-      navigator.clipboard.writeText(passport)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
+    if (!passport) return
+    navigator.clipboard.writeText(passport)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   const handleDownloadTxt = () => {
@@ -267,7 +315,7 @@ export default function BrandPassport() {
   if (loading) {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full"></div>
+        <div className="animate-spin w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full" />
       </div>
     )
   }
@@ -300,7 +348,7 @@ export default function BrandPassport() {
             <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Паспорт бренда
           </div>
-          <h1 className="text-2xl sm:text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-2 sm:mb-3">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-2 sm:mb-3">
             Ваш персональный паспорт бренда
           </h1>
           <p className="text-brand-text-secondary max-w-xl mx-auto text-sm sm:text-base">
@@ -309,6 +357,7 @@ export default function BrandPassport() {
           </p>
         </motion.div>
 
+        {/* Начальный экран */}
         {!passport && !generating && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -334,6 +383,7 @@ export default function BrandPassport() {
           </motion.div>
         )}
 
+        {/* Прогресс генерации */}
         {generating && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -347,21 +397,25 @@ export default function BrandPassport() {
               </h2>
             </div>
             <div className="max-w-md space-y-3">
-              {STEPS.map((step) => (
+              {STEPS.map(step => (
                 <div key={step.chunk} className="flex items-center gap-3">
-                  <div className={[
-                    'w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold transition-all duration-300',
-                    generatingChunk > step.chunk ? 'bg-green-500 text-white' : '',
-                    generatingChunk === step.chunk ? 'bg-brand-accent text-white' : '',
-                    generatingChunk < step.chunk ? 'bg-gray-100 text-gray-400' : '',
-                  ].join(' ')}>
+                  <div
+                    className={[
+                      'w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold transition-all duration-300',
+                      generatingChunk > step.chunk ? 'bg-green-500 text-white' : '',
+                      generatingChunk === step.chunk ? 'bg-brand-accent text-white' : '',
+                      generatingChunk < step.chunk ? 'bg-gray-100 text-gray-400' : '',
+                    ].join(' ')}
+                  >
                     {generatingChunk > step.chunk ? '✓' : step.chunk}
                   </div>
-                  <span className={[
-                    'text-sm transition-all duration-300',
-                    generatingChunk === step.chunk ? 'text-brand-text font-semibold' : '',
-                    generatingChunk > step.chunk ? 'text-green-600' : 'text-brand-text-secondary',
-                  ].join(' ')}>
+                  <span
+                    className={[
+                      'text-sm transition-all duration-300',
+                      generatingChunk === step.chunk ? 'text-brand-text font-semibold' : '',
+                      generatingChunk > step.chunk ? 'text-green-600' : 'text-brand-text-secondary',
+                    ].join(' ')}
+                  >
                     {step.label}
                   </span>
                   {generatingChunk === step.chunk && (
@@ -373,6 +427,7 @@ export default function BrandPassport() {
           </motion.div>
         )}
 
+        {/* Результат */}
         {passport && !loading && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             {error && (
@@ -381,6 +436,7 @@ export default function BrandPassport() {
               </div>
             )}
 
+            {/* Панель действий */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 p-3 sm:p-4 bg-white rounded-xl sm:rounded-2xl border border-brand-border">
               <div className="flex items-center gap-4 sm:gap-6">
                 <div className="text-center">
@@ -397,7 +453,11 @@ export default function BrandPassport() {
                   onClick={handleCopy}
                   className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-2.5 sm:px-3 py-2 rounded-lg hover:bg-brand-highlight"
                 >
-                  {copied ? <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500" /> : <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                  {copied ? (
+                    <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  )}
                   {copied ? 'Скопировано!' : 'Копировать'}
                 </button>
 
@@ -437,14 +497,18 @@ export default function BrandPassport() {
               </div>
             </div>
 
+            {/* Секции */}
             <div className="space-y-3 sm:space-y-4">
               {sections.map((section, i) => (
                 <SectionCard key={section.num} section={section} index={i} />
               ))}
             </div>
 
+            {/* CTA */}
             <div className="mt-6 sm:mt-8 p-4 sm:p-6 bg-brand-accent rounded-xl sm:rounded-2xl text-white text-center">
-              <h3 className="text-base sm:text-lg font-bold mb-1.5 sm:mb-2">Паспорт готов! Что дальше? 🚀</h3>
+              <h3 className="text-base sm:text-lg font-bold mb-1.5 sm:mb-2">
+                Паспорт готов! Что дальше? 🚀
+              </h3>
               <p className="text-white/80 mb-3 sm:mb-4 text-xs sm:text-sm">
                 Используйте контентные столбы для генерации постов
               </p>
