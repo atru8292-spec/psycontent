@@ -18,6 +18,13 @@ interface Analysis {
 
 type Step = 'idle' | 'transcribing' | 'transcribed' | 'analyzing' | 'done'
 
+const STEP_LABELS = [
+  { icon: '🔍', label: 'Что происходит + Хук' },
+  { icon: '🧠', label: 'Структура и приёмы' },
+  { icon: '💡', label: 'Что взять психологу' },
+  { icon: '✍️', label: 'Готовый сценарий' },
+]
+
 export default function CompetitorAnalysisPage() {
   const router = useRouter()
   const [url, setUrl] = useState('')
@@ -28,6 +35,7 @@ export default function CompetitorAnalysisPage() {
   const [history, setHistory] = useState<Analysis[]>([])
   const [error, setError] = useState('')
   const [expandedHistory, setExpandedHistory] = useState<string | null>(null)
+  const [currentAnalysisStep, setCurrentAnalysisStep] = useState(0) // 1-4 во время анализа
 
   useEffect(() => { loadHistory() }, [])
 
@@ -76,80 +84,92 @@ export default function CompetitorAnalysisPage() {
     }
   }
 
-  // ✅ ТОЛЬКО ЭТА ФУНКЦИЯ ИЗМЕНИЛАСЬ — стриминг
   const handleAnalyze = async () => {
     if (!transcript) return
     setError('')
     setAnalysis('')
     setStep('analyzing')
+    setCurrentAnalysisStep(0)
+
+    let collectedAnalysis = ''
 
     try {
       const token = await getToken()
 
-      const res = await fetch('/api/analyze-competitor', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ url, transcript, platform })
-      })
+      for (let stepNum = 1; stepNum <= 4; stepNum++) {
+        setCurrentAnalysisStep(stepNum)
 
-      if (!res.ok) {
-        const text = await res.text()
-        let errMsg = `Ошибка ${res.status}`
-        try { errMsg = JSON.parse(text).error || errMsg } catch {}
-        throw new Error(errMsg)
-      }
+        const res = await fetch('/api/analyze-competitor', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            url,
+            transcript,
+            platform,
+            step: stepNum,
+            collectedAnalysis,
+          })
+        })
 
-      // Читаем стрим — текст появляется по мере генерации
-      const reader = res.body!.getReader()
-      const decoder = new TextDecoder()
-      let fullText = ''
+        if (!res.ok) {
+          const text = await res.text()
+          let errMsg = `Ошибка ${res.status}`
+          try { errMsg = JSON.parse(text).error || errMsg } catch {}
+          throw new Error(errMsg)
+        }
 
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
+        const reader = res.body!.getReader()
+        const decoder = new TextDecoder()
+        let stepText = ''
 
-        const chunk = decoder.decode(value, { stream: true })
-        const lines = chunk.split('\n').filter(line => line.trim())
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
 
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          const data = line.slice(6)
-          if (data === '[DONE]') continue
+          const chunk = decoder.decode(value, { stream: true })
+          const lines = chunk.split('\n').filter(line => line.trim())
 
-          try {
-            const parsed = JSON.parse(data)
-            if (parsed.content) {
-              fullText += parsed.content
-              // Обновляем UI на каждом чанке — текст печатается в реальном времени
-              setAnalysis(fullText)
-              // Переключаем на done сразу как пошёл текст
-              setStep('done')
-            }
-          } catch {
-            // битый чанк — пропускаем
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue
+            const data = line.slice(6)
+            if (data === '[DONE]') continue
+
+            try {
+              const parsed = JSON.parse(data)
+              if (parsed.content) {
+                stepText += parsed.content
+                // Показываем накопленный текст + текущий шаг в реальном времени
+                setAnalysis(collectedAnalysis + (collectedAnalysis ? '\n\n' : '') + stepText)
+              }
+            } catch {}
           }
         }
+
+        collectedAnalysis += (collectedAnalysis ? '\n\n' : '') + stepText
       }
 
-      // После завершения обновляем историю
+      setStep('done')
+      setCurrentAnalysisStep(0)
       loadHistory()
 
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ошибка анализа')
       setStep('transcribed')
+      setCurrentAnalysisStep(0)
     }
   }
 
   const handleReset = () => {
-    setStep('idle'); setUrl(''); setTranscript(''); setAnalysis(''); setPlatform(''); setError('')
+    setStep('idle'); setUrl(''); setTranscript(''); setAnalysis('')
+    setPlatform(''); setError(''); setCurrentAnalysisStep(0)
   }
 
   const loadFromHistory = (item: Analysis) => {
     setUrl(item.url); setPlatform(item.platform); setTranscript(item.transcript)
-    setAnalysis(item.analysis); setStep('done'); setError('')
+    setAnalysis(item.analysis); setStep('done'); setError(''); setCurrentAnalysisStep(0)
   }
 
   const handleDelete = async (id: string) => {
@@ -196,8 +216,12 @@ export default function CompetitorAnalysisPage() {
         {/* Шаг-индикатор */}
         <div className="flex items-center gap-2 sm:gap-3 mb-5 sm:mb-6">
           {['Транскрипция', 'Анализ'].map((label, i) => {
-            const active = i === 0 ? (step === 'idle' || step === 'transcribing') : (step === 'analyzing' || step === 'transcribed')
-            const done = i === 0 ? step !== 'idle' && step !== 'transcribing' : step === 'done'
+            const active = i === 0
+              ? (step === 'idle' || step === 'transcribing')
+              : (step === 'analyzing' || step === 'transcribed')
+            const done = i === 0
+              ? step !== 'idle' && step !== 'transcribing'
+              : step === 'done'
             return (
               <div key={i} className="flex items-center gap-2">
                 {i > 0 && <span className="text-brand-text-faint text-xs">→</span>}
@@ -300,22 +324,54 @@ export default function CompetitorAnalysisPage() {
                   </div>
                 )}
 
-                {/* ✅ Лоадер только пока нет текста */}
-                {step === 'analyzing' && !analysis && (
-                  <div className="px-5 py-6 text-center border-t border-brand-border">
-                    <div className="text-2xl mb-2 animate-pulse">🤖</div>
-                    <p className="font-semibold text-brand-text text-sm">Анализирую и готовлю сценарий...</p>
-                    <p className="text-xs text-brand-text-secondary mt-1">Текст появится через несколько секунд</p>
+                {/* Прогресс шагов — показывается во время analyzing */}
+                {step === 'analyzing' && (
+                  <div className="px-4 sm:px-5 py-4 border-t border-brand-border space-y-2">
+                    <p className="text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-3">
+                      Генерирую анализ...
+                    </p>
+                    {STEP_LABELS.map((s, i) => {
+                      const num = i + 1
+                      const isDone = currentAnalysisStep > num
+                      const isActive = currentAnalysisStep === num
+                      const isPending = currentAnalysisStep < num
+
+                      return (
+                        <div
+                          key={i}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition ${
+                            isDone
+                              ? 'bg-emerald-50 border-emerald-200'
+                              : isActive
+                              ? 'bg-brand-accent/5 border-brand-accent/30'
+                              : 'bg-brand-bg border-brand-border opacity-40'
+                          }`}
+                        >
+                          <span className="text-base">{s.icon}</span>
+                          <span className={`text-sm font-medium flex-1 ${
+                            isDone ? 'text-emerald-700' :
+                            isActive ? 'text-brand-text' :
+                            'text-brand-text-secondary'
+                          }`}>
+                            {s.label}
+                          </span>
+                          <span className="text-xs w-4 text-center">
+                            {isDone && '✅'}
+                            {isActive && <span className="animate-pulse inline-block">⏳</span>}
+                            {isPending && '⬜'}
+                          </span>
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Анализ — показывается и во время стрима и после */}
+            {/* Анализ — показывается во время стрима и после */}
             {(step === 'done' || (step === 'analyzing' && analysis)) && analysis && (
               <div className="bg-white rounded-2xl border border-brand-border overflow-hidden">
                 <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-brand-border bg-brand-bg">
-                  {/* ✅ Заголовок меняется в зависимости от того идёт стрим или нет */}
                   <span className="text-sm font-semibold text-brand-text">
                     {step === 'analyzing' ? '🤖 Генерирую анализ...' : '✅ Анализ готов'}
                   </span>
@@ -343,7 +399,7 @@ export default function CompetitorAnalysisPage() {
             )}
           </div>
 
-          {/* История — без изменений */}
+          {/* История */}
           <div className="space-y-3">
             <h2 className="text-sm font-semibold text-brand-text-secondary uppercase tracking-wide px-1">История</h2>
             {history.length === 0 ? (
@@ -385,7 +441,9 @@ export default function CompetitorAnalysisPage() {
                     </div>
                     {expandedHistory === item.id && (
                       <div className="px-3 pb-3 border-t border-brand-border pt-2">
-                        <p className="text-xs text-brand-text-secondary line-clamp-4 leading-relaxed">{item.analysis.slice(0, 300)}...</p>
+                        <p className="text-xs text-brand-text-secondary line-clamp-4 leading-relaxed">
+                          {item.analysis.slice(0, 300)}...
+                        </p>
                       </div>
                     )}
                   </div>
