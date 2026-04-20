@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { generateWithAI } from '@/lib/openrouter'
 
 export const maxDuration = 9
 
@@ -71,7 +70,7 @@ const SYSTEM_PROMPT = `Ты — стратег по контенту для пс
 *На основе этого видео — адаптация под психолога-эксперта. Живой текст, не шаблон.*
 
 **[0:00–0:03] ХУК — зацепи сразу:**
-[Конкретная фраза. Не "напишите хук" — а готовый текст]
+[Конкретная фраза — готовый текст]
 
 **[0:03–0:08] БОЛЬ — попади в точку:**
 [Конкретное описание проблемы, как её чувствует клиент]
@@ -87,36 +86,41 @@ const SYSTEM_PROMPT = `Ты — стратег по контенту для пс
 
 ---
 
-Тон: экспертный, но живой. Никакого AI-текста. Никаких "данных", "контента", "демонстрации". Говори как человек.`
+Тон: экспертный, но живой. Никакого AI-текста. Говори как человек.`
 
 export async function POST(request: NextRequest) {
   try {
+    // 1. Авторизация
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
-      return NextResponse.json({ error: 'No authorization header' }, { status: 401 })
+      return new Response(JSON.stringify({ error: 'No authorization header' }), { 
+        status: 401 
+      })
     }
 
     const token = authHeader.replace('Bearer ', '')
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
     }
 
+    // 2. Парсим тело
     const reqBody = await request.json()
     const { url, transcript, platform } = reqBody
 
     if (!transcript || transcript.trim().length < 20) {
-      return NextResponse.json({ error: 'Транскрипция обязательна' }, { status: 400 })
+      return new Response(JSON.stringify({ error: 'Транскрипция обязательна' }), { 
+        status: 400 
+      })
     }
 
-    // ✅ Исправлено: user.id вместо userId
+    // 3. Настройки пользователя
     const { data: userSettings } = await supabaseAdmin
       .from('user_settings')
       .select('preferred_model')
       .eq('user_id', user.id)
       .maybeSingle()
 
-    // ✅ Модель не тронута — берётся из настроек или оригинальный дефолт
     const model = reqBody.model
       || userSettings?.preferred_model
       || 'anthropic/claude-sonnet-4-5'
@@ -128,23 +132,104 @@ ${transcript}
 
 Сделай глубокий разбор. Найди что реально работает — хук, структуру, язык, эмоцию. Дай готовый адаптированный сценарий для психолога. Пиши живо, без воды.`
 
-    const analysis = await generateWithAI(SYSTEM_PROMPT, userPrompt, model)
-
-    await supabaseAdmin.from('competitor_analyses').insert({
-      user_id: user.id,
-      url: url || '',
-      platform: platform || 'Unknown',
-      transcript,
-      metadata: null,
-      analysis,
+    // 4. Стриминг-запрос к OpenRouter
+    const openRouterRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://psycontent.vercel.app',
+        'X-Title': 'PsyContent',
+      },
+      body: JSON.stringify({
+        model,
+        stream: true,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userPrompt }
+        ]
+      })
     })
 
-    return NextResponse.json({ success: true, analysis, platform })
+    if (!openRouterRes.ok) {
+      const errText = await openRouterRes.text()
+      return new Response(JSON.stringify({ error: `OpenRouter error: ${errText}` }), { 
+        status: 500 
+      })
+    }
+
+    // 5. Стримим ответ клиенту + собираем полный текст для сохранения
+    const encoder = new TextEncoder()
+    let fullText = ''
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        const reader = openRouterRes.body!.getReader()
+        const decoder = new TextDecoder()
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            const chunk = decoder.decode(value, { stream: true })
+            const lines = chunk.split('\n').filter(line => line.trim())
+
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue
+              const data = line.slice(6)
+              if (data === '[DONE]') continue
+
+              try {
+                const parsed = JSON.parse(data)
+                const content = parsed.choices?.[0]?.delta?.content || ''
+                if (content) {
+                  fullText += content
+                  // Отправляем клиенту в формате SSE
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`))
+                }
+              } catch {
+                // пропускаем битые чанки
+              }
+            }
+          }
+
+          // Сохраняем в БД после завершения стрима
+          if (fullText) {
+            await supabaseAdmin.from('competitor_analyses').insert({
+              user_id: user.id,
+              url: url || '',
+              platform: platform || 'Unknown',
+              transcript,
+              metadata: null,
+              analysis: fullText,
+            }).then(({ error }) => {
+              if (error) console.error('DB save error:', error)
+            })
+          }
+
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+          controller.close()
+
+        } catch (err) {
+          console.error('Stream error:', err)
+          controller.error(err)
+        }
+      }
+    })
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      }
+    })
 
   } catch (error) {
     console.error('Competitor analysis error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Ошибка анализа' },
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Ошибка анализа' }),
       { status: 500 }
     )
   }
