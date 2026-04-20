@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-export const maxDuration = 30
+export const maxDuration = 60
 
 const SUPADATA_API_KEY = process.env.SUPADATA_API_KEY
 const SUPADATA_BASE_URL = 'https://api.supadata.ai/v1'
@@ -49,9 +49,9 @@ async function getSocialTranscript(url: string): Promise<string> {
     const { jobId } = await startResponse.json()
     if (!jobId) throw new Error('No jobId returned')
 
-    // Polling: 2сек × 8 попыток = макс 16 сек
-    const maxAttempts = 8
-    const delayMs = 2000
+    // Polling: 3сек × 12 попыток = макс 36 сек
+    const maxAttempts = 12
+    const delayMs = 3000
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       await new Promise(resolve => setTimeout(resolve, delayMs))
@@ -83,8 +83,14 @@ async function getSocialTranscript(url: string): Promise<string> {
     throw new Error('Transcript timeout — video too long or service busy')
   }
 
-  const error = await startResponse.json().catch(() => ({}))
-  throw new Error(error.message || `Transcript error: ${startResponse.status}`)
+  const errorBody = await startResponse.text().catch(() => '')
+  console.error(`Supadata error ${startResponse.status}:`, errorBody)
+  let errorMessage = `Transcript error: ${startResponse.status}`
+  try {
+    const parsed = JSON.parse(errorBody)
+    errorMessage = parsed.message || parsed.error || errorMessage
+  } catch {}
+  throw new Error(errorMessage)
 }
 
 export async function POST(request: NextRequest) {
