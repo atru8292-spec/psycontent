@@ -6,40 +6,48 @@ type PassportSection = {
   content: string
 }
 
-// Палитра (идентичная контент-плану)
 const COLORS = {
   primary: [107, 122, 161] as [number, number, number],
-  accent: [142, 156, 194] as [number, number, number],
-  dark: [45, 55, 72] as [number, number, number],
-  muted: [130, 140, 160] as [number, number, number],
-  light: [245, 247, 250] as [number, number, number],
-  white: [255, 255, 255] as [number, number, number],
-  line: [220, 225, 235] as [number, number, number],
+  accent:  [142, 156, 194] as [number, number, number],
+  dark:    [45, 55, 72]    as [number, number, number],
+  muted:   [130, 140, 160] as [number, number, number],
+  light:   [245, 247, 250] as [number, number, number],
+  white:   [255, 255, 255] as [number, number, number],
+  line:    [220, 225, 235] as [number, number, number],
 }
 
-// Цвета для каждого раздела паспорта
 const SECTION_COLORS: Record<string, [number, number, number]> = {
-  '1':  [180, 100, 100],   // миссия — приглушённый красный
-  '2':  [140, 122, 161],   // позиционирование — фиолетовый
-  '3':  [107, 122, 161],   // архетип — сине-серый
-  '4':  [100, 130, 170],   // тон голоса — голубой
-  '5':  [122, 161, 140],   // аватар клиента — зелёный
-  '6':  [161, 147, 107],   // УТП — песочный
-  '7':  [161, 107, 140],   // визуал — розовый
-  '8':  [107, 161, 155],   // воронка — бирюзовый
-  '9':  [170, 130, 100],   // контентные столбы — терракот
-  '10': [120, 150, 130],   // хештеги — болотный
-  '11': [161, 130, 107],   // антислова — оранжевый
-  '12': [107, 122, 161],   // примеры — сине-серый
+  '1':  [180, 100, 100],
+  '2':  [140, 122, 161],
+  '3':  [107, 122, 161],
+  '4':  [100, 130, 170],
+  '5':  [122, 161, 140],
+  '6':  [161, 147, 107],
+  '7':  [161, 107, 140],
+  '8':  [107, 161, 155],
+  '9':  [170, 130, 100],
+  '10': [120, 150, 130],
+  '11': [161, 130, 107],
+  '12': [107, 122, 161],
 }
 
+// ✅ ИСПРАВЛЕННЫЙ ПАРСЕР — такой же как на фронте
 function parsePassportContent(content: string): PassportSection[] {
   const sections: PassportSection[] = []
   const lines = content.split('\n')
   let current: { num: string; title: string; lines: string[] } | null = null
 
   for (const line of lines) {
-    const headingMatch = line.match(/^##\s+(\d+)\.\s+(.+)/)
+    const trimmed = line.trim()
+
+    // Формат 1: ## 1. Заголовок
+    let headingMatch = trimmed.match(/^##\s+(1[0-2]|[1-9])\.\s+(.+)/)
+
+    // Формат 2: **1. Заголовок** — строка целиком в звёздочках, число 1–12
+    if (!headingMatch) {
+      headingMatch = trimmed.match(/^\*\*(1[0-2]|[1-9])\.\s+(.+?)\*\*$/)
+    }
+
     if (headingMatch) {
       if (current) {
         sections.push({
@@ -48,11 +56,16 @@ function parsePassportContent(content: string): PassportSection[] {
           content: current.lines.join('\n').trim(),
         })
       }
-      current = { num: headingMatch[1], title: headingMatch[2], lines: [] }
+      current = {
+        num: headingMatch[1],
+        title: headingMatch[2].trim(),
+        lines: [],
+      }
     } else if (current) {
       current.lines.push(line)
     }
   }
+
   if (current) {
     sections.push({
       num: current.num,
@@ -60,10 +73,10 @@ function parsePassportContent(content: string): PassportSection[] {
       content: current.lines.join('\n').trim(),
     })
   }
+
   return sections
 }
 
-// Очистка markdown-разметки для PDF
 function cleanMarkdown(text: string): string {
   return text
     .replace(/\*\*(.+?)\*\*/g, '$1')
@@ -83,7 +96,10 @@ export async function generatePassportPDF(passportContent: string): Promise<void
     const fontResponse = await fetch('/Roboto-Regular.ttf')
     const fontBuffer = await fontResponse.arrayBuffer()
     const fontBase64 = btoa(
-      new Uint8Array(fontBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      new Uint8Array(fontBuffer).reduce(
+        (data, byte) => data + String.fromCharCode(byte),
+        ''
+      )
     )
     pdf.addFileToVFS('Roboto-Regular.ttf', fontBase64)
     pdf.addFont('Roboto-Regular.ttf', 'Roboto', 'normal')
@@ -92,29 +108,25 @@ export async function generatePassportPDF(passportContent: string): Promise<void
     console.warn('Font loading failed, using default font')
   }
 
-  const pageWidth = pdf.internal.pageSize.getWidth()
+  const pageWidth  = pdf.internal.pageSize.getWidth()
   const pageHeight = pdf.internal.pageSize.getHeight()
-  const margin = 20
+  const margin       = 20
   const contentWidth = pageWidth - margin * 2
 
   // ══════════════════════════════════════
   // ТИТУЛЬНАЯ СТРАНИЦА
   // ══════════════════════════════════════
 
-  // Фон
   pdf.setFillColor(...COLORS.light)
   pdf.rect(0, 0, pageWidth, pageHeight, 'F')
 
-  // Акцентная линия сверху
   pdf.setFillColor(...COLORS.primary)
   pdf.rect(0, 0, pageWidth, 3, 'F')
 
-  // Большой декоративный текст
   pdf.setTextColor(235, 238, 245)
   pdf.setFontSize(160)
   pdf.text('BP', pageWidth - 25, 85, { align: 'right' })
 
-  // Заголовок
   pdf.setTextColor(...COLORS.dark)
   pdf.setFontSize(32)
   pdf.text('Паспорт бренда', margin, 60)
@@ -123,12 +135,10 @@ export async function generatePassportPDF(passportContent: string): Promise<void
   pdf.setTextColor(...COLORS.primary)
   pdf.text('психолога', margin, 75)
 
-  // Подзаголовок
   pdf.setTextColor(...COLORS.muted)
   pdf.setFontSize(12)
   pdf.text('Персональный стратегический документ', margin, 90)
 
-  // Линия
   pdf.setDrawColor(...COLORS.line)
   pdf.setLineWidth(0.5)
   pdf.line(margin, 100, pageWidth - margin, 100)
@@ -166,24 +176,20 @@ export async function generatePassportPDF(passportContent: string): Promise<void
   let tocY = 177
   sections.forEach((section, i) => {
     const sectionColor = SECTION_COLORS[section.num] || COLORS.primary
+    if (tocY > pageHeight - 40) return
 
-    if (tocY > pageHeight - 40) return // защита от переполнения
-
-    // Номер
     pdf.setTextColor(sectionColor[0], sectionColor[1], sectionColor[2])
     pdf.setFontSize(9)
     pdf.text(section.num.padStart(2, '0'), margin, tocY)
 
-    // Название
     pdf.setTextColor(...COLORS.dark)
     pdf.setFontSize(9)
     pdf.text(section.title, margin + 12, tocY)
 
-    // Точки до номера страницы
     pdf.setTextColor(...COLORS.line)
     const titleWidth = pdf.getTextWidth(section.title)
-    const dotsStart = margin + 12 + titleWidth + 2
-    const dotsEnd = pageWidth - margin - 10
+    const dotsStart  = margin + 12 + titleWidth + 2
+    const dotsEnd    = pageWidth - margin - 10
     if (dotsEnd > dotsStart) {
       let dotX = dotsStart
       while (dotX < dotsEnd) {
@@ -192,7 +198,6 @@ export async function generatePassportPDF(passportContent: string): Promise<void
       }
     }
 
-    // Номер страницы
     pdf.setTextColor(...COLORS.muted)
     pdf.text(String(i + 2), pageWidth - margin, tocY, { align: 'right' })
 
@@ -212,7 +217,6 @@ export async function generatePassportPDF(passportContent: string): Promise<void
     pageHeight - 20
   )
 
-  // Линия внизу
   pdf.setDrawColor(...COLORS.line)
   pdf.line(margin, pageHeight - 30, pageWidth - margin, pageHeight - 30)
 
@@ -220,76 +224,71 @@ export async function generatePassportPDF(passportContent: string): Promise<void
   // СТРАНИЦЫ РАЗДЕЛОВ
   // ══════════════════════════════════════
 
-  sections.forEach((section, sectionIndex) => {
+  sections.forEach((section) => {
     pdf.addPage()
 
     const sectionColor = SECTION_COLORS[section.num] || COLORS.primary
 
-    // Фон
     pdf.setFillColor(...COLORS.light)
     pdf.rect(0, 0, pageWidth, pageHeight, 'F')
 
-    // Цветная линия сверху
     pdf.setFillColor(sectionColor[0], sectionColor[1], sectionColor[2])
     pdf.rect(0, 0, pageWidth, 2, 'F')
 
-    // Большой номер раздела (декор)
+    // Декоративный номер
     pdf.setTextColor(235, 238, 245)
     pdf.setFontSize(120)
-    const sectionNum = section.num.padStart(2, '0')
-    pdf.text(sectionNum, pageWidth - 20, 55, { align: 'right' })
+    pdf.text(section.num.padStart(2, '0'), pageWidth - 20, 55, { align: 'right' })
 
-    // Лейбл «Раздел X»
+    // Тег раздела
     pdf.setTextColor(sectionColor[0], sectionColor[1], sectionColor[2])
     pdf.setFontSize(9)
     pdf.text('РАЗДЕЛ ' + section.num, margin, 22)
 
-    // Тег с номером
     const tagWidth = pdf.getTextWidth('РАЗДЕЛ ' + section.num) + 10
     pdf.setDrawColor(sectionColor[0], sectionColor[1], sectionColor[2])
     pdf.setLineWidth(0.6)
     pdf.roundedRect(margin - 3, 16, tagWidth + 3, 10, 2, 2, 'S')
 
-    // Заголовок раздела
+    // Заголовок
     pdf.setTextColor(...COLORS.dark)
     pdf.setFontSize(18)
     const titleLines = pdf.splitTextToSize(section.title, contentWidth - 40)
     pdf.text(titleLines, margin, 40)
 
-    // Линия под заголовком
     const titleEndY = 40 + titleLines.length * 8 + 5
     pdf.setDrawColor(...COLORS.line)
     pdf.setLineWidth(0.3)
     pdf.line(margin, titleEndY, pageWidth - margin, titleEndY)
 
-    // ===== КОНТЕНТ РАЗДЕЛА =====
+    // ===== КОНТЕНТ =====
     let y = titleEndY + 12
     const cleanedContent = cleanMarkdown(section.content)
-    const contentLines = cleanedContent.split('\n')
+    const contentLines   = cleanedContent.split('\n')
 
-    for (const line of contentLines) {
-      // Проверка на новую страницу
+    const addFooter = () => {
+      pdf.setTextColor(...COLORS.line)
+      pdf.setFontSize(8)
+      pdf.text(
+        section.num + ' / ' + sections.length,
+        pageWidth / 2,
+        pageHeight - 15,
+        { align: 'center' }
+      )
+      pdf.setDrawColor(...COLORS.line)
+      pdf.line(margin, pageHeight - 25, pageWidth - margin, pageHeight - 25)
+    }
+
+    const checkNewPage = () => {
       if (y > pageHeight - 35) {
-        // Футер текущей страницы
-        pdf.setTextColor(...COLORS.line)
-        pdf.setFontSize(8)
-        pdf.text(
-          section.num + ' / ' + sections.length,
-          pageWidth / 2,
-          pageHeight - 15,
-          { align: 'center' }
-        )
-        pdf.setDrawColor(...COLORS.line)
-        pdf.line(margin, pageHeight - 25, pageWidth - margin, pageHeight - 25)
-
-        // Новая страница
+        addFooter()
         pdf.addPage()
+
         pdf.setFillColor(...COLORS.light)
         pdf.rect(0, 0, pageWidth, pageHeight, 'F')
         pdf.setFillColor(sectionColor[0], sectionColor[1], sectionColor[2])
         pdf.rect(0, 0, pageWidth, 2, 'F')
 
-        // Мини-заголовок на продолжении
         pdf.setTextColor(sectionColor[0], sectionColor[1], sectionColor[2])
         pdf.setFontSize(8)
         pdf.text(
@@ -302,28 +301,30 @@ export async function generatePassportPDF(passportContent: string): Promise<void
 
         y = 28
       }
+    }
+
+    for (const line of contentLines) {
+      checkNewPage()
 
       const trimmed = line.trim()
 
-      // Пустая строка
       if (trimmed === '') {
         y += 4
         continue
       }
 
-      // Подзаголовок (### или строка целиком жирная)
+      // Подзаголовок
       if (
         line.startsWith('### ') ||
-        (trimmed.startsWith('**') && trimmed.endsWith('**'))
+        (trimmed.startsWith('**') && trimmed.endsWith('**') && trimmed.length > 4)
       ) {
         const clean = trimmed
           .replace(/^###\s+/, '')
           .replace(/^\*\*/, '')
           .replace(/\*\*$/, '')
+          .trim()
 
         y += 4
-
-        // Маленький цветной акцент слева
         pdf.setFillColor(sectionColor[0], sectionColor[1], sectionColor[2])
         pdf.rect(margin, y - 3.5, 1.5, 5, 'F')
 
@@ -335,11 +336,10 @@ export async function generatePassportPDF(passportContent: string): Promise<void
         continue
       }
 
-      // Буллет-поинт
+      // Буллет
       if (trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
         const bulletText = trimmed.replace(/^[-•]\s+/, '')
 
-        // Точка-маркер
         pdf.setFillColor(sectionColor[0], sectionColor[1], sectionColor[2])
         pdf.circle(margin + 2, y - 1, 1, 'F')
 
@@ -354,7 +354,7 @@ export async function generatePassportPDF(passportContent: string): Promise<void
       // Нумерованный список
       const numberedMatch = trimmed.match(/^(\d+)[\.\)]\s+(.+)/)
       if (numberedMatch) {
-        const num = numberedMatch[1]
+        const num  = numberedMatch[1]
         const text = numberedMatch[2]
 
         pdf.setTextColor(sectionColor[0], sectionColor[1], sectionColor[2])
@@ -377,17 +377,7 @@ export async function generatePassportPDF(passportContent: string): Promise<void
       y += textLines.length * 4.5 + 2
     }
 
-    // Футер
-    pdf.setTextColor(...COLORS.line)
-    pdf.setFontSize(8)
-    pdf.text(
-      section.num + ' / ' + sections.length,
-      pageWidth / 2,
-      pageHeight - 15,
-      { align: 'center' }
-    )
-    pdf.setDrawColor(...COLORS.line)
-    pdf.line(margin, pageHeight - 25, pageWidth - margin, pageHeight - 25)
+    addFooter()
   })
 
   // ══════════════════════════════════════
@@ -402,12 +392,10 @@ export async function generatePassportPDF(passportContent: string): Promise<void
   pdf.setFillColor(...COLORS.primary)
   pdf.rect(0, 0, pageWidth, 2, 'F')
 
-  // Декоративные кавычки
   pdf.setTextColor(235, 238, 245)
   pdf.setFontSize(120)
   pdf.text('«»', pageWidth / 2, pageHeight / 2 - 30, { align: 'center' })
 
-  // Текст
   pdf.setTextColor(...COLORS.dark)
   pdf.setFontSize(20)
   pdf.text('Ваш бренд — это обещание,', pageWidth / 2, pageHeight / 2, {
@@ -420,7 +408,6 @@ export async function generatePassportPDF(passportContent: string): Promise<void
     align: 'center',
   })
 
-  // Совет
   pdf.setTextColor(...COLORS.muted)
   pdf.setFontSize(10)
   const tipLines = pdf.splitTextToSize(
@@ -429,7 +416,6 @@ export async function generatePassportPDF(passportContent: string): Promise<void
   )
   pdf.text(tipLines, pageWidth / 2, pageHeight / 2 + 35, { align: 'center' })
 
-  // Подпись
   pdf.setDrawColor(...COLORS.line)
   pdf.line(margin, pageHeight - 40, pageWidth - margin, pageHeight - 40)
 
@@ -438,7 +424,6 @@ export async function generatePassportPDF(passportContent: string): Promise<void
   pdf.text('Создано в PsyContent AI', pageWidth / 2, pageHeight - 30, {
     align: 'center',
   })
-
   pdf.text(
     new Date().toLocaleDateString('ru-RU', {
       day: 'numeric',
