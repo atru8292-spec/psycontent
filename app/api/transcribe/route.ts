@@ -34,8 +34,10 @@ async function getYouTubeTranscript(url: string): Promise<string> {
 }
 
 async function getSocialTranscript(url: string): Promise<string> {
+  // mode=generate: AI-based transcription, works for all Instagram/TikTok videos
+  // even without native subtitles (costs 2 credits/min instead of 1)
   const startResponse = await fetch(
-    `${SUPADATA_BASE_URL}/transcript?url=${encodeURIComponent(url)}`,
+    `${SUPADATA_BASE_URL}/transcript?url=${encodeURIComponent(url)}&mode=generate`,
     { method: 'GET', headers: { 'x-api-key': SUPADATA_API_KEY! } }
   )
 
