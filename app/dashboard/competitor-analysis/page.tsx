@@ -76,15 +76,70 @@ export default function CompetitorAnalysisPage() {
     }
   }
 
+  // ✅ ТОЛЬКО ЭТА ФУНКЦИЯ ИЗМЕНИЛАСЬ — стриминг
   const handleAnalyze = async () => {
     if (!transcript) return
-    setError(''); setStep('analyzing')
+    setError('')
+    setAnalysis('')
+    setStep('analyzing')
+
     try {
       const token = await getToken()
-      const data = await safeFetch('/api/analyze-competitor', token, { url, transcript, platform })
-      setAnalysis(data.analysis); setStep('done'); loadHistory()
+
+      const res = await fetch('/api/analyze-competitor', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ url, transcript, platform })
+      })
+
+      if (!res.ok) {
+        const text = await res.text()
+        let errMsg = `Ошибка ${res.status}`
+        try { errMsg = JSON.parse(text).error || errMsg } catch {}
+        throw new Error(errMsg)
+      }
+
+      // Читаем стрим — текст появляется по мере генерации
+      const reader = res.body!.getReader()
+      const decoder = new TextDecoder()
+      let fullText = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n').filter(line => line.trim())
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const data = line.slice(6)
+          if (data === '[DONE]') continue
+
+          try {
+            const parsed = JSON.parse(data)
+            if (parsed.content) {
+              fullText += parsed.content
+              // Обновляем UI на каждом чанке — текст печатается в реальном времени
+              setAnalysis(fullText)
+              // Переключаем на done сразу как пошёл текст
+              setStep('done')
+            }
+          } catch {
+            // битый чанк — пропускаем
+          }
+        }
+      }
+
+      // После завершения обновляем историю
+      loadHistory()
+
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Ошибка анализа'); setStep('transcribed')
+      setError(e instanceof Error ? e.message : 'Ошибка анализа')
+      setStep('transcribed')
     }
   }
 
@@ -125,7 +180,6 @@ export default function CompetitorAnalysisPage() {
       </nav>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-        {/* Заголовок */}
         <div className="mb-6 sm:mb-8">
           <div className="inline-flex items-center gap-2 bg-slate-100 text-slate-700 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium mb-3">
             <Search className="w-4 h-4" />
@@ -161,7 +215,6 @@ export default function CompetitorAnalysisPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Главная рабочая область */}
           <div className="lg:col-span-2 space-y-4">
 
             {/* Ввод ссылки */}
@@ -247,21 +300,25 @@ export default function CompetitorAnalysisPage() {
                   </div>
                 )}
 
-                {step === 'analyzing' && (
+                {/* ✅ Лоадер только пока нет текста */}
+                {step === 'analyzing' && !analysis && (
                   <div className="px-5 py-6 text-center border-t border-brand-border">
                     <div className="text-2xl mb-2 animate-pulse">🤖</div>
                     <p className="font-semibold text-brand-text text-sm">Анализирую и готовлю сценарий...</p>
-                    <p className="text-xs text-brand-text-secondary mt-1">Обычно 15–30 секунд</p>
+                    <p className="text-xs text-brand-text-secondary mt-1">Текст появится через несколько секунд</p>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Анализ */}
-            {step === 'done' && analysis && (
+            {/* Анализ — показывается и во время стрима и после */}
+            {(step === 'done' || (step === 'analyzing' && analysis)) && analysis && (
               <div className="bg-white rounded-2xl border border-brand-border overflow-hidden">
                 <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-brand-border bg-brand-bg">
-                  <span className="text-sm font-semibold text-brand-text">✅ Анализ готов</span>
+                  {/* ✅ Заголовок меняется в зависимости от того идёт стрим или нет */}
+                  <span className="text-sm font-semibold text-brand-text">
+                    {step === 'analyzing' ? '🤖 Генерирую анализ...' : '✅ Анализ готов'}
+                  </span>
                   <button
                     onClick={() => copyText(analysis)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-brand-border bg-white text-xs text-brand-text hover:border-brand-accent/50 transition cursor-pointer"
@@ -272,19 +329,21 @@ export default function CompetitorAnalysisPage() {
                 <div className="px-4 sm:px-5 py-4 prose prose-sm max-w-none text-brand-text max-h-[500px] overflow-y-auto">
                   <ReactMarkdown>{analysis}</ReactMarkdown>
                 </div>
-                <div className="px-4 sm:px-5 py-4 border-t border-brand-border">
-                  <button
-                    onClick={handleReset}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-brand-border text-sm font-medium text-brand-text-secondary hover:text-brand-text hover:border-brand-accent/50 transition cursor-pointer"
-                  >
-                    <RotateCcw className="w-4 h-4" /> Новый анализ
-                  </button>
-                </div>
+                {step === 'done' && (
+                  <div className="px-4 sm:px-5 py-4 border-t border-brand-border">
+                    <button
+                      onClick={handleReset}
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-brand-border text-sm font-medium text-brand-text-secondary hover:text-brand-text hover:border-brand-accent/50 transition cursor-pointer"
+                    >
+                      <RotateCcw className="w-4 h-4" /> Новый анализ
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* История */}
+          {/* История — без изменений */}
           <div className="space-y-3">
             <h2 className="text-sm font-semibold text-brand-text-secondary uppercase tracking-wide px-1">История</h2>
             {history.length === 0 ? (
