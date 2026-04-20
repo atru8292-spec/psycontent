@@ -8,11 +8,10 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const SYSTEM_PROMPT = `Ты — стратег по контенту для психологов-экспертов. Твоя задача — разобрать чужой Reels/TikTok/YouTube так, чтобы психолог понял КАК это работает и смог создать своё — живое, вирусное, человеческое. Не шаблонное.
+const SYSTEM_BASE = `Ты — стратег по контенту для психологов-экспертов. Пиши как живой человек, не как робот. Никаких канцеляризмов. Пиши так, будто объясняешь коллеге за кофе — умно, чётко, по делу.`
 
-Важно: пиши как живой человек, не как робот. Никаких канцеляризмов, никакого "данный контент демонстрирует". Пиши так, будто объясняешь коллеге за кофе — умно, чётко, по делу.
-
----
+const STEP_PROMPTS: Record<number, string> = {
+  1: `Проанализируй видео и напиши ТОЛЬКО эти два раздела. Больше ничего не добавляй.
 
 ## 🔍 ЧТО ПРОИСХОДИТ В ЭТОМ ВИДЕО
 
@@ -36,9 +35,9 @@ const SYSTEM_PROMPT = `Ты — стратег по контенту для пс
 [Психологический механизм: страх, любопытство, узнавание, противоречие]
 
 **Тип хука:**
-[ ] Провокационный вопрос  [ ] Шокирующий факт  [ ] Боль в лоб  [ ] Обещание результата  [ ] История  [ ] Противоречие
+[ ] Провокационный вопрос  [ ] Шокирующий факт  [ ] Боль в лоб  [ ] Обещание результата  [ ] История  [ ] Противоречие`,
 
----
+  2: `Проанализируй видео и напиши ТОЛЬКО этот раздел. Больше ничего не добавляй.
 
 ## 🧠 СТРУКТУРА И ПРИЁМЫ
 
@@ -51,9 +50,9 @@ const SYSTEM_PROMPT = `Ты — стратег по контенту для пс
 - [Приём 3 — название + как используется]
 
 **Язык и стиль:**
-[Как говорит автор — простой/экспертный/разговорный, какие слова цепляют]
+[Как говорит автор — простой/экспертный/разговорный, какие слова цепляют]`,
 
----
+  3: `Проанализируй видео и напиши ТОЛЬКО этот раздел. Больше ничего не добавляй.
 
 ## 💡 ЧТО ВЗЯТЬ ПСИХОЛОГУ
 
@@ -61,13 +60,13 @@ const SYSTEM_PROMPT = `Ты — стратег по контенту для пс
 
 - **[Приём]** → [Как именно применить психологу, конкретная тема]
 - **[Формулировка]** → [Как переформулировать под психологическую нишу]
-- **[Структура]** → [Как использовать эту же структуру для своей темы]
+- **[Структура]** → [Как использовать эту же структуру для своей темы]`,
 
----
+  4: `На основе видео напиши ТОЛЬКО готовый сценарий. Больше ничего не добавляй.
 
 ## ✍️ ГОТОВЫЙ СЦЕНАРИЙ ДЛЯ ПСИХОЛОГА
 
-*На основе этого видео — адаптация под психолога-эксперта. Живой текст, не шаблон.*
+*Адаптация под психолога-эксперта. Живой текст, не шаблон.*
 
 **[0:00–0:03] ХУК — зацепи сразу:**
 [Конкретная фраза — готовый текст]
@@ -82,20 +81,15 @@ const SYSTEM_PROMPT = `Ты — стратег по контенту для пс
 [1-2 предложения, почему тебе можно верить — без хвастовства]
 
 **[0:28–0:30] CTA — скажи что делать:**
-[Конкретный призыв: сохранить / написать / ответить на вопрос]
-
----
-
-Тон: экспертный, но живой. Никакого AI-текста. Говори как человек.`
+[Конкретный призыв: сохранить / написать / ответить на вопрос]`,
+}
 
 export async function POST(request: NextRequest) {
   try {
     // 1. Авторизация
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), { 
-        status: 401 
-      })
+      return new Response(JSON.stringify({ error: 'No authorization header' }), { status: 401 })
     }
 
     const token = authHeader.replace('Bearer ', '')
@@ -106,15 +100,19 @@ export async function POST(request: NextRequest) {
 
     // 2. Парсим тело
     const reqBody = await request.json()
-    const { url, transcript, platform } = reqBody
+    const { url, transcript, platform, step, collectedAnalysis = '' } = reqBody
 
+    // 3. Валидация
     if (!transcript || transcript.trim().length < 20) {
-      return new Response(JSON.stringify({ error: 'Транскрипция обязательна' }), { 
-        status: 400 
-      })
+      return new Response(JSON.stringify({ error: 'Транскрипция обязательна' }), { status: 400 })
     }
 
-    // 3. Настройки пользователя
+    const stepNum = Number(step)
+    if (!stepNum || !STEP_PROMPTS[stepNum]) {
+      return new Response(JSON.stringify({ error: 'Неверный шаг. Передай step: 1 | 2 | 3 | 4' }), { status: 400 })
+    }
+
+    // 4. Модель
     const { data: userSettings } = await supabaseAdmin
       .from('user_settings')
       .select('preferred_model')
@@ -125,14 +123,15 @@ export async function POST(request: NextRequest) {
       || userSettings?.preferred_model
       || 'anthropic/claude-sonnet-4-5'
 
+    // 5. Формируем промт
     const userPrompt = `Платформа: ${platform || 'Unknown'}
 
-Транскрипция видео конкурента:
+Транскрипция видео:
 ${transcript}
 
-Сделай глубокий разбор. Найди что реально работает — хук, структуру, язык, эмоцию. Дай готовый адаптированный сценарий для психолога. Пиши живо, без воды.`
+${STEP_PROMPTS[stepNum]}`
 
-    // 4. Стриминг-запрос к OpenRouter
+    // 6. Запрос к OpenRouter
     const openRouterRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -145,7 +144,7 @@ ${transcript}
         model,
         stream: true,
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'system', content: SYSTEM_BASE },
           { role: 'user', content: userPrompt }
         ]
       })
@@ -153,14 +152,13 @@ ${transcript}
 
     if (!openRouterRes.ok) {
       const errText = await openRouterRes.text()
-      return new Response(JSON.stringify({ error: `OpenRouter error: ${errText}` }), { 
-        status: 500 
-      })
+      return new Response(JSON.stringify({ error: `OpenRouter error: ${errText}` }), { status: 500 })
     }
 
-    // 5. Стримим ответ клиенту + собираем полный текст для сохранения
+    // 7. Стримим ответ + на шаге 4 сохраняем в БД
     const encoder = new TextEncoder()
-    let fullText = ''
+    const isLastStep = stepNum === 4
+    let stepText = ''
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -184,8 +182,7 @@ ${transcript}
                 const parsed = JSON.parse(data)
                 const content = parsed.choices?.[0]?.delta?.content || ''
                 if (content) {
-                  fullText += content
-                  // Отправляем клиенту в формате SSE
+                  stepText += content
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`))
                 }
               } catch {
@@ -194,18 +191,24 @@ ${transcript}
             }
           }
 
-          // Сохраняем в БД после завершения стрима
-          if (fullText) {
-            await supabaseAdmin.from('competitor_analyses').insert({
-              user_id: user.id,
-              url: url || '',
-              platform: platform || 'Unknown',
-              transcript,
-              metadata: null,
-              analysis: fullText,
-            }).then(({ error }) => {
-              if (error) console.error('DB save error:', error)
-            })
+          // Сохраняем в БД только на последнем шаге
+          if (isLastStep && stepText) {
+            const fullAnalysis = collectedAnalysis
+              ? `${collectedAnalysis}\n\n${stepText}`
+              : stepText
+
+            const { error: dbError } = await supabaseAdmin
+              .from('competitor_analyses')
+              .insert({
+                user_id: user.id,
+                url: url || '',
+                platform: platform || 'Unknown',
+                transcript,
+                metadata: null,
+                analysis: fullAnalysis,
+              })
+
+            if (dbError) console.error('DB save error:', dbError)
           }
 
           controller.enqueue(encoder.encode('data: [DONE]\n\n'))
