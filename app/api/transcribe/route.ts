@@ -33,33 +33,43 @@ async function getYouTubeTranscript(url: string): Promise<string> {
   throw new Error('Unexpected transcript format')
 }
 
+function extractContent(data: any): string | null {
+  if (typeof data.content === 'string' && data.content.trim()) return data.content
+  if (Array.isArray(data.content)) return data.content.map((c: any) => c.text || '').join(' ')
+  return null
+}
+
 async function getSocialTranscript(url: string): Promise<string> {
-  // mode=generate: AI-based transcription, works for all Instagram/TikTok videos
-  // even without native subtitles (costs 2 credits/min instead of 1)
+  // mode=auto: try native first, fallback to AI generation
+  // text=true: return plain string instead of chunks
   const startResponse = await fetch(
-    `${SUPADATA_BASE_URL}/transcript?url=${encodeURIComponent(url)}&mode=generate`,
+    `${SUPADATA_BASE_URL}/transcript?url=${encodeURIComponent(url)}&mode=auto&text=true`,
     { method: 'GET', headers: { 'x-api-key': SUPADATA_API_KEY! } }
   )
 
+  // 200 — got transcript immediately
   if (startResponse.status === 200) {
     const data = await startResponse.json()
-    if (typeof data.content === 'string') return data.content
-    if (Array.isArray(data.content)) return data.content.map((c: any) => c.text).join(' ')
+    const content = extractContent(data)
+    if (content) return content
+    throw new Error('Empty transcript returned')
   }
 
+  // 202 — async job started, need to poll
   if (startResponse.status === 202) {
     const { jobId } = await startResponse.json()
     if (!jobId) throw new Error('No jobId returned')
 
-    // Polling: 3сек × 12 попыток = макс 36 сек
-    const maxAttempts = 12
-    const delayMs = 3000
+    // Poll every 2s up to 25 attempts = max ~50s
+    const maxAttempts = 25
+    const delayMs = 2000
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       await new Promise(resolve => setTimeout(resolve, delayMs))
 
+      // Correct endpoint per docs: /transcript/{jobId}
       const statusResponse = await fetch(
-        `${SUPADATA_BASE_URL}/job/${jobId}`,
+        `${SUPADATA_BASE_URL}/transcript/${jobId}`,
         { method: 'GET', headers: { 'x-api-key': SUPADATA_API_KEY! } }
       )
       if (!statusResponse.ok) continue
@@ -67,22 +77,33 @@ async function getSocialTranscript(url: string): Promise<string> {
       const statusData = await statusResponse.json()
 
       if (statusData.status === 'completed') {
-        if (typeof statusData.content === 'string') return statusData.content
-        if (Array.isArray(statusData.content)) return statusData.content.map((c: any) => c.text).join(' ')
-        if (statusData.result) {
-          if (typeof statusData.result === 'string') return statusData.result
-          if (typeof statusData.result.content === 'string') return statusData.result.content
-          if (Array.isArray(statusData.result.content)) return statusData.result.content.map((c: any) => c.text).join(' ')
-        }
-        throw new Error('Transcript completed but no content found')
+        const content = extractContent(statusData)
+        if (content) return content
+        throw new Error('Transcript completed but content is empty')
       }
 
-      if (statusData.status === 'failed' || statusData.status === 'error') {
+      if (statusData.status === 'failed') {
         throw new Error(statusData.error || 'Transcript job failed')
       }
+      // queued / active — continue polling
     }
 
-    throw new Error('Transcript timeout — video too long or service busy')
+    throw new Error('Время ожидания истекло. Попробуй ещё раз через несколько секунд')
+  }
+
+  // 206 — transcript unavailable (private/restricted video)
+  if (startResponse.status === 206) {
+    throw new Error('Видео недоступно — оно может быть закрытым или требовать авторизацию')
+  }
+
+  // 404 — video not found or private
+  if (startResponse.status === 404) {
+    throw new Error('Видео не найдено — проверь что ссылка публичная и открывается без авторизации')
+  }
+
+  // 403 — authentication required
+  if (startResponse.status === 403) {
+    throw new Error('Видео требует авторизации — проверь что оно открывается в режиме инкогнито')
   }
 
   const errorBody = await startResponse.text().catch(() => '')
