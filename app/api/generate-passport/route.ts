@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
 
     const supabaseAdmin = getSupabaseAdmin()
 
-    const { data: profile, error: profileError } = await supabaseAdmin
+    const {  profile, error: profileError } = await supabaseAdmin
       .from('onboarding_profiles')
       .select('*')
       .eq('user_id', userId)
@@ -310,14 +310,14 @@ ${approachGuidance}
             if (done) break
             const lines = dec.decode(value).split('\n')
             for (const line of lines) {
-              if (!line.startsWith('data: ')) continue
+              if (!line.startsWith(' ')) continue
               const json = line.slice(6).trim()
               if (json === '[DONE]') continue
               try {
                 const delta = JSON.parse(json).choices?.[0]?.delta?.content
                 if (delta) {
                   fullText += delta
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta })}\n\n`))
+                  controller.enqueue(encoder.encode(` ${JSON.stringify({ delta })}\n\n`))
                 }
               } catch {}
             }
@@ -328,30 +328,49 @@ ${approachGuidance}
             await supabaseAdmin
               .from('brand_passports')
               .upsert(
-                { user_id: userId, content: fullText, generated_at: new Date().toISOString() },
+                {
+                  user_id: userId,
+                  content: fullText,
+                  chunks_done: [1],
+                  generated_at: new Date().toISOString(),
+                },
                 { onConflict: 'user_id' }
               )
           } else {
-            const { data: existing } = await supabaseAdmin
+            const {  existing } = await supabaseAdmin
               .from('brand_passports')
-              .select('content')
+              .select('content, chunks_done')
               .eq('user_id', userId)
               .single()
+
+            const chunksDone: number[] = existing?.chunks_done || []
+
+            // Защита от дублирования: если чанк уже сохранён — пропускаем
+            if (chunksDone.includes(chunk)) {
+              controller.enqueue(encoder.encode(` [DONE]\n\n`))
+              controller.close()
+              return
+            }
 
             const fullContent = [existing?.content, fullText].filter(Boolean).join('\n\n')
 
             await supabaseAdmin
               .from('brand_passports')
               .upsert(
-                { user_id: userId, content: fullContent, generated_at: new Date().toISOString() },
+                {
+                  user_id: userId,
+                  content: fullContent,
+                  chunks_done: [...chunksDone, chunk],
+                  generated_at: new Date().toISOString(),
+                },
                 { onConflict: 'user_id' }
               )
           }
 
-          controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
+          controller.enqueue(encoder.encode(` [DONE]\n\n`))
           controller.close()
         } catch (err: any) {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: err.message })}\n\n`))
+          controller.enqueue(encoder.encode(` ${JSON.stringify({ error: err.message })}\n\n`))
           controller.close()
         }
       },
