@@ -36,15 +36,15 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/auth') &&
-    !request.nextUrl.pathname.startsWith('/signup')
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
+  // Защищаем только личные разделы. Лендинг и обменник входа доступны всем.
+  const path = request.nextUrl.pathname
+  const isProtected =
+    path.startsWith('/dashboard') || path.startsWith('/onboarding')
+
+  if (!user && isProtected) {
+    // Незалогиненного на личных страницах отправляем на главную (там вход).
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    url.pathname = '/'
     return NextResponse.redirect(url)
   }
 

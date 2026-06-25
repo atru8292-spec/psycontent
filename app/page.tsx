@@ -51,7 +51,7 @@ function useGoogleLogin() {
   const handleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/onboarding` }
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=/onboarding` }
     });
     if (error) console.error('Login error:', error.message);
   };

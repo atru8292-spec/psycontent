@@ -1,6 +1,10 @@
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Браузерный клиент Supabase: сессия входа хранится в защищённых куках,
+// а не в localStorage. Это позволяет серверу (middleware и API-роутам)
+// самому проверять пользователя, не доверяя userId из запроса.
+// Интерфейс тот же (supabase.auth.*, supabase.from(...)), экраны не меняются.
+export const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
