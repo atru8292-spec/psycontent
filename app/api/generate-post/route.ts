@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
 import { buildProfileContext } from '@/lib/profile-context'
+import { getSessionUser } from '@/lib/auth'
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -242,13 +243,16 @@ CTA (1 строка) → "Сохрани если узнала" / вопрос
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { userId, topic, customTopic, format, pillar } = body
+    const { topic, customTopic, format, pillar } = body
+
+    // userId берём ТОЛЬКО из проверенной сессии в куках, не из тела запроса.
+    const user = await getSessionUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
+    }
+    const userId = user.id
 
     console.log('Generate post request:', { userId, topic, customTopic, format, pillar })
-
-    if (!userId) {
-      return NextResponse.json({ error: 'userId required' }, { status: 400 })
-    }
 
     const finalTopic = customTopic || topic
     if (!finalTopic) {

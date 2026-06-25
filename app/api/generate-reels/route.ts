@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
 import { buildProfileContext } from '@/lib/profile-context'
+import { getSessionUser } from '@/lib/auth'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -104,9 +105,12 @@ CTA ДЛЯ REELS (мягкие):
 export async function POST(req: NextRequest) {
   try {
     const reqBody = await req.json()
-    const { userId, topic, customTopic, videoLength, videoStyle, pillar } = reqBody
+    const { topic, customTopic, videoLength, videoStyle, pillar } = reqBody
 
-    if (!userId) return NextResponse.json({ error: 'Не указан userId' }, { status: 400 })
+    // userId берём ТОЛЬКО из проверенной сессии в куках, не из тела запроса.
+    const user = await getSessionUser()
+    if (!user) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
+    const userId = user.id
 
     const finalTopic = customTopic || topic
     if (!finalTopic) return NextResponse.json({ error: 'Не указана тема видео' }, { status: 400 })

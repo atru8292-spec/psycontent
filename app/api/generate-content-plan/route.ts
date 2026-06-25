@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
+import { getSessionUser } from '@/lib/auth'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -12,8 +13,13 @@ function getSupabaseAdmin() {
 export async function POST(request: NextRequest) {
   try {
     const reqBody = await request.json()
-    const { userId, batch = 1 } = reqBody
-    if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
+    const { batch = 1 } = reqBody
+
+    // Роут на service_role (обходит RLS), поэтому владельца проверяем ЯВНО:
+    // userId берём только из проверенной сессии — все запросы к БД идут по user.id.
+    const user = await getSessionUser()
+    if (!user) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
+    const userId = user.id
 
     const supabaseAdmin = getSupabaseAdmin()
 

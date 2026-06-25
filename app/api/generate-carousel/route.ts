@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
 import { buildProfileContext } from '@/lib/profile-context'
+import { getSessionUser } from '@/lib/auth'
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -90,11 +91,14 @@ const CAROUSEL_SYSTEM_PROMPT = `Ты — эксперт по созданию в
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { userId, topic, pillar } = body
+    const { topic, pillar } = body
 
-    if (!userId) {
-      return NextResponse.json({ error: 'userId required' }, { status: 400 })
+    // userId берём ТОЛЬКО из проверенной сессии в куках, не из тела запроса.
+    const user = await getSessionUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
     }
+    const userId = user.id
 
     if (!topic) {
       return NextResponse.json({ error: 'Тема не указана' }, { status: 400 })

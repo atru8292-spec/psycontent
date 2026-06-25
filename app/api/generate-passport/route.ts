@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { getSessionUser } from '@/lib/auth'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -181,11 +182,16 @@ function getChunkInstructions(chunk: number) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, chunk = 1 } = await request.json()
+    const { chunk = 1 } = await request.json()
 
-    if (!userId) {
-      return NextResponse.json({ error: 'userId required' }, { status: 400 })
+    // Роут на service_role (обходит RLS), поэтому владельца проверяем ЯВНО:
+    // userId берём только из проверенной сессии, все запросы к БД ниже идут
+    // по user.id вошедшего пользователя — чужой id подставить нельзя.
+    const user = await getSessionUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
     }
+    const userId = user.id
 
     const supabaseAdmin = getSupabaseAdmin()
 

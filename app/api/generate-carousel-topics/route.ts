@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
 import { buildProfileContext } from '@/lib/profile-context'
+import { getSessionUser } from '@/lib/auth'
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -28,11 +29,13 @@ const SYSTEM_PROMPT = `Ты — эксперт по контенту для пс
 export async function POST(req: NextRequest) {
   try {
     const reqBody = await req.json()
-    const { userId } = reqBody
 
-    if (!userId) {
-      return NextResponse.json({ error: 'userId required' }, { status: 400 })
+    // userId берём ТОЛЬКО из проверенной сессии в куках, не из тела запроса.
+    const user = await getSessionUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
     }
+    const userId = user.id
 
     const supabase = getSupabaseAdmin()
 
