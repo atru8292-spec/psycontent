@@ -76,7 +76,7 @@ const CAPWORD = '[А-ЯЁ][а-яё]+'
 
 // Слой 3: имя из словаря + опц. отчество/фамилия (до 2 слов с заглавной следом).
 const NAME_RE = new RegExp(
-  '(?<![' + NL + '])(' + NAME_STEMS.map(escapeRe).join('|') + ')[а-яё]{0,3}(?:\\s+' + CAPWORD + '){0,2}(?![' + NL + '])',
+  '(?<![' + NL + '])(' + NAME_STEMS.map(escapeRe).join('|') + ')[а-яё]{0,3}(?:[ \\t]+' + CAPWORD + '){0,2}(?![' + NL + '])',
   'g'
 )
 
@@ -93,7 +93,7 @@ const MARKERS = [
 // БЕЗ флага 'i', иначе требование «слово с заглавной» в группе перестаёт работать.
 const MARKERS_CASED = MARKERS.flatMap(m => [m, m.charAt(0).toUpperCase() + m.slice(1)])
 const MARKER_RE = new RegExp(
-  '(?<![' + NL + '])((?:' + MARKERS_CASED.map(escapeRe).join('|') + ')\\s+)(' + CAPWORD + '(?:\\s+' + CAPWORD + '){0,2})',
+  '(?<![' + NL + '])((?:' + MARKERS_CASED.map(escapeRe).join('|') + ')[ \\t]+)(' + CAPWORD + '(?:[ \\t]+' + CAPWORD + '){0,2})',
   'g'
 )
 
