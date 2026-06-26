@@ -23,7 +23,7 @@ import {
 // ============ УБРАНА КАРУСЕЛЬ ============
 const formats = [
   { id: 'post', label: 'Пост', icon: AlignLeft, desc: 'Текстовый пост для Instagram/Telegram', color: 'text-brand-accent', bg: 'bg-brand-soft', border: 'border-brand-accent' },
-  { id: 'stories', label: 'Stories', icon: FileText, desc: 'Серия из 4–5 историй', color: 'text-brand-accent', bg: 'bg-brand-soft', border: 'border-brand-accent' },
+  { id: 'stories', label: 'Stories', icon: FileText, desc: 'Серия из 4,5 историй', color: 'text-brand-accent', bg: 'bg-brand-soft', border: 'border-brand-accent' },
 ]
 
 const defaultPillars = [
@@ -194,7 +194,7 @@ function PostGeneratorContent() {
             Создайте пост в вашем голосе
           </h1>
           <p className="text-brand-text-secondary">
-            AI учитывает ваш подход, тон и нишу — контент будет звучать как вы
+            AI учитывает ваш подход, тон и нишу, контент будет звучать как вы
           </p>
         </motion.div>
 
@@ -388,7 +388,7 @@ function PostGeneratorContent() {
                 >
                   <Loader2 className="w-10 h-10 text-brand-accent animate-spin mb-4" />
                   <p className="font-semibold text-brand-text">AI пишет пост...</p>
-                  <p className="text-sm text-brand-text-secondary mt-1">Обычно 10–20 секунд</p>
+                  <p className="text-sm text-brand-text-secondary mt-1">Обычно 10,20 секунд</p>
                 </motion.div>
               )}
 

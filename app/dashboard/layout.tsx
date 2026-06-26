@@ -64,7 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Лого */}
         <div className={`flex items-center gap-2.5 px-4 h-16 border-b border-brand-border shrink-0 ${collapsed ? 'justify-center px-0' : ''}`}>
           {collapsed ? (
-            /* Только знак — на лавандовой плитке */
+            /* Только знак, на лавандовой плитке */
             <div className="w-8 h-8 rounded-xl bg-brand-soft flex items-center justify-center shrink-0">
               <span
                 className="block w-[18px] h-[18px]"

@@ -88,7 +88,7 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
         if (data.session) {
           router.push('/onboarding');
         } else {
-          setSuccess('Проверьте почту — мы отправили ссылку для подтверждения');
+          setSuccess('Проверьте почту, мы отправили ссылку для подтверждения');
         }
       }
     } else {
@@ -183,7 +183,7 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
             <div className="flex-1 h-px bg-brand-border" />
           </div>
 
-          {/* Email Form — font-size: 16px чтобы iOS не зумил */}
+          {/* Email Form, font-size: 16px чтобы iOS не зумил */}
           <form onSubmit={handleEmailAuth} className="space-y-3">
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
@@ -343,7 +343,7 @@ function Hero() {
           </motion.h1>
 
           <motion.p variants={fadeUp} className="text-base sm:text-lg md:text-xl text-brand-muted max-w-2xl mx-auto mb-8 sm:mb-10">
-            PsyCont учится на вашем голосе и пишет контент, который звучит как вы — не как нейросеть. Потому что именно это приводит клиентов.
+            PsyCont учится на вашем голосе и пишет контент, который звучит как вы, не как нейросеть. Потому что именно это приводит клиентов.
           </motion.p>
 
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
@@ -376,10 +376,10 @@ function Hero() {
 // ═══════════════════════════════════════
 
 const pains = [
-  { icon: Clock, title: "Нет времени на контент", desc: "Между сессиями, обучением и личной жизнью — блог всегда в конце списка." },
+  { icon: Clock, title: "Нет времени на контент", desc: "Между сессиями, обучением и личной жизнью, блог всегда в конце списка." },
   { icon: PenTool, title: "Не знаю что писать", desc: "Идеи заканчиваются, а «экспертный контент» звучит как из учебника." },
   { icon: Users, title: "Стесняюсь себя продвигать", desc: "Продажи ощущаются как что-то неэтичное. Хочется привлекать, а не навязывать." },
-  { icon: BarChart3, title: "Посты не приводят клиентов", desc: "Пишете, стараетесь — а заявок всё равно нет. Непонятно что работает." },
+  { icon: BarChart3, title: "Посты не приводят клиентов", desc: "Пишете, стараетесь, а заявок всё равно нет. Непонятно что работает." },
 ];
 
 function Pains() {
@@ -411,16 +411,16 @@ function Solution() {
     <section className="py-12 sm:py-20 px-4 sm:px-6">
       <motion.div className="max-w-4xl mx-auto text-center" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={stagger}>
         <motion.h2 variants={fadeUp} className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-4 sm:mb-6">
-          PsyCont — как ассистент,{" "}
+          PsyCont, как ассистент,{" "}
           <span className="sm:block">который понимает психологию</span>
         </motion.h2>
         <motion.p variants={fadeUp} className="text-base sm:text-lg text-brand-muted max-w-2xl mx-auto mb-6 sm:mb-8">
-          Это не просто &laquo;генератор текстов&raquo;. Мы сначала изучаем ваш подход, вашу нишу, ваш тон — и только потом создаём контент, который звучит как вы.
+          Это не просто &laquo;генератор текстов&raquo;. Мы сначала изучаем ваш подход, вашу нишу, ваш тон, и только потом создаём контент, который звучит как вы.
         </motion.p>
         <motion.div variants={fadeUp} className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 text-left">
           {[
             { icon: Target, title: "Ваш голос", desc: "Распаковка вашего стиля, подхода и уникальности" },
-            { icon: FileText, title: "Ваш контент", desc: "Посты, рилс, сторис — в вашем тоне, на ваши темы" },
+            { icon: FileText, title: "Ваш контент", desc: "Посты, рилс, сторис, в вашем тоне, на ваши темы" },
             { icon: BarChart3, title: "Ваши клиенты", desc: "Контент-стратегия, которая приводит заявки" },
           ].map((item, i) => (
             <div key={i} className="card">
@@ -440,7 +440,7 @@ function Solution() {
 // ═══════════════════════════════════════
 
 const steps = [
-  { num: "01", icon: MessageCircle, title: "Распаковка", desc: "Ответьте на вопросы о вашем подходе, нише и клиентах. 5 минут — и мы знаем ваш голос." },
+  { num: "01", icon: MessageCircle, title: "Распаковка", desc: "Ответьте на вопросы о вашем подходе, нише и клиентах. 5 минут, и мы знаем ваш голос." },
   { num: "02", icon: BookOpen, title: "Паспорт бренда", desc: "Получите документ с вашим позиционированием, тоном и ключевыми темами." },
   { num: "03", icon: PenTool, title: "Контент", desc: "Генерируйте посты, рилс-скрипты и сторис одной кнопкой. В вашем стиле." },
   { num: "04", icon: Target, title: "Клиенты", desc: "Публикуйте, привлекайте аудиторию и получайте заявки на терапию." },
@@ -451,7 +451,7 @@ function HowItWorks() {
     <section id="how" className="py-12 sm:py-20 px-4 sm:px-6 bg-brand-card">
       <motion.div className="max-w-6xl mx-auto" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={stagger}>
         <motion.h2 variants={fadeUp} className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-brand-text mb-3 sm:mb-4">Как это работает</motion.h2>
-        <motion.p variants={fadeUp} className="text-center text-brand-muted text-sm sm:text-base mb-8 sm:mb-12">От регистрации до первого поста — 10 минут</motion.p>
+        <motion.p variants={fadeUp} className="text-center text-brand-muted text-sm sm:text-base mb-8 sm:mb-12">От регистрации до первого поста, 10 минут</motion.p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
           {steps.map((step, i) => (
             <motion.div key={i} variants={fadeUp} className="relative p-4 sm:p-6 rounded-3xl border border-brand-border bg-brand-bg">
@@ -477,9 +477,9 @@ const features = [
   { icon: PenTool, title: "Посты в вашем голосе", desc: "Не шаблонные тексты, а контент с вашим характером и подходом" },
   { icon: FileText, title: "Рилс без танцев", desc: "Скрипты для рилс где вы говорите, а не танцуете" },
   { icon: BookOpen, title: "База знаний", desc: "Уроки по контенту, продвижению и привлечению клиентов" },
-  { icon: Target, title: "Контент-план", desc: "Готовый план на 30 дней — не нужно думать что постить" },
+  { icon: Target, title: "Контент-план", desc: "Готовый план на 30 дней, не нужно думать что постить" },
   { icon: MessageCircle, title: "Telegram-напоминания", desc: "Бот напомнит когда пора писать и предложит тему" },
-  { icon: CheckCircle, title: "Промпты и инструкции", desc: "Готовые промпты для любой задачи — от поста до сторис" },
+  { icon: CheckCircle, title: "Промпты и инструкции", desc: "Готовые промпты для любой задачи, от поста до сторис" },
 ];
 
 function Features() {
@@ -537,8 +537,8 @@ function ForWhom() {
 // ═══════════════════════════════════════
 
 const testimonials = [
-  { text: "Я гештальт-терапевт и думала что блог — не моё. PsyCont помог найти свой тон. Через месяц — 4 новых клиента из Instagram.", name: "Анна К.", role: "Гештальт-терапевт, Москва" },
-  { text: "Раньше тратила 3 часа на пост. Сейчас — 20 минут. И посты стали лучше, потому что сервис знает мой стиль.", name: "Мария С.", role: "КПТ-терапевт, Санкт-Петербург" },
+  { text: "Я гештальт-терапевт и думала что блог, не моё. PsyCont помог найти свой тон. Через месяц, 4 новых клиента из Instagram.", name: "Анна К.", role: "Гештальт-терапевт, Москва" },
+  { text: "Раньше тратила 3 часа на пост. Сейчас, 20 минут. И посты стали лучше, потому что сервис знает мой стиль.", name: "Мария С.", role: "КПТ-терапевт, Санкт-Петербург" },
   { text: "Наконец-то сервис, который понимает специфику психологии. Не инфоцыганский подход, а уважительно и профессионально.", name: "Дмитрий Л.", role: "Клинический психолог, Казань" },
 ];
 
@@ -653,11 +653,11 @@ function Pricing() {
 // ═══════════════════════════════════════
 
 const faqs = [
-  { q: "Это не будет звучать как ChatGPT?", a: "Нет. Мы сначала изучаем ваш тон, подход, язык через распаковку. Каждый пост — в вашем стиле, не в стиле робота." },
-  { q: "Я только начинаю, подойдёт ли мне?", a: "Идеально подойдёт. Бесплатный тариф даёт распаковку и паспорт бренда — то что нужно на старте." },
+  { q: "Это не будет звучать как ChatGPT?", a: "Нет. Мы сначала изучаем ваш тон, подход, язык через распаковку. Каждый пост, в вашем стиле, не в стиле робота." },
+  { q: "Я только начинаю, подойдёт ли мне?", a: "Идеально подойдёт. Бесплатный тариф даёт распаковку и паспорт бренда, то что нужно на старте." },
   { q: "А если у меня нет Instagram?", a: "Контент подходит для любой площадки: Telegram, VK, сайт, YouTube. Мы создаём тексты, а не привязываемся к платформе." },
   { q: "Чем это лучше обычного ChatGPT?", a: "ChatGPT не знает вашу нишу, тон, клиента. PsyCont заточен под психологов: знает этику, специфику, что работает в этой сфере." },
-  { q: "Могу ли я отменить подписку?", a: "Да, в любой момент. Без вопросов, без удержаний. Всё что вы создали — остаётся у вас." },
+  { q: "Могу ли я отменить подписку?", a: "Да, в любой момент. Без вопросов, без удержаний. Всё что вы создали, остаётся у вас." },
 ];
 
 function FAQ() {
@@ -710,7 +710,7 @@ function CTA() {
       <section id="cta" className="py-12 sm:py-20 px-4 sm:px-6 bg-brand-accent">
         <motion.div className="max-w-3xl mx-auto text-center" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={stagger}>
           <motion.h2 variants={fadeUp} className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4 sm:mb-6">
-            Попробуйте — за 5 минут
+            Попробуйте, за 5 минут
           </motion.h2>
           <motion.p variants={fadeUp} className="text-base sm:text-lg text-white/80 mb-6 sm:mb-8">
             Ответьте на вопросы о своей нише и получите первый пост в вашем голосе. Бесплатно.

@@ -268,7 +268,7 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
       {isCarousel && (
         <div className="mb-5 p-4 md:p-3 bg-brand-soft rounded-xl border border-brand-border-soft">
           <p className="text-[16px] md:text-sm text-brand-text leading-relaxed">
-            <strong>Карусель</strong> — это 8-10 слайдов с текстом. AI создаст хук, развитие мысли и CTA.
+            <strong>Карусель</strong>, это 8-10 слайдов с текстом. AI создаст хук, развитие мысли и CTA.
           </p>
         </div>
       )}
@@ -451,7 +451,7 @@ export default function ContentPlan() {
             30 дней контента для&nbsp;вашего блога
           </h1>
           <p className="text-[16px] md:text-base text-brand-text-secondary leading-relaxed">
-            Персональный план на основе вашего паспорта бренда. Нажмите на карточку — получите готовый пост.
+            Персональный план на основе вашего паспорта бренда. Нажмите на карточку, получите готовый пост.
           </p>
         </motion.div>
 

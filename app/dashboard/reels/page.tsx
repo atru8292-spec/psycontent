@@ -318,7 +318,7 @@ export default function ReelsGenerator() {
 
           </div>
 
-          {/* Right — Result */}
+          {/* Right, Result */}
           <div>
             <AnimatePresence mode="wait">
               {!result && !generating && !error && (

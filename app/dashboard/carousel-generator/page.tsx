@@ -70,7 +70,7 @@ function CarouselGeneratorContent() {
     init()
   }, [router])
 
-  // Когда user готов — проверяем URL параметры
+  // Когда user готов, проверяем URL параметры
   useEffect(() => {
     if (!user) return
 
@@ -81,7 +81,7 @@ function CarouselGeneratorContent() {
       const topic = { title: urlTopic, description: urlPillar || '' }
       setSelectedTopic(topic)
       setStep('carousel')
-      // НЕ запускаем автоматически — пользователь нажмёт кнопку
+      // НЕ запускаем автоматически, пользователь нажмёт кнопку
     } else {
       loadTopics(user.id)
     }
@@ -243,13 +243,13 @@ function CarouselGeneratorContent() {
           </h1>
           <p className="text-brand-text-secondary">
             {step === 'topics'
-              ? 'AI подобрал 5 тем на основе вашей ниши — выберите одну или напишите свою'
+              ? 'AI подобрал 5 тем на основе вашей ниши, выберите одну или напишите свою'
               : `Тема: ${selectedTopic?.title}`
             }
           </p>
         </motion.div>
 
-        {/* Модальное окно — Что такое карусель */}
+        {/* Модальное окно, Что такое карусель */}
         <AnimatePresence>
           {showHelp && (
             <motion.div
@@ -285,7 +285,7 @@ function CarouselGeneratorContent() {
                       <h3 className="font-semibold text-brand-text">Что это?</h3>
                     </div>
                     <p className="text-sm text-brand-text-secondary leading-relaxed">
-                      Карусель — это пост в Instagram из <strong>нескольких картинок</strong> (слайдов),
+                      Карусель, это пост в Instagram из <strong>нескольких картинок</strong> (слайдов),
                       которые листаются влево-вправо. Обычно 5-10 слайдов с текстом на каждом.
                     </p>
                   </div>
@@ -312,7 +312,7 @@ function CarouselGeneratorContent() {
                       <h3 className="font-semibold text-brand-text">Зачем психологу?</h3>
                     </div>
                     <ul className="text-sm text-brand-text-secondary space-y-1">
-                      <li>✓ Больше вовлечения — люди листают</li>
+                      <li>✓ Больше вовлечения, люди листают</li>
                       <li>✓ Показываете экспертность</li>
                       <li>✓ Часто сохраняют в закладки</li>
                     </ul>
@@ -514,7 +514,7 @@ function CarouselGeneratorContent() {
                   )}
                 </div>
 
-                {/* ★ КНОПКА ГЕНЕРАЦИИ — когда нет слайдов и не генерируем */}
+                {/* ★ КНОПКА ГЕНЕРАЦИИ, когда нет слайдов и не генерируем */}
                 {slides.length === 0 && !generating && !error && (
                   <div>
                     <button
@@ -594,7 +594,7 @@ function CarouselGeneratorContent() {
               )}
             </div>
 
-            {/* Правая колонка — превью */}
+            {/* Правая колонка, превью */}
             <div>
               <AnimatePresence mode="wait">
                 {/* Загрузка */}
@@ -608,7 +608,7 @@ function CarouselGeneratorContent() {
                   >
                     <Loader2 className="w-10 h-10 text-brand-accent animate-spin mb-4" />
                     <p className="font-semibold text-brand-text mb-1">AI создаёт карусель...</p>
-                    <p className="text-sm text-brand-text-secondary mb-6">Обычно 15–30 секунд</p>
+                    <p className="text-sm text-brand-text-secondary mb-6">Обычно 15,30 секунд</p>
                     <div className="flex flex-col items-center gap-2 text-sm text-brand-text-secondary">
                       {[
                         'Придумываем структуру слайдов...',
@@ -643,7 +643,7 @@ function CarouselGeneratorContent() {
                   </motion.div>
                 )}
 
-                {/* Пустое состояние — подсказка справа */}
+                {/* Пустое состояние, подсказка справа */}
                 {slides.length === 0 && !generating && !error && (
                   <motion.div
                     key="empty"

@@ -16,7 +16,7 @@ const toolGroups = [
     label: 'Создать контент',
     items: [
       { icon: PenTool,    title: 'Генератор постов',   desc: 'Пост за 30 секунд под ваш голос',    href: '/dashboard/post-generator',      badge: null,    soft: false },
-      { icon: Layers,     title: 'Карусели',            desc: '8–10 слайдов с хуком и структурой',  href: '/dashboard/carousel-generator',  badge: null,    soft: false },
+      { icon: Layers,     title: 'Карусели',            desc: '8,10 слайдов с хуком и структурой',  href: '/dashboard/carousel-generator',  badge: null,    soft: false },
       { icon: Film,       title: 'Рилс-скрипты',        desc: 'Сценарии 30 и 60 сек',               href: '/dashboard/reels',               badge: null,    soft: false },
       { icon: Zap,        title: 'Генератор хуков',     desc: '12 хуков для любого формата',        href: '/dashboard/hooks-generator',     badge: 'NEW',   soft: false },
     ],
@@ -200,7 +200,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {group.items.map((tool) => {
               const disabled = tool.href === '#'
-              /* soft=true — бумажный фон + иконка шалфей; false — лавандовый + иконка аметист */
+              /* soft=true, бумажный фон + иконка шалфей; false, лавандовый + иконка аметист */
               const iconBg   = tool.soft ? 'bg-brand-bg' : 'bg-brand-soft'
               const iconColor = tool.soft ? 'text-brand-sage' : 'text-brand-accent'
 
@@ -226,11 +226,11 @@ export default function Dashboard() {
         </motion.div>
       ))}
 
-      {/* Banner — лавандовая мягкая плашка вместо градиента */}
+      {/* Banner, лавандовая мягкая плашка вместо градиента */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
         className="soft-panel flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <p className="font-bold text-lg leading-tight mb-1 text-brand-text">Контент — это поток клиентов</p>
+          <p className="font-bold text-lg leading-tight mb-1 text-brand-text">Контент, это поток клиентов</p>
           <p className="text-brand-muted text-sm">Регулярные посты работают без холодных продаж</p>
         </div>
         <button onClick={() => router.push('/dashboard/content-plan')}

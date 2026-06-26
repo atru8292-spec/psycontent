@@ -28,7 +28,7 @@ export default function SettingsPage() {
 
           <h1 className="text-2xl font-bold text-brand-text mb-1">AI-модель</h1>
           <p className="text-brand-muted mb-8">
-            Все генерации используют одну модель — GPT&nbsp;5.4. Она подобрана специально под психологический контент и обеспечивает лучший результат.
+            Все генерации используют одну модель, GPT&nbsp;5.4. Она подобрана специально под психологический контент и обеспечивает лучший результат.
           </p>
 
           <div className="soft-panel flex items-start gap-4">
@@ -36,7 +36,7 @@ export default function SettingsPage() {
               <Info className="w-5 h-5 text-brand-accent" />
             </div>
             <div>
-              <p className="font-semibold text-brand-text mb-1">GPT 5.4 — единая модель</p>
+              <p className="font-semibold text-brand-text mb-1">GPT 5.4, единая модель</p>
               <p className="text-sm text-brand-muted leading-relaxed">
                 Мы провели тесты и выбрали модель, которая лучше всего понимает контекст психологических текстов и звучит как живой человек, а не как нейросеть. Выбор модели вручную временно недоступен.
               </p>

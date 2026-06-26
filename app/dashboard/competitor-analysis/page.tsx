@@ -209,7 +209,7 @@ export default function CompetitorAnalysisPage() {
             Разбери чужой контент
           </h1>
           <p className="text-sm sm:text-base text-brand-text-secondary">
-            Вставь ссылку на Reels / TikTok / YouTube — получи транскрипцию и разбор для психолога
+            Вставь ссылку на Reels / TikTok / YouTube, получи транскрипцию и разбор для психолога
           </p>
         </div>
 
@@ -285,7 +285,7 @@ export default function CompetitorAnalysisPage() {
               <div className="bg-white rounded-2xl border border-brand-border p-8 text-center">
                 <div className="text-3xl mb-3 animate-pulse">📝</div>
                 <p className="font-semibold text-brand-text">Получаю транскрипцию...</p>
-                <p className="text-sm text-brand-text-secondary mt-1">Обычно 5–15 секунд</p>
+                <p className="text-sm text-brand-text-secondary mt-1">Обычно 5,15 секунд</p>
               </div>
             )}
 
@@ -324,7 +324,7 @@ export default function CompetitorAnalysisPage() {
                   </div>
                 )}
 
-                {/* Прогресс шагов — показывается во время analyzing */}
+                {/* Прогресс шагов, показывается во время analyzing */}
                 {step === 'analyzing' && (
                   <div className="px-4 sm:px-5 py-4 border-t border-brand-border space-y-2">
                     <p className="text-xs font-semibold text-brand-text-secondary uppercase tracking-wide mb-3">
@@ -368,7 +368,7 @@ export default function CompetitorAnalysisPage() {
               </div>
             )}
 
-            {/* Анализ — показывается во время стрима и после */}
+            {/* Анализ, показывается во время стрима и после */}
             {(step === 'done' || (step === 'analyzing' && analysis)) && analysis && (
               <div className="bg-white rounded-2xl border border-brand-border overflow-hidden">
                 <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-brand-border bg-brand-bg">
