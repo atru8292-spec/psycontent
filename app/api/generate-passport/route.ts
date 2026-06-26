@@ -281,16 +281,14 @@ ${approachGuidance}
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const aiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
-              Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+              Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
               'Content-Type': 'application/json',
-              'HTTP-Referer': 'https://psycontent.vercel.app',
-              'X-Title': 'PsyContent',
             },
             body: JSON.stringify({
-              model: 'anthropic/claude-sonnet-4-5',
+              model: 'gpt-4o',
               stream: true,
               temperature: 0.7,
               max_tokens: 4000,
@@ -306,7 +304,7 @@ ${approachGuidance}
 
           if (!aiResponse.ok) {
             const errText = await aiResponse.text()
-            throw new Error(`OpenRouter error ${aiResponse.status}: ${errText}`)
+            throw new Error(`OpenAI error ${aiResponse.status}: ${errText}`)
           }
 
           const reader = aiResponse.body!.getReader()

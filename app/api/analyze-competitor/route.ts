@@ -66,21 +66,19 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .maybeSingle()
 
-    const model = reqBody.model
-      || userSettings?.preferred_model
-      || 'anthropic/claude-sonnet-4-5'
+    // Одна модель OpenAI (выбор модели у пользователя убран по ТЗ)
+    const model = 'gpt-4o'
+    void userSettings
 
     // 5. Формируем промт
     const userPrompt = `Платформа: ${platform || 'Unknown'}\n\nТранскрипция видео:\n${transcript}\n\n${STEP_PROMPTS[stepNum]}`
 
     // 6. Запрос к OpenRouter
-    const openRouterRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const openRouterRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://psycontent.vercel.app',
-        'X-Title': 'PsyContent',
       },
       body: JSON.stringify({
         model,
