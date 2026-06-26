@@ -21,6 +21,7 @@ import {
   MessageSquare,
   TrendingUp
 } from 'lucide-react'
+import Squiggle from '@/components/Squiggle'
 
 const formats = [
   { id: 'post', label: 'Текстовый пост', icon: AlignLeft },
@@ -180,11 +181,12 @@ export default function RewriteGenerator() {
         {/* Title */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-brand-text mb-2 flex items-center gap-3">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-brand-text mb-1 flex items-center gap-3">
               <RefreshCcw className="w-7 h-7 text-brand-accent" />
               Превратить мысли в пост
             </h1>
-            <p className="text-brand-text-secondary">
+            <Squiggle variant={2} width="52%" />
+            <p className="text-brand-text-secondary mt-2">
               Вставьте свои заметки, скучный текст или расшифровку аудио, а ИИ упакует это в вирусный контент.
             </p>
           </div>

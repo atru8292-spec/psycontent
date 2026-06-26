@@ -11,6 +11,8 @@ import {
   TrendingUp, Zap, PenTool, RefreshCw,
   Globe, ChevronRight, BookOpen, Quote
 } from 'lucide-react'
+import Squiggle from '@/components/Squiggle'
+import EmptyState from '@/components/EmptyState'
 
 type Topic = {
   id: number
@@ -243,7 +245,8 @@ export default function ResearchTopics() {
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-2">
             Идеи на базе данных и трендов
           </h1>
-          <p className="text-brand-text-secondary max-w-xl">
+          <Squiggle variant={0} width="55%" />
+          <p className="text-brand-text-secondary max-w-xl mt-3">
             Три блока контента: тренды Instagram/Telegram, актуальные научные исследования (2023-2026) и редкие цитаты. 
             Всё адаптировано под вашу нишу.
           </p>
@@ -251,41 +254,16 @@ export default function ResearchTopics() {
 
         {/* Empty state */}
         {!topics.length && !searching && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="max-w-lg mx-auto text-center py-16"
-          >
-            {/* Feature cards */}
-            <div className="grid grid-cols-3 gap-3 mb-8">
-              {[
-                { icon: TrendingUp, label: 'Тренды', desc: 'Wordstat, каналы' },
-                { icon: BookOpen, label: 'Наука', desc: 'Nature, Lancet' },
-                { icon: Quote, label: 'Цитаты', desc: 'Перлз, Фрейд, Бек...' },
-              ].map(({ icon: Icon, label, desc }) => (
-                <div key={label} className="bg-white rounded-2xl border border-brand-border p-4 text-center shadow-sm">
-                  <div className="w-10 h-10 bg-brand-soft rounded-xl flex items-center justify-center mx-auto mb-2 text-brand-accent">
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <p className="font-bold text-brand-text text-[13px]">{label}</p>
-                  <p className="text-xs text-brand-text-secondary mt-1">{desc}</p>
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={handleSearch}
-              disabled={searching}
-              className="inline-flex items-center gap-3 bg-brand-accent text-white px-10 py-4 rounded-2xl text-lg font-semibold hover:bg-brand-accent-hover transition shadow-lg shadow-brand-accent/25 cursor-pointer"
-            >
-              <Search className="w-5 h-5" />
-              Провести исследование (1 мин)
-            </button>
-            <p className="text-sm text-brand-text-secondary mt-4">
-              Perplexity проанализирует данные за 2025-2026 год, найдёт исследования и актуальные тренды.
-            </p>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-2">
+            <EmptyState
+              variant={1}
+              title="Темы из трендов и науки"
+              subtitle="Нажмите кнопку, и AI проанализирует тренды Telegram и Яндекса, свежие исследования за 2024-2026 год и цитаты классиков. Всё адаптируется под вашу нишу. Займёт около минуты."
+              actionLabel="Провести исследование"
+              onAction={handleSearch}
+            />
             {error && (
-              <div className="mt-6 p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-sm">{error}</div>
+              <div className="mt-4 p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-sm">{error}</div>
             )}
           </motion.div>
         )}

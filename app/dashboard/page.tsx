@@ -10,6 +10,7 @@ import {
   CheckCircle2, Circle, ArrowRight, TrendingUp,
   BookOpen, Star,
 } from 'lucide-react'
+import Squiggle from '@/components/Squiggle'
 
 const toolGroups = [
   {
@@ -115,7 +116,8 @@ export default function Dashboard() {
           <div>
             <p className="text-sm text-brand-muted mb-1">{greeting}</p>
             <h1 className="text-2xl sm:text-3xl font-bold text-brand-text leading-tight">{firstName}</h1>
-            <p className="text-brand-muted text-sm mt-1">
+            <Squiggle variant={1} width="80px" />
+            <p className="text-brand-muted text-sm mt-2">
               {profile?.niches ? `Психолог · ${Array.isArray(profile.niches) ? profile.niches[0] : profile.niches}` : 'Психолог'}
             </p>
           </div>

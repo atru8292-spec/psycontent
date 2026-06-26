@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import ReactMarkdown from 'react-markdown'
 import { ArrowLeft, Search, Clipboard, RotateCcw, Trash2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
+import Squiggle from '@/components/Squiggle'
+import EmptyState from '@/components/EmptyState'
 
 interface Analysis {
   id: string
@@ -208,7 +210,8 @@ export default function CompetitorAnalysisPage() {
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-2">
             Разбери чужой контент
           </h1>
-          <p className="text-sm sm:text-base text-brand-text-secondary">
+          <Squiggle variant={2} width="50%" />
+          <p className="text-sm sm:text-base text-brand-text-secondary mt-3">
             Вставь ссылку на Reels / TikTok / YouTube, получи транскрипцию и разбор для психолога
           </p>
         </div>
@@ -403,10 +406,11 @@ export default function CompetitorAnalysisPage() {
           <div className="space-y-3">
             <h2 className="text-sm font-semibold text-brand-text-secondary uppercase tracking-wide px-1">История</h2>
             {history.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-brand-border p-6 text-center">
-                <p className="text-2xl mb-2">📂</p>
-                <p className="text-sm text-brand-text-secondary">Здесь появятся ваши анализы</p>
-              </div>
+              <EmptyState
+                variant={0}
+                title="Пока пусто"
+                subtitle="Сделайте первый анализ, и он сохранится здесь автоматически."
+              />
             ) : (
               <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-1">
                 {history.map(item => (

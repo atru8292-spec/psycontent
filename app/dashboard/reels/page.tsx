@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Lightbulb,
 } from 'lucide-react'
+import Squiggle from '@/components/Squiggle'
 
 const lengths = [
   { id: '30s', label: '30 секунд', desc: 'Быстрый и вирусный хук' },
@@ -172,7 +173,8 @@ export default function ReelsGenerator() {
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-2">
             Сценарии для видео
           </h1>
-          <p className="text-brand-text-secondary">
+          <Squiggle variant={1} width="50%" />
+          <p className="text-brand-text-secondary mt-3">
             AI пишет скрипты с таймкодами под ваш стиль ведения (даже если вы не хотите снимать себя).
           </p>
         </motion.div>

@@ -21,6 +21,7 @@ import {
   TrendingUp,
   ListChecks,
 } from 'lucide-react'
+import Squiggle from '@/components/Squiggle'
 
 type Slide = {
   slide: number
@@ -241,7 +242,8 @@ function CarouselGeneratorContent() {
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-2">
             {step === 'topics' ? 'Выберите тему для карусели' : 'Ваша карусель'}
           </h1>
-          <p className="text-brand-text-secondary">
+          <Squiggle variant={0} width="52%" />
+          <p className="text-brand-text-secondary mt-3">
             {step === 'topics'
               ? 'AI подобрал 5 тем на основе вашей ниши, выберите одну или напишите свою'
               : `Тема: ${selectedTopic?.title}`

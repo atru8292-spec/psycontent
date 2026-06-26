@@ -10,6 +10,7 @@ import {
   PenTool, BarChart3, Users, FileText, LayoutDashboard,
   Mail, Eye, EyeOff, X, Loader2,
 } from "lucide-react";
+import Squiggle from "@/components/Squiggle";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -337,10 +338,15 @@ function Hero() {
           </motion.div>
 
           {/* Заголовок */}
-          <motion.h1 variants={fadeUp} className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-brand-text leading-tight mb-4 sm:mb-6">
-            Вы помогаете людям найти себя.{" "}
-            <span className="text-brand-accent">Мы поможем людям найти вас.</span>
-          </motion.h1>
+          <motion.div variants={fadeUp} className="mb-4 sm:mb-6">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-brand-text leading-tight">
+              Вы помогаете людям найти себя.{" "}
+              <span className="text-brand-accent">Мы поможем людям найти вас.</span>
+            </h1>
+            <div className="flex justify-start">
+              <Squiggle variant={0} width="55%" className="mt-3" />
+            </div>
+          </motion.div>
 
           <motion.p variants={fadeUp} className="text-base sm:text-lg md:text-xl text-brand-muted max-w-2xl mx-auto mb-8 sm:mb-10">
             PsyCont учится на вашем голосе и пишет контент, который звучит как вы, не как нейросеть. Потому что именно это приводит клиентов.

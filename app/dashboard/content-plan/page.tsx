@@ -14,6 +14,8 @@ import {
   Download, Copy, FileSpreadsheet, Check,
   Layers,
 } from 'lucide-react'
+import Squiggle from '@/components/Squiggle'
+import EmptyState from '@/components/EmptyState'
 
 type DayItem = {
   day: number
@@ -450,27 +452,23 @@ export default function ContentPlan() {
           <h1 className="text-[26px] md:text-4xl font-bold text-brand-text mb-2 leading-tight">
             30 дней контента для&nbsp;вашего блога
           </h1>
-          <p className="text-[16px] md:text-base text-brand-text-secondary leading-relaxed">
+          <Squiggle variant={1} width="55%" />
+          <p className="text-[16px] md:text-base text-brand-text-secondary leading-relaxed mt-3">
             Персональный план на основе вашего паспорта бренда. Нажмите на карточку, получите готовый пост.
           </p>
         </motion.div>
 
         {/* ===== ПУСТОЕ СОСТОЯНИЕ ===== */}
         {!plan.length && !generating && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-lg mx-auto text-center py-12 md:py-20">
-            <div className="w-24 h-24 md:w-20 md:h-20 bg-brand-soft rounded-3xl flex items-center justify-center mx-auto mb-6">
-              <CalendarDays className="w-12 h-12 md:w-10 md:h-10 text-brand-accent" />
-            </div>
-            <h2 className="text-[24px] md:text-2xl font-bold text-brand-text mb-3">Создайте план на 30 дней</h2>
-            <p className="text-[17px] md:text-base text-brand-text-secondary mb-8 leading-relaxed">
-              AI составит персональный контент-план с темами, форматами и хуками для каждого дня
-            </p>
-            <button onClick={handleGenerate} className="inline-flex items-center gap-3 bg-brand-accent text-white px-8 py-4 rounded-2xl text-lg font-semibold hover:bg-brand-accent-hover transition shadow-lg shadow-brand-accent/25 cursor-pointer active:scale-[0.98]">
-              <CalendarDays className="w-6 h-6" />
-              Сгенерировать план
-            </button>
-            <p className="text-[15px] md:text-sm text-brand-text-secondary mt-4">Займёт около 30-40 секунд</p>
-            {error && <div className="mt-6 p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-[15px] md:text-sm">{error}</div>}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-2">
+            <EmptyState
+              variant={2}
+              title="Ваш план на 30 дней"
+              subtitle="AI составит персональный контент-план с темами, форматами и хуками для каждого дня. Займёт около 30-40 секунд."
+              actionLabel="Составить план"
+              onAction={handleGenerate}
+            />
+            {error && <div className="mt-4 p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-[15px] md:text-sm">{error}</div>}
           </motion.div>
         )}
 

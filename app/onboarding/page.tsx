@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Sparkles, ArrowRight, ArrowLeft, CheckCircle, User, MessageCircle, Heart, MapPin, Flag, Star
 } from 'lucide-react'
+import Squiggle from '@/components/Squiggle'
 
 // БЛОКИ РАСПАКОВКИ
 const blocks = [
@@ -556,7 +557,8 @@ export default function Onboarding() {
           <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-xs sm:text-sm font-bold mb-4 sm:mb-6">
             <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Глубокая распаковка
           </div>
-          <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-brand-text mb-4 sm:mb-6">Давайте познакомимся. По-настоящему.</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-brand-text mb-2">Давайте познакомимся. По-настоящему.</h1>
+          <Squiggle variant={1} width="60%" className="mb-4 sm:mb-6" />
 
           <div className="text-sm sm:text-base text-brand-text-secondary mb-6 sm:mb-8 leading-relaxed space-y-3 sm:space-y-4">
             <p>Сейчас будет 22 вопроса, это займёт около <strong>25 минут</strong>. Заварите чай ☕</p>

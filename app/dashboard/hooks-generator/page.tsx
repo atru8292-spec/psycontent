@@ -23,6 +23,7 @@ import {
   Lightbulb,
   X,
 } from 'lucide-react'
+import Squiggle from '@/components/Squiggle'
 
 /* ─── типы ─── */
 type Hook = {
@@ -291,7 +292,8 @@ export default function HooksGeneratorPage() {
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-2">
             12 цепляющих хуков за один клик
           </h1>
-          <p className="text-brand-text-secondary">
+          <Squiggle variant={2} width="55%" />
+          <p className="text-brand-text-secondary mt-3">
             Для Reels, постов, каруселей и Stories, чтобы остановить скролл за 1.5 секунды
           </p>
         </motion.div>

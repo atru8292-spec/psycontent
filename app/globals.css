@@ -30,6 +30,9 @@
 body {
   font-family: var(--font-onest), system-ui, sans-serif;
   background-color: var(--color-brand-bg);
+  background-image: url('/paper-grain.png');
+  background-repeat: repeat;
+  background-size: 128px 128px;
   color: var(--color-brand-text);
 }
 

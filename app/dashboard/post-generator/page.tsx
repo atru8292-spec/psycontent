@@ -19,6 +19,8 @@ import {
   CheckCircle,
   CalendarDays,
 } from 'lucide-react'
+import Squiggle from '@/components/Squiggle'
+import EmptyState from '@/components/EmptyState'
 
 // ============ УБРАНА КАРУСЕЛЬ ============
 const formats = [
@@ -193,7 +195,8 @@ function PostGeneratorContent() {
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-2">
             Создайте пост в вашем голосе
           </h1>
-          <p className="text-brand-text-secondary">
+          <Squiggle variant={0} width="60%" />
+          <p className="text-brand-text-secondary mt-3">
             AI учитывает ваш подход, тон и нишу, контент будет звучать как вы
           </p>
         </motion.div>
@@ -368,13 +371,14 @@ function PostGeneratorContent() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="h-full flex flex-col items-center justify-center text-center py-20 bg-white rounded-2xl border border-dashed border-brand-border"
                 >
-                  <PenTool className="w-12 h-12 text-gray-200 mb-4" />
-                  <p className="text-brand-text-secondary font-medium">
-                    {fromPlan ? 'Нажмите "Сгенерировать"' : 'Выберите формат и тему'}
-                  </p>
-                  <p className="text-sm text-brand-text-secondary mt-1">Пост появится здесь</p>
+                  <EmptyState
+                    variant={0}
+                    title={fromPlan ? 'Готово к записи' : 'Пост появится здесь'}
+                    subtitle={fromPlan
+                      ? 'Тема из вашего плана уже выбрана. Нажмите кнопку ниже, чтобы написать пост.'
+                      : 'Выберите формат и тему слева, и AI напишет пост в вашем голосе.'}
+                  />
                 </motion.div>
               )}
 

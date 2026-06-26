@@ -11,6 +11,8 @@ import {
   LayoutGrid, MessageSquare, AlertTriangle, PenTool,
   ChevronDown, ChevronUp, Copy, Check, FileText,
 } from 'lucide-react'
+import Squiggle from '@/components/Squiggle'
+import EmptyState from '@/components/EmptyState'
 import { generatePassportPDF } from '@/lib/generate-passport-pdf'
 
 // ─────────────────────────────────────────────────────────
@@ -332,7 +334,10 @@ export default function BrandPassport() {
           <h1 className="text-2xl sm:text-3xl font-bold text-brand-text mb-2 sm:mb-3">
             Ваш персональный паспорт бренда
           </h1>
-          <p className="text-brand-text-secondary max-w-xl mx-auto text-sm sm:text-base">
+          <div className="flex justify-center">
+            <Squiggle variant={0} width="55%" />
+          </div>
+          <p className="text-brand-text-secondary max-w-xl mx-auto text-sm sm:text-base mt-3">
             AI проанализировал вашу распаковку и создал стратегический документ
             с позиционированием, архетипом, аватаром клиента и контент-стратегией
           </p>
@@ -340,22 +345,14 @@ export default function BrandPassport() {
 
         {/* Начальный экран */}
         {!passport && !generating && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-center"
-          >
-            <button
-              onClick={handleGenerate}
-              className="inline-flex items-center gap-2.5 sm:gap-3 bg-brand-accent text-white px-8 sm:px-10 py-4 sm:py-5 rounded-xl sm:rounded-2xl text-base sm:text-lg font-semibold hover:bg-brand-accent-hover transition shadow-lg shadow-brand-accent/25 cursor-pointer"
-            >
-              <Target className="w-5 h-5 sm:w-6 sm:h-6" />
-              Сгенерировать паспорт бренда
-            </button>
-            <p className="text-xs sm:text-sm text-brand-text-secondary mt-3 sm:mt-4">
-              Генерация идёт поэтапно в 5 шагов
-            </p>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+            <EmptyState
+              variant={1}
+              title="Создайте документ о себе"
+              subtitle="AI проанализирует вашу распаковку и создаст стратегический документ с позиционированием, архетипом, аватаром клиента и контент-стратегией. Генерация идёт поэтапно в 5 шагов."
+              actionLabel="Создать паспорт бренда"
+              onAction={handleGenerate}
+            />
             {error && (
               <div className="mt-4 p-3 sm:p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-xs sm:text-sm">
                 {error}

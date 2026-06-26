@@ -19,6 +19,8 @@ import {
   Image,
   AlignLeft,
 } from 'lucide-react'
+import Squiggle from '@/components/Squiggle'
+import EmptyState from '@/components/EmptyState'
 
 interface Post {
   id: string
@@ -170,7 +172,8 @@ export default function PostHistory() {
           <h1 className="text-3xl font-bold text-brand-text mb-2">
             Ваши сгенерированные посты
           </h1>
-          <p className="text-brand-text-secondary">
+          <Squiggle variant={2} width="55%" />
+          <p className="text-brand-text-secondary mt-3">
             {posts.length} {posts.length === 1 ? 'пост' : posts.length < 5 ? 'поста' : 'постов'} сохранено
           </p>
         </motion.div>
@@ -220,23 +223,16 @@ export default function PostHistory() {
 
         {/* Posts list */}
         {filteredPosts.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-20"
-          >
-            <History className="w-12 h-12 text-gray-200 mx-auto mb-4" />
-            <p className="text-brand-text-secondary font-medium">
-              {posts.length === 0 ? 'Пока нет сгенерированных постов' : 'Ничего не найдено'}
-            </p>
-            {posts.length === 0 && (
-              <button
-                onClick={() => router.push('/dashboard/post-generator')}
-                className="mt-4 px-6 py-2 bg-brand-accent text-white rounded-xl text-sm font-medium hover:bg-brand-accent-hover transition cursor-pointer"
-              >
-                Создать первый пост
-              </button>
-            )}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <EmptyState
+              variant={1}
+              title={posts.length === 0 ? 'Пока пусто' : 'Ничего не найдено'}
+              subtitle={posts.length === 0
+                ? 'Создайте первый пост, и он сохранится здесь автоматически. Вы сможете вернуться, скопировать или отметить в избранном.'
+                : 'По вашему запросу ничего нет. Попробуйте изменить фильтр или поиск.'}
+              actionLabel={posts.length === 0 ? 'Написать первый пост' : undefined}
+              onAction={posts.length === 0 ? () => router.push('/dashboard/post-generator') : undefined}
+            />
           </motion.div>
         ) : (
           <div className="space-y-4">
