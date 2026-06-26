@@ -77,11 +77,12 @@ export type ModelId = typeof AI_MODELS[number]['id']
 export async function generateWithAI(
   systemPrompt: string,
   userPrompt: string,
-  opts?: { userId?: string; operation?: string }
+  opts?: { userId?: string; operation?: string; knownNames?: string[] }
 ) {
   // Обезличиваем пользовательский текст перед отправкой в OpenAI (152-ФЗ),
   // после ответа возвращаем замены. Системный промпт — наши правила, без ПДн.
-  const { masked, map } = anonymize(userPrompt)
+  // knownNames — имя психолога из профиля, маскируется гарантированно везде.
+  const { masked, map } = anonymize(userPrompt, { extraNames: opts?.knownNames })
   const { content, usage } = await callOpenAI(
     {
       model: DEFAULT_MODEL,
@@ -103,9 +104,9 @@ export async function generateWithAI(
 // передаётся в userPrompt) и своих знаний. Настоящий веб-поиск добавим позже.
 export async function generateWithWebSearch(
   userPrompt: string,
-  opts?: { userId?: string; operation?: string }
+  opts?: { userId?: string; operation?: string; knownNames?: string[] }
 ) {
-  const { masked, map } = anonymize(userPrompt)
+  const { masked, map } = anonymize(userPrompt, { extraNames: opts?.knownNames })
   const { content, usage } = await callOpenAI(
     {
       model: DEFAULT_MODEL,

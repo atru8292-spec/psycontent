@@ -147,7 +147,7 @@ ${pillar ? `Рубрика: ${pillar}` : ''}
     const model = (body as any).model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
 
-    const response = await generateWithAI(CAROUSEL_SYSTEM_PROMPT, prompt, { userId, operation: 'generate_carousel' })
+    const response = await generateWithAI(CAROUSEL_SYSTEM_PROMPT, prompt, { userId, operation: 'generate_carousel', knownNames: profile?.full_name ? [profile.full_name] : undefined })
 
     if (!response) {
       throw new Error('AI returned empty response')

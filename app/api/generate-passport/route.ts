@@ -282,7 +282,9 @@ ${approachGuidance}
 
     // Обезличиваем вход перед OpenAI; восстановим в потоке и при сохранении.
     const userContent = `${basePrompt}\n\n═══════════════════════════════\nЗАДАНИЕ\n═══════════════════════════════\n${getChunkInstructions(chunk)}`
-    const { masked: maskedUser, map: anonMap } = anonymize(userContent)
+    const { masked: maskedUser, map: anonMap } = anonymize(userContent, {
+      extraNames: profile.full_name ? [profile.full_name] : [],
+    })
 
     const stream = new ReadableStream({
       async start(controller) {

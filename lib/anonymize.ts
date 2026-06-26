@@ -123,7 +123,7 @@ const LABEL: Record<string, string> = {
   phone: 'ТЕЛЕФОН', email: 'ПОЧТА', handle: 'КОНТАКТ',
 }
 
-export function anonymize(text: string): { masked: string; map: AnonMap } {
+export function anonymize(text: string, opts?: { extraNames?: string[] }): { masked: string; map: AnonMap } {
   if (!text || typeof text !== 'string') return { masked: text, map: {} }
   const map: AnonMap = {}
   const counters: Record<string, number> = {}
@@ -144,6 +144,15 @@ export function anonymize(text: string): { masked: string; map: AnonMap } {
   s = s.replace(SOCIAL_RE, m => put('handle', m))
   s = s.replace(PHONE_RE, m => put('phone', m))
   s = s.replace(HANDLE_RE, (m, pre) => pre + put('handle', m.slice(pre.length)))
+
+  // 1.5) ИЗВЕСТНЫЕ имена из профиля (имя психолога) — маскируем ГАРАНТИРОВАННО
+  // везде, даже в кавычках и без маркера. Только с заглавной (нарицательные не трогаем).
+  const extra = (opts?.extraNames ?? []).flatMap(n => (n || '').split(/\s+/)).map(t => t.trim()).filter(t => t.length >= 2)
+  if (extra.length) {
+    const stems = Array.from(new Set(extra.map(nameStem))).filter(x => x.length >= 2).sort((a, b) => b.length - a.length)
+    const re = new RegExp('(?<![' + NL + '])(' + stems.map(escapeRe).join('|') + ')[а-яё]{0,3}(?![' + NL + '])', 'g')
+    s = s.replace(re, m => (/^[А-ЯЁ]/.test(m) ? put('name', m) : m))
+  }
 
   // 2) Имена по маркеру (ловит редкие имена без словаря). Маркер сохраняем.
   s = s.replace(MARKER_RE, (_m, pre, nm) => pre + put('name', nm))

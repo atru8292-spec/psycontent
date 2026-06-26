@@ -210,7 +210,7 @@ ${sourceText}
     const model = reqBody.model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
 
-    const post = await generateWithAI(SYSTEM_PROMPT, prompt, { userId, operation: 'rewrite_post' })
+    const post = await generateWithAI(SYSTEM_PROMPT, prompt, { userId, operation: 'rewrite_post', knownNames: profile?.full_name ? [profile.full_name] : undefined })
 
     try {
       await supabase.from('generated_posts').insert({
