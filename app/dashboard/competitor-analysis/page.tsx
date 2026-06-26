@@ -201,7 +201,7 @@ export default function CompetitorAnalysisPage() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         <div className="mb-6 sm:mb-8">
-          <div className="inline-flex items-center gap-2 bg-slate-100 text-slate-700 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium mb-3">
+          <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium mb-3">
             <Search className="w-4 h-4" />
             Анализ видео конкурентов
           </div>
@@ -226,7 +226,7 @@ export default function CompetitorAnalysisPage() {
               <div key={i} className="flex items-center gap-2">
                 {i > 0 && <span className="text-brand-text-faint text-xs">→</span>}
                 <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition ${
-                  done ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                  done ? 'bg-brand-soft text-brand-accent border-brand-border-soft' :
                   active ? 'bg-brand-accent/10 text-brand-accent border-brand-accent/30' :
                   'bg-white text-brand-text-faint border-brand-border'
                 }`}>
@@ -266,7 +266,7 @@ export default function CompetitorAnalysisPage() {
                   >
                     {step === 'transcribing'
                       ? <><span className="animate-spin">⏳</span> Получаю...</>
-                      : <><Sparkles className="w-4 h-4" /> Транскрибировать</>
+                      : <><Search className="w-4 h-4" /> Транскрибировать</>
                     }
                   </button>
                 </div>
@@ -275,7 +275,7 @@ export default function CompetitorAnalysisPage() {
 
             {/* Ошибка */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm">
+              <div className="bg-brand-soft border border-brand-border-soft rounded-xl px-4 py-3 text-brand-text text-sm">
                 {error}
               </div>
             )}
@@ -341,7 +341,7 @@ export default function CompetitorAnalysisPage() {
                           key={i}
                           className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition ${
                             isDone
-                              ? 'bg-emerald-50 border-emerald-200'
+                              ? 'bg-brand-soft border-brand-border-soft'
                               : isActive
                               ? 'bg-brand-accent/5 border-brand-accent/30'
                               : 'bg-brand-bg border-brand-border opacity-40'
@@ -349,7 +349,7 @@ export default function CompetitorAnalysisPage() {
                         >
                           <span className="text-base">{s.icon}</span>
                           <span className={`text-sm font-medium flex-1 ${
-                            isDone ? 'text-emerald-700' :
+                            isDone ? 'text-brand-accent' :
                             isActive ? 'text-brand-text' :
                             'text-brand-text-secondary'
                           }`}>
@@ -433,7 +433,7 @@ export default function CompetitorAnalysisPage() {
                         </button>
                         <button
                           onClick={() => handleDelete(item.id)}
-                          className="p-1.5 rounded-lg hover:bg-red-50 text-brand-text-faint hover:text-red-500 transition cursor-pointer"
+                          className="p-1.5 rounded-lg hover:bg-brand-soft text-brand-text-faint hover:text-brand-accent transition cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

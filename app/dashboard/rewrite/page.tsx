@@ -1,16 +1,15 @@
 'use client'
-import ModelPicker from '@/components/ModelPicker'
-import { type ModelId, DEFAULT_MODEL } from '@/lib/openrouter'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Sparkles,
   ArrowLeft,
   Loader2,
   RefreshCcw,
+  Zap,
   Copy,
   Check,
   AlignLeft,
@@ -40,7 +39,6 @@ const rewriteGoals = [
 export default function RewriteGenerator() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL)
 
   const [sourceText, setSourceText] = useState('')
   const [selectedFormat, setSelectedFormat] = useState('post')
@@ -58,13 +56,6 @@ export default function RewriteGenerator() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
 
-      // Загружаем предпочитаемую модель
-      const { data: settingsData } = await supabase
-        .from('user_settings')
-        .select('preferred_model')
-        .eq('user_id', user.id)
-        .maybeSingle()
-      if (settingsData?.preferred_model) setSelectedModel(settingsData.preferred_model as ModelId)
       setUser(user)
 
       const { data } = await supabase
@@ -92,7 +83,6 @@ export default function RewriteGenerator() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: selectedModel,
           userId: user.id,
           sourceText,
           format: selectedFormat,
@@ -128,8 +118,8 @@ export default function RewriteGenerator() {
       if (isSlide) {
         const slideText = line.substring(line.indexOf(']') + 1).trim()
         return (
-          <div key={i} className="mb-4 mt-6 first:mt-0 bg-blue-50 border border-blue-100 p-4 rounded-xl">
-            <span className="inline-block bg-blue-600 text-white font-bold px-2 py-0.5 rounded text-xs mb-2">
+          <div key={i} className="mb-4 mt-6 first:mt-0 bg-brand-soft border border-brand-border-soft p-4 rounded-xl">
+            <span className="inline-block bg-brand-accent text-white font-bold px-2 py-0.5 rounded text-xs mb-2">
               {line.substring(line.indexOf('[') + 1, line.indexOf(']'))}
             </span>
             <p className="text-brand-text font-medium">{slideText}</p>
@@ -140,7 +130,7 @@ export default function RewriteGenerator() {
       if (isReelBlock) {
         return (
           <div key={i} className="mt-4 first:mt-0">
-            <span className="inline-block bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded border border-indigo-100 text-sm mb-1">
+            <span className="inline-block bg-brand-soft text-brand-accent font-bold px-3 py-1 rounded border border-brand-border-soft text-sm mb-1">
               {line}
             </span>
           </div>
@@ -181,8 +171,7 @@ export default function RewriteGenerator() {
             Назад в кабинет
           </button>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-brand-accent" />
-            <span className="font-bold text-brand-text">PsyContent</span>
+            <Image src="/logo/out_wordmark.svg" alt="PsyCont" width={110} height={28} className="h-6 w-auto" />
           </div>
         </div>
       </nav>
@@ -199,13 +188,7 @@ export default function RewriteGenerator() {
               Вставьте свои заметки, скучный текст или расшифровку аудио, а ИИ упакует это в вирусный контент.
             </p>
           </div>
-              {/* Выбор модели AI */}
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs text-brand-text-secondary">AI-модель:</span>
-                <ModelPicker value={selectedModel} onChange={setSelectedModel} />
-              </div>
 
-          
           <motion.button
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             onClick={handleRewrite}
@@ -236,7 +219,7 @@ export default function RewriteGenerator() {
                 className="flex-1 w-full p-4 resize-none focus:outline-none text-brand-text leading-relaxed"
               />
               <div className="bg-gray-50 border-t border-brand-border px-4 py-2 flex justify-end">
-                <span className={`text-xs ${sourceText.length > 20 ? 'text-brand-text-secondary' : 'text-red-400'}`}>
+                <span className={`text-xs ${sourceText.length > 20 ? 'text-brand-text-secondary' : 'text-brand-muted'}`}>
                   {sourceText.length} символов {sourceText.length <= 20 && '(нужно больше)'}
                 </span>
               </div>
@@ -320,7 +303,7 @@ export default function RewriteGenerator() {
                 >
                   <div className="relative mb-6">
                     <Loader2 className="w-12 h-12 text-brand-accent animate-spin" />
-                    <Sparkles className="w-5 h-5 text-yellow-400 absolute top-0 -right-2 animate-pulse" />
+                    <Zap className="w-4 h-4 text-brand-sage absolute top-0 -right-2 animate-pulse" />
                   </div>
                   <p className="font-semibold text-brand-text text-lg mb-2">Улучшаем текст...</p>
                   <p className="text-sm text-brand-text-secondary mb-6">Добавляем хуки, убираем воду, настраиваем ваш Tone of Voice.</p>
@@ -344,7 +327,7 @@ export default function RewriteGenerator() {
                 <motion.div
                   key="error"
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  className="p-6 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-sm"
+                  className="p-6 bg-brand-soft border border-brand-border-soft rounded-2xl text-brand-text text-sm"
                 >
                   {error}
                 </motion.div>
@@ -358,8 +341,8 @@ export default function RewriteGenerator() {
                 >
                   <div className="flex items-center justify-between px-4 py-3 border-b border-brand-border bg-gray-50">
                     <div className="flex items-center gap-2">
-                      <span className="flex w-2 h-2 rounded-full bg-green-500">
-                        <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-green-400 opacity-75"></span>
+                      <span className="flex w-2 h-2 rounded-full bg-brand-sage">
+                        <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-brand-sage opacity-75"></span>
                       </span>
                       <span className="text-sm font-semibold text-brand-text">Готово</span>
                     </div>

@@ -1,13 +1,11 @@
 'use client'
-import ModelPicker from '@/components/ModelPicker'
-import { type ModelId, DEFAULT_MODEL } from '@/lib/openrouter'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Sparkles,
   ArrowLeft,
   Loader2,
   Copy,
@@ -44,10 +42,10 @@ const FORMAT_ICONS: Record<string, any> = {
 }
 
 const FORMAT_COLORS: Record<string, string> = {
-  reels: 'bg-pink-100 text-pink-700',
-  пост: 'bg-blue-100 text-blue-700',
-  карусель: 'bg-purple-100 text-purple-700',
-  stories: 'bg-amber-100 text-amber-700',
+  reels: 'bg-brand-soft text-brand-sage',
+  пост: 'bg-brand-soft text-brand-accent',
+  карусель: 'bg-brand-soft text-brand-accent',
+  stories: 'bg-brand-soft text-brand-muted',
   универсальный: 'bg-brand-highlight text-brand-text-secondary',
 }
 
@@ -155,7 +153,6 @@ const HOOK_EDUCATION = {
 export default function HooksGeneratorPage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL)
   const [topic, setTopic] = useState('')
   const [generating, setGenerating] = useState(false)
   const [hooks, setHooks] = useState<Hook[]>([])
@@ -174,14 +171,6 @@ export default function HooksGeneratorPage() {
         data: { user },
       } = await supabase.auth.getUser()
       if (!user) {
-
-      // Загружаем предпочитаемую модель
-      const { data: settingsData } = await supabase
-        .from('user_settings')
-        .select('preferred_model')
-        .eq('user_id', user.id)
-        .maybeSingle()
-      if (settingsData?.preferred_model) setSelectedModel(settingsData.preferred_model as ModelId)
         router.push('/')
         return
       }
@@ -204,7 +193,7 @@ export default function HooksGeneratorPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: selectedModel, userId: user.id, topic: topic.trim() }),
+          userId: user.id, topic: topic.trim() }),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Ошибка генерации')
@@ -278,8 +267,7 @@ export default function HooksGeneratorPage() {
             <span className="hidden sm:inline">Назад в кабинет</span>
           </button>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-brand-accent" />
-            <span className="font-bold text-brand-text">PsyContent</span>
+            <Image src="/logo/out_wordmark.svg" alt="PsyCont" width={110} height={28} className="h-6 w-auto" />
           </div>
         </div>
       </nav>
@@ -288,7 +276,7 @@ export default function HooksGeneratorPage() {
         {/* ─── Заголовок ─── */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-5 sm:mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-700 px-4 py-2 rounded-full text-sm font-medium">
+            <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-4 py-2 rounded-full text-sm font-medium">
               <Zap className="w-4 h-4" />
               Генератор хуков
             </div>
@@ -320,8 +308,8 @@ export default function HooksGeneratorPage() {
               <div className="bg-white rounded-2xl border border-brand-border p-6 md:p-8">
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-                      <Lightbulb className="w-5 h-5 text-amber-600" />
+                    <div className="w-10 h-10 rounded-xl bg-brand-soft flex items-center justify-center">
+                      <Lightbulb className="w-5 h-5 text-brand-sage" />
                     </div>
                     <h2 className="text-xl font-bold text-brand-text">{HOOK_EDUCATION.title}</h2>
                   </div>
@@ -376,8 +364,8 @@ export default function HooksGeneratorPage() {
                   ))}
                 </div>
 
-                <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                  <p className="text-sm text-amber-800">
+                <div className="mt-6 p-4 bg-brand-soft border border-brand-border-soft rounded-xl">
+                  <p className="text-sm text-brand-text">
                     💡 <strong>Совет:</strong> Один хук можно использовать в разных форматах.
                     Написали хук для Reels — используйте его же как первый слайд карусели
                     или первую строку поста. Так вы экономите время и тестируете, какой формат
@@ -442,12 +430,6 @@ export default function HooksGeneratorPage() {
             </button>
           </div>
 
-          {/* Выбор модели AI */}
-          <div className="flex items-center justify-between mt-2 mb-1">
-            <span className="text-xs text-brand-text-secondary">AI-модель:</span>
-            <ModelPicker value={selectedModel} onChange={setSelectedModel} />
-          </div>
-
           {/* Быстрые темы */}
           <div className="flex flex-wrap gap-2 mt-4">
             {QUICK_TOPICS.map((t) => (
@@ -473,7 +455,7 @@ export default function HooksGeneratorPage() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm mb-8"
+              className="p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-sm mb-8"
             >
               {error}
             </motion.div>
@@ -536,7 +518,7 @@ export default function HooksGeneratorPage() {
                   onClick={copyAll}
                   className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-1.5 rounded-lg hover:bg-brand-highlight border border-brand-border"
                 >
-                  {copiedAll ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                  {copiedAll ? <Check className="w-4 h-4 text-brand-sage" /> : <Copy className="w-4 h-4" />}
                   Скопировать все
                 </button>
                 <button
@@ -612,7 +594,7 @@ export default function HooksGeneratorPage() {
                           title="Копировать хук"
                         >
                           {copiedIndex === index ? (
-                            <Check className="w-4 h-4 text-green-500" />
+                            <Check className="w-4 h-4 text-brand-sage" />
                           ) : (
                             <Copy className="w-4 h-4" />
                           )}
@@ -632,7 +614,7 @@ export default function HooksGeneratorPage() {
                           <div className="px-5 pb-4 pt-0">
                             <div className="p-3 bg-brand-bg rounded-lg border border-brand-border">
                               <p className="text-sm text-brand-text-secondary leading-relaxed">
-                                <Lightbulb className="w-3 h-3 inline mr-1 text-amber-500" />
+                                <Lightbulb className="w-3 h-3 inline mr-1 text-brand-sage" />
                                 {hook.why}
                               </p>
                             </div>
@@ -673,8 +655,8 @@ export default function HooksGeneratorPage() {
             transition={{ delay: 0.3 }}
             className="text-center py-16"
           >
-            <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-4">
-              <Zap className="w-8 h-8 text-amber-600" />
+            <div className="w-16 h-16 rounded-2xl bg-brand-soft flex items-center justify-center mx-auto mb-4">
+              <Zap className="w-8 h-8 text-brand-accent" />
             </div>
             <h3 className="font-semibold text-brand-text mb-2">Введите тему и нажмите «Сгенерировать»</h3>
             <p className="text-sm text-brand-text-secondary max-w-md mx-auto">

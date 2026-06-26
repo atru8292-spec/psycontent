@@ -1,8 +1,7 @@
 'use client'
-import ModelPicker from '@/components/ModelPicker'
-import { type ModelId, DEFAULT_MODEL } from '@/lib/openrouter'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -43,7 +42,6 @@ const defaultPillars = [
 export default function ReelsGenerator() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL)
 
   const [selectedLength, setSelectedLength] = useState('30s')
   const [selectedStyle, setSelectedStyle] = useState('talking_head')
@@ -64,13 +62,6 @@ export default function ReelsGenerator() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
 
-      // Загружаем предпочитаемую модель
-      const { data: settingsData } = await supabase
-        .from('user_settings')
-        .select('preferred_model')
-        .eq('user_id', user.id)
-        .maybeSingle()
-      if (settingsData?.preferred_model) setSelectedModel(settingsData.preferred_model as ModelId)
       setUser(user)
 
       const { data } = await supabase
@@ -99,7 +90,6 @@ export default function ReelsGenerator() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: selectedModel,
           userId: user.id,
           topic: selectedTopic,
           customTopic: useCustom ? customTopic : undefined,
@@ -136,7 +126,7 @@ export default function ReelsGenerator() {
       if (isHeader) {
         return (
           <div key={i} className="mt-4 first:mt-0">
-            <span className="inline-block bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded border border-indigo-100 text-sm mb-1">
+            <span className="inline-block bg-brand-soft text-brand-accent font-bold px-3 py-1 rounded border border-brand-border-soft text-sm mb-1">
               {line}
             </span>
           </div>
@@ -167,8 +157,7 @@ export default function ReelsGenerator() {
             Назад в кабинет
           </button>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-brand-accent" />
-            <span className="font-bold text-brand-text">PsyContent</span>
+            <Image src="/logo/out_wordmark.svg" alt="PsyCont" width={110} height={28} className="h-6 w-auto" />
           </div>
         </div>
       </nav>
@@ -176,7 +165,7 @@ export default function ReelsGenerator() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
         {/* Title */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 sm:mb-10">
-          <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-600 px-4 py-2 rounded-full text-sm font-medium mb-4">
+          <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-4 py-2 rounded-full text-sm font-medium mb-4">
             <Film className="w-4 h-4" />
             Рилс-скрипты
           </div>
@@ -203,9 +192,9 @@ export default function ReelsGenerator() {
                   <button
                     key={len.id}
                     onClick={() => setSelectedLength(len.id)}
-                    className={`p-4 rounded-xl border-2 text-left transition cursor-pointer ${selectedLength === len.id ? 'border-indigo-500 bg-indigo-50' : 'border-brand-border hover:border-gray-300 bg-brand-bg'}`}
+                    className={`p-4 rounded-xl border-2 text-left transition cursor-pointer ${selectedLength === len.id ? 'border-brand-accent bg-brand-soft' : 'border-brand-border hover:border-brand-border bg-brand-bg'}`}
                   >
-                    <p className={`font-semibold text-sm ${selectedLength === len.id ? 'text-indigo-700' : 'text-brand-text'}`}>{len.label}</p>
+                    <p className={`font-semibold text-sm ${selectedLength === len.id ? 'text-brand-accent' : 'text-brand-text'}`}>{len.label}</p>
                     <p className="text-xs text-brand-text-secondary mt-0.5">{len.desc}</p>
                   </button>
                 ))}
@@ -226,13 +215,13 @@ export default function ReelsGenerator() {
                     <button
                       key={style.id}
                       onClick={() => setSelectedStyle(style.id)}
-                      className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition cursor-pointer text-left ${active ? 'border-indigo-500 bg-indigo-50' : 'border-brand-border hover:border-gray-300 bg-brand-bg'}`}
+                      className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition cursor-pointer text-left ${active ? 'border-brand-accent bg-brand-soft' : 'border-brand-border hover:border-brand-border bg-brand-bg'}`}
                     >
-                      <div className={`p-2 rounded-lg ${active ? 'bg-indigo-100' : 'bg-white'}`}>
-                        <Icon className={`w-5 h-5 ${active ? 'text-indigo-600' : 'text-gray-400'}`} />
+                      <div className={`p-2 rounded-lg ${active ? 'bg-brand-soft' : 'bg-white'}`}>
+                        <Icon className={`w-5 h-5 ${active ? 'text-brand-accent' : 'text-brand-muted'}`} />
                       </div>
                       <div>
-                        <p className={`font-semibold text-sm ${active ? 'text-indigo-700' : 'text-brand-text'}`}>{style.label}</p>
+                        <p className={`font-semibold text-sm ${active ? 'text-brand-accent' : 'text-brand-text'}`}>{style.label}</p>
                         <p className="text-xs text-brand-text-secondary">{style.desc}</p>
                       </div>
                     </button>
@@ -257,7 +246,7 @@ export default function ReelsGenerator() {
                         setUseCustom(false)
                         setSelectedTopic(null)
                       }}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition cursor-pointer text-sm font-medium ${selectedPillar === pillar.id ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-brand-border bg-brand-bg text-brand-text-secondary hover:border-indigo-200'}`}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition cursor-pointer text-sm font-medium ${selectedPillar === pillar.id ? 'border-brand-accent bg-brand-soft text-brand-accent' : 'border-brand-border bg-brand-bg text-brand-text-secondary hover:border-brand-accent/30'}`}
                     >
                       {pillar.label}
                       <ChevronRight className={`w-4 h-4 transition-transform ${selectedPillar === pillar.id ? 'rotate-90' : ''}`} />
@@ -276,7 +265,7 @@ export default function ReelsGenerator() {
                               <button
                                 key={topic}
                                 onClick={() => { setSelectedTopic(topic); setUseCustom(false) }}
-                                className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition cursor-pointer ${selectedTopic === topic && !useCustom ? 'bg-indigo-500 text-white font-medium' : 'text-brand-text-secondary hover:bg-indigo-50 hover:text-indigo-700'}`}
+                                className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition cursor-pointer ${selectedTopic === topic && !useCustom ? 'bg-brand-accent text-white font-medium' : 'text-brand-text-secondary hover:bg-brand-soft hover:text-brand-accent'}`}
                               >
                                 {topic}
                               </button>
@@ -293,7 +282,7 @@ export default function ReelsGenerator() {
               <div className="border-t border-brand-border pt-4">
                 <button
                   onClick={() => { setUseCustom(!useCustom); setSelectedTopic(null); setSelectedPillar(null) }}
-                  className={`w-full flex items-center gap-2 px-4 py-3 rounded-xl border text-sm font-medium transition cursor-pointer ${useCustom ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-brand-border bg-brand-bg text-brand-text-secondary hover:border-indigo-200'}`}
+                  className={`w-full flex items-center gap-2 px-4 py-3 rounded-xl border text-sm font-medium transition cursor-pointer ${useCustom ? 'border-brand-accent bg-brand-soft text-brand-accent' : 'border-brand-border bg-brand-bg text-brand-text-secondary hover:border-brand-accent/30'}`}
                 >
                   <Lightbulb className="w-4 h-4" />
                   Своя тема
@@ -304,7 +293,7 @@ export default function ReelsGenerator() {
                     onChange={e => setCustomTopic(e.target.value)}
                     placeholder="Какую тему разобрать в Рилс?.."
                     rows={2}
-                    className="w-full mt-2 px-4 py-3 rounded-xl border border-brand-border bg-white text-brand-text text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                    className="w-full mt-2 px-4 py-3 rounded-xl border border-brand-border bg-white text-brand-text text-sm focus:outline-none focus:ring-2 focus:ring-brand-accent resize-none"
                     autoFocus
                   />
                 )}
@@ -312,12 +301,6 @@ export default function ReelsGenerator() {
             </motion.div>
 
             {/* Generate button */}
-              {/* Выбор модели AI */}
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs text-brand-text-secondary">AI-модель:</span>
-                <ModelPicker value={selectedModel} onChange={setSelectedModel} />
-              </div>
-
             <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -371,7 +354,7 @@ export default function ReelsGenerator() {
                   key="error"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="p-6 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-sm"
+                  className="p-6 bg-brand-soft border border-brand-border-soft rounded-2xl text-brand-text text-sm"
                 >
                   {error}
                 </motion.div>
@@ -387,7 +370,7 @@ export default function ReelsGenerator() {
                   {/* Result header */}
                   <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-brand-border bg-brand-bg">
                     <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                      <span className="w-2 h-2 rounded-full bg-brand-accent" />
                       <span className="text-sm font-semibold text-brand-text">Скрипт готов!</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -399,7 +382,7 @@ export default function ReelsGenerator() {
                       </button>
                       <button
                         onClick={handleCopy}
-                        className="flex items-center gap-1.5 text-xs font-semibold text-white bg-indigo-500 hover:bg-indigo-600 transition cursor-pointer px-3 py-1.5 rounded-lg"
+                        className="flex items-center gap-1.5 text-xs font-semibold text-white bg-brand-accent hover:bg-brand-accent-hover transition cursor-pointer px-3 py-1.5 rounded-lg"
                       >
                         {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                         {copied ? 'Скопировано!' : 'Копировать'}

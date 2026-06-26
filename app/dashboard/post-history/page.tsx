@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import NextImage from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Sparkles,
   ArrowLeft,
   History,
   Copy,
@@ -151,8 +151,7 @@ export default function PostHistory() {
             Назад
           </button>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-brand-accent" />
-            <span className="font-bold text-brand-text">PsyContent</span>
+            <NextImage src="/logo/out_wordmark.svg" alt="PsyCont" width={110} height={28} className="h-6 w-auto" />
           </div>
         </div>
       </nav>
@@ -164,7 +163,7 @@ export default function PostHistory() {
           animate={{ opacity: 1, y: 0 }} 
           className="mb-5 sm:mb-8"
         >
-          <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-600 px-4 py-2 rounded-full text-sm font-medium mb-4">
+          <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-4 py-2 rounded-full text-sm font-medium mb-4">
             <History className="w-4 h-4" />
             История постов
           </div>
@@ -282,7 +281,7 @@ export default function PostHistory() {
                           onClick={() => toggleFavorite(post)}
                           className={`p-2 rounded-lg transition cursor-pointer ${
                             post.is_favorite 
-                              ? 'text-yellow-500 bg-yellow-50' 
+                              ? 'text-brand-accent bg-brand-soft' 
                               : 'text-brand-text-secondary hover:bg-brand-bg'
                           }`}
                         >
@@ -293,14 +292,14 @@ export default function PostHistory() {
                           className="p-2 rounded-lg text-brand-text-secondary hover:bg-brand-bg transition cursor-pointer"
                         >
                           {copiedId === post.id ? (
-                            <Check className="w-4 h-4 text-green-500" />
+                            <Check className="w-4 h-4 text-brand-sage" />
                           ) : (
                             <Copy className="w-4 h-4" />
                           )}
                         </button>
                         <button
                           onClick={() => handleDelete(post.id)}
-                          className="p-2 rounded-lg text-brand-text-secondary hover:bg-red-50 hover:text-red-500 transition cursor-pointer"
+                          className="p-2 rounded-lg text-brand-text-secondary hover:bg-brand-soft hover:text-brand-accent transition cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

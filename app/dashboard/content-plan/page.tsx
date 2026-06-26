@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import NextImage from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import { generatePDF } from '@/lib/pdf-export'
 import {
-  Sparkles, ArrowLeft, Loader2, CalendarDays,
+  ArrowLeft, Loader2, CalendarDays,
   AlignLeft, Image, Film, FileText,
   CheckCircle2, Circle, PenTool, X,
   RefreshCw, Lightbulb, ChevronRight,
@@ -25,18 +26,18 @@ type DayItem = {
 }
 
 const FORMAT_META: Record<string, { icon: any; label: string; color: string; bg: string }> = {
-  post:     { icon: AlignLeft, label: 'Пост',     color: 'text-purple-600', bg: 'bg-purple-100' },
-  carousel: { icon: Layers,    label: 'Карусель', color: 'text-blue-600',   bg: 'bg-blue-100'   },
-  reels:    { icon: Film,      label: 'Рилс',     color: 'text-pink-600',   bg: 'bg-pink-100'   },
-  stories:  { icon: FileText,  label: 'Stories',  color: 'text-orange-600', bg: 'bg-orange-100' },
+  post:     { icon: AlignLeft, label: 'Пост',     color: 'text-brand-accent', bg: 'bg-brand-soft' },
+  carousel: { icon: Layers,    label: 'Карусель', color: 'text-brand-accent', bg: 'bg-brand-soft' },
+  reels:    { icon: Film,      label: 'Рилс',     color: 'text-brand-sage', bg: 'bg-brand-soft' },
+  stories:  { icon: FileText,  label: 'Stories',  color: 'text-brand-muted', bg: 'bg-brand-soft' },
 }
 
 const PILLAR_META: Record<string, { color: string; dot: string }> = {
-  'Психообразование': { color: 'text-indigo-600 bg-indigo-50 border-indigo-200', dot: 'bg-indigo-400' },
-  'Личное':           { color: 'text-rose-600 bg-rose-50 border-rose-200',        dot: 'bg-rose-400'   },
-  'Практика':         { color: 'text-green-600 bg-green-50 border-green-200',     dot: 'bg-green-400'  },
-  'Истории':          { color: 'text-amber-600 bg-amber-50 border-amber-200',     dot: 'bg-amber-400'  },
-  'Позиционирование': { color: 'text-violet-600 bg-violet-50 border-violet-200',  dot: 'bg-violet-400' },
+  'Психообразование': { color: 'text-brand-accent bg-brand-soft border-brand-border-soft', dot: 'bg-brand-accent' },
+  'Личное':           { color: 'text-brand-text bg-brand-soft border-brand-border-soft', dot: 'bg-brand-muted' },
+  'Практика':         { color: 'text-brand-sage bg-brand-soft border-brand-border-soft', dot: 'bg-brand-sage' },
+  'Истории':          { color: 'text-brand-muted bg-brand-soft border-brand-border-soft', dot: 'bg-brand-muted' },
+  'Позиционирование': { color: 'text-brand-accent bg-brand-soft border-brand-border-soft', dot: 'bg-brand-accent' },
 }
 
 function getPillarMeta(pillar: string) {
@@ -116,18 +117,18 @@ ${day.hook ? `Хук: ${day.hook}` : ''}
           <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
           <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-brand-border rounded-xl shadow-lg z-50 overflow-hidden">
             <button onClick={copyAsText} className="w-full flex items-center gap-3 px-5 py-4 text-base md:text-sm text-brand-text hover:bg-brand-bg transition cursor-pointer text-left">
-              {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5 text-brand-text-secondary" />}
+              {copied ? <Check className="w-5 h-5 text-brand-sage" /> : <Copy className="w-5 h-5 text-brand-text-secondary" />}
               {copied ? 'Скопировано!' : 'Копировать текст'}
             </button>
             <button onClick={exportToCSV} className="w-full flex items-center gap-3 px-5 py-4 text-base md:text-sm text-brand-text hover:bg-brand-bg transition cursor-pointer text-left border-t border-brand-border">
-              <FileSpreadsheet className="w-5 h-5 text-green-600 shrink-0" />
+              <FileSpreadsheet className="w-5 h-5 text-brand-sage shrink-0" />
               <div>
                 <p>Google Sheets / Excel</p>
                 <p className="text-sm text-brand-text-secondary">Скачать CSV</p>
               </div>
             </button>
             <button onClick={exportToPDF} className="w-full flex items-center gap-3 px-5 py-4 text-base md:text-sm text-brand-text hover:bg-brand-bg transition cursor-pointer text-left border-t border-brand-border">
-              <FileText className="w-5 h-5 text-red-500 shrink-0" />
+              <FileText className="w-5 h-5 text-brand-sage shrink-0" />
               <div>
                 <p>Скачать PDF</p>
                 <p className="text-sm text-brand-text-secondary">Красивый дизайн</p>
@@ -157,13 +158,13 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       className={`relative rounded-2xl border transition-all duration-200 overflow-hidden ${
-        item.done ? 'border-green-200 bg-green-50/50 opacity-70' : 'border-brand-border bg-white hover:border-brand-accent/40 hover:shadow-md'
+        item.done ? 'border-brand-border-soft bg-brand-soft/30 opacity-70' : 'border-brand-border bg-white hover:border-brand-accent/40 hover:shadow-md'
       }`}
     >
       {/* Шапка */}
       <div className="flex items-center justify-between p-5 pb-3 md:p-4 md:pb-2">
         <div className="flex items-center gap-3">
-          <span className={`text-[15px] md:text-xs font-bold w-10 h-10 md:w-7 md:h-7 rounded-full flex items-center justify-center shrink-0 ${item.done ? 'bg-green-100 text-green-600' : 'bg-brand-highlight text-brand-accent'}`}>
+          <span className={`text-[15px] md:text-xs font-bold w-10 h-10 md:w-7 md:h-7 rounded-full flex items-center justify-center shrink-0 ${item.done ? 'bg-brand-soft text-brand-muted' : 'bg-brand-highlight text-brand-accent'}`}>
             {item.day}
           </span>
           <span className={`text-[15px] md:text-xs font-semibold px-3 py-1.5 md:px-2 md:py-0.5 rounded-full border ${pillar.color}`}>
@@ -172,7 +173,7 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
         </div>
         <button onClick={(e) => { e.stopPropagation(); onToggle(); }} className="cursor-pointer transition p-2 -mr-2 md:p-0 md:mr-0">
           {item.done
-            ? <CheckCircle2 className="w-7 h-7 md:w-5 md:h-5 text-green-500" />
+            ? <CheckCircle2 className="w-7 h-7 md:w-5 md:h-5 text-brand-sage" />
             : <Circle className={`w-7 h-7 md:w-5 md:h-5 ${hover ? 'text-brand-accent' : 'text-gray-300'} transition`} />
           }
         </button>
@@ -217,7 +218,7 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
             onClick={(e) => { e.stopPropagation(); onGenerate(); }}
             className={`w-full flex items-center justify-center gap-2.5 py-4 md:py-2.5 rounded-xl text-white text-[16px] md:text-xs font-semibold transition cursor-pointer active:scale-[0.98] ${
               item.format === 'carousel'
-                ? 'bg-blue-500 hover:bg-blue-600 active:bg-blue-700'
+                ? 'bg-brand-accent hover:bg-brand-accent-hover active:bg-brand-accent-hover'
                 : 'bg-brand-accent hover:bg-brand-accent-hover'
             }`}
           >
@@ -239,7 +240,7 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
   const isCarousel = item.format === 'carousel'
   const buttonText = isCarousel ? 'Создать карусель' : 'Сгенерировать пост'
   const buttonClass = isCarousel
-    ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-500/20'
+    ? 'bg-brand-accent hover:bg-brand-accent-hover shadow-brand-accent/20'
     : 'bg-brand-accent hover:bg-brand-accent-hover shadow-brand-accent/20'
 
   return (
@@ -265,8 +266,8 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
       </div>
 
       {isCarousel && (
-        <div className="mb-5 p-4 md:p-3 bg-blue-50 rounded-xl border border-blue-200">
-          <p className="text-[16px] md:text-sm text-blue-700 leading-relaxed">
+        <div className="mb-5 p-4 md:p-3 bg-brand-soft rounded-xl border border-brand-border-soft">
+          <p className="text-[16px] md:text-sm text-brand-text leading-relaxed">
             <strong>Карусель</strong> — это 8-10 слайдов с текстом. AI создаст хук, развитие мысли и CTA.
           </p>
         </div>
@@ -284,9 +285,9 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
       {item.tip && (
         <div className="mb-7 md:mb-6">
           <p className="text-[13px] md:text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-2.5">Подсказка</p>
-          <div className="flex items-start gap-3 p-4 md:p-3 bg-amber-50 rounded-xl border border-amber-200">
-            <Lightbulb className="w-6 h-6 md:w-4 md:h-4 text-amber-500 mt-0.5 shrink-0" />
-            <p className="text-[16px] md:text-sm text-amber-800 leading-relaxed">{item.tip}</p>
+          <div className="flex items-start gap-3 p-4 md:p-3 bg-brand-soft rounded-xl border border-brand-border-soft">
+            <Lightbulb className="w-6 h-6 md:w-4 md:h-4 text-brand-sage mt-0.5 shrink-0" />
+            <p className="text-[16px] md:text-sm text-brand-text leading-relaxed">{item.tip}</p>
           </div>
         </div>
       )}
@@ -295,7 +296,7 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
         onClick={onGenerate}
         className={`w-full flex items-center justify-center gap-2.5 py-4.5 md:py-3 rounded-xl text-white text-[18px] md:text-sm font-semibold transition shadow-lg cursor-pointer active:scale-[0.98] ${buttonClass}`}
       >
-        {isCarousel ? <Layers className="w-6 h-6 md:w-4 md:h-4" /> : <Sparkles className="w-6 h-6 md:w-4 md:h-4" />}
+        {isCarousel ? <Layers className="w-6 h-6 md:w-4 md:h-4" /> : <PenTool className="w-6 h-6 md:w-4 md:h-4" />}
         {buttonText}
         <ChevronRight className="w-6 h-6 md:w-4 md:h-4" />
       </button>
@@ -431,8 +432,7 @@ export default function ContentPlan() {
                 </>
               )}
               <div className="flex items-center gap-1.5">
-                <Sparkles className="w-5 h-5 text-brand-accent" />
-                <span className="font-bold text-brand-text text-[17px] md:text-base">PsyContent</span>
+                <NextImage src="/logo/out_wordmark.svg" alt="PsyCont" width={110} height={28} className="h-6 w-auto" />
               </div>
             </div>
           </div>
@@ -443,7 +443,7 @@ export default function ContentPlan() {
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-10">
         {/* Заголовок */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 md:mb-8">
-          <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full text-[15px] md:text-sm font-medium mb-4">
+          <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-4 py-2 rounded-full text-[15px] md:text-sm font-medium mb-4">
             <CalendarDays className="w-5 h-5 md:w-4 md:h-4" />
             Контент-план
           </div>
@@ -458,19 +458,19 @@ export default function ContentPlan() {
         {/* ===== ПУСТОЕ СОСТОЯНИЕ ===== */}
         {!plan.length && !generating && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-lg mx-auto text-center py-12 md:py-20">
-            <div className="w-24 h-24 md:w-20 md:h-20 bg-green-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
-              <CalendarDays className="w-12 h-12 md:w-10 md:h-10 text-green-600" />
+            <div className="w-24 h-24 md:w-20 md:h-20 bg-brand-soft rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <CalendarDays className="w-12 h-12 md:w-10 md:h-10 text-brand-accent" />
             </div>
             <h2 className="text-[24px] md:text-2xl font-bold text-brand-text mb-3">Создайте план на 30 дней</h2>
             <p className="text-[17px] md:text-base text-brand-text-secondary mb-8 leading-relaxed">
               AI составит персональный контент-план с темами, форматами и хуками для каждого дня
             </p>
             <button onClick={handleGenerate} className="inline-flex items-center gap-3 bg-brand-accent text-white px-8 py-4 rounded-2xl text-lg font-semibold hover:bg-brand-accent-hover transition shadow-lg shadow-brand-accent/25 cursor-pointer active:scale-[0.98]">
-              <Sparkles className="w-6 h-6" />
+              <CalendarDays className="w-6 h-6" />
               Сгенерировать план
             </button>
             <p className="text-[15px] md:text-sm text-brand-text-secondary mt-4">Займёт около 30-40 секунд</p>
-            {error && <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-[15px] md:text-sm">{error}</div>}
+            {error && <div className="mt-6 p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-[15px] md:text-sm">{error}</div>}
           </motion.div>
         )}
 
@@ -505,7 +505,7 @@ export default function ContentPlan() {
             </div>
 
             {plan.length > 0 && (
-              <p className="text-[16px] md:text-sm text-green-600 mt-4">
+              <p className="text-[16px] md:text-sm text-brand-sage mt-4">
                 ✓ Готово: {plan.length} дней
               </p>
             )}
@@ -621,7 +621,7 @@ export default function ContentPlan() {
 
         {/* Ошибка */}
         {error && !generating && (
-          <div className="max-w-lg mx-auto mt-6 p-5 md:p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-[16px] md:text-sm text-center">
+          <div className="max-w-lg mx-auto mt-6 p-5 md:p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-[16px] md:text-sm text-center">
             {error}
             <button
               onClick={handleGenerate}

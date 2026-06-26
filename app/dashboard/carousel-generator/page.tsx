@@ -1,6 +1,4 @@
 'use client'
-import ModelPicker from '@/components/ModelPicker'
-import { type ModelId, DEFAULT_MODEL } from '@/lib/openrouter'
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -37,7 +35,6 @@ type TopicSuggestion = {
 function CarouselGeneratorContent() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL)
 
   const [step, setStep] = useState<'topics' | 'carousel'>('topics')
   const [suggestedTopics, setSuggestedTopics] = useState<TopicSuggestion[]>([])
@@ -67,13 +64,6 @@ function CarouselGeneratorContent() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
 
-      // Загружаем предпочитаемую модель
-      const { data: settingsData } = await supabase
-        .from('user_settings')
-        .select('preferred_model')
-        .eq('user_id', user.id)
-        .maybeSingle()
-      if (settingsData?.preferred_model) setSelectedModel(settingsData.preferred_model as ModelId)
       setUser(user)
       setLoading(false)
     }
@@ -112,7 +102,6 @@ function CarouselGeneratorContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: selectedModel,
           userId: user.id,
           topic: topicToUse,
           pillar: selectedTopic?.description || '',
@@ -224,8 +213,7 @@ function CarouselGeneratorContent() {
             {isFromPlan ? 'К контент-плану' : step === 'carousel' ? 'К выбору темы' : 'Назад в кабинет'}
           </button>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-brand-accent" />
-            <span className="font-bold text-brand-text">PsyContent</span>
+            <Image src="/logo/out_wordmark.svg" alt="PsyCont" width={110} height={28} className="h-6 w-auto" />
           </div>
         </div>
       </nav>
@@ -318,8 +306,8 @@ function CarouselGeneratorContent() {
 
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
-                        <Target className="w-4 h-4 text-green-600" />
+                      <div className="w-8 h-8 rounded-lg bg-brand-soft flex items-center justify-center">
+                        <Target className="w-4 h-4 text-brand-sage" />
                       </div>
                       <h3 className="font-semibold text-brand-text">Зачем психологу?</h3>
                     </div>
@@ -330,7 +318,7 @@ function CarouselGeneratorContent() {
                     </ul>
                   </div>
 
-                  <div className="bg-gradient-to-r from-brand-accent/10 to-brand-accent/5 rounded-xl p-4">
+                  <div className="bg-brand-soft rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <TrendingUp className="w-4 h-4 text-brand-accent" />
                       <span className="text-sm font-medium text-brand-text">Статистика</span>
@@ -482,12 +470,12 @@ function CarouselGeneratorContent() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="p-6 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-sm text-center"
+                className="p-6 bg-brand-soft border border-brand-border-soft rounded-2xl text-brand-text text-sm text-center"
               >
                 {error}
                 <button
                   onClick={() => loadTopics(user.id)}
-                  className="block mx-auto mt-3 text-red-700 underline hover:no-underline cursor-pointer"
+                  className="block mx-auto mt-3 text-brand-accent underline hover:no-underline cursor-pointer"
                 >
                   Попробовать снова
                 </button>
@@ -529,10 +517,6 @@ function CarouselGeneratorContent() {
                 {/* ★ КНОПКА ГЕНЕРАЦИИ — когда нет слайдов и не генерируем */}
                 {slides.length === 0 && !generating && !error && (
                   <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs text-brand-text-secondary">AI-модель:</span>
-                      <ModelPicker value={selectedModel} onChange={setSelectedModel} />
-                    </div>
                     <button
                       onClick={() => handleGenerate(selectedTopic?.title)}
                       className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-brand-accent text-white font-semibold hover:bg-brand-accent/90 transition shadow-lg shadow-brand-accent/25 cursor-pointer"
@@ -647,12 +631,12 @@ function CarouselGeneratorContent() {
                     key="error"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="p-6 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-sm"
+                    className="p-6 bg-brand-soft border border-brand-border-soft rounded-2xl text-brand-text text-sm"
                   >
                     {error}
                     <button
                       onClick={() => handleGenerate()}
-                      className="block mt-3 text-red-700 underline hover:no-underline cursor-pointer"
+                      className="block mt-3 text-brand-accent underline hover:no-underline cursor-pointer"
                     >
                       Попробовать снова
                     </button>
@@ -683,8 +667,8 @@ function CarouselGeneratorContent() {
                     animate={{ opacity: 1, y: 0 }}
                     className="space-y-4"
                   >
-                    <div className="bg-green-50 border border-green-200 rounded-xl p-3">
-                      <p className="text-xs text-green-700">
+                    <div className="bg-brand-soft border border-brand-border-soft rounded-xl p-3">
+                      <p className="text-xs text-brand-text">
                         ✨ <strong>Готово!</strong> Скопируйте тексты и создайте картинки в Canva
                       </p>
                     </div>
@@ -697,10 +681,10 @@ function CarouselGeneratorContent() {
                             Слайд {currentSlide + 1} из {slides.length}
                           </span>
                           {currentSlide === 0 && (
-                            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Хук</span>
+                            <span className="text-xs bg-brand-soft text-brand-accent px-2 py-0.5 rounded-full">Хук</span>
                           )}
                           {currentSlide === slides.length - 1 && (
-                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Финал</span>
+                            <span className="text-xs bg-brand-soft text-brand-accent px-2 py-0.5 rounded-full">Финал</span>
                           )}
                         </div>
                         <button
@@ -716,7 +700,7 @@ function CarouselGeneratorContent() {
                       </div>
 
                       <div className="relative">
-                        <div className="aspect-square bg-gradient-to-br from-brand-accent/5 to-brand-accent/5 flex items-center justify-center p-8">
+                        <div className="aspect-square bg-brand-soft flex items-center justify-center p-8">
                           <div className="max-w-[280px] text-center">
                             <div className="text-[80px] font-bold text-brand-border leading-none mb-4">
                               {String(currentSlide + 1).padStart(2, '0')}

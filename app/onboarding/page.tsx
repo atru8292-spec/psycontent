@@ -10,12 +10,12 @@ import {
 
 // БЛОКИ РАСПАКОВКИ
 const blocks = [
-  { id: 'who', title: 'Кто вы', icon: User, color: 'text-purple-600 bg-purple-100' },
-  { id: 'voice', title: 'Ваш голос', icon: MessageCircle, color: 'text-orange-600 bg-orange-100' },
-  { id: 'client', title: 'Идеальный клиент', icon: Heart, color: 'text-pink-600 bg-pink-100' },
-  { id: 'current', title: 'Где вы сейчас', icon: MapPin, color: 'text-blue-600 bg-blue-100' },
-  { id: 'goal', title: 'Куда хотите', icon: Flag, color: 'text-green-600 bg-green-100' },
-  { id: 'final', title: 'Финальный штрих', icon: Star, color: 'text-yellow-600 bg-yellow-100' },
+  { id: 'who', title: 'Кто вы', icon: User, color: 'text-brand-accent bg-brand-soft' },
+  { id: 'voice', title: 'Ваш голос', icon: MessageCircle, color: 'text-brand-accent bg-brand-soft' },
+  { id: 'client', title: 'Идеальный клиент', icon: Heart, color: 'text-brand-accent bg-brand-soft' },
+  { id: 'current', title: 'Где вы сейчас', icon: MapPin, color: 'text-brand-sage bg-brand-bg' },
+  { id: 'goal', title: 'Куда хотите', icon: Flag, color: 'text-brand-sage bg-brand-bg' },
+  { id: 'final', title: 'Финальный штрих', icon: Star, color: 'text-brand-accent bg-brand-soft' },
 ]
 
 // ВОПРОСЫ
@@ -528,14 +528,14 @@ export default function Onboarding() {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center p-4 sm:p-6">
         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-lg w-full rounded-2xl p-5 sm:p-8 border border-brand-border text-center shadow-xl">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-            <CheckCircle className="w-8 h-8 sm:w-10 sm:h-10 text-green-600" />
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-brand-soft rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+            <CheckCircle className="w-8 h-8 sm:w-10 sm:h-10 text-brand-accent" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-brand-text mb-3 sm:mb-4">🎉 Распаковка завершена!</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-brand-text mb-3 sm:mb-4">Распаковка завершена!</h1>
           <p className="text-sm sm:text-base text-brand-text-secondary mb-4 sm:mb-6 leading-relaxed">
             Спасибо что были честны — это было не просто. Мы собрали достаточно, чтобы создать вашу уникальную стратегию.
           </p>
-          <ul className="text-left text-xs sm:text-sm text-brand-text-secondary bg-gray-50 rounded-xl p-4 sm:p-5 mb-6 sm:mb-8 space-y-2 sm:space-y-3">
+          <ul className="text-left text-xs sm:text-sm text-brand-muted bg-brand-bg rounded-2xl p-4 sm:p-5 mb-6 sm:mb-8 space-y-2 sm:space-y-3">
             <li>✅ Мы поняли <strong>КТО</strong> вы и чем отличаетесь</li>
             <li>✅ Мы услышали ваш <strong>живой голос</strong></li>
             <li>✅ Мы собрали боли вашего <strong>идеального клиента</strong></li>
@@ -553,18 +553,18 @@ export default function Onboarding() {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center p-4 sm:p-6">
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="max-w-2xl bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 md:p-12 border border-brand-border shadow-2xl">
-          <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold mb-4 sm:mb-6">
+          <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-xs sm:text-sm font-bold mb-4 sm:mb-6">
             <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Глубокая распаковка
           </div>
-          <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold text-brand-text mb-4 sm:mb-6">Давайте познакомимся. По-настоящему.</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-brand-text mb-4 sm:mb-6">Давайте познакомимся. По-настоящему.</h1>
 
           <div className="text-sm sm:text-base text-brand-text-secondary mb-6 sm:mb-8 leading-relaxed space-y-3 sm:space-y-4">
             <p>Сейчас будет 22 вопроса — это займёт около <strong>25 минут</strong>. Заварите чай ☕</p>
             <p>Почему так долго? Потому что мы не делаем шаблонный контент. Мы создаём ВАШ голос. Чем больше мы о вас узнаем — тем точнее будут посты. Они будут звучать как вы.</p>
 
-            <div className="bg-orange-50 border border-orange-100 p-3.5 sm:p-5 rounded-xl text-xs sm:text-base">
-              <span className="font-bold text-orange-800">Три совета:</span>
-              <ul className="mt-2 space-y-1.5 sm:space-y-2 text-orange-700">
+            <div className="bg-brand-soft border border-brand-border-soft p-3.5 sm:p-5 rounded-2xl text-xs sm:text-base">
+              <span className="font-bold text-brand-text">Три совета:</span>
+              <ul className="mt-2 space-y-1.5 sm:space-y-2 text-brand-muted">
                 <li>1. Отвечайте честно, а не «правильно».</li>
                 <li>2. Пишите <b>как говорите</b>. Без «оказание психологической помощи».</li>
                 <li>3. Если вопрос вызывает ступор — первое что пришло в голову обычно самое точное.</li>
@@ -573,16 +573,16 @@ export default function Onboarding() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <button onClick={handleStart} className="flex-1 sm:flex-none px-6 sm:px-8 py-3.5 sm:py-4 bg-brand-text hover:bg-black text-white rounded-xl font-bold text-base sm:text-lg transition flex items-center justify-center gap-2 sm:gap-3 cursor-pointer">
+            <button onClick={handleStart} className="flex-1 sm:flex-none px-6 sm:px-8 py-3.5 sm:py-4 bg-brand-accent hover:bg-brand-accent-hover text-white rounded-2xl font-bold text-base sm:text-lg transition flex items-center justify-center gap-2 sm:gap-3 cursor-pointer">
               Начать распаковку <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
             <button
               onClick={handleDemoFill}
               disabled={loading}
-              className="flex-1 sm:flex-none px-5 sm:px-6 py-3.5 sm:py-4 border-2 border-dashed border-indigo-300 text-indigo-600 hover:bg-indigo-50 rounded-xl font-semibold text-sm sm:text-base transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="flex-1 sm:flex-none px-5 sm:px-6 py-3.5 sm:py-4 border-2 border-dashed border-brand-border-soft text-brand-muted hover:bg-brand-soft rounded-2xl font-semibold text-sm sm:text-base transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {loading ? (
-                <><span className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" /> Заполняю...</>
+                <><span className="w-4 h-4 border-2 border-brand-muted border-t-transparent rounded-full animate-spin" /> Заполняю...</>
               ) : (
                 <><Sparkles className="w-4 h-4" /> Демо-режим</>
               )}
@@ -609,8 +609,8 @@ export default function Onboarding() {
             </span>
             <span className="text-brand-text-secondary">{step + 1} / {questions.length}</span>
           </div>
-          <div className="w-full bg-gray-100 rounded-full h-1 sm:h-1.5 overflow-hidden">
-            <motion.div className="bg-indigo-600 h-full" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.4 }} />
+          <div className="w-full bg-brand-soft rounded-full h-1 sm:h-1.5 overflow-hidden">
+            <motion.div className="bg-brand-accent h-full" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.4 }} />
           </div>
         </div>
       </div>
@@ -620,7 +620,7 @@ export default function Onboarding() {
         <AnimatePresence mode="wait">
           <motion.div key={step} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.3 }}>
 
-            <h2 className="text-xl sm:text-2xl md:text-4xl font-extrabold text-brand-text mb-3 sm:mb-4 leading-tight">
+            <h2 className="text-xl sm:text-2xl md:text-4xl font-bold text-brand-text mb-3 sm:mb-4 leading-tight">
               {q.title}
             </h2>
             {q.subtitle && <p className="text-sm sm:text-lg text-brand-text-secondary mb-6 sm:mb-10">{q.subtitle}</p>}
@@ -634,13 +634,13 @@ export default function Onboarding() {
                     <textarea
                       value={answers[q.key] || ''} onChange={e => setAnswers({...answers, [q.key]: e.target.value})}
                       placeholder={q.placeholder} rows={3}
-                      className="w-full p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-sm sm:text-lg resize-none"
+                      className="w-full p-3.5 sm:p-5 rounded-2xl border-2 border-brand-border focus:border-brand-accent outline-none text-sm sm:text-lg resize-none"
                     />
                   ) : (
                     <input
                       type="text" value={answers[q.key] || ''} onChange={e => setAnswers({...answers, [q.key]: e.target.value})}
                       placeholder={q.placeholder}
-                      className="w-full p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-sm sm:text-lg"
+                      className="w-full p-3.5 sm:p-5 rounded-2xl border-2 border-brand-border focus:border-brand-accent outline-none text-sm sm:text-lg"
                     />
                   )}
                 </div>
@@ -657,9 +657,9 @@ export default function Onboarding() {
                       <button
                         key={opt} onClick={() => isMulti ? toggleArrayItem(q.key, opt, q.maxChoice) : setAnswers({...answers, [q.key]: opt})}
                         className={`text-left p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition font-medium cursor-pointer flex items-start gap-2.5 sm:gap-3 text-sm sm:text-base
-                          ${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                          ${isSelected ? 'border-brand-accent bg-brand-soft text-brand-text' : 'border-brand-border bg-brand-card hover:border-brand-accent/40'}`}
                       >
-                        <div className={`w-4 h-4 sm:w-5 sm:h-5 mt-0.5 rounded flex items-center justify-center shrink-0 border ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
+                        <div className={`w-4 h-4 sm:w-5 sm:h-5 mt-0.5 rounded flex items-center justify-center shrink-0 border ${isSelected ? 'bg-brand-accent border-brand-accent' : 'border-brand-border'}`}>
                           {isSelected && <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />}
                         </div>
                         {opt}
@@ -675,7 +675,7 @@ export default function Onboarding() {
                   <textarea
                     value={answers[q.textKey] || ''} onChange={e => setAnswers({...answers, [q.textKey]: e.target.value})}
                     placeholder={q.textPlaceholder} rows={3}
-                    className="w-full p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-sm sm:text-lg resize-none"
+                    className="w-full p-3.5 sm:p-5 rounded-2xl border-2 border-brand-border focus:border-brand-accent outline-none text-sm sm:text-lg resize-none"
                   />
                 </div>
               )}
@@ -695,9 +695,9 @@ export default function Onboarding() {
                       return (
                         <button key={opt} onClick={() => isMulti ? toggleArrayItem(tgtKey, opt) : setAnswers({...answers, [tgtKey]: opt})}
                           className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 font-medium transition cursor-pointer text-left flex items-start gap-2.5 sm:gap-3 text-sm sm:text-base
-                            ${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-gray-200 hover:bg-gray-50'}`}
+                            ${isSelected ? 'border-brand-accent bg-brand-soft text-brand-text' : 'border-brand-border hover:bg-brand-bg'}`}
                         >
-                          <div className={`w-4 h-4 sm:w-5 sm:h-5 mt-0.5 rounded-full flex items-center justify-center shrink-0 border ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
+                          <div className={`w-4 h-4 sm:w-5 sm:h-5 mt-0.5 rounded-full flex items-center justify-center shrink-0 border ${isSelected ? 'bg-brand-accent border-brand-accent' : 'border-brand-border'}`}>
                             {isSelected && <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-white rounded-full" />}
                           </div>
                           {opt}
@@ -714,14 +714,14 @@ export default function Onboarding() {
                   {q.sliders.map(slider => (
                     <div key={slider.key}>
                       <div className="flex justify-between text-xs sm:text-sm font-bold text-gray-400 mb-3 sm:mb-4 px-1 sm:px-2 uppercase tracking-wide">
-                        <span className={answers[slider.key] < 50 ? 'text-indigo-600' : ''}>{slider.left}</span>
-                        <span className={answers[slider.key] > 50 ? 'text-indigo-600' : ''}>{slider.right}</span>
+                        <span className={answers[slider.key] < 50 ? 'text-brand-accent' : ''}>{slider.left}</span>
+                        <span className={answers[slider.key] > 50 ? 'text-brand-accent' : ''}>{slider.right}</span>
                       </div>
                       <input
                         type="range" min="0" max="100"
                         value={answers[slider.key] || 50}
                         onChange={e => setAnswers({...answers, [slider.key]: Number(e.target.value)})}
-                        className="w-full accent-indigo-600 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        className="w-full accent-brand-accent h-2 bg-brand-border rounded-lg appearance-none cursor-pointer"
                       />
                     </div>
                   ))}
@@ -746,8 +746,8 @@ export default function Onboarding() {
 
           <button
             onClick={handleNext} disabled={!canProceed() || loading}
-            className={`px-5 sm:px-8 py-2.5 sm:py-3 rounded-full font-bold flex items-center gap-1.5 sm:gap-2 transition shadow-lg cursor-pointer text-sm sm:text-base
-              ${canProceed() && !loading ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200' : 'bg-gray-100 text-gray-400 shadow-none'}`}
+            className={`px-5 sm:px-8 py-2.5 sm:py-3 rounded-2xl font-bold flex items-center gap-1.5 sm:gap-2 transition shadow-lg cursor-pointer text-sm sm:text-base
+              ${canProceed() && !loading ? 'bg-brand-accent hover:bg-brand-accent-hover text-white shadow-brand-accent/20' : 'bg-brand-soft text-brand-muted shadow-none'}`}
           >
             {loading ? 'Сохраняем...' : step === questions.length - 1 ? 'Завершить 🎉' : <>Далее <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5"/></>}
           </button>

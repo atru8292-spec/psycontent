@@ -1,6 +1,4 @@
 'use client'
-import ModelPicker from '@/components/ModelPicker'
-import { type ModelId, DEFAULT_MODEL } from '@/lib/openrouter'
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -24,8 +22,8 @@ import {
 
 // ============ УБРАНА КАРУСЕЛЬ ============
 const formats = [
-  { id: 'post', label: 'Пост', icon: AlignLeft, desc: 'Текстовый пост для Instagram/Telegram', color: 'text-purple-500', bg: 'bg-purple-50', border: 'border-purple-200' },
-  { id: 'stories', label: 'Stories', icon: FileText, desc: 'Серия из 4–5 историй', color: 'text-orange-500', bg: 'bg-orange-50', border: 'border-orange-200' },
+  { id: 'post', label: 'Пост', icon: AlignLeft, desc: 'Текстовый пост для Instagram/Telegram', color: 'text-brand-accent', bg: 'bg-brand-soft', border: 'border-brand-accent' },
+  { id: 'stories', label: 'Stories', icon: FileText, desc: 'Серия из 4–5 историй', color: 'text-brand-accent', bg: 'bg-brand-soft', border: 'border-brand-accent' },
 ]
 
 const defaultPillars = [
@@ -40,8 +38,6 @@ function PostGeneratorContent() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL)
-
   const [selectedFormat, setSelectedFormat] = useState('post')
   const [selectedPillar, setSelectedPillar] = useState<string | null>(null)
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null)
@@ -92,13 +88,6 @@ function PostGeneratorContent() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
 
-      // Загружаем предпочитаемую модель
-      const { data: settingsData } = await supabase
-        .from('user_settings')
-        .select('preferred_model')
-        .eq('user_id', user.id)
-        .maybeSingle()
-      if (settingsData?.preferred_model) setSelectedModel(settingsData.preferred_model as ModelId)
       setUser(user)
 
       const { data } = await supabase
@@ -132,7 +121,6 @@ function PostGeneratorContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: selectedModel,
           userId: user.id,
           topic: useCustom ? undefined : selectedTopic,
           customTopic: useCustom ? customTopic : undefined,
@@ -191,15 +179,14 @@ function PostGeneratorContent() {
             Назад в кабинет
           </button>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-brand-accent" />
-            <span className="font-bold text-brand-text">PsyContent</span>
+            <Image src="/logo/out_wordmark.svg" alt="PsyCont" width={110} height={28} className="h-6 w-auto" />
           </div>
         </div>
       </nav>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 sm:mb-10">
-          <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-600 px-4 py-2 rounded-full text-sm font-medium mb-4">
+          <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-4 py-2 rounded-full text-sm font-medium mb-4">
             <PenTool className="w-4 h-4" />
             Генератор постов
           </div>
@@ -215,20 +202,20 @@ function PostGeneratorContent() {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 bg-green-50 border border-green-200 rounded-2xl"
+            className="mb-6 p-4 bg-brand-soft border border-brand-border-soft rounded-2xl"
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
-                  <CalendarDays className="w-5 h-5 text-green-600" />
+                <div className="w-10 h-10 rounded-xl bg-brand-soft flex items-center justify-center shrink-0">
+                  <CalendarDays className="w-5 h-5 text-brand-sage" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-green-800 mb-1">
+                  <p className="text-sm font-semibold text-brand-text mb-1">
                     Тема из контент-плана
                   </p>
-                  <p className="text-sm text-green-700">{customTopic}</p>
+                  <p className="text-sm text-brand-text">{customTopic}</p>
                   {planPillar && (
-                    <span className="inline-block mt-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                    <span className="inline-block mt-2 px-2 py-0.5 bg-brand-soft text-brand-accent text-xs font-medium rounded-full">
                       {planPillar}
                     </span>
                   )}
@@ -236,7 +223,7 @@ function PostGeneratorContent() {
               </div>
               <button
                 onClick={clearFromPlan}
-                className="text-sm text-green-600 hover:text-green-800 transition cursor-pointer"
+                className="text-sm text-brand-sage hover:text-brand-text transition cursor-pointer"
               >
                 Изменить тему
               </button>
@@ -274,7 +261,7 @@ function PostGeneratorContent() {
               <div className="mt-4 pt-4 border-t border-brand-border">
                 <button
                   onClick={() => router.push('/dashboard/carousel-generator')}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 transition cursor-pointer"
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-brand-soft border border-brand-border-soft text-brand-text hover:bg-brand-soft/80 transition cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">🎠 Нужна карусель?</span>
@@ -356,12 +343,6 @@ function PostGeneratorContent() {
             )}
 
             {/* Кнопка генерации */}
-              {/* Выбор модели AI */}
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs text-brand-text-secondary">AI-модель:</span>
-                <ModelPicker value={selectedModel} onChange={setSelectedModel} />
-              </div>
-
             <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -416,7 +397,7 @@ function PostGeneratorContent() {
                   key="error"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="p-6 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-sm"
+                  className="p-6 bg-brand-soft border border-brand-border-soft rounded-2xl text-brand-text text-sm"
                 >
                   {error}
                 </motion.div>
@@ -431,10 +412,10 @@ function PostGeneratorContent() {
                 >
                   <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-brand-border bg-brand-bg">
                     <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-green-400" />
+                      <span className="w-2 h-2 rounded-full bg-brand-sage" />
                       <span className="text-sm font-semibold text-brand-text">Готово!</span>
                       {saved && (
-                        <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                        <span className="flex items-center gap-1 text-xs text-brand-accent bg-brand-soft px-2 py-0.5 rounded-full">
                           <CheckCircle className="w-3 h-3" />
                           Сохранено
                         </span>

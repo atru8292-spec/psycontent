@@ -11,12 +11,12 @@ import {
 } from 'lucide-react'
 
 const blocks = [
-  { id: 'who', title: 'Кто вы', icon: User, color: 'text-purple-600 bg-purple-100' },
-  { id: 'voice', title: 'Ваш голос', icon: MessageCircle, color: 'text-orange-600 bg-orange-100' },
-  { id: 'client', title: 'Идеальный клиент', icon: Heart, color: 'text-pink-600 bg-pink-100' },
-  { id: 'current', title: 'Где вы сейчас', icon: MapPin, color: 'text-blue-600 bg-blue-100' },
-  { id: 'goal', title: 'Куда хотите', icon: Flag, color: 'text-green-600 bg-green-100' },
-  { id: 'final', title: 'Финальный штрих', icon: Star, color: 'text-yellow-600 bg-yellow-100' },
+  { id: 'who', title: 'Кто вы', icon: User, color: 'text-brand-accent bg-brand-soft' },
+  { id: 'voice', title: 'Ваш голос', icon: MessageCircle, color: 'text-brand-accent bg-brand-soft' },
+  { id: 'client', title: 'Идеальный клиент', icon: Heart, color: 'text-brand-accent bg-brand-soft' },
+  { id: 'current', title: 'Где вы сейчас', icon: MapPin, color: 'text-brand-accent bg-brand-soft' },
+  { id: 'goal', title: 'Куда хотите', icon: Flag, color: 'text-brand-sage bg-brand-soft' },
+  { id: 'final', title: 'Финальный штрих', icon: Star, color: 'text-brand-sage bg-brand-soft' },
 ]
 
 const questions = [
@@ -484,17 +484,17 @@ export default function EditProfile() {
           animate={{ scale: 1, opacity: 1 }} 
           className="bg-white max-w-lg w-full rounded-2xl p-8 border border-brand-border text-center shadow-xl"
         >
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-10 h-10 text-green-600" />
+          <div className="w-20 h-20 bg-brand-soft rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10 text-brand-sage" />
           </div>
           <h1 className="text-3xl font-bold text-brand-text mb-4">✅ Профиль обновлён!</h1>
           <p className="text-brand-text-secondary mb-6 leading-relaxed">
             Изменения сохранены. Рекомендуем перегенерировать паспорт бренда, чтобы он отражал новые данные.
           </p>
           
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-            <p className="text-sm text-amber-800 text-left">
+          <div className="bg-brand-soft border border-brand-border-soft rounded-xl p-4 mb-6 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-brand-sage shrink-0 mt-0.5" />
+            <p className="text-sm text-brand-text text-left">
               Старый паспорт бренда был создан на основе предыдущих данных. 
               Нажмите «Перегенерировать» на странице паспорта.
             </p>
@@ -546,7 +546,7 @@ export default function EditProfile() {
           </div>
           <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
             <motion.div 
-              className="bg-indigo-600 h-full" 
+              className="bg-brand-accent h-full" 
               initial={{ width: 0 }} 
               animate={{ width: `${progress}%` }} 
               transition={{ duration: 0.4 }} 
@@ -565,7 +565,7 @@ export default function EditProfile() {
             exit={{ opacity: 0, y: -15 }} 
             transition={{ duration: 0.3 }}
           >
-            <div className="inline-flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-sm font-medium mb-4">
+            <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-3 py-1 rounded-full text-sm font-medium mb-4">
               ✏️ Режим редактирования
             </div>
 
@@ -585,7 +585,7 @@ export default function EditProfile() {
                       onChange={e => setAnswers({ ...answers, [q.key]: e.target.value })}
                       placeholder={q.placeholder} 
                       rows={3}
-                      className="w-full p-5 rounded-2xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-lg resize-none"
+                      className="w-full p-5 rounded-2xl border-2 border-gray-200 focus:border-brand-accent outline-none text-lg resize-none"
                     />
                   ) : (
                     <input
@@ -593,7 +593,7 @@ export default function EditProfile() {
                       value={answers[q.key] || ''} 
                       onChange={e => setAnswers({ ...answers, [q.key]: e.target.value })}
                       placeholder={q.placeholder}
-                      className="w-full p-5 rounded-2xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-lg"
+                      className="w-full p-5 rounded-2xl border-2 border-gray-200 focus:border-brand-accent outline-none text-lg"
                     />
                   )}
                 </div>
@@ -610,9 +610,9 @@ export default function EditProfile() {
                       <button
                         key={opt}
                         onClick={() => isMulti ? toggleArrayItem(q.key, opt, (q as any).maxChoice) : setAnswers({ ...answers, [q.key]: opt })}
-                        className={`text-left p-4 rounded-xl border-2 transition font-medium cursor-pointer flex items-start gap-3 ${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                        className={`text-left p-4 rounded-xl border-2 transition font-medium cursor-pointer flex items-start gap-3 ${isSelected ? 'border-brand-accent bg-brand-soft text-brand-text' : 'border-gray-200 bg-white hover:border-brand-border'}`}
                       >
-                        <div className={`w-5 h-5 mt-0.5 rounded flex items-center justify-center shrink-0 border ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
+                        <div className={`w-5 h-5 mt-0.5 rounded flex items-center justify-center shrink-0 border ${isSelected ? 'bg-brand-accent border-brand-accent' : 'border-gray-200'}`}>
                           {isSelected && <CheckCircle className="w-4 h-4 text-white" />}
                         </div>
                         {opt}
@@ -639,7 +639,7 @@ export default function EditProfile() {
                     onChange={e => setAnswers({ ...answers, [(q as any).textKey]: e.target.value })}
                     placeholder={(q as any).textPlaceholder} 
                     rows={3}
-                    className="w-full p-5 rounded-2xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-lg resize-none"
+                    className="w-full p-5 rounded-2xl border-2 border-gray-200 focus:border-brand-accent outline-none text-lg resize-none"
                   />
                 </div>
               )}
@@ -665,9 +665,9 @@ export default function EditProfile() {
                         <button
                           key={opt}
                           onClick={() => isMulti ? toggleArrayItem(tgtKey, opt) : setAnswers({ ...answers, [tgtKey]: opt })}
-                          className={`p-4 rounded-xl border-2 font-medium transition cursor-pointer text-left flex items-start gap-3 ${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-gray-200 hover:bg-gray-50'}`}
+                          className={`p-4 rounded-xl border-2 font-medium transition cursor-pointer text-left flex items-start gap-3 ${isSelected ? 'border-brand-accent bg-brand-soft text-brand-text' : 'border-gray-200 hover:bg-brand-bg'}`}
                         >
-                          <div className={`w-5 h-5 mt-0.5 rounded-full flex items-center justify-center shrink-0 border ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
+                          <div className={`w-5 h-5 mt-0.5 rounded-full flex items-center justify-center shrink-0 border ${isSelected ? 'bg-brand-accent border-brand-accent' : 'border-gray-200'}`}>
                             {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
                           </div>
                           {opt}
@@ -684,14 +684,14 @@ export default function EditProfile() {
                   {(q as any).sliders.map((slider: any) => (
                     <div key={slider.key}>
                       <div className="flex justify-between text-sm font-bold text-gray-400 mb-4 px-2 uppercase tracking-wide">
-                        <span className={answers[slider.key] < 50 ? 'text-indigo-600' : ''}>{slider.left}</span>
-                        <span className={answers[slider.key] > 50 ? 'text-indigo-600' : ''}>{slider.right}</span>
+                        <span className={answers[slider.key] < 50 ? 'text-brand-accent' : ''}>{slider.left}</span>
+                        <span className={answers[slider.key] > 50 ? 'text-brand-accent' : ''}>{slider.right}</span>
                       </div>
                       <input
                         type="range" min="0" max="100"
                         value={answers[slider.key] || 50}
                         onChange={e => setAnswers({ ...answers, [slider.key]: Number(e.target.value) })}
-                        className="w-full accent-indigo-600 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        className="w-full accent-brand-accent h-2 bg-brand-border rounded-lg appearance-none cursor-pointer"
                       />
                     </div>
                   ))}
@@ -718,7 +718,7 @@ export default function EditProfile() {
             onClick={handleNext} 
             disabled={!canProceed() || saving}
             className={`px-8 py-3 rounded-full font-bold flex items-center gap-2 transition shadow-lg cursor-pointer
-              ${canProceed() && !saving ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200' : 'bg-gray-100 text-gray-400 shadow-none'}`}
+              ${canProceed() && !saving ? 'bg-brand-accent hover:bg-brand-accent-hover text-white shadow-brand-accent/20' : 'bg-gray-100 text-gray-400 shadow-none'}`}
           >
             {saving ? (
               <>

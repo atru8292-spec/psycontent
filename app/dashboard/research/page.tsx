@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import NextImage from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Sparkles, ArrowLeft, Loader2, Search,
+  ArrowLeft, Loader2, Search,
   AlignLeft, Image, Film, FileText,
   TrendingUp, Zap, PenTool, RefreshCw,
   Globe, ChevronRight, BookOpen, Quote
@@ -24,24 +25,24 @@ type Topic = {
 }
 
 const FORMAT_META: Record<string, { icon: any; label: string; color: string; bg: string }> = {
-  post:     { icon: AlignLeft, label: 'Пост',     color: 'text-purple-600', bg: 'bg-purple-100' },
-  carousel: { icon: Image,     label: 'Карусель',  color: 'text-blue-600',   bg: 'bg-blue-100'   },
-  reels:    { icon: Film,      label: 'Рилс',      color: 'text-pink-600',   bg: 'bg-pink-100'   },
-  stories:  { icon: FileText,  label: 'Stories',   color: 'text-orange-600', bg: 'bg-orange-100' },
+  post:     { icon: AlignLeft, label: 'Пост',     color: 'text-brand-accent', bg: 'bg-brand-soft' },
+  carousel: { icon: Image,     label: 'Карусель',  color: 'text-brand-accent', bg: 'bg-brand-soft' },
+  reels:    { icon: Film,      label: 'Рилс',      color: 'text-brand-sage',  bg: 'bg-brand-soft' },
+  stories:  { icon: FileText,  label: 'Stories',   color: 'text-brand-muted', bg: 'bg-brand-soft' },
 }
 
 const PILLAR_COLORS: Record<string, string> = {
-  'Психообразование': 'bg-indigo-100 text-indigo-700',
-  'Личное':           'bg-rose-100 text-rose-700',
-  'Практика':         'bg-green-100 text-green-700',
-  'Истории':          'bg-amber-100 text-amber-700',
-  'Позиционирование': 'bg-violet-100 text-violet-700',
+  'Психообразование': 'bg-brand-soft text-brand-accent',
+  'Личное':           'bg-brand-soft text-brand-text',
+  'Практика':         'bg-brand-soft text-brand-sage',
+  'Истории':          'bg-brand-soft text-brand-muted',
+  'Позиционирование': 'bg-brand-soft text-brand-accent',
 }
 
 const BLOCK_META: Record<string, { label: string, icon: any, color: string }> = {
-  'trend': { label: 'Тренды 2025', icon: TrendingUp, color: 'text-orange-600' },
-  'science': { label: 'Исследования', icon: BookOpen, color: 'text-blue-600' },
-  'quote': { label: 'Цитаты', icon: Quote, color: 'text-emerald-600' }
+  'trend': { label: 'Тренды 2025', icon: TrendingUp, color: 'text-brand-sage' },
+  'science': { label: 'Исследования', icon: BookOpen, color: 'text-brand-accent' },
+  'quote': { label: 'Цитаты', icon: Quote, color: 'text-brand-text' }
 }
 
 function TopicCard({ topic, index, onGenerate }: { topic: Topic; index: number; onGenerate: (t: Topic) => void }) {
@@ -226,8 +227,7 @@ export default function ResearchTopics() {
               </button>
             )}
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-brand-accent" />
-              <span className="font-bold text-brand-text">PsyContent</span>
+              <NextImage src="/logo/out_wordmark.svg" alt="PsyCont" width={110} height={28} className="h-6 w-auto" />
             </div>
           </div>
         </div>
@@ -236,7 +236,7 @@ export default function ResearchTopics() {
       <div className="max-w-7xl mx-auto px-6 py-10">
         {/* Title */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-5 sm:mb-8">
-          <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
+          <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-4 py-2 rounded-full text-sm font-medium mb-4">
             <TrendingUp className="w-4 h-4" />
             Исследовательский модуль
           </div>
@@ -264,7 +264,7 @@ export default function ResearchTopics() {
                 { icon: Quote, label: 'Цитаты', desc: 'Перлз, Фрейд, Бек...' },
               ].map(({ icon: Icon, label, desc }) => (
                 <div key={label} className="bg-white rounded-2xl border border-brand-border p-4 text-center shadow-sm">
-                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-2 text-blue-600">
+                  <div className="w-10 h-10 bg-brand-soft rounded-xl flex items-center justify-center mx-auto mb-2 text-brand-accent">
                     <Icon className="w-5 h-5" />
                   </div>
                   <p className="font-bold text-brand-text text-[13px]">{label}</p>
@@ -285,7 +285,7 @@ export default function ResearchTopics() {
               Perplexity проанализирует данные за 2025-2026 год, найдёт исследования и актуальные тренды.
             </p>
             {error && (
-              <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>
+              <div className="mt-6 p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-sm">{error}</div>
             )}
           </motion.div>
         )}

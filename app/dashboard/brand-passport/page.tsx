@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion } from 'framer-motion'
@@ -107,17 +108,17 @@ function renderContent(text: string) {
 }
 
 const sectionMeta: Record<string, { icon: any; color: string; bg: string; accent: string }> = {
-  '1':  { icon: Heart,         color: 'text-red-500',        bg: 'bg-red-50',          accent: 'border-red-200' },
-  '2':  { icon: Target,        color: 'text-purple-500',     bg: 'bg-purple-50',       accent: 'border-purple-200' },
-  '3':  { icon: Layers,        color: 'text-indigo-500',     bg: 'bg-indigo-50',       accent: 'border-indigo-200' },
-  '4':  { icon: Volume2,       color: 'text-blue-500',       bg: 'bg-blue-50',         accent: 'border-blue-200' },
-  '5':  { icon: Users,         color: 'text-green-500',      bg: 'bg-green-50',        accent: 'border-green-200' },
-  '6':  { icon: Star,          color: 'text-yellow-500',     bg: 'bg-yellow-50',       accent: 'border-yellow-200' },
-  '7':  { icon: Instagram,     color: 'text-pink-500',       bg: 'bg-pink-50',         accent: 'border-pink-200' },
-  '8':  { icon: Send,          color: 'text-cyan-500',       bg: 'bg-cyan-50',         accent: 'border-cyan-200' },
-  '9':  { icon: LayoutGrid,    color: 'text-orange-500',     bg: 'bg-orange-50',       accent: 'border-orange-200' },
-  '10': { icon: MessageSquare, color: 'text-teal-500',       bg: 'bg-teal-50',         accent: 'border-teal-200' },
-  '11': { icon: AlertTriangle, color: 'text-amber-500',      bg: 'bg-amber-50',        accent: 'border-amber-200' },
+  '1':  { icon: Heart,         color: 'text-brand-accent',   bg: 'bg-brand-soft',      accent: 'border-brand-border-soft' },
+  '2':  { icon: Target,        color: 'text-brand-accent',   bg: 'bg-brand-soft',      accent: 'border-brand-border-soft' },
+  '3':  { icon: Layers,        color: 'text-brand-accent',   bg: 'bg-brand-soft',      accent: 'border-brand-border-soft' },
+  '4':  { icon: Volume2,       color: 'text-brand-accent',   bg: 'bg-brand-soft',      accent: 'border-brand-border-soft' },
+  '5':  { icon: Users,         color: 'text-brand-sage',     bg: 'bg-brand-soft',      accent: 'border-brand-border-soft' },
+  '6':  { icon: Star,          color: 'text-brand-sage',     bg: 'bg-brand-soft',      accent: 'border-brand-border-soft' },
+  '7':  { icon: Instagram,     color: 'text-brand-accent',   bg: 'bg-brand-soft',      accent: 'border-brand-border-soft' },
+  '8':  { icon: Send,          color: 'text-brand-muted',    bg: 'bg-brand-soft',      accent: 'border-brand-border-soft' },
+  '9':  { icon: LayoutGrid,    color: 'text-brand-sage',     bg: 'bg-brand-soft',      accent: 'border-brand-border-soft' },
+  '10': { icon: MessageSquare, color: 'text-brand-accent',   bg: 'bg-brand-soft',      accent: 'border-brand-border-soft' },
+  '11': { icon: AlertTriangle, color: 'text-brand-muted',    bg: 'bg-brand-soft',      accent: 'border-brand-border-soft' },
   '12': { icon: PenTool,       color: 'text-brand-accent',   bg: 'bg-brand-highlight', accent: 'border-brand-accent/30' },
 }
 
@@ -313,8 +314,7 @@ export default function BrandPassport() {
             Назад в кабинет
           </button>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-brand-accent" />
-            <span className="font-bold text-brand-text text-sm sm:text-base">PsyContent</span>
+            <Image src="/logo/out_wordmark.svg" alt="PsyCont" width={110} height={28} className="h-6 w-auto" />
           </div>
         </div>
       </nav>
@@ -325,7 +325,7 @@ export default function BrandPassport() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-8 sm:mb-10"
         >
-          <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-600 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium mb-3 sm:mb-4">
+          <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium mb-3 sm:mb-4">
             <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Паспорт бренда
           </div>
@@ -350,14 +350,14 @@ export default function BrandPassport() {
               onClick={handleGenerate}
               className="inline-flex items-center gap-2.5 sm:gap-3 bg-brand-accent text-white px-8 sm:px-10 py-4 sm:py-5 rounded-xl sm:rounded-2xl text-base sm:text-lg font-semibold hover:bg-brand-accent-hover transition shadow-lg shadow-brand-accent/25 cursor-pointer"
             >
-              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
+              <Target className="w-5 h-5 sm:w-6 sm:h-6" />
               Сгенерировать паспорт бренда
             </button>
             <p className="text-xs sm:text-sm text-brand-text-secondary mt-3 sm:mt-4">
               Генерация идёт поэтапно в 5 шагов
             </p>
             {error && (
-              <div className="mt-4 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs sm:text-sm">
+              <div className="mt-4 p-3 sm:p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-xs sm:text-sm">
                 {error}
               </div>
             )}
@@ -378,7 +378,7 @@ export default function BrandPassport() {
                 <div key={step.chunk} className="flex items-center gap-3">
                   <div className={[
                     'w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold transition-all duration-300',
-                    generatingChunk > step.chunk ? 'bg-green-500 text-white' : '',
+                    generatingChunk > step.chunk ? 'bg-brand-sage text-white' : '',
                     generatingChunk === step.chunk ? 'bg-brand-accent text-white' : '',
                     generatingChunk < step.chunk ? 'bg-gray-100 text-gray-400' : '',
                   ].join(' ')}>
@@ -387,7 +387,7 @@ export default function BrandPassport() {
                   <span className={[
                     'text-sm transition-all duration-300',
                     generatingChunk === step.chunk ? 'text-brand-text font-semibold' : '',
-                    generatingChunk > step.chunk ? 'text-green-600' : 'text-brand-text-secondary',
+                    generatingChunk > step.chunk ? 'text-brand-sage' : 'text-brand-text-secondary',
                   ].join(' ')}>
                     {step.label}
                   </span>
@@ -404,7 +404,7 @@ export default function BrandPassport() {
         {passport && !loading && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             {error && (
-              <div className="mb-4 p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-xs sm:text-sm">
+              <div className="mb-4 p-3 sm:p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-xs sm:text-sm">
                 {error}
               </div>
             )}
@@ -427,7 +427,7 @@ export default function BrandPassport() {
                   className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-2.5 sm:px-3 py-2 rounded-lg hover:bg-brand-highlight"
                 >
                   {copied
-                    ? <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500" />
+                    ? <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-sage" />
                     : <Copy  className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   }
                   {copied ? 'Скопировано!' : 'Копировать'}

@@ -1,18 +1,81 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-bg: #FAF9FE;
-  --color-brand-accent: #7C5CFC;
-  --color-brand-accent-hover: #6A4CE0;
-  --color-brand-text: #1E1E2E;
-  --color-brand-text-secondary: #6B7280;
-  --color-brand-border: #E5E7EB;
+  /* ── Бренд-палитра PsyCont ── */
+  --color-brand-bg: #F7F3EC;
   --color-brand-card: #FFFFFF;
-  --color-brand-highlight: #F3F0FF;
+  --color-brand-soft: #E7E2F2;
+  --color-brand-soft-2: #EFEBF7;
+
+  --color-brand-text: #2E2A45;
+  --color-brand-muted: #6E6A7C;
+
+  /* Аметист — главный акцент */
+  --color-brand-accent: #5B4FA0;
+  --color-brand-accent-hover: #4C4189;
+
+  /* Шалфей — детали, иконки */
+  --color-brand-sage: #8F9D68;
+
+  /* Рамки */
+  --color-brand-border: #E4DED2;
+  --color-brand-border-soft: #D8D0E4;
+
+  /* Алиасы для обратной совместимости (используются в разметке) */
+  --color-brand-text-secondary: var(--color-brand-muted);
+  --color-brand-highlight: var(--color-brand-soft);
 }
 
+/* ── Базовые стили ── */
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-onest), system-ui, sans-serif;
   background-color: var(--color-brand-bg);
   color: var(--color-brand-text);
+}
+
+/* ── Система компонентов ── */
+@layer components {
+
+  /* Главная кнопка: аметист */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-brand-accent text-white font-semibold
+           px-6 py-3 rounded-2xl
+           hover:bg-brand-accent-hover
+           active:scale-[0.98]
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2
+           transition-all cursor-pointer;
+  }
+
+  /* Второстепенная кнопка: контур аметиста */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-transparent text-brand-accent font-semibold
+           border border-brand-accent
+           px-6 py-3 rounded-2xl
+           hover:bg-brand-soft
+           active:scale-[0.98]
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2
+           transition-all cursor-pointer;
+  }
+
+  /* Карточка */
+  .card {
+    @apply bg-brand-card border border-brand-border rounded-3xl p-6;
+  }
+
+  /* Мягкая лавандовая плашка (подсказки, баннеры) */
+  .soft-panel {
+    @apply bg-brand-soft text-brand-text rounded-3xl p-6;
+  }
+
+  /* Поле ввода */
+  .input {
+    @apply w-full px-4 py-3 rounded-2xl border border-brand-border bg-brand-card text-brand-text
+           text-base
+           focus:outline-none focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/20
+           placeholder:text-brand-muted
+           transition;
+  }
+
 }
