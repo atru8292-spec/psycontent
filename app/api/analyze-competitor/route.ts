@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { canConsume, commitConsume, recordFailure, recordRefusal, type Decision } from '@/lib/energy'
+import { canConsume, commitConsume, recordFailure, recordRefusal, logAiUsage, type Decision } from '@/lib/energy'
 import { anonymize, deanonymize, safeRestoredPrefix } from '@/lib/anonymize'
 
 export const maxDuration = 60
@@ -85,6 +85,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model,
         stream: true,
+        stream_options: { include_usage: true },
         messages: [
           { role: 'system', content: SYSTEM_BASE },
           { role: 'user', content: maskedUserPrompt }
@@ -109,6 +110,7 @@ export async function POST(request: NextRequest) {
         const decoder = new TextDecoder()
         let maskedStep = ''
         let sentLen = 0
+        let usage: any = undefined
 
         try {
           while (true) {
@@ -125,6 +127,7 @@ export async function POST(request: NextRequest) {
 
               try {
                 const parsed = JSON.parse(data)
+                if (parsed.usage) usage = parsed.usage
                 const content = parsed.choices?.[0]?.delta?.content || ''
                 if (content) {
                   maskedStep += content
@@ -145,6 +148,9 @@ export async function POST(request: NextRequest) {
           stepText = deanonymize(maskedStep, anonMap)
           const tail = stepText.slice(sentLen)
           if (tail) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: tail })}\n\n`))
+
+          // запись реального расхода токенов LLM-шага
+          await logAiUsage(user.id, 'competitor_deep', 'gpt-5.4', usage)
 
           // успех шага 1 = анализ отработал → списываем энергию один раз за весь анализ
           if (stepNum === 1 && energyDecision) {

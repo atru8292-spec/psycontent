@@ -282,7 +282,7 @@ ${authorsList}
 
 Block строго: "trend" (12 штук), "science" (10 штук), "quote" (8 штук)`
 
-    const result = await generateWithWebSearch(prompt)
+    const result = await generateWithWebSearch(prompt, { userId, operation: 'research_topics' })
 
     let topics: any[] = []
     try {

@@ -187,7 +187,7 @@ ${getStyleInstruction(videoStyle)}
     const model = reqBody.model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
 
-    const script = await generateWithAI(SYSTEM_PROMPT, prompt, model)
+    const script = await generateWithAI(SYSTEM_PROMPT, prompt, { userId, operation: 'generate_reels' })
 
     try {
       await supabase.from('generated_posts').insert({

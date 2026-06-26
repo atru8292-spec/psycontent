@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     const model = reqBody.model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
 
-    const response = await generateWithAI(SYSTEM_PROMPT, prompt, model)
+    const response = await generateWithAI(SYSTEM_PROMPT, prompt, { userId, operation: 'generate_carousel_topics' })
 
     if (!response) {
       throw new Error('AI returned empty response')

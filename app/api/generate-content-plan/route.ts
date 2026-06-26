@@ -245,7 +245,7 @@ ${profile.video_attitude === 'не снимаю' ? '• ⚠️ НЕ исполь
     const model = reqBody.model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
 
-    const result = await generateWithAI(systemPrompt, userPrompt, model)
+    const result = await generateWithAI(systemPrompt, userPrompt, { userId, operation: 'generate_content_plan' })
 
     let newDays
     try {

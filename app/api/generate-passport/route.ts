@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/auth'
 import { anonymize, deanonymize, safeRestoredPrefix } from '@/lib/anonymize'
+import { logAiUsage } from '@/lib/energy'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -295,6 +296,7 @@ ${approachGuidance}
             body: JSON.stringify({
               model: 'gpt-5.4',
               stream: true,
+              stream_options: { include_usage: true },
               temperature: 0.7,
               max_completion_tokens: 4000,
               messages: [
@@ -313,6 +315,7 @@ ${approachGuidance}
           const dec = new TextDecoder()
           let maskedFull = ''
           let sentLen = 0
+          let usage: any = undefined
 
           while (true) {
             const { done, value } = await reader.read()
@@ -323,7 +326,9 @@ ${approachGuidance}
               const json = line.slice(5).trim()
               if (json === '[DONE]') continue
               try {
-                const delta = JSON.parse(json).choices?.[0]?.delta?.content
+                const parsed = JSON.parse(json)
+                if (parsed.usage) usage = parsed.usage
+                const delta = parsed.choices?.[0]?.delta?.content
                 if (delta) {
                   maskedFull += delta
                   // отдаём восстановленный текст, придерживая недописанную заглушку
@@ -342,6 +347,9 @@ ${approachGuidance}
           const fullText = deanonymize(maskedFull, anonMap)
           const tail = fullText.slice(sentLen)
           if (tail) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta: tail })}\n\n`))
+
+          // запись реального расхода токенов
+          await logAiUsage(userId, 'generate_passport', 'gpt-5.4', usage)
 
           // Сохраняем в Supabase
           if (chunk === 1) {

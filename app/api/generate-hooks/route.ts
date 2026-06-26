@@ -208,7 +208,7 @@ ${passport ? `ПАСПОРТ БРЕНДА (кратко):\n${passport.substring(
       .maybeSingle()
     const model = reqBody.model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
-    const response = await generateWithAI(HOOKS_SYSTEM_PROMPT, userPrompt, model)
+    const response = await generateWithAI(HOOKS_SYSTEM_PROMPT, userPrompt, { userId, operation: 'generate_hooks' })
 
     // Парсим JSON
     let hooks: Array<{ type: string; hook: string; use: string; why: string }>

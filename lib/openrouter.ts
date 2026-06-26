@@ -4,6 +4,7 @@
 // — на шаге бренда/UI (Шаг 9).
 
 import { anonymize, deanonymize } from '@/lib/anonymize'
+import { logAiUsage, type OpenAIUsage } from '@/lib/energy'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 
@@ -21,7 +22,7 @@ function getOpenAIHeaders() {
   }
 }
 
-async function extractContent(response: Response) {
+async function extractResult(response: Response): Promise<{ content: string; usage?: OpenAIUsage }> {
   const rawText = await response.text()
   if (!response.ok) throw new Error(`OpenAI error ${response.status}: ${rawText}`)
 
@@ -32,15 +33,16 @@ async function extractContent(response: Response) {
     throw new Error(`OpenAI returned invalid JSON: ${rawText}`)
   }
 
+  const usage: OpenAIUsage | undefined = data?.usage
   const content = data?.choices?.[0]?.message?.content
-  if (typeof content === 'string' && content.trim()) return content.trim()
+  if (typeof content === 'string' && content.trim()) return { content: content.trim(), usage }
   if (Array.isArray(content)) {
     const joined = content.map((item: any) => {
       if (typeof item === 'string') return item
       if (typeof item?.text === 'string') return item.text
       return ''
     }).join('').trim()
-    if (joined) return joined
+    if (joined) return { content: joined, usage }
   }
   throw new Error(`Empty model response: ${rawText}`)
 }
@@ -52,7 +54,7 @@ async function callOpenAI(body: Record<string, unknown>, timeoutMs = 55000) {
     signal: AbortSignal.timeout(timeoutMs),
     body: JSON.stringify(body),
   })
-  return extractContent(response)
+  return extractResult(response)
 }
 
 // Виджет выбора модели схлопнут до одной GPT (полное удаление — Шаг 9).
@@ -70,17 +72,17 @@ export const AI_MODELS = [
 
 export type ModelId = typeof AI_MODELS[number]['id']
 
-// Основная генерация текста. Параметр model игнорируется — всегда одна модель
-// (выбор модели у пользователя убран по ТЗ).
+// Основная генерация текста. Одна модель (выбор у пользователя убран по ТЗ).
+// opts.userId/operation — чтобы записать реальный расход токенов в журнал.
 export async function generateWithAI(
   systemPrompt: string,
   userPrompt: string,
-  _model?: string
+  opts?: { userId?: string; operation?: string }
 ) {
   // Обезличиваем пользовательский текст перед отправкой в OpenAI (152-ФЗ),
   // после ответа возвращаем замены. Системный промпт — наши правила, без ПДн.
   const { masked, map } = anonymize(userPrompt)
-  const content = await callOpenAI(
+  const { content, usage } = await callOpenAI(
     {
       model: DEFAULT_MODEL,
       messages: [
@@ -92,15 +94,19 @@ export async function generateWithAI(
     },
     55000
   )
+  if (opts?.userId && opts.operation) await logAiUsage(opts.userId, opts.operation, DEFAULT_MODEL, usage)
   return deanonymize(content, map)
 }
 
 // Подбор тем. Раньше использовался веб-поиск (Perplexity через OpenRouter) — по
 // решению от 26 июня живой веб-поиск убран: GPT подбирает темы из паспорта (он
 // передаётся в userPrompt) и своих знаний. Настоящий веб-поиск добавим позже.
-export async function generateWithWebSearch(userPrompt: string) {
+export async function generateWithWebSearch(
+  userPrompt: string,
+  opts?: { userId?: string; operation?: string }
+) {
   const { masked, map } = anonymize(userPrompt)
-  const content = await callOpenAI(
+  const { content, usage } = await callOpenAI(
     {
       model: DEFAULT_MODEL,
       messages: [
@@ -115,5 +121,6 @@ export async function generateWithWebSearch(userPrompt: string) {
     },
     45000
   )
+  if (opts?.userId && opts.operation) await logAiUsage(opts.userId, opts.operation, DEFAULT_MODEL, usage)
   return deanonymize(content, map)
 }

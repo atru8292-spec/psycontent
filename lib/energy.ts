@@ -23,6 +23,12 @@ function admin(): SupabaseClient {
 // ───────────────────────────────────────────────────────────────────────────
 const USD_TO_RUB_DRAFT = 95
 
+// ⚠️ ЦЕНЫ GPT-5.4 — СТАРТОВЫЕ из обзоров, СВЕРИТЬ ПО ЛИЧНОМУ КАБИНЕТУ OpenAI.
+// $ за 1 миллион токенов. Кешированный вход дешевле (точное число уточнить).
+const PRICE_INPUT_PER_M = 2.5
+const PRICE_OUTPUT_PER_M = 15
+const PRICE_CACHED_INPUT_PER_M = 0.25
+
 type OpKind = 'text' | 'energy'
 interface OpSpec {
   kind: OpKind
@@ -143,6 +149,38 @@ async function logUsage(
     real_cost_rub: Math.round(realCostUsd * USD_TO_RUB_DRAFT * 10000) / 10000,
     energy_charged: energyCharged,
     would_charge: wouldCharge,
+  })
+}
+
+export interface OpenAIUsage {
+  prompt_tokens?: number
+  completion_tokens?: number
+  prompt_tokens_details?: { cached_tokens?: number }
+}
+
+// Запись РЕАЛЬНОГО расхода токенов и себестоимости (по факту из ответа OpenAI).
+// Токены — точные; цена за токен — стартовая константа (см. PRICE_* выше).
+export async function logAiUsage(userId: string, operation: string, model: string, usage?: OpenAIUsage): Promise<void> {
+  if (!userId || !usage) return
+  const prompt = usage.prompt_tokens ?? 0
+  const completion = usage.completion_tokens ?? 0
+  const cached = usage.prompt_tokens_details?.cached_tokens ?? 0
+  const nonCached = Math.max(0, prompt - cached)
+  const usd =
+    (nonCached / 1e6) * PRICE_INPUT_PER_M +
+    (cached / 1e6) * PRICE_CACHED_INPUT_PER_M +
+    (completion / 1e6) * PRICE_OUTPUT_PER_M
+  await admin().from('usage_log').insert({
+    user_id: userId,
+    operation,
+    model,
+    prompt_tokens: prompt,
+    completion_tokens: completion,
+    cached_tokens: cached,
+    real_cost_usd: Math.round(usd * 1e6) / 1e6,
+    real_cost_rub: Math.round(usd * USD_TO_RUB_DRAFT * 10000) / 10000,
+    energy_charged: 0,
+    would_charge: 0,
   })
 }
 
