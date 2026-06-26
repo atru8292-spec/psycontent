@@ -25,7 +25,7 @@ export default function Squiggle({ variant = 0, width = '64%', className = '' }:
 
   return (
     <div
-      className={`mt-2 ${className}`}
+      className={`mt-1 ${className}`}
       style={{ width, display: 'block' }}
       aria-hidden="true"
     >

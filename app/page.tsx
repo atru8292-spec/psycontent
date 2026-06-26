@@ -343,8 +343,8 @@ function Hero() {
               Вы помогаете людям найти себя.{" "}
               <span className="text-brand-accent">Мы поможем людям найти вас.</span>
             </h1>
-            <div className="flex justify-start">
-              <Squiggle variant={0} width="55%" className="mt-3" />
+            <div className="flex justify-center">
+              <Squiggle variant={0} width="55%" />
             </div>
           </motion.div>
 
