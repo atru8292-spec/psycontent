@@ -5,8 +5,10 @@
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 
-// Единая модель для всего продукта. Меняется одной строкой.
-export const DEFAULT_MODEL = 'gpt-4o' as const
+// Единая модель для всего продукта. Меняется ОДНОЙ строкой.
+// GPT-5.4 — новое поколение, выбрана ради качества текста. Кеш повторяющихся
+// частей промпта у OpenAI автоматический (системный промпт = стабильный префикс).
+export const DEFAULT_MODEL = 'gpt-5.4' as const
 
 function getOpenAIHeaders() {
   const apiKey = process.env.OPENAI_API_KEY
@@ -54,8 +56,8 @@ async function callOpenAI(body: Record<string, unknown>, timeoutMs = 55000) {
 // Виджет выбора модели схлопнут до одной GPT (полное удаление — Шаг 9).
 export const AI_MODELS = [
   {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
+    id: 'gpt-5.4',
+    name: 'GPT-5.4',
     provider: 'OpenAI',
     desc: 'Основная модель генерации текста',
     badge: 'Рекомендуем',
@@ -81,7 +83,7 @@ export async function generateWithAI(
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.7,
-      max_tokens: 4000,
+      max_completion_tokens: 4000,
     },
     55000
   )
@@ -102,7 +104,7 @@ export async function generateWithWebSearch(userPrompt: string) {
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.3,
-      max_tokens: 3000,
+      max_completion_tokens: 3000,
     },
     45000
   )

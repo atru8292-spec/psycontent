@@ -10,7 +10,12 @@ function admin(): SupabaseClient {
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// ЧЕРНОВЫЕ цены операций (калибруем на шаге OpenAI).
+// ЧЕРНОВЫЕ цены операций под GPT-5.4 (дороже gpt-4o). Точную цену за токены из API
+// не вытащить — числа ориентировочные, КАЛИБРУЕМ по журналу затрат (usage_log).
+// realCostUsd — оценка себестоимости одной операции (для журнала).
+// energyCost — сколько энергии списываем у пользователя (продуктовый рычаг).
+//   Транскрибация — это Supadata (не GPT), картинки — gpt-image (не GPT-5.4 текст):
+//   их себестоимость от смены текстовой модели не зависит.
 // kind 'text' — энергию не тратит (скрытый счётчик); 'energy' — списывает energyCost.
 // requiresDeepAccess — операция доступна только тарифам с глубоким анализом
 //   (Free получает пробу, у остальных без доступа — апгрейд).
@@ -28,19 +33,19 @@ interface OpSpec {
 }
 
 export const OPERATIONS: Record<string, OpSpec> = {
-  // текстовые (энергию не тратят)
-  generate_post:            { kind: 'text', realCostUsd: 0.003 },
-  generate_carousel:        { kind: 'text', realCostUsd: 0.004 },
-  generate_carousel_topics: { kind: 'text', realCostUsd: 0.002 },
-  generate_hooks:           { kind: 'text', realCostUsd: 0.002 },
-  generate_reels:           { kind: 'text', realCostUsd: 0.003 },
-  rewrite_post:             { kind: 'text', realCostUsd: 0.003 },
-  generate_content_plan:    { kind: 'text', realCostUsd: 0.006 },
-  generate_passport:        { kind: 'text', realCostUsd: 0.01 },
-  research_topics:          { kind: 'text', realCostUsd: 0.01 },
+  // текстовые (энергию не тратят) — себест. под GPT-5.4, черновая
+  generate_post:            { kind: 'text', realCostUsd: 0.02 },
+  generate_carousel:        { kind: 'text', realCostUsd: 0.03 },
+  generate_carousel_topics: { kind: 'text', realCostUsd: 0.015 },
+  generate_hooks:           { kind: 'text', realCostUsd: 0.015 },
+  generate_reels:           { kind: 'text', realCostUsd: 0.02 },
+  rewrite_post:             { kind: 'text', realCostUsd: 0.02 },
+  generate_content_plan:    { kind: 'text', realCostUsd: 0.05 },
+  generate_passport:        { kind: 'text', realCostUsd: 0.08 },
+  research_topics:          { kind: 'text', realCostUsd: 0.04 },
   // дорогие (метрятся энергией) — ЧЕРНОВЫЕ числа
   transcription:            { kind: 'energy', energyCost: 20, freeTrial: 1, realCostUsd: 0.05 },
-  competitor_deep:          { kind: 'energy', energyCost: 30, requiresDeepAccess: true, freeTrial: 1, realCostUsd: 0.15 },
+  competitor_deep:          { kind: 'energy', energyCost: 40, requiresDeepAccess: true, freeTrial: 1, realCostUsd: 0.40 },
   carousel_image:           { kind: 'energy', energyCost: 25, freeTrial: 1, realCostUsd: 0.08 },
 }
 

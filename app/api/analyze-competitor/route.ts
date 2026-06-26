@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     // Одна модель OpenAI (выбор модели у пользователя убран по ТЗ)
-    const model = 'gpt-4o'
+    const model = 'gpt-5.4'
     void userSettings
 
     // 5. Формируем промт
