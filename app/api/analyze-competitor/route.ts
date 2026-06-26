@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { canConsume, commitConsume, recordFailure, recordRefusal, type Decision } from '@/lib/energy'
+import { anonymize, deanonymize, safeRestoredPrefix } from '@/lib/anonymize'
 
 export const maxDuration = 60
 
@@ -70,8 +71,9 @@ export async function POST(request: NextRequest) {
     const model = 'gpt-5.4'
     void userSettings
 
-    // 5. Формируем промт
+    // 5. Формируем промт + обезличиваем перед OpenAI (восстановим в потоке/сохранении)
     const userPrompt = `Платформа: ${platform || 'Unknown'}\n\nТранскрипция видео:\n${transcript}\n\n${STEP_PROMPTS[stepNum]}`
+    const { masked: maskedUserPrompt, map: anonMap } = anonymize(userPrompt)
 
     // 6. Запрос к OpenRouter
     const openRouterRes = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -85,7 +87,7 @@ export async function POST(request: NextRequest) {
         stream: true,
         messages: [
           { role: 'system', content: SYSTEM_BASE },
-          { role: 'user', content: userPrompt }
+          { role: 'user', content: maskedUserPrompt }
         ]
       })
     })
@@ -105,6 +107,8 @@ export async function POST(request: NextRequest) {
       async start(controller) {
         const reader = openRouterRes.body!.getReader()
         const decoder = new TextDecoder()
+        let maskedStep = ''
+        let sentLen = 0
 
         try {
           while (true) {
@@ -123,14 +127,24 @@ export async function POST(request: NextRequest) {
                 const parsed = JSON.parse(data)
                 const content = parsed.choices?.[0]?.delta?.content || ''
                 if (content) {
-                  stepText += content
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`))
+                  maskedStep += content
+                  const safe = safeRestoredPrefix(maskedStep, anonMap)
+                  const toSend = safe.slice(sentLen)
+                  if (toSend) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: toSend })}\n\n`))
+                    sentLen = safe.length
+                  }
                 }
               } catch {
                 // пропускаем битые чанки
               }
             }
           }
+
+          // восстановленный текст шага (имена/контакты возвращены)
+          stepText = deanonymize(maskedStep, anonMap)
+          const tail = stepText.slice(sentLen)
+          if (tail) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: tail })}\n\n`))
 
           // успех шага 1 = анализ отработал → списываем энергию один раз за весь анализ
           if (stepNum === 1 && energyDecision) {

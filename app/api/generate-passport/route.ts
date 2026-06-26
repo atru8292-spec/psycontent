@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/auth'
+import { anonymize, deanonymize, safeRestoredPrefix } from '@/lib/anonymize'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -278,6 +279,10 @@ ${approachGuidance}
 
     const encoder = new TextEncoder()
 
+    // Обезличиваем вход перед OpenAI; восстановим в потоке и при сохранении.
+    const userContent = `${basePrompt}\n\n═══════════════════════════════\nЗАДАНИЕ\n═══════════════════════════════\n${getChunkInstructions(chunk)}`
+    const { masked: maskedUser, map: anonMap } = anonymize(userContent)
+
     const stream = new ReadableStream({
       async start(controller) {
         try {
@@ -294,10 +299,7 @@ ${approachGuidance}
               max_completion_tokens: 4000,
               messages: [
                 { role: 'system', content: SYSTEM_PROMPT },
-                {
-                  role: 'user',
-                  content: `${basePrompt}\n\n═══════════════════════════════\nЗАДАНИЕ\n═══════════════════════════════\n${getChunkInstructions(chunk)}`,
-                },
+                { role: 'user', content: maskedUser },
               ],
             }),
           })
@@ -309,7 +311,8 @@ ${approachGuidance}
 
           const reader = aiResponse.body!.getReader()
           const dec = new TextDecoder()
-          let fullText = ''
+          let maskedFull = ''
+          let sentLen = 0
 
           while (true) {
             const { done, value } = await reader.read()
@@ -322,12 +325,23 @@ ${approachGuidance}
               try {
                 const delta = JSON.parse(json).choices?.[0]?.delta?.content
                 if (delta) {
-                  fullText += delta
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta })}\n\n`))
+                  maskedFull += delta
+                  // отдаём восстановленный текст, придерживая недописанную заглушку
+                  const safe = safeRestoredPrefix(maskedFull, anonMap)
+                  const toSend = safe.slice(sentLen)
+                  if (toSend) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta: toSend })}\n\n`))
+                    sentLen = safe.length
+                  }
                 }
               } catch {}
             }
           }
+
+          // полный восстановленный текст (имена/контакты возвращены)
+          const fullText = deanonymize(maskedFull, anonMap)
+          const tail = fullText.slice(sentLen)
+          if (tail) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta: tail })}\n\n`))
 
           // Сохраняем в Supabase
           if (chunk === 1) {

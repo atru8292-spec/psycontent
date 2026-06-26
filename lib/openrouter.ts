@@ -3,6 +3,8 @@
 // импорты во всех экранах/роутах. Переименование и удаление виджета выбора модели
 // — на шаге бренда/UI (Шаг 9).
 
+import { anonymize, deanonymize } from '@/lib/anonymize'
+
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 
 // Единая модель для всего продукта. Меняется ОДНОЙ строкой.
@@ -75,25 +77,30 @@ export async function generateWithAI(
   userPrompt: string,
   _model?: string
 ) {
-  return callOpenAI(
+  // Обезличиваем пользовательский текст перед отправкой в OpenAI (152-ФЗ),
+  // после ответа возвращаем замены. Системный промпт — наши правила, без ПДн.
+  const { masked, map } = anonymize(userPrompt)
+  const content = await callOpenAI(
     {
       model: DEFAULT_MODEL,
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
+        { role: 'user', content: masked },
       ],
       temperature: 0.7,
       max_completion_tokens: 4000,
     },
     55000
   )
+  return deanonymize(content, map)
 }
 
 // Подбор тем. Раньше использовался веб-поиск (Perplexity через OpenRouter) — по
 // решению от 26 июня живой веб-поиск убран: GPT подбирает темы из паспорта (он
 // передаётся в userPrompt) и своих знаний. Настоящий веб-поиск добавим позже.
 export async function generateWithWebSearch(userPrompt: string) {
-  return callOpenAI(
+  const { masked, map } = anonymize(userPrompt)
+  const content = await callOpenAI(
     {
       model: DEFAULT_MODEL,
       messages: [
@@ -101,11 +108,12 @@ export async function generateWithWebSearch(userPrompt: string) {
           role: 'system',
           content: 'Ты — эксперт по контент-стратегии для психологов в Instagram. Отвечай только на русском языке. Возвращай только валидный JSON без markdown-оберток.',
         },
-        { role: 'user', content: userPrompt },
+        { role: 'user', content: masked },
       ],
       temperature: 0.3,
       max_completion_tokens: 3000,
     },
     45000
   )
+  return deanonymize(content, map)
 }
