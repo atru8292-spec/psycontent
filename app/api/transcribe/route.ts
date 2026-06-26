@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { canConsume, commitConsume, recordFailure, recordRefusal } from '@/lib/energy'
 
 export const maxDuration = 60
 
@@ -141,19 +142,33 @@ export async function POST(request: NextRequest) {
       tiktok: 'TikTok',
     }
 
+    // Энергия: проверяем ДО работы. Нет энергии/пробы → отказ, транскрибация не запускается.
+    const decision = await canConsume(user.id, 'transcription')
+    if (!decision.ok) {
+      await recordRefusal(user.id, 'transcription')
+      return NextResponse.json({ error: decision.message }, { status: 402 })
+    }
+
     let transcript: string
     try {
       transcript = platform === 'youtube'
         ? await getYouTubeTranscript(url)
         : await getSocialTranscript(url)
     } catch (error) {
+      // внешний сервис упал — энергию НЕ списываем
+      await recordFailure(user.id, 'transcription')
       const message = error instanceof Error ? error.message : 'Unknown error'
       return NextResponse.json({ error: `Не удалось получить транскрипцию: ${message}` }, { status: 400 })
     }
 
     if (!transcript || transcript.trim().length < 20) {
+      // результата по сути нет — не списываем
+      await recordFailure(user.id, 'transcription')
       return NextResponse.json({ error: 'В видео нет речи или субтитры слишком короткие' }, { status: 400 })
     }
+
+    // успех — теперь списываем энергию (или отмечаем пробу)
+    await commitConsume(user.id, 'transcription', decision)
 
     return NextResponse.json({
       success: true,

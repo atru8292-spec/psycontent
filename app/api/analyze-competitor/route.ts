@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { canConsume, commitConsume, recordFailure, recordRefusal, type Decision } from '@/lib/energy'
 
 export const maxDuration = 60
 
@@ -48,6 +49,16 @@ export async function POST(request: NextRequest) {
       return new Response(JSON.stringify({ error: 'Неверный шаг. Передай step: 1 | 2 | 3 | 4' }), { status: 400 })
     }
 
+    // Энергия: один анализ = одно списание, делаем его на шаге 1 (шаги 2-4 — продолжение).
+    let energyDecision: Decision | null = null
+    if (stepNum === 1) {
+      energyDecision = await canConsume(user.id, 'competitor_deep')
+      if (!energyDecision.ok) {
+        await recordRefusal(user.id, 'competitor_deep')
+        return new Response(JSON.stringify({ error: energyDecision.message }), { status: 402 })
+      }
+    }
+
     // 4. Модель
     const { data: userSettings } = await supabaseAdmin
       .from('user_settings')
@@ -82,6 +93,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!openRouterRes.ok) {
+      if (stepNum === 1 && energyDecision) await recordFailure(user.id, 'competitor_deep')
       const errText = await openRouterRes.text()
       return new Response(JSON.stringify({ error: `OpenRouter error: ${errText}` }), { status: 500 })
     }
@@ -122,6 +134,11 @@ export async function POST(request: NextRequest) {
             }
           }
 
+          // успех шага 1 = анализ отработал → списываем энергию один раз за весь анализ
+          if (stepNum === 1 && energyDecision) {
+            await commitConsume(user.id, 'competitor_deep', energyDecision)
+          }
+
           // Сохраняем в БД только на последнем шаге
           if (isLastStep && stepText) {
             const fullAnalysis = collectedAnalysis
@@ -146,6 +163,7 @@ export async function POST(request: NextRequest) {
           controller.close()
 
         } catch (err) {
+          if (stepNum === 1 && energyDecision) await recordFailure(user.id, 'competitor_deep')
           console.error('Stream error:', err)
           controller.error(err)
         }

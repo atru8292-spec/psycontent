@@ -10,18 +10,25 @@ function admin(): SupabaseClient {
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// ЧЕРНОВЫЕ цены операций. Калибруем на шаге перехода на OpenAI по реальной
-// себестоимости. kind: 'text' — энергию не тратит (только скрытый счётчик);
-// 'energy' — списывает energyCost. realCostUsd — справочная себестоимость для
-// usage_log (тоже черновая).
+// ЧЕРНОВЫЕ цены операций (калибруем на шаге OpenAI).
+// kind 'text' — энергию не тратит (скрытый счётчик); 'energy' — списывает energyCost.
+// requiresDeepAccess — операция доступна только тарифам с глубоким анализом
+//   (Free получает пробу, у остальных без доступа — апгрейд).
+// freeTrial — сколько раз «за всё время» бесплатно для тарифа Free.
 // ───────────────────────────────────────────────────────────────────────────
-const USD_TO_RUB_DRAFT = 95 // черновой курс для журнала себестоимости
+const USD_TO_RUB_DRAFT = 95
 
 type OpKind = 'text' | 'energy'
-interface OpSpec { kind: OpKind; energyCost?: number; realCostUsd?: number }
+interface OpSpec {
+  kind: OpKind
+  energyCost?: number
+  realCostUsd?: number
+  requiresDeepAccess?: boolean
+  freeTrial?: number
+}
 
 export const OPERATIONS: Record<string, OpSpec> = {
-  // ── текстовые (энергию не тратят) ──
+  // текстовые (энергию не тратят)
   generate_post:            { kind: 'text', realCostUsd: 0.003 },
   generate_carousel:        { kind: 'text', realCostUsd: 0.004 },
   generate_carousel_topics: { kind: 'text', realCostUsd: 0.002 },
@@ -31,17 +38,21 @@ export const OPERATIONS: Record<string, OpSpec> = {
   generate_content_plan:    { kind: 'text', realCostUsd: 0.006 },
   generate_passport:        { kind: 'text', realCostUsd: 0.01 },
   research_topics:          { kind: 'text', realCostUsd: 0.01 },
-  // ── дорогие (метрятся энергией) ── ЧЕРНОВЫЕ числа
-  transcription:            { kind: 'energy', energyCost: 20, realCostUsd: 0.05 },
-  competitor_deep:          { kind: 'energy', energyCost: 50, realCostUsd: 0.15 },
-  carousel_image:           { kind: 'energy', energyCost: 25, realCostUsd: 0.08 },
+  // дорогие (метрятся энергией) — ЧЕРНОВЫЕ числа
+  transcription:            { kind: 'energy', energyCost: 20, freeTrial: 1, realCostUsd: 0.05 },
+  competitor_deep:          { kind: 'energy', energyCost: 30, requiresDeepAccess: true, freeTrial: 1, realCostUsd: 0.15 },
+  carousel_image:           { kind: 'energy', energyCost: 25, freeTrial: 1, realCostUsd: 0.08 },
 }
 
-export interface ConsumeResult {
+export type DecisionMode = 'text' | 'unlimited' | 'trial' | 'charge' | 'blocked'
+export interface Decision {
   ok: boolean
-  reason?: 'text_limit' | 'insufficient' | 'no_wallet' | 'unknown_operation' | 'bad_amount'
-  balance?: number
+  mode: DecisionMode
+  operation: string
+  cost: number
+  reason?: string
   message?: string
+  balance?: number
 }
 
 interface PlanRow {
@@ -50,16 +61,11 @@ interface PlanRow {
   is_unlimited: boolean
   energy_per_month: number
   fair_use_text_cap: number | null
+  deep_analysis: boolean
 }
 
-// Тариф пользователя (нет подписки → считаем Free).
 async function getPlanForUser(db: SupabaseClient, userId: string): Promise<PlanRow> {
-  const { data: sub } = await db
-    .from('user_subscription')
-    .select('plan_id')
-    .eq('user_id', userId)
-    .maybeSingle()
-
+  const { data: sub } = await db.from('user_subscription').select('plan_id').eq('user_id', userId).maybeSingle()
   let plan: PlanRow | null = null
   if (sub?.plan_id) {
     const { data } = await db.from('plans').select('*').eq('id', sub.plan_id).maybeSingle()
@@ -67,51 +73,63 @@ async function getPlanForUser(db: SupabaseClient, userId: string): Promise<PlanR
   }
   if (!plan) {
     const { data } = await db.from('plans').select('*').eq('code', 'free').maybeSingle()
-    plan = (data as PlanRow)
+    plan = data as PlanRow
   }
   return plan
 }
 
 export async function getBalance(userId: string): Promise<number> {
-  const db = admin()
-  const { data } = await db.from('energy_wallet').select('balance').eq('user_id', userId).maybeSingle()
+  const { data } = await admin().from('energy_wallet').select('balance').eq('user_id', userId).maybeSingle()
   return data?.balance ?? 0
 }
 
-// Месячное пополнение (Вариант A: энергия по тарифу СГОРАЕТ).
-// При наступлении нового периода баланс становится равен месячной норме плана.
-// (Докупленную энергию — когда появится оплата — будем хранить отдельно и НЕ
-// сбрасывать; сейчас докупки нет.)
+// Месячное пополнение (Вариант A: энергия по тарифу сгорает → баланс = месячной норме).
 async function refillIfDue(db: SupabaseClient, userId: string, plan: PlanRow): Promise<void> {
-  const { data: wallet } = await db
-    .from('energy_wallet')
-    .select('next_refill')
-    .eq('user_id', userId)
-    .maybeSingle()
+  const { data: wallet } = await db.from('energy_wallet').select('next_refill').eq('user_id', userId).maybeSingle()
   if (!wallet) return
-  if (wallet.next_refill && new Date(wallet.next_refill) > new Date()) return // ещё не время
-
-  const next = new Date()
-  next.setMonth(next.getMonth() + 1)
-  await db
-    .from('energy_wallet')
-    .update({
-      balance: plan.energy_per_month,
-      monthly_allowance: plan.energy_per_month,
-      next_refill: next.toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('user_id', userId)
+  if (wallet.next_refill && new Date(wallet.next_refill) > new Date()) return
+  const next = new Date(); next.setMonth(next.getMonth() + 1)
+  await db.from('energy_wallet').update({
+    balance: plan.energy_per_month,
+    monthly_allowance: plan.energy_per_month,
+    next_refill: next.toISOString(),
+    updated_at: new Date().toISOString(),
+  }).eq('user_id', userId)
 }
 
-// usage_log пишется ВСЕГДА, во всех ветках.
+function periodKey(): string {
+  const n = new Date()
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`
+}
+
+async function textCount(db: SupabaseClient, userId: string): Promise<number> {
+  const { data } = await db.from('text_usage_counter').select('count').eq('user_id', userId).eq('period', periodKey()).maybeSingle()
+  return data?.count ?? 0
+}
+
+async function incrementText(db: SupabaseClient, userId: string): Promise<void> {
+  const current = await textCount(db, userId)
+  await db.from('text_usage_counter').upsert(
+    { user_id: userId, period: periodKey(), count: current + 1 },
+    { onConflict: 'user_id,period' }
+  )
+}
+
+// Сколько проб этой операции тариф Free уже использовал (метка в истории энергии).
+async function trialsUsed(db: SupabaseClient, userId: string, operation: string): Promise<number> {
+  const { count } = await db
+    .from('energy_transactions')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('operation', operation)
+    .eq('reason', 'free_trial')
+  return count ?? 0
+}
+
+// usage_log пишется во всех ветках через эту функцию.
 async function logUsage(
-  db: SupabaseClient,
-  userId: string,
-  operation: string,
-  energyCharged: number,
-  wouldCharge: number,
-  realCostUsd: number
+  db: SupabaseClient, userId: string, operation: string,
+  energyCharged: number, wouldCharge: number, realCostUsd: number
 ): Promise<void> {
   await db.from('usage_log').insert({
     user_id: userId,
@@ -123,82 +141,96 @@ async function logUsage(
   })
 }
 
-// Скрытый счётчик текста (fair-use). Возвращает true, если в пределах потолка.
-async function checkAndIncrementText(db: SupabaseClient, userId: string, plan: PlanRow): Promise<boolean> {
-  const cap = plan.fair_use_text_cap
-  const now = new Date()
-  const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+// ───────────────────────────────────────────────────────────────────────────
+// canConsume — РЕШЕНИЕ «можно ли», БЕЗ списания (вызывать ДО работы).
+// ───────────────────────────────────────────────────────────────────────────
+export async function canConsume(userId: string, operation: string): Promise<Decision> {
+  const db = admin()
+  const op = OPERATIONS[operation]
+  if (!op) return { ok: false, mode: 'blocked', operation, cost: 0, reason: 'unknown_operation', message: 'Неизвестная операция' }
 
-  const { data: row } = await db
-    .from('text_usage_counter')
-    .select('count')
-    .eq('user_id', userId)
-    .eq('period', period)
-    .maybeSingle()
-  const current = row?.count ?? 0
+  const plan = await getPlanForUser(db, userId)
 
-  if (cap !== null && cap !== undefined && current >= cap) {
-    return false // потолок исчерпан
+  if (op.kind === 'text') {
+    const cap = plan.fair_use_text_cap
+    const count = await textCount(db, userId)
+    if (cap !== null && cap !== undefined && count >= cap) {
+      return { ok: false, mode: 'text', operation, cost: 0, reason: 'text_limit', message: 'Достигнут предел генераций. Он обновится в начале месяца.' }
+    }
+    return { ok: true, mode: 'text', operation, cost: 0 }
   }
-  await db
-    .from('text_usage_counter')
-    .upsert({ user_id: userId, period, count: current + 1 }, { onConflict: 'user_id,period' })
-  return true
+
+  // энергетическая операция
+  await refillIfDue(db, userId, plan)
+  const cost = op.energyCost ?? 0
+
+  if (plan.is_unlimited) return { ok: true, mode: 'unlimited', operation, cost }
+
+  const trialLeft =
+    plan.code === 'free' && (op.freeTrial ?? 0) > 0 &&
+    (await trialsUsed(db, userId, operation)) < (op.freeTrial ?? 0)
+
+  if (op.requiresDeepAccess && !plan.deep_analysis && !trialLeft) {
+    const message = plan.code === 'free'
+      ? 'Пробный разбор уже использован. Глубокий анализ доступен на тарифе Практика.'
+      : 'Глубокий анализ доступен на тарифе Практика.'
+    return { ok: false, mode: 'blocked', operation, cost, reason: 'no_access', message }
+  }
+
+  if (trialLeft) return { ok: true, mode: 'trial', operation, cost }
+
+  const balance = await getBalance(userId)
+  if (balance < cost) {
+    const message = plan.code === 'free'
+      ? 'Пробный разбор уже использован. Глубокий анализ доступен на тарифе Практика.'
+      : 'Не хватает энергии. Пополните баланс или перейдите на тариф выше.'
+    return { ok: false, mode: 'blocked', operation, cost, reason: 'insufficient', message, balance }
+  }
+  return { ok: true, mode: 'charge', operation, cost, balance }
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// ГЛАВНЫЙ «ВАХТЁР»: можно ли выполнить операцию и что списать.
-// Вызывается сервером ПЕРЕД дорогой операцией (подключение — Часть 2).
+// commitConsume — ПРИМЕНИТЬ списание/пробу (вызывать ТОЛЬКО при успехе работы).
 // ───────────────────────────────────────────────────────────────────────────
-export async function checkAndConsume(userId: string, operation: string): Promise<ConsumeResult> {
+export async function commitConsume(userId: string, operation: string, decision: Decision): Promise<{ ok: boolean; balance?: number }> {
   const db = admin()
   const op = OPERATIONS[operation]
-  if (!op) return { ok: false, reason: 'unknown_operation' }
+  const realCost = op?.realCostUsd ?? 0
+  const cost = decision.cost
 
-  const plan = await getPlanForUser(db, userId)
-  await refillIfDue(db, userId, plan)
-
-  const realCostUsd = op.realCostUsd ?? 0
-
-  // Тариф «Тест»: ничего не списываем, но пишем would_charge (реальная себестоимость).
-  if (plan.is_unlimited) {
-    await logUsage(db, userId, operation, 0, op.energyCost ?? 0, realCostUsd)
-    return { ok: true, balance: await getBalance(userId) }
+  if (decision.mode === 'text') {
+    await incrementText(db, userId)
+    await logUsage(db, userId, operation, 0, 0, realCost)
+    return { ok: true }
   }
-
-  // Текст: энергию не трогаем, считаем в скрытый счётчик.
-  if (op.kind === 'text') {
-    const within = await checkAndIncrementText(db, userId, plan)
-    await logUsage(db, userId, operation, 0, 0, realCostUsd)
-    if (within) return { ok: true }
-    return {
-      ok: false,
-      reason: 'text_limit',
-      message: 'На сегодня достигнут предел генераций. Он обновится в начале месяца.',
-    }
+  if (decision.mode === 'unlimited') {
+    // тариф «Тест»: не списываем, но пишем would_charge (реальная себестоимость)
+    await logUsage(db, userId, operation, 0, cost, realCost)
+    return { ok: true }
   }
-
-  // Дорогое: атомарно списываем энергию.
-  const amount = op.energyCost ?? 0
-  const { data, error } = await db.rpc('consume_energy', {
-    p_user_id: userId,
-    p_amount: amount,
-    p_reason: operation,
-    p_operation: operation,
-  })
-  const res = (data ?? {}) as { ok?: boolean; reason?: string; balance?: number }
-  const charged = res.ok ? amount : 0
-  await logUsage(db, userId, operation, charged, amount, realCostUsd)
-
-  if (error) return { ok: false, reason: 'unknown_operation', message: 'Ошибка списания энергии' }
-  if (res.ok) return { ok: true, balance: res.balance }
-  if (res.reason === 'insufficient') {
-    return {
-      ok: false,
-      reason: 'insufficient',
-      balance: res.balance,
-      message: 'Не хватает энергии. Пополните баланс или перейдите на тариф выше.',
-    }
+  if (decision.mode === 'trial') {
+    const balance = await getBalance(userId)
+    await db.from('energy_transactions').insert({
+      user_id: userId, amount: 0, reason: 'free_trial', operation, balance_after: balance,
+    })
+    await logUsage(db, userId, operation, 0, cost, realCost)
+    return { ok: true, balance }
   }
-  return { ok: false, reason: (res.reason as ConsumeResult['reason']) ?? 'no_wallet', balance: res.balance }
+  // charge — атомарное списание
+  const { data } = await db.rpc('consume_energy', { p_user_id: userId, p_amount: cost, p_reason: operation, p_operation: operation })
+  const res = (data ?? {}) as { ok?: boolean; balance?: number }
+  await logUsage(db, userId, operation, res.ok ? cost : 0, cost, realCost)
+  return { ok: !!res.ok, balance: res.balance }
+}
+
+// Внешний сервис упал ПОСЛЕ проверки: энергию НЕ берём, но факт фиксируем.
+export async function recordFailure(userId: string, operation: string): Promise<void> {
+  const op = OPERATIONS[operation]
+  await logUsage(admin(), userId, operation, 0, 0, 0)
+  void op
+}
+
+// Отказ ДО работы (нет энергии/доступа): денег не тратим, факт фиксируем.
+export async function recordRefusal(userId: string, operation: string): Promise<void> {
+  await logUsage(admin(), userId, operation, 0, 0, 0)
 }
