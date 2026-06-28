@@ -1,5 +1,12 @@
 import { jsPDF } from 'jspdf'
 
+// ════════════════════════════════════════════════════════════════
+// Фирменный PDF контент-плана PsyCont.
+// Тот же подход, что и у паспорта: брендовый HTML-шаблон офф-скрин
+// (бумага, Onest, лого, аметист, зелёные подчёркивания, лавандовые
+// карточки дней) → html2canvas постранично → jsPDF.
+// ════════════════════════════════════════════════════════════════
+
 type DayItem = {
   day: number
   pillar: string
@@ -10,25 +17,15 @@ type DayItem = {
   done?: boolean
 }
 
-// Приглушённая палитра в стиле рефа
-const COLORS = {
-  primary: [107, 122, 161] as [number, number, number],      // #6B7AA1 — основной сине-серый
-  accent: [142, 156, 194] as [number, number, number],       // #8E9CC2 — светлый акцент
-  dark: [45, 55, 72] as [number, number, number],            // #2D3748 — тёмный текст
-  muted: [130, 140, 160] as [number, number, number],        // #828AA0 — приглушённый текст
-  light: [245, 247, 250] as [number, number, number],        // #F5F7FA — светлый фон
-  white: [255, 255, 255] as [number, number, number],
-  line: [220, 225, 235] as [number, number, number],         // #DCE1EB — линии
-}
+const PAGE_W = 794
+const PAGE_H = 1123
 
-// Минималистичные цвета рубрик (приглушённые)
-const PILLAR_COLORS: Record<string, [number, number, number]> = {
-  'Психообразование': [107, 122, 161],   // сине-серый
-  'Личное':           [161, 122, 142],   // приглушённый розовый
-  'Практика':         [122, 161, 140],   // приглушённый зелёный
-  'Истории':          [161, 147, 107],   // приглушённый песочный
-  'Позиционирование': [140, 122, 161],   // приглушённый фиолетовый
-}
+const PAPER = '#F7F3EC'
+const INDIGO = '#2E2A45'
+const AMETHYST = '#5B4FA0'
+const SAGE = '#8F9D68'
+const LAVENDER = '#E7E2F2'
+const MUTED = '#6E6A7A'
 
 const FORMAT_LABELS: Record<string, string> = {
   post: 'Пост',
@@ -37,314 +34,210 @@ const FORMAT_LABELS: Record<string, string> = {
   stories: 'Stories',
 }
 
-export async function generatePDF(plan: DayItem[]): Promise<void> {
-  const pdf = new jsPDF('p', 'mm', 'a4')
-  
-  // ===== ЗАГРУЗКА РУССКОГО ШРИФТА =====
-  try {
-    const fontResponse = await fetch('/Roboto-Regular.ttf')
-    const fontBuffer = await fontResponse.arrayBuffer()
-    const fontBase64 = btoa(
-      new Uint8Array(fontBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
-    )
-    pdf.addFileToVFS('Roboto-Regular.ttf', fontBase64)
-    pdf.addFont('Roboto-Regular.ttf', 'Roboto', 'normal')
-    pdf.setFont('Roboto')
-  } catch (e) {
-    console.warn('Font loading failed, using default font')
-  }
-  
-  const pageWidth = pdf.internal.pageSize.getWidth()
-  const pageHeight = pdf.internal.pageSize.getHeight()
-  const margin = 20
-  const contentWidth = pageWidth - margin * 2
-  
-  // ========== ТИТУЛЬНАЯ СТРАНИЦА ==========
-  
-  // Чистый светлый фон
-  pdf.setFillColor(...COLORS.light)
-  pdf.rect(0, 0, pageWidth, pageHeight, 'F')
-  
-  // Тонкая акцентная линия сверху
-  pdf.setFillColor(...COLORS.primary)
-  pdf.rect(0, 0, pageWidth, 3, 'F')
-  
-  // Большой номер как декор (как на рефе 01, 02...)
-  pdf.setTextColor(235, 238, 245)
-  pdf.setFontSize(180)
-  pdf.text('30', pageWidth - 25, 85, { align: 'right' })
-  
-  // Заголовок
-  pdf.setTextColor(...COLORS.dark)
-  pdf.setFontSize(32)
-  pdf.text('Контент-план', margin, 60)
-  
-  pdf.setFontSize(32)
-  pdf.setTextColor(...COLORS.primary)
-  pdf.text('для психолога', margin, 75)
-  
-  // Подзаголовок
-  pdf.setTextColor(...COLORS.muted)
-  pdf.setFontSize(12)
-  pdf.text('Готовая стратегия публикаций на 30 дней', margin, 90)
-  
-  // Тонкая линия
-  pdf.setDrawColor(...COLORS.line)
-  pdf.setLineWidth(0.5)
-  pdf.line(margin, 100, pageWidth - margin, 100)
-  
-  // Статистика — минималистичные блоки
-  const statsY = 115
-  const done = plan.filter(d => d.done).length
-  const progress = Math.round((done / plan.length) * 100)
-  
-  // Три колонки
-  const stats = [
-    { value: String(plan.length), label: 'публикаций' },
-    { value: String(done), label: 'выполнено' },
-    { value: progress + '%', label: 'прогресс' },
-  ]
-  
-  stats.forEach((stat, i) => {
-    const x = margin + (contentWidth / 3) * i
-    
-    pdf.setTextColor(...COLORS.primary)
-    pdf.setFontSize(36)
-    pdf.text(stat.value, x + 25, statsY + 15, { align: 'center' })
-    
-    pdf.setTextColor(...COLORS.muted)
-    pdf.setFontSize(10)
-    pdf.text(stat.label, x + 25, statsY + 25, { align: 'center' })
-    
-    // Вертикальный разделитель
-    if (i < 2) {
-      pdf.setDrawColor(...COLORS.line)
-      pdf.line(x + 55, statsY, x + 55, statsY + 30)
-    }
-  })
-  
-  // Рубрики — минималистичные теги
-  pdf.setTextColor(...COLORS.dark)
-  pdf.setFontSize(11)
-  pdf.text('Рубрики:', margin, 165)
-  
-  let tagX = margin
-  const tagY = 175
-  
-  Object.entries(PILLAR_COLORS).forEach(([name, color]) => {
-    const textWidth = pdf.getTextWidth(name) + 12
-    
-    // Просто обводка, без заливки (минимализм)
-    pdf.setDrawColor(color[0], color[1], color[2])
-    pdf.setLineWidth(0.8)
-    pdf.roundedRect(tagX, tagY - 5, textWidth, 14, 2, 2, 'S')
-    
-    pdf.setTextColor(color[0], color[1], color[2])
-    pdf.setFontSize(9)
-    pdf.text(name, tagX + 6, tagY + 4)
-    
-    tagX += textWidth + 6
-  })
-  
-  // Дата внизу
-  pdf.setTextColor(...COLORS.muted)
-  pdf.setFontSize(9)
-  pdf.text(new Date().toLocaleDateString('ru-RU', { 
-    day: 'numeric', 
-    month: 'long', 
-    year: 'numeric' 
-  }), margin, pageHeight - 20)
-  
-  // Декоративная линия внизу
-  pdf.setDrawColor(...COLORS.line)
-  pdf.line(margin, pageHeight - 30, pageWidth - margin, pageHeight - 30)
-  
-  // ========== СТРАНИЦЫ КОНТЕНТА ==========
-  
-  plan.forEach((day) => {
-    pdf.addPage()
-    
-    const pillarColor = PILLAR_COLORS[day.pillar] || COLORS.primary
-    const formatLabel = FORMAT_LABELS[day.format] || day.format
-    
-    // Светлый фон
-    pdf.setFillColor(...COLORS.light)
-    pdf.rect(0, 0, pageWidth, pageHeight, 'F')
-    
-    // Тонкая цветная линия сверху (акцент рубрики)
-    pdf.setFillColor(pillarColor[0], pillarColor[1], pillarColor[2])
-    pdf.rect(0, 0, pageWidth, 2, 'F')
-    
-    // ===== ШАПКА =====
-    
-    // Большой номер дня (как на рефе)
-    pdf.setTextColor(235, 238, 245)
-    pdf.setFontSize(120)
-    const dayNum = day.day < 10 ? '0' + day.day : String(day.day)
-    pdf.text(dayNum, pageWidth - 20, 55, { align: 'right' })
-    
-    // День X
-    pdf.setTextColor(...COLORS.dark)
-    pdf.setFontSize(14)
-    pdf.text('День ' + day.day, margin, 25)
-    
-    // Рубрика и формат — теги
-    pdf.setDrawColor(pillarColor[0], pillarColor[1], pillarColor[2])
-    pdf.setLineWidth(0.6)
-    const pillarWidth = pdf.getTextWidth(day.pillar) + 10
-    pdf.roundedRect(margin, 30, pillarWidth, 12, 2, 2, 'S')
-    pdf.setTextColor(pillarColor[0], pillarColor[1], pillarColor[2])
-    pdf.setFontSize(9)
-    pdf.text(day.pillar, margin + 5, 38)
-    
-    // Формат
-    pdf.setDrawColor(...COLORS.muted)
-    const formatWidth = pdf.getTextWidth(formatLabel) + 10
-    pdf.roundedRect(margin + pillarWidth + 5, 30, formatWidth, 12, 2, 2, 'S')
-    pdf.setTextColor(...COLORS.muted)
-    pdf.text(formatLabel, margin + pillarWidth + 10, 38)
-    
-    // Статус (если выполнено)
-    if (day.done) {
-      pdf.setTextColor(122, 161, 140)
-      pdf.setFontSize(9)
-      pdf.text('● Выполнено', pageWidth - margin - 30, 38)
-    }
-    
-    // Тонкая линия под шапкой
-    pdf.setDrawColor(...COLORS.line)
-    pdf.setLineWidth(0.3)
-    pdf.line(margin, 50, pageWidth - margin, 50)
-    
-    let y = 65
-    
-    // ===== ТЕМА =====
-    pdf.setTextColor(...COLORS.muted)
-    pdf.setFontSize(9)
-    pdf.text('ТЕМА', margin, y)
-    
-    y += 8
-    pdf.setTextColor(...COLORS.dark)
-    pdf.setFontSize(16)
-    const topicLines = pdf.splitTextToSize(day.topic, contentWidth)
-    pdf.text(topicLines, margin, y)
-    
-    y += topicLines.length * 8 + 15
-    
-    // Линия-разделитель
-    pdf.setDrawColor(...COLORS.line)
-    pdf.line(margin, y, margin + 40, y)
-    
-    y += 15
-    
-    // ===== ХУК =====
-    pdf.setTextColor(...COLORS.muted)
-    pdf.setFontSize(9)
-    pdf.text('ХУК / НАЧАЛО ПОСТА', margin, y)
-    
-    y += 10
-    
-    // Кавычка как декор
-    pdf.setTextColor(220, 225, 235)
-    pdf.setFontSize(48)
-    pdf.text('«', margin - 2, y + 8)
-    
-    pdf.setTextColor(...COLORS.dark)
-    pdf.setFontSize(12)
-    const hookLines = pdf.splitTextToSize(day.hook, contentWidth - 15)
-    pdf.text(hookLines, margin + 12, y)
-    
-    y += hookLines.length * 6 + 20
-    
-    // ===== СОВЕТ =====
-    if (day.tip) {
-      // Тонкая линия
-      pdf.setDrawColor(...COLORS.line)
-      pdf.line(margin, y, margin + 40, y)
-      
-      y += 15
-      
-      pdf.setTextColor(...COLORS.muted)
-      pdf.setFontSize(9)
-      pdf.text('РЕКОМЕНДАЦИЯ', margin, y)
-      
-      y += 10
-      pdf.setTextColor(...COLORS.dark)
-      pdf.setFontSize(11)
-      const tipLines = pdf.splitTextToSize(day.tip, contentWidth)
-      pdf.text(tipLines, margin, y)
-      
-      y += tipLines.length * 5.5 + 15
-    }
-    
-    // ===== ЧЕКЛИСТ =====
-    // Тонкая линия
-    pdf.setDrawColor(...COLORS.line)
-    pdf.line(margin, y, margin + 40, y)
-    
-    y += 15
-    
-    pdf.setTextColor(...COLORS.muted)
-    pdf.setFontSize(9)
-    pdf.text('ЧЕКЛИСТ', margin, y)
-    
-    y += 10
-    
-    const checklist = [
-      'Текст вычитан',
-      'Визуал готов',
-      'Хештеги добавлены',
-      'Время выбрано'
-    ]
-    
-    pdf.setTextColor(...COLORS.dark)
-    pdf.setFontSize(10)
-    
-    checklist.forEach((item, i) => {
-      // Минималистичный квадрат
-      pdf.setDrawColor(...COLORS.muted)
-      pdf.setLineWidth(0.4)
-      pdf.rect(margin, y + i * 10 - 3, 4, 4, 'S')
-      pdf.text(item, margin + 8, y + i * 10)
-    })
-    
-    // ===== ФУТЕР =====
-    pdf.setTextColor(...COLORS.line)
-    pdf.setFontSize(8)
-    pdf.text(day.day + ' / ' + plan.length, pageWidth / 2, pageHeight - 15, { align: 'center' })
-    
-    // Линия внизу
-    pdf.setDrawColor(...COLORS.line)
-    pdf.line(margin, pageHeight - 25, pageWidth - margin, pageHeight - 25)
-  })
-  
-  // ===== ФИНАЛЬНАЯ СТРАНИЦА =====
-  pdf.addPage()
-  
-  pdf.setFillColor(...COLORS.light)
-  pdf.rect(0, 0, pageWidth, pageHeight, 'F')
-  
-  // Акцентная линия
-  pdf.setFillColor(...COLORS.primary)
-  pdf.rect(0, 0, pageWidth, 2, 'F')
-  
-  // Текст по центру
-  pdf.setTextColor(...COLORS.dark)
-  pdf.setFontSize(24)
-  pdf.text('Успешного продвижения', pageWidth / 2, pageHeight / 2 - 10, { align: 'center' })
-  
-  pdf.setTextColor(...COLORS.primary)
-  pdf.setFontSize(24)
-  pdf.text('и вдохновения!', pageWidth / 2, pageHeight / 2 + 10, { align: 'center' })
-  
-  // Подпись
-  pdf.setTextColor(...COLORS.muted)
-  pdf.setFontSize(10)
-  pdf.text('Создано в PsyContent AI', pageWidth / 2, pageHeight - 30, { align: 'center' })
-  
-  // Линия внизу
-  pdf.setDrawColor(...COLORS.line)
-  pdf.line(margin, pageHeight - 40, pageWidth - margin, pageHeight - 40)
+function esc(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
 
-  pdf.save('content-plan-' + new Date().toISOString().split('T')[0] + '.pdf')
+function pluralDays(n: number): string {
+  const m10 = n % 10
+  const m100 = n % 100
+  if (m10 === 1 && m100 !== 11) return 'день'
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'дня'
+  return 'дней'
+}
+
+function squiggle(widthPx: number): string {
+  return `<svg viewBox="0 0 260 16" width="${widthPx}" height="13" preserveAspectRatio="none" fill="none" style="display:block;color:${SAGE};overflow:visible;margin-top:6px">
+    <path d="M2 8 C 14 3, 28 12, 46 7 S 74 2, 96 8 S 128 4, 158 9 S 186 5, 210 7" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </svg>`
+}
+
+function footerHTML(): string {
+  return `<div class="cp-footer">
+    <span style="display:flex;align-items:center;gap:7px">
+      <img src="/logo/out_icon_mono.svg" width="16" height="16" style="opacity:.55" alt=""/>
+      Сделано в PsyCont
+    </span>
+    <span>psycont.ru</span>
+  </div>`
+}
+
+const STYLE_ID = 'cp-style'
+function injectStyle() {
+  if (document.getElementById(STYLE_ID)) return
+  const style = document.createElement('style')
+  style.id = STYLE_ID
+  style.textContent = `
+  .cp-page{position:relative;width:${PAGE_W}px;height:${PAGE_H}px;box-sizing:border-box;
+    padding:56px 60px 78px;overflow:hidden;
+    background-color:${PAPER};background-image:url('/paper-grain.png');background-size:300px;background-blend-mode:multiply;
+    font-family:var(--font-onest),system-ui,sans-serif;color:${INDIGO};-webkit-font-smoothing:antialiased;}
+  .cp-area{position:relative;height:${PAGE_H - 56 - 78}px;overflow:hidden;}
+  .cp-footer{position:absolute;left:60px;right:60px;bottom:30px;display:flex;align-items:center;justify-content:space-between;
+    font-size:11px;color:${MUTED};border-top:1px solid rgba(91,79,160,.18);padding-top:11px;}
+  .cp-pagehead{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+  .cp-pagehead .t{font-size:13px;font-weight:700;color:${AMETHYST};}
+  .cp-card{background:#FFFFFF;border:1px solid rgba(91,79,160,.12);border-radius:18px;padding:18px 20px;margin-bottom:14px;}
+  .cp-card-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .cp-day{display:inline-flex;align-items:center;justify-content:center;min-width:54px;height:26px;padding:0 12px;
+    background:${AMETHYST};color:#fff;font-size:12px;font-weight:700;border-radius:999px;}
+  .cp-pill{display:inline-block;background:${LAVENDER};color:${AMETHYST};font-size:11px;font-weight:600;
+    padding:4px 11px;border-radius:999px;}
+  .cp-fmt{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:${SAGE};margin-left:auto;}
+  .cp-fmt::before{content:'';width:6px;height:6px;border-radius:50%;background:${SAGE};}
+  .cp-topic{font-size:15px;font-weight:700;color:${INDIGO};line-height:1.32;margin:0 0 10px;}
+  .cp-hook{background:${LAVENDER};border-radius:12px;padding:11px 14px;font-size:12.5px;font-style:italic;color:${INDIGO};line-height:1.5;}
+  .cp-hook .lbl{font-style:normal;font-weight:700;color:${AMETHYST};font-size:10px;letter-spacing:.05em;text-transform:uppercase;display:block;margin-bottom:4px;}
+  .cp-tip{font-size:11.5px;color:${MUTED};line-height:1.5;margin-top:8px;padding-left:12px;position:relative;}
+  .cp-tip::before{content:'';position:absolute;left:0;top:2px;bottom:2px;width:3px;border-radius:2px;background:${SAGE};}
+  .cp-plate{background:${LAVENDER};border-radius:18px;padding:22px 24px;}
+  `
+  document.head.appendChild(style)
+}
+
+function newPage(wrapper: HTMLElement): { page: HTMLElement; area: HTMLElement } {
+  const page = document.createElement('div')
+  page.className = 'cp-page'
+  const area = document.createElement('div')
+  area.className = 'cp-area'
+  page.appendChild(area)
+  page.insertAdjacentHTML('beforeend', footerHTML())
+  wrapper.appendChild(page)
+  return { page, area }
+}
+
+function dayCard(item: DayItem): HTMLElement {
+  const el = document.createElement('div')
+  el.className = 'cp-card'
+  const fmt = FORMAT_LABELS[item.format] || item.format
+  const hook = item.hook
+    ? `<div class="cp-hook"><span class="lbl">Хук</span>«${esc(item.hook)}»</div>`
+    : ''
+  const tip = item.tip ? `<div class="cp-tip">${esc(item.tip)}</div>` : ''
+  el.innerHTML = `
+    <div class="cp-card-head">
+      <span class="cp-day">День ${item.day}</span>
+      <span class="cp-pill">${esc(item.pillar)}</span>
+      <span class="cp-fmt">${esc(fmt)}</span>
+    </div>
+    <div class="cp-topic">${esc(item.topic)}</div>
+    ${hook}
+    ${tip}`
+  return el
+}
+
+// ════════════════════════════════════════════════════════════════
+// Собирает все страницы контент-плана офф-скрин (для предпросмотра).
+// ════════════════════════════════════════════════════════════════
+export function buildContentPlanPages(plan: DayItem[]): HTMLElement {
+  injectStyle()
+
+  const wrapper = document.createElement('div')
+  wrapper.style.cssText = `position:fixed;left:-99999px;top:0;width:${PAGE_W}px;`
+  document.body.appendChild(wrapper)
+
+  const dateStr = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+  const n = plan.length
+
+  // ── Обложка ──
+  {
+    const { area } = newPage(wrapper)
+    area.innerHTML = `
+      <div style="display:flex;flex-direction:column;height:100%">
+        <img src="/logo/out_wordmark.svg" width="156" height="40" style="height:40px;width:auto" alt="PsyCont"/>
+        <div style="margin-top:70px">
+          <div style="font-size:46px;font-weight:800;color:${AMETHYST};line-height:1.05">Контент-план</div>
+          <div style="font-size:46px;font-weight:800;color:${INDIGO};line-height:1.05">на ${n} ${pluralDays(n)}</div>
+          ${squiggle(190)}
+          <div style="font-size:15px;color:${MUTED};margin-top:18px">Каждый день уже с темой, форматом и хуком. Осталось опубликовать.</div>
+        </div>
+        <div class="cp-plate" style="margin-top:40px">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:${AMETHYST};margin-bottom:12px">Как пользоваться</div>
+          <div style="font-size:13px;color:${INDIGO};line-height:1.6">
+            Ведите план по порядку. Хук это первая строка поста, она решает половину дела.
+            Отмечайте опубликованное и не гонитесь за идеальностью: важнее регулярность.
+          </div>
+        </div>
+        <div style="margin-top:auto;font-size:12px;color:${MUTED}">${dateStr}</div>
+      </div>`
+  }
+
+  // ── Страницы с карточками дней ──
+  let { area } = newPage(wrapper)
+  const pageHead = (continued: boolean) => {
+    const h = document.createElement('div')
+    h.className = 'cp-pagehead'
+    h.innerHTML = `<span class="t">Контент-план${continued ? ' · продолжение' : ''}</span><span style="font-size:11px;color:${MUTED}">${n} ${pluralDays(n)}</span>`
+    return h
+  }
+  area.appendChild(pageHead(false))
+
+  const fits = () => area.scrollHeight <= area.clientHeight
+  for (const item of plan) {
+    const card = dayCard(item)
+    area.appendChild(card)
+    if (!fits()) {
+      area.removeChild(card)
+      const next = newPage(wrapper)
+      area = next.area
+      area.appendChild(pageHead(true))
+      area.appendChild(card)
+    }
+  }
+
+  // ── Финальная страница ──
+  {
+    const { area: fa } = newPage(wrapper)
+    fa.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center">
+        <div style="font-size:22px;font-weight:700;color:${INDIGO}">Регулярность важнее идеальности</div>
+        <div style="font-size:22px;font-weight:700;color:${AMETHYST}">публикуйте по плану, и блог оживёт</div>
+        ${`<div style="display:flex;justify-content:center;margin-top:10px">${squiggle(180)}</div>`}
+        <div style="font-size:13px;color:${MUTED};max-width:430px;line-height:1.6;margin-top:26px">
+          Когда тема и хук уже готовы, остаётся самое главное: выйти к людям. План снимает вопрос «о чём писать».
+        </div>
+        <img src="/logo/out_icon_mono.svg" width="56" height="56" style="opacity:.5;margin-top:40px" alt=""/>
+      </div>`
+  }
+
+  return wrapper
+}
+
+// ════════════════════════════════════════════════════════════════
+// Генерирует и скачивает фирменный PDF контент-плана.
+// ════════════════════════════════════════════════════════════════
+export async function generatePDF(plan: DayItem[]): Promise<void> {
+  const html2canvas = (await import('html2canvas')).default
+
+  const wrapper = buildContentPlanPages(plan)
+  const pages = Array.from(wrapper.querySelectorAll('.cp-page')) as HTMLElement[]
+
+  try {
+    if (document.fonts && document.fonts.ready) {
+      await document.fonts.ready
+    }
+
+    const pdf = new jsPDF('p', 'mm', 'a4')
+    const pw = pdf.internal.pageSize.getWidth()
+    const ph = pdf.internal.pageSize.getHeight()
+
+    for (let i = 0; i < pages.length; i++) {
+      const canvas = await html2canvas(pages[i], {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: PAPER,
+        width: PAGE_W,
+        height: PAGE_H,
+        windowWidth: PAGE_W,
+      })
+      const img = canvas.toDataURL('image/png')
+      if (i > 0) pdf.addPage()
+      pdf.addImage(img, 'PNG', 0, 0, pw, ph)
+    }
+
+    pdf.save('content-plan-psycont-' + new Date().toISOString().split('T')[0] + '.pdf')
+  } finally {
+    wrapper.remove()
+  }
 }
