@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/auth'
 import { anonymize, deanonymize, safeRestoredPrefix } from '@/lib/anonymize'
+import { iterateSSEData } from '@/lib/sse-stream'
 import { logAiUsage } from '@/lib/energy'
 
 function getSupabaseAdmin() {
@@ -314,35 +315,27 @@ ${approachGuidance}
           }
 
           const reader = aiResponse.body!.getReader()
-          const dec = new TextDecoder()
           let maskedFull = ''
           let sentLen = 0
           let usage: any = undefined
 
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-            const lines = dec.decode(value).split('\n')
-            for (const line of lines) {
-              if (!line.startsWith('data:')) continue
-              const json = line.slice(5).trim()
-              if (json === '[DONE]') continue
-              try {
-                const parsed = JSON.parse(json)
-                if (parsed.usage) usage = parsed.usage
-                const delta = parsed.choices?.[0]?.delta?.content
-                if (delta) {
-                  maskedFull += delta
-                  // отдаём восстановленный текст, придерживая недописанную заглушку
-                  const safe = safeRestoredPrefix(maskedFull, anonMap)
-                  const toSend = safe.slice(sentLen)
-                  if (toSend) {
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta: toSend })}\n\n`))
-                    sentLen = safe.length
-                  }
+          // Буферизованный разбор SSE: символы и дельты не теряются на стыках кусков.
+          for await (const json of iterateSSEData(reader)) {
+            try {
+              const parsed = JSON.parse(json)
+              if (parsed.usage) usage = parsed.usage
+              const delta = parsed.choices?.[0]?.delta?.content
+              if (delta) {
+                maskedFull += delta
+                // отдаём восстановленный текст, придерживая недописанную заглушку
+                const safe = safeRestoredPrefix(maskedFull, anonMap)
+                const toSend = safe.slice(sentLen)
+                if (toSend) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta: toSend })}\n\n`))
+                  sentLen = safe.length
                 }
-              } catch {}
-            }
+              }
+            } catch {}
           }
 
           // полный восстановленный текст (имена/контакты возвращены)

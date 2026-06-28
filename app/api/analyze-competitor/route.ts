@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { canConsume, commitConsume, recordFailure, recordRefusal, logAiUsage, type Decision } from '@/lib/energy'
 import { anonymize, deanonymize, safeRestoredPrefix } from '@/lib/anonymize'
+import { iterateSSEData } from '@/lib/sse-stream'
 
 export const maxDuration = 60
 
@@ -107,40 +108,28 @@ export async function POST(request: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         const reader = openRouterRes.body!.getReader()
-        const decoder = new TextDecoder()
         let maskedStep = ''
         let sentLen = 0
         let usage: any = undefined
 
         try {
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-
-            const chunk = decoder.decode(value, { stream: true })
-            const lines = chunk.split('\n').filter(line => line.trim())
-
-            for (const line of lines) {
-              if (!line.startsWith('data: ')) continue
-              const data = line.slice(6)
-              if (data === '[DONE]') continue
-
-              try {
-                const parsed = JSON.parse(data)
-                if (parsed.usage) usage = parsed.usage
-                const content = parsed.choices?.[0]?.delta?.content || ''
-                if (content) {
-                  maskedStep += content
-                  const safe = safeRestoredPrefix(maskedStep, anonMap)
-                  const toSend = safe.slice(sentLen)
-                  if (toSend) {
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: toSend })}\n\n`))
-                    sentLen = safe.length
-                  }
+          // Буферизованный разбор SSE: символы и дельты не теряются на стыках кусков.
+          for await (const data of iterateSSEData(reader)) {
+            try {
+              const parsed = JSON.parse(data)
+              if (parsed.usage) usage = parsed.usage
+              const content = parsed.choices?.[0]?.delta?.content || ''
+              if (content) {
+                maskedStep += content
+                const safe = safeRestoredPrefix(maskedStep, anonMap)
+                const toSend = safe.slice(sentLen)
+                if (toSend) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: toSend })}\n\n`))
+                  sentLen = safe.length
                 }
-              } catch {
-                // пропускаем битые чанки
               }
+            } catch {
+              // пропускаем битые чанки
             }
           }
 

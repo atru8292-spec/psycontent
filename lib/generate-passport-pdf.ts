@@ -65,6 +65,8 @@ function cleanInline(text: string): string {
     .replace(/\*\*(.+?)\*\*/g, '$1')
     .replace(/\*(.+?)\*/g, '$1')
     .replace(/`(.+?)`/g, '$1')
+    .replace(/\*+/g, '')   // подчищаем непарные звёздочки, чтобы не просачивались в PDF
+    .replace(/[ \t]{2,}/g, ' ')
     .trim()
 }
 
