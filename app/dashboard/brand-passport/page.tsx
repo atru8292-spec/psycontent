@@ -106,7 +106,7 @@ function bulletHtml(s: string): string {
 
 type Block =
   | { kind: 'subhead'; text: string }
-  | { kind: 'para'; text: string; plate?: boolean }
+  | { kind: 'para'; text: string }
   | { kind: 'label'; label: string; rest: string }
   | { kind: 'bullets'; items: string[] }
 
@@ -123,6 +123,12 @@ function parseBlocks(text: string): Block[] {
     const sub = t.match(/^\*\*(.+?)\*\*$/)
     if (sub) { flush(); blocks.push({ kind: 'subhead', text: sub[1].trim().replace(/:\s*$/, '') }); continue }
 
+    // Строка-введение вида «Примеры фраз:» (короткая, заканчивается двоеточием,
+    // без текста после) → тоже подзаголовок, а не метка/абзац.
+    if (t.endsWith(':') && t.length <= 40 && t.split(/\s+/).length <= 5 && !t.includes('*')) {
+      flush(); blocks.push({ kind: 'subhead', text: t.replace(/:\s*$/, '') }); continue
+    }
+
     // Список
     if (/^[-•]\s+/.test(t)) { bulletBuf.push(t.replace(/^[-•]\s+/, '')); continue }
     flush()
@@ -134,15 +140,6 @@ function parseBlocks(text: string): Block[] {
     blocks.push({ kind: 'para', text: t })
   }
   flush()
-
-  // Лавандовая плашка — точечно: абзац-определение сразу после подзаголовка «Формула».
-  for (let i = 0; i < blocks.length - 1; i++) {
-    const b = blocks[i]
-    if (b.kind === 'subhead' && /^формул/i.test(b.text)) {
-      const next = blocks[i + 1]
-      if (next.kind === 'para') next.plate = true
-    }
-  }
   return blocks
 }
 
@@ -164,8 +161,8 @@ function renderContent(text: string) {
           return (
             <ul key={i} className="space-y-2.5">
               {b.items.map((it, j) => (
-                <li key={j} className="flex items-start gap-2.5 text-[15px] text-brand-text leading-[1.6]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand-sage mt-[0.55rem] shrink-0" />
+                <li key={j} className="flex items-start gap-2.5 text-[15px] text-brand-text leading-[1.7]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-sage mt-[0.6rem] shrink-0" />
                   <span dangerouslySetInnerHTML={{ __html: bulletHtml(it) }} />
                 </li>
               ))}
@@ -174,25 +171,16 @@ function renderContent(text: string) {
         }
         if (b.kind === 'label') {
           return (
-            <p key={i} className="text-[15px] text-brand-text leading-[1.6]">
+            <p key={i} className="text-[15px] text-brand-text leading-[1.7]">
               <span className="font-semibold text-brand-text">{b.label}: </span>
               <span dangerouslySetInnerHTML={{ __html: inlineHtml(b.rest) }} />
             </p>
           )
         }
-        if (b.plate) {
-          return (
-            <div
-              key={i}
-              className="bg-brand-soft rounded-2xl px-4 py-3.5 sm:px-5 sm:py-4 text-[15px] text-brand-text leading-[1.6]"
-              dangerouslySetInnerHTML={{ __html: inlineHtml(b.text) }}
-            />
-          )
-        }
         return (
           <p
             key={i}
-            className="text-[15px] text-brand-text leading-[1.6]"
+            className="text-[15px] text-brand-text leading-[1.7]"
             dangerouslySetInnerHTML={{ __html: inlineHtml(b.text) }}
           />
         )
