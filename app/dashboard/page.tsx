@@ -8,7 +8,7 @@ import {
   Target, PenTool, Layers, Zap, FileText,
   Wrench, Film, RefreshCcw, Search, History,
   CheckCircle2, Circle, ArrowRight, TrendingUp,
-  BookOpen, Star,
+  Star,
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
 import { EnergyBadge } from '@/components/EnergyTariff'
@@ -37,7 +37,6 @@ const toolGroups = [
     items: [
       { icon: RefreshCcw, title: 'Переписать текст',    desc: 'Превратим мысли в готовый пост',    href: '/dashboard/rewrite',             badge: null,    soft: true },
       { icon: History,    title: 'История постов',      desc: 'Все сгенерированные посты',           href: '/dashboard/post-history',        badge: null,    soft: true },
-      { icon: BookOpen,   title: 'Промпты',             desc: 'Готовые схемы для ChatGPT',          href: '#',                              badge: 'Скоро', soft: true },
       { icon: Star,       title: 'Портфолио отзывов',   desc: 'Соберите отзывы клиентов',           href: '#',                              badge: 'Скоро', soft: true },
     ],
   },
