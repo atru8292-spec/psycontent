@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import Image from "next/image";
 import {
   ArrowRight, Target, BookOpen, MessageCircle,
-  CheckCircle, Zap, Shield, Clock, Star, Check, ChevronDown,
+  Zap, Shield, Clock, Star, Check, ChevronDown,
   PenTool, BarChart3, Users, FileText, LayoutDashboard,
   Mail, Eye, EyeOff, X, Loader2,
 } from "lucide-react";
@@ -493,7 +493,6 @@ const features = [
   { icon: BookOpen, title: "База знаний", desc: "Уроки по контенту, продвижению и привлечению клиентов" },
   { icon: Target, title: "Контент-план", desc: "Готовый план на 30 дней, не нужно думать что постить" },
   { icon: MessageCircle, title: "Telegram-напоминания", desc: "Бот напомнит когда пора писать и предложит тему" },
-  { icon: CheckCircle, title: "Промпты и инструкции", desc: "Готовые промпты для любой задачи, от поста до сторис" },
 ];
 
 function Features() {
@@ -501,9 +500,9 @@ function Features() {
     <section className="py-12 sm:py-20 px-4 sm:px-6">
       <motion.div className="max-w-6xl mx-auto" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={stagger}>
         <motion.h2 variants={fadeUp} className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-brand-text mb-8 sm:mb-12">Все что нужно для блога</motion.h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
           {features.map((feature, i) => (
-            <motion.div key={i} variants={fadeUp} className="card hover:shadow-md transition">
+            <motion.div key={i} variants={fadeUp} className="card hover:shadow-md transition basis-full sm:basis-[calc(50%-0.75rem)] lg:basis-[calc(33.333%-1rem)]">
               <feature.icon className="w-7 h-7 sm:w-8 sm:h-8 text-brand-accent mb-3 sm:mb-4" />
               <h3 className="font-bold text-brand-text mb-1 sm:mb-2 text-sm sm:text-base">{feature.title}</h3>
               <p className="text-xs sm:text-sm text-brand-muted leading-relaxed">{feature.desc}</p>
@@ -594,7 +593,7 @@ const plans = [
   {
     name: "Блог", price: "990 ₽", period: "/мес",
     description: "Системное ведение блога",
-    features: ["Все из тарифа Старт", "Текст безлимит", "Контент-план на 30 дней", "5 рилс-скриптов", "Все промпты и инструкции", "Telegram-напоминания", "Вся база знаний"],
+    features: ["Все из тарифа Старт", "Текст безлимит", "Контент-план на 30 дней", "5 рилс-скриптов", "Telegram-напоминания", "Вся база знаний"],
     cta: "Выбрать Блог", popular: true,
   },
   {
