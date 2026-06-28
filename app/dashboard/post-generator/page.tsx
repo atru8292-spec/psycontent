@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Sparkles,
