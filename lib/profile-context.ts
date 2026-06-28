@@ -22,8 +22,7 @@ export function buildProfileContext(profile: any): string {
 
   return `
 ПРОФИЛЬ ПСИХОЛОГА:
-- Имя: ${profile.full_name || 'Психолог'}
-- Обращение к аудитории: ${profile.appeal || 'на вы'}
+- Имя (автор постов, НЕ обращение к читателю): ${profile.full_name || 'Психолог'}
 - Опыт: ${profile.experience || 'не указан'}
 - Путь в профессию: ${profile.path_to_profession || ''}
 - Подходы: ${arr(profile.approaches) || 'интегративный'}
