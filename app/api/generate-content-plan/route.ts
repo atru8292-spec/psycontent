@@ -37,7 +37,12 @@ export async function POST(request: NextRequest) {
     const endDay = Math.min(batch * 5, 30)
     const daysCount = endDay - startDay + 1
 
-    const clientPains = profile.client_pains || profile.niche || 'тревога, отношения, самооценка'
+    // Имена колонок берём из реальной схемы onboarding_profiles (niches — массив).
+    const nicheText = profile.one_niche
+      || (Array.isArray(profile.niches) ? profile.niches.join(', ') : profile.niches)
+      || 'общая практика'
+    const clientPains = profile.client_pain_phrases || nicheText || 'тревога, отношения, самооценка'
+    const audienceText = profile.client_avatar || profile.client_job || 'взрослые 25-45'
 
     const systemPrompt = `Ты вирусный контент-стратег для психологов в Instagram/Telegram.
 
@@ -216,11 +221,11 @@ JSON массив из ${daysCount} объектов:
 - Пиши на языке КЛИЕНТА, не психолога`
 
     const userPrompt = `ПРОФИЛЬ ПСИХОЛОГА:
-• Имя: ${profile.name || 'Психолог'}
-• Ниша: ${profile.niche || 'общая практика'}
+• Имя: ${profile.full_name || 'Психолог'}
+• Ниша: ${nicheText}
 • Подходы: ${Array.isArray(profile.approaches) ? profile.approaches.slice(0, 3).join(', ') : 'интегративный'}
-• Аудитория: ${profile.target_audience || 'взрослые 25-45'}
-• Тон: ${profile.tone_of_voice || 'тёплый, но экспертный'}
+• Аудитория: ${audienceText}
+• Тон: ${profile.tone_verbal || 'тёплый, но экспертный'}
 • Боли клиентов: ${clientPains}
 ${profile.video_attitude === 'не снимаю' ? '• ⚠️ НЕ использовать формат reels!' : ''}
 
