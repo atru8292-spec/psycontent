@@ -23,7 +23,7 @@ type Step = 'idle' | 'transcribing' | 'transcribed' | 'analyzing' | 'done'
 
 const STEP_LABELS = [
   { icon: '🔍', label: 'Что происходит + Хук' },
-  { icon: '🧠', label: 'Структура и приёмы' },
+  { icon: '🧠', label: 'Структура и приемы' },
   { icon: '💡', label: 'Что взять психологу' },
   { icon: '✍️', label: 'Готовый сценарий' },
 ]
@@ -70,7 +70,7 @@ export default function CompetitorAnalysisPage() {
     const text = await res.text()
     let data: any
     try { data = JSON.parse(text) } catch {
-      throw new Error(`Сервер не ответил (${res.status}). Попробуйте ещё раз.`)
+      throw new Error(`Сервер не ответил (${res.status}). Попробуйте еще раз.`)
     }
     if (!res.ok) throw Object.assign(new Error(data.error || `Ошибка ${res.status}`), { status: res.status })
     return data

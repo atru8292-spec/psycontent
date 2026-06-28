@@ -34,7 +34,7 @@ function refillDate(iso: string | null): string {
   }
 }
 
-// ── Компактная плашка в шапке дашборда (ведёт в «Тариф и энергия») ──
+// ── Компактная плашка в шапке дашборда (ведет в «Тариф и энергия») ──
 export function EnergyBadge({ data }: { data?: Summary | null } = {}) {
   const auto = useAccount(data === undefined)
   const d = data === undefined ? auto : data

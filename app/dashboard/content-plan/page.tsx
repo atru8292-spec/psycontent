@@ -272,7 +272,7 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
       {isCarousel && (
         <div className="mb-5 p-4 md:p-3 bg-brand-soft rounded-xl border border-brand-border-soft">
           <p className="text-[16px] md:text-sm text-brand-text leading-relaxed">
-            <strong>Карусель</strong>, это 8-10 слайдов с текстом. AI создаст хук, развитие мысли и CTA.
+            <strong>Карусель</strong>, это 8-10 слайдов с текстом. AI создаст хук, развитие мысли и призыв к действию.
           </p>
         </div>
       )}
@@ -472,7 +472,7 @@ export default function ContentPlan() {
             <EmptyState
               variant={2}
               title="Ваш план на 30 дней"
-              subtitle="AI составит персональный контент-план с темами, форматами и хуками для каждого дня. Займёт около 30-40 секунд."
+              subtitle="AI составит персональный контент-план с темами, форматами и хуками для каждого дня. Займет около 30-40 секунд."
               actionLabel="Составить план"
               onAction={handleGenerate}
             />

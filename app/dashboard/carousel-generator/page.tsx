@@ -83,7 +83,7 @@ function CarouselGeneratorContent() {
       const topic = { title: urlTopic, description: urlPillar || '' }
       setSelectedTopic(topic)
       setStep('carousel')
-      // НЕ запускаем автоматически, пользователь нажмёт кнопку
+      // НЕ запускаем автоматически, пользователь нажмет кнопку
     } else {
       loadTopics(user.id)
     }
@@ -295,7 +295,7 @@ function CarouselGeneratorContent() {
 
                   <div className="bg-brand-bg rounded-xl p-4">
                     <div className="flex items-center gap-2 overflow-x-auto pb-2">
-                      {['Хук', 'Проблема', 'Развитие', 'Решение', 'CTA'].map((text, i) => (
+                      {['Хук', 'Проблема', 'Развитие', 'Решение', 'Призыв'].map((text, i) => (
                         <div
                           key={i}
                           className="flex-shrink-0 w-16 h-16 bg-white rounded-lg border border-brand-border flex flex-col items-center justify-center p-2"
@@ -321,15 +321,6 @@ function CarouselGeneratorContent() {
                     </ul>
                   </div>
 
-                  <div className="bg-brand-soft rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <TrendingUp className="w-4 h-4 text-brand-accent" />
-                      <span className="text-sm font-medium text-brand-text">Статистика</span>
-                    </div>
-                    <p className="text-xs text-brand-text-secondary">
-                      Карусели получают <strong>в 3 раза больше вовлечения</strong>, чем обычные посты.
-                    </p>
-                  </div>
                 </div>
 
                 <div className="p-6 border-t border-brand-border">
@@ -610,7 +601,7 @@ function CarouselGeneratorContent() {
                     className="h-full flex flex-col items-center justify-center text-center py-20 bg-white rounded-2xl border border-brand-border"
                   >
                     <Loader2 className="w-10 h-10 text-brand-accent animate-spin mb-4" />
-                    <p className="font-semibold text-brand-text mb-1">AI создаёт карусель...</p>
+                    <p className="font-semibold text-brand-text mb-1">AI создает карусель...</p>
                     <p className="text-sm text-brand-text-secondary mb-6">Обычно 15,30 секунд</p>
                     <div className="flex flex-col items-center gap-2 text-sm text-brand-text-secondary">
                       {[

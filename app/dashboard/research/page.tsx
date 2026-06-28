@@ -97,7 +97,7 @@ function TopicCard({ topic, index, onGenerate }: { topic: Topic; index: number; 
       {/* Details */}
       <div className="space-y-2 mb-4 grow">
         <p className="text-xs text-brand-text-secondary leading-relaxed">
-          <span className="font-semibold text-brand-text">Почему зайдёт: </span>
+          <span className="font-semibold text-brand-text">Почему зайдет: </span>
           {topic.why}
         </p>
         <div className="flex items-start gap-1.5 bg-brand-bg p-2 rounded-lg">
@@ -109,7 +109,7 @@ function TopicCard({ topic, index, onGenerate }: { topic: Topic; index: number; 
         </div>
         {topic.cta && (
            <p className="text-xs uppercase tracking-wider font-bold text-brand-text-secondary mt-2">
-              CTA: <span className="text-brand-accent">{topic.cta}</span>
+              Призыв к действию: <span className="text-brand-accent">{topic.cta}</span>
            </p>
         )}
       </div>
@@ -256,7 +256,7 @@ export default function ResearchTopics() {
           <Squiggle variant={0} width="55%" />
           <p className="text-brand-text-secondary max-w-xl mt-3">
             Три блока контента: тренды Instagram/Telegram, актуальные научные исследования (2023-2026) и редкие цитаты. 
-            Всё адаптировано под вашу нишу.
+            Все адаптировано под вашу нишу.
           </p>
         </motion.div>
 
@@ -266,13 +266,13 @@ export default function ResearchTopics() {
             <EmptyState
               variant={1}
               title="Темы из трендов и науки"
-              subtitle="Нажмите кнопку, и AI проанализирует тренды Telegram и Яндекса, свежие исследования за 2024-2026 год и цитаты классиков. Всё адаптируется под вашу нишу. Займёт около минуты."
+              subtitle="Нажмите кнопку, и AI проанализирует тренды Telegram и Яндекса, свежие исследования за 2024-2026 год и цитаты классиков. Все адаптируется под вашу нишу. Займет около минуты."
               actionLabel="Провести исследование"
               onAction={handleSearch}
             />
             {needOnboarding && (
               <div className="mt-4">
-                <LimitNotice title="Сначала заполните профиль" message="Темы подбираются под вашу нишу из профиля. Пройдите короткую распаковку, и мы подберём идеи для вас." actionLabel="Заполнить профиль" actionHref="/onboarding" />
+                <LimitNotice title="Сначала заполните профиль" message="Темы подбираются под вашу нишу из профиля. Пройдите короткую распаковку, и мы подберем идеи для вас." actionLabel="Заполнить профиль" actionHref="/onboarding" />
               </div>
             )}
             {serverError && (
@@ -293,7 +293,7 @@ export default function ResearchTopics() {
               <Loader2 className="w-16 h-16 text-brand-accent animate-spin" />
               <Globe className="w-6 h-6 text-brand-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
             </div>
-            <h2 className="text-xl font-bold text-brand-text mb-2">Глубокий ресёрч запущен...</h2>
+            <h2 className="text-xl font-bold text-brand-text mb-2">Глубокий ресерч запущен...</h2>
             <p className="text-brand-text-secondary mb-6">Ищем свежие тренды, исследования и цитаты в вашей нише</p>
             <div className="flex flex-col items-center gap-2 text-sm text-brand-text-secondary">
               {[

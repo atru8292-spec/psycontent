@@ -28,7 +28,7 @@ export default function SettingsPage() {
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl font-bold text-brand-text mb-1">Тариф и энергия</h1>
           <p className="text-brand-muted mb-8">
-            Ваш текущий тариф и остаток энергии. Всё только для просмотра.
+            Ваш текущий тариф и остаток энергии. Все только для просмотра.
           </p>
 
           <EnergyTariffPanel />

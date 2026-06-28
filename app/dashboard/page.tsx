@@ -27,7 +27,7 @@ const toolGroups = [
     label: 'Стратегия',
     items: [
       { icon: FileText,   title: 'Контент-план',        desc: '30 дней публикаций',                 href: '/dashboard/content-plan',        badge: null,    soft: false },
-      { icon: Target,     title: 'Паспорт бренда',      desc: 'Позиционирование и TOV',             href: '/dashboard/brand-passport',      badge: null,    soft: false },
+      { icon: Target,     title: 'Паспорт бренда',      desc: 'Позиционирование и тон голоса',             href: '/dashboard/brand-passport',      badge: null,    soft: false },
       { icon: Wrench,     title: 'Исследование тем',    desc: '30 трендовых тем под вашу нишу',     href: '/dashboard/research',            badge: null,    soft: false },
       { icon: Search,     title: 'Анализ конкурентов',  desc: 'Разбор Reels/TikTok/YouTube',        href: '/dashboard/competitor-analysis', badge: null,    soft: false },
     ],
@@ -35,7 +35,7 @@ const toolGroups = [
   {
     label: 'Инструменты',
     items: [
-      { icon: RefreshCcw, title: 'Переписать текст',    desc: 'Превратим мысли в вирусный пост',    href: '/dashboard/rewrite',             badge: null,    soft: true },
+      { icon: RefreshCcw, title: 'Переписать текст',    desc: 'Превратим мысли в готовый пост',    href: '/dashboard/rewrite',             badge: null,    soft: true },
       { icon: History,    title: 'История постов',      desc: 'Все сгенерированные посты',           href: '/dashboard/post-history',        badge: null,    soft: true },
       { icon: BookOpen,   title: 'Промпты',             desc: 'Готовые схемы для ChatGPT',          href: '#',                              badge: 'Скоро', soft: true },
       { icon: Star,       title: 'Портфолио отзывов',   desc: 'Соберите отзывы клиентов',           href: '#',                              badge: 'Скоро', soft: true },

@@ -60,7 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => { active = false }
   }, [router])
 
-  // Пока идёт проверка или уже уводим — не мигаем кабинетом.
+  // Пока идет проверка или уже уводим — не мигаем кабинетом.
   if (status !== 'ready') {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center">

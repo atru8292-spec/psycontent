@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 
-// Мягкое сообщение о СЕРВЕРНОМ сбое (не врём про профиль, не пугаем).
-// Кнопка «Попробовать снова» с задержкой (cooldown), чтобы не долбить мёртвый
+// Мягкое сообщение о СЕРВЕРНОМ сбое (не врем про профиль, не пугаем).
+// Кнопка «Попробовать снова» с задержкой (cooldown), чтобы не долбить мертвый
 // сервер повторами. Тон бережный, без красного.
 export function ServerErrorNotice({
   onRetry,
@@ -31,7 +31,7 @@ export function ServerErrorNotice({
       <div>
         <p className="font-semibold text-brand-text mb-1">Что-то пошло не так на нашей стороне</p>
         <p className="text-sm text-brand-text leading-relaxed">
-          Это временно и не связано с вами. Попробуйте ещё раз через минуту.
+          Это временно и не связано с вами. Попробуйте еще раз через минуту.
         </p>
         <button
           onClick={onRetry}

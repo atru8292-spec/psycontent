@@ -34,7 +34,7 @@ const rewriteGoals = [
   { id: 'clearer', label: 'Сделать проще и понятнее', icon: Wand2, desc: 'Убрать сложный академический язык' },
   { id: 'engaging', label: 'Добавить вовлечения', icon: MessageSquare, desc: 'Добавить крутой хук и сторителлинг' },
   { id: 'expert', label: 'Повысить экспертность', icon: BrainCircuit, desc: 'Глубже раскрыть механизмы психики' },
-  { id: 'sales', label: 'Мягко продать услугу', icon: TrendingUp, desc: 'Добавить нативную подводку к записи' },
+  { id: 'sales', label: 'Мягко продать услугу', icon: TrendingUp, desc: 'Добавить мягкую подводку к записи' },
 ]
 
 export default function RewriteGenerator() {
@@ -187,7 +187,7 @@ export default function RewriteGenerator() {
             </h1>
             <Squiggle variant={2} width="52%" />
             <p className="text-brand-text-secondary mt-2">
-              Вставьте свои заметки, скучный текст или расшифровку аудио, а ИИ упакует это в вирусный контент.
+              Вставьте свои заметки, скучный текст или расшифровку аудио, а ИИ соберет из этого живой, цепляющий пост.
             </p>
           </div>
 
@@ -314,7 +314,7 @@ export default function RewriteGenerator() {
                       'Анализируем структуру текста...',
                       'Усиливаем хук и первую строку...',
                       'Убираем воду и канцелярит...',
-                      'Настраиваем под ваш Tone of Voice...',
+                      'Настраиваем под ваш тон...',
                     ].map((s, i) => (
                       <div key={i} className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse" style={{ animationDelay: `${i * 0.4}s` }} />

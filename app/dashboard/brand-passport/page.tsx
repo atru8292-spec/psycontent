@@ -74,14 +74,14 @@ function parsePassport(content: string) {
 // Данные в базе чистые (markdown от модели). Парсим структуру по строкам и
 // оформляем по бренду: подзаголовки **...** → аметист; метки «Слово:» в начале
 // строки → жирная метка индиго; списки → буллеты; парный *курсив* → italic;
-// бэктики и непарные звёздочки убираем полностью.
+// бэктики и непарные звездочки убираем полностью.
 // ─────────────────────────────────────────────────────────
 
 function escHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-// Инлайн-markdown → безопасный HTML. На выходе НЕ остаётся голых * или `.
+// Инлайн-markdown → безопасный HTML. На выходе НЕ остается голых * или `.
 function inlineHtml(s: string): string {
   return escHtml(s)
     .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-brand-text">$1</strong>')
@@ -97,7 +97,7 @@ function isLabel(head: string): boolean {
   return head.split(/\s+/).length <= 4
 }
 
-// Буллет: если начинается с короткой метки — выделяем её жирным индиго.
+// Буллет: если начинается с короткой метки — выделяем ее жирным индиго.
 function bulletHtml(s: string): string {
   const m = s.match(LABEL_RE)
   if (m && isLabel(m[1])) {
@@ -121,7 +121,7 @@ function parseBlocks(text: string): Block[] {
     const t = raw.trim()
     if (t === '') { flush(); continue }
 
-    // Подзаголовок: вся строка обёрнута в **...**
+    // Подзаголовок: вся строка обернута в **...**
     const sub = t.match(/^\*\*(.+?)\*\*$/)
     if (sub) { flush(); blocks.push({ kind: 'subhead', text: sub[1].trim().replace(/:\s*$/, '') }); continue }
 
@@ -436,13 +436,13 @@ export default function BrandPassport() {
             <EmptyState
               variant={1}
               title="Создайте документ о себе"
-              subtitle="AI проанализирует вашу распаковку и создаст стратегический документ с позиционированием, архетипом, аватаром клиента и контент-стратегией. Генерация идёт поэтапно в 5 шагов."
+              subtitle="AI проанализирует вашу распаковку и создаст стратегический документ с позиционированием, архетипом, аватаром клиента и контент-стратегией. Генерация идет поэтапно в 5 шагов."
               actionLabel="Создать паспорт бренда"
               onAction={handleGenerate}
             />
             {needOnboarding && (
               <div className="mt-4">
-                <LimitNotice title="Сначала заполните профиль" message="Паспорт бренда строится на вашей распаковке. Пройдите короткий онбординг, и мы соберём документ о вас." actionLabel="Заполнить профиль" actionHref="/onboarding" />
+                <LimitNotice title="Сначала заполните профиль" message="Паспорт бренда строится на вашей распаковке. Пройдите короткий онбординг, и мы соберем документ о вас." actionLabel="Заполнить профиль" actionHref="/onboarding" />
               </div>
             )}
             {serverError && (
@@ -464,7 +464,7 @@ export default function BrandPassport() {
             <div className="flex items-center gap-3 mb-6">
               <Loader2 className="w-5 h-5 text-brand-accent animate-spin shrink-0" />
               <h2 className="text-base sm:text-lg font-bold text-brand-text">
-                AI создаёт ваш паспорт бренда...
+                AI создает ваш паспорт бренда...
               </h2>
             </div>
             <div className="max-w-md space-y-3">
@@ -576,7 +576,7 @@ export default function BrandPassport() {
                 Паспорт готов! Что дальше? 🚀
               </h3>
               <p className="text-white/80 mb-3 sm:mb-4 text-xs sm:text-sm">
-                Используйте контентные столбы для генерации постов
+                Используйте ваши рубрики для генерации постов
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3">
                 <button
