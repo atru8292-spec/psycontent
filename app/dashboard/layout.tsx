@@ -35,17 +35,39 @@ const bottomNavItems = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<any>(null)
+  // 'loading' пока проверяем; 'ready' — профиль есть, рендерим кабинет;
+  // 'redirecting' — нет профиля/сессии, уводим (кабинет НЕ рендерим).
+  const [status, setStatus] = useState<'loading' | 'ready' | 'redirecting'>('loading')
   const [collapsed, setCollapsed] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
+  // Guard: в кабинет пускаем только юзера с заполненным профилем.
+  // Используем тот же запрос профиля, что и для имени в сайдбаре.
   useEffect(() => {
+    let active = true
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return
+      if (!active) return
+      if (!user) { setStatus('redirecting'); router.replace('/'); return }
       supabase.from('onboarding_profiles').select('full_name').eq('user_id', user.id).single()
-        .then(({ data }) => setProfile(data))
+        .then(({ data }) => {
+          if (!active) return
+          if (!data) { setStatus('redirecting'); router.replace('/onboarding'); return }
+          setProfile(data)
+          setStatus('ready')
+        })
     })
-  }, [])
+    return () => { active = false }
+  }, [router])
+
+  // Пока идёт проверка или уже уводим — не мигаем кабинетом.
+  if (status !== 'ready') {
+    return (
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full" />
+      </div>
+    )
+  }
 
   const handleLogout = async () => {
     await supabase.auth.signOut()

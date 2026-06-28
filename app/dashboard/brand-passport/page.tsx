@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
 import EmptyState from '@/components/EmptyState'
+import { LimitNotice } from '@/components/LimitNotice'
 import { generatePassportPDF } from '@/lib/generate-passport-pdf'
 
 // ─────────────────────────────────────────────────────────
@@ -270,6 +271,7 @@ export default function BrandPassport() {
   const [generatingChunk, setGeneratingChunk] = useState<0 | 1 | 2 | 3 | 4 | 5>(0)
   const [generatingPDF, setGeneratingPDF] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [needOnboarding, setNeedOnboarding] = useState(false)
   const [copied, setCopied] = useState(false)
   const router = useRouter()
 
@@ -293,6 +295,7 @@ export default function BrandPassport() {
     if (!user) return
     setGenerating(true)
     setError(null)
+    setNeedOnboarding(false)
     setPassport(null)
     setGeneratingChunk(0)
     const parts: string[] = []
@@ -305,7 +308,11 @@ export default function BrandPassport() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: user.id, chunk: step.chunk }),
         })
-        if (!response.ok || !response.body) throw new Error(`Ошибка на этапе ${step.chunk}`)
+        if (!response.ok || !response.body) {
+          const info = await response.json().catch(() => null)
+          if (info?.error === 'need_onboarding') { setNeedOnboarding(true); return }
+          throw new Error(`Ошибка на этапе ${step.chunk}`)
+        }
 
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
@@ -429,7 +436,12 @@ export default function BrandPassport() {
               actionLabel="Создать паспорт бренда"
               onAction={handleGenerate}
             />
-            {error && (
+            {needOnboarding && (
+              <div className="mt-4">
+                <LimitNotice title="Сначала заполните профиль" message="Паспорт бренда строится на вашей распаковке. Пройдите короткий онбординг, и мы соберём документ о вас." actionLabel="Заполнить профиль" actionHref="/onboarding" />
+              </div>
+            )}
+            {error && !needOnboarding && (
               <div className="mt-4 p-3 sm:p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-xs sm:text-sm">
                 {error}
               </div>

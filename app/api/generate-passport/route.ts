@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (profileError || !profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      return NextResponse.json({ error: 'need_onboarding', message: 'Сначала заполните профиль', redirect: '/onboarding' }, { status: 404 })
     }
 
     const arr = (val: any) => {

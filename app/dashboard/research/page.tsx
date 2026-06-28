@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
 import EmptyState from '@/components/EmptyState'
+import { LimitNotice } from '@/components/LimitNotice'
 
 type Topic = {
   id: number
@@ -131,6 +132,7 @@ export default function ResearchTopics() {
   const [loading, setLoading] = useState(true)
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [needOnboarding, setNeedOnboarding] = useState(false)
   const [filterBlock, setFilterBlock] = useState('all')
   const router = useRouter()
 
@@ -164,6 +166,7 @@ export default function ResearchTopics() {
     if (!user) return
     setSearching(true)
     setError(null)
+    setNeedOnboarding(false)
     try {
       const res = await fetch('/api/research-topics', {
         method: 'POST',
@@ -171,6 +174,7 @@ export default function ResearchTopics() {
         body: JSON.stringify({ userId: user.id, action: 'generate' }),
       })
       const data = await res.json()
+      if (data?.error === 'need_onboarding') { setNeedOnboarding(true); return }
       if (!res.ok) throw new Error(data.error || 'Ошибка поиска')
       setTopics(data.topics)
     } catch (err: any) {
@@ -262,7 +266,12 @@ export default function ResearchTopics() {
               actionLabel="Провести исследование"
               onAction={handleSearch}
             />
-            {error && (
+            {needOnboarding && (
+              <div className="mt-4">
+                <LimitNotice title="Сначала заполните профиль" message="Темы подбираются под вашу нишу из профиля. Пройдите короткую распаковку, и мы подберём идеи для вас." actionLabel="Заполнить профиль" actionHref="/onboarding" />
+              </div>
+            )}
+            {error && !needOnboarding && (
               <div className="mt-4 p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-sm">{error}</div>
             )}
           </motion.div>

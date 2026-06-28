@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
     ])
 
     const profile = profileRes.data
-    if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    if (!profile) return NextResponse.json({ error: 'need_onboarding', message: 'Сначала заполните профиль', redirect: '/onboarding' }, { status: 404 })
 
     const passport = passportRes.data?.content || ''
     const approaches = Array.isArray(profile.approaches) ? profile.approaches : []
