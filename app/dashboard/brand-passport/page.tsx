@@ -67,46 +67,138 @@ function parsePassport(content: string) {
   return sections
 }
 
+// ─────────────────────────────────────────────────────────
+// РЕНДЕР СОДЕРЖИМОГО РАЗДЕЛА
+// Данные в базе чистые (markdown от модели). Парсим структуру по строкам и
+// оформляем по бренду: подзаголовки **...** → аметист; метки «Слово:» в начале
+// строки → жирная метка индиго; списки → буллеты; парный *курсив* → italic;
+// бэктики и непарные звёздочки убираем полностью.
+// ─────────────────────────────────────────────────────────
+
+function escHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+// Инлайн-markdown → безопасный HTML. На выходе НЕ остаётся голых * или `.
+function inlineHtml(s: string): string {
+  return escHtml(s)
+    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-brand-text">$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em class="italic text-brand-text-secondary">$1</em>')
+    .replace(/`(.+?)`/g, '$1')
+    .replace(/[*`]/g, '') // непарные маркеры
+    .trim()
+}
+
+// Метка вида «Слово:» (1–4 коротких слова) в начале строки/буллета.
+const LABEL_RE = /^([A-ZА-ЯЁ][^:*]{0,26}):\s+(\S[\s\S]*)$/
+function isLabel(head: string): boolean {
+  return head.split(/\s+/).length <= 4
+}
+
+// Буллет: если начинается с короткой метки — выделяем её жирным индиго.
+function bulletHtml(s: string): string {
+  const m = s.match(LABEL_RE)
+  if (m && isLabel(m[1])) {
+    return `<strong class="font-semibold text-brand-text">${escHtml(m[1].trim())}:</strong> ` + inlineHtml(m[2])
+  }
+  return inlineHtml(s)
+}
+
+type Block =
+  | { kind: 'subhead'; text: string }
+  | { kind: 'para'; text: string; plate?: boolean }
+  | { kind: 'label'; label: string; rest: string }
+  | { kind: 'bullets'; items: string[] }
+
+function parseBlocks(text: string): Block[] {
+  const blocks: Block[] = []
+  let bulletBuf: string[] = []
+  const flush = () => { if (bulletBuf.length) { blocks.push({ kind: 'bullets', items: bulletBuf }); bulletBuf = [] } }
+
+  for (const raw of text.split('\n')) {
+    const t = raw.trim()
+    if (t === '') { flush(); continue }
+
+    // Подзаголовок: вся строка обёрнута в **...**
+    const sub = t.match(/^\*\*(.+?)\*\*$/)
+    if (sub) { flush(); blocks.push({ kind: 'subhead', text: sub[1].trim().replace(/:\s*$/, '') }); continue }
+
+    // Список
+    if (/^[-•]\s+/.test(t)) { bulletBuf.push(t.replace(/^[-•]\s+/, '')); continue }
+    flush()
+
+    // Метка-строка: «Слово:» + текст
+    const lab = t.match(LABEL_RE)
+    if (lab && isLabel(lab[1])) { blocks.push({ kind: 'label', label: lab[1].trim(), rest: lab[2].trim() }); continue }
+
+    blocks.push({ kind: 'para', text: t })
+  }
+  flush()
+
+  // Лавандовая плашка — точечно: абзац-определение сразу после подзаголовка «Формула».
+  for (let i = 0; i < blocks.length - 1; i++) {
+    const b = blocks[i]
+    if (b.kind === 'subhead' && /^формул/i.test(b.text)) {
+      const next = blocks[i + 1]
+      if (next.kind === 'para') next.plate = true
+    }
+  }
+  return blocks
+}
+
 function renderContent(text: string) {
-  const lines = text.split('\n')
-  return lines.map((line, i) => {
-    if (line.startsWith('- ')) {
-      return (
-        <li key={i} className="flex items-start gap-2 text-brand-text text-sm leading-relaxed">
-          <span className="w-1.5 h-1.5 rounded-full bg-brand-accent mt-[0.45rem] shrink-0" />
-          <span
-            dangerouslySetInnerHTML={{
-              __html: line
-                .slice(2)
-                .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>'),
-            }}
+  const blocks = parseBlocks(text)
+  return (
+    <div className="space-y-4 sm:space-y-5">
+      {blocks.map((b, i) => {
+        if (b.kind === 'subhead') {
+          return (
+            <p
+              key={i}
+              className="text-[15px] sm:text-base font-semibold text-brand-accent leading-snug pt-1"
+              dangerouslySetInnerHTML={{ __html: inlineHtml(b.text) }}
+            />
+          )
+        }
+        if (b.kind === 'bullets') {
+          return (
+            <ul key={i} className="space-y-2.5">
+              {b.items.map((it, j) => (
+                <li key={j} className="flex items-start gap-2.5 text-[15px] text-brand-text leading-[1.6]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-sage mt-[0.55rem] shrink-0" />
+                  <span dangerouslySetInnerHTML={{ __html: bulletHtml(it) }} />
+                </li>
+              ))}
+            </ul>
+          )
+        }
+        if (b.kind === 'label') {
+          return (
+            <p key={i} className="text-[15px] text-brand-text leading-[1.6]">
+              <span className="font-semibold text-brand-text">{b.label}: </span>
+              <span dangerouslySetInnerHTML={{ __html: inlineHtml(b.rest) }} />
+            </p>
+          )
+        }
+        if (b.plate) {
+          return (
+            <div
+              key={i}
+              className="bg-brand-soft rounded-2xl px-4 py-3.5 sm:px-5 sm:py-4 text-[15px] text-brand-text leading-[1.6]"
+              dangerouslySetInnerHTML={{ __html: inlineHtml(b.text) }}
+            />
+          )
+        }
+        return (
+          <p
+            key={i}
+            className="text-[15px] text-brand-text leading-[1.6]"
+            dangerouslySetInnerHTML={{ __html: inlineHtml(b.text) }}
           />
-        </li>
-      )
-    }
-    if (line.startsWith('### ') || /^\*\*[^\d]/.test(line)) {
-      const clean = line
-        .replace(/^###\s+/, '')
-        .replace(/^\*\*/, '')
-        .replace(/\*\*$/, '')
-        .trim()
-      return (
-        <p key={i} className="font-semibold text-brand-text mt-5 mb-2 text-sm">
-          {clean}
-        </p>
-      )
-    }
-    if (line.trim() === '') return <div key={i} className="h-3" />
-    return (
-      <p
-        key={i}
-        className="text-brand-text text-sm leading-[1.75]"
-        dangerouslySetInnerHTML={{
-          __html: line.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>'),
-        }}
-      />
-    )
-  })
+        )
+      })}
+    </div>
+  )
 }
 
 const sectionMeta: Record<string, { icon: any; color: string; bg: string; accent: string }> = {
@@ -134,14 +226,13 @@ function SectionCard({
   const [open, setOpen] = useState(index < 3)
   const meta = sectionMeta[section.num] || sectionMeta['1']
   const Icon = meta.icon
-  const hasList = section.content.split('\n').some(l => l.startsWith('- '))
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className={`rounded-xl sm:rounded-2xl border bg-white overflow-hidden ${meta.accent}`}
+      className={`rounded-2xl sm:rounded-3xl border bg-white overflow-hidden ${meta.accent}`}
     >
       <button
         onClick={() => setOpen(!open)}
@@ -165,12 +256,9 @@ function SectionCard({
       </button>
 
       {open && (
-        <div className={`px-4 sm:px-6 pb-5 sm:pb-7 border-t ${meta.accent}`}>
-          <div className="pt-4 sm:pt-5">
-            {hasList
-              ? <ul className="space-y-2 sm:space-y-2.5">{renderContent(section.content)}</ul>
-              : <div className="space-y-0">{renderContent(section.content)}</div>
-            }
+        <div className={`px-5 sm:px-7 pb-6 sm:pb-8 border-t ${meta.accent}`}>
+          <div className="pt-5 sm:pt-6">
+            {renderContent(section.content)}
           </div>
         </div>
       )}
