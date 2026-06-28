@@ -341,11 +341,19 @@ function Hero() {
           <motion.div variants={fadeUp} className="mb-4 sm:mb-6">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-brand-text leading-tight">
               Вы помогаете людям найти себя.{" "}
-              <span className="text-brand-accent">Мы поможем людям найти вас.</span>
+              <span className="text-brand-accent">
+                Мы поможем людям{" "}
+                <span className="relative inline-block whitespace-nowrap">
+                  найти вас
+                  <Squiggle
+                    variant={0}
+                    width="100%"
+                    className="!mt-0 absolute left-0 right-0 -bottom-1 sm:-bottom-1.5"
+                  />
+                </span>
+                .
+              </span>
             </h1>
-            <div className="flex justify-center">
-              <Squiggle variant={0} width="55%" />
-            </div>
           </motion.div>
 
           <motion.p variants={fadeUp} className="text-base sm:text-lg md:text-xl text-brand-muted max-w-2xl mx-auto mb-8 sm:mb-10">

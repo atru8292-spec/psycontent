@@ -47,7 +47,10 @@ export default function Squiggle({ variant = 0, width = '64%', className = '' }:
           fill="none"
           initial={{ pathLength: 0, opacity: 0 }}
           animate={{ pathLength: 1, opacity: 1 }}
-          transition={{ duration: 0.5, ease: 'easeInOut' }}
+          transition={{
+            pathLength: { duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.15 },
+            opacity: { duration: 0.15, delay: 0.15 },
+          }}
         />
       </svg>
     </div>
