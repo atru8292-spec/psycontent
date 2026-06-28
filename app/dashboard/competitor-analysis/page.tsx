@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown'
 import { ArrowLeft, Search, Clipboard, RotateCcw, Trash2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
 import EmptyState from '@/components/EmptyState'
+import { LimitNotice } from '@/components/LimitNotice'
 
 interface Analysis {
   id: string
@@ -36,6 +37,7 @@ export default function CompetitorAnalysisPage() {
   const [analysis, setAnalysis] = useState('')
   const [history, setHistory] = useState<Analysis[]>([])
   const [error, setError] = useState('')
+  const [limitNotice, setLimitNotice] = useState('')
   const [expandedHistory, setExpandedHistory] = useState<string | null>(null)
   const [currentAnalysisStep, setCurrentAnalysisStep] = useState(0) // 1-4 во время анализа
 
@@ -70,25 +72,31 @@ export default function CompetitorAnalysisPage() {
     try { data = JSON.parse(text) } catch {
       throw new Error(`Сервер не ответил (${res.status}). Попробуйте ещё раз.`)
     }
-    if (!res.ok) throw new Error(data.error || `Ошибка ${res.status}`)
+    if (!res.ok) throw Object.assign(new Error(data.error || `Ошибка ${res.status}`), { status: res.status })
     return data
   }
 
+  // Лимит/доступ (402/403) — мягкая плашка, остальное — обычная ошибка.
+  const isLimit = (e: unknown) => (e as { status?: number })?.status === 402 || (e as { status?: number })?.status === 403
+
   const handleTranscribe = async () => {
     if (!url.trim()) return setError('Вставь ссылку')
-    setError(''); setTranscript(''); setAnalysis(''); setStep('transcribing')
+    setError(''); setLimitNotice(''); setTranscript(''); setAnalysis(''); setStep('transcribing')
     try {
       const token = await getToken()
       const data = await safeFetch('/api/transcribe', token, { url })
       setTranscript(data.transcript); setPlatform(data.platform); setStep('transcribed')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Ошибка транскрипции'); setStep('idle')
+      if (isLimit(e)) setLimitNotice(e instanceof Error ? e.message : '')
+      else setError(e instanceof Error ? e.message : 'Ошибка транскрипции')
+      setStep('idle')
     }
   }
 
   const handleAnalyze = async () => {
     if (!transcript) return
     setError('')
+    setLimitNotice('')
     setAnalysis('')
     setStep('analyzing')
     setCurrentAnalysisStep(0)
@@ -120,6 +128,9 @@ export default function CompetitorAnalysisPage() {
           const text = await res.text()
           let errMsg = `Ошибка ${res.status}`
           try { errMsg = JSON.parse(text).error || errMsg } catch {}
+          if (res.status === 402 || res.status === 403) {
+            setLimitNotice(errMsg); setStep('transcribed'); setCurrentAnalysisStep(0); return
+          }
           throw new Error(errMsg)
         }
 
@@ -166,7 +177,7 @@ export default function CompetitorAnalysisPage() {
 
   const handleReset = () => {
     setStep('idle'); setUrl(''); setTranscript(''); setAnalysis('')
-    setPlatform(''); setError(''); setCurrentAnalysisStep(0)
+    setPlatform(''); setError(''); setLimitNotice(''); setCurrentAnalysisStep(0)
   }
 
   const loadFromHistory = (item: Analysis) => {
@@ -276,7 +287,10 @@ export default function CompetitorAnalysisPage() {
               </div>
             )}
 
-            {/* Ошибка */}
+            {/* Мягкое сообщение о лимите/доступе (энергия, проба, тариф) */}
+            {limitNotice && <LimitNotice message={limitNotice} />}
+
+            {/* Ошибка (техническая) */}
             {error && (
               <div className="bg-brand-soft border border-brand-border-soft rounded-xl px-4 py-3 text-brand-text text-sm">
                 {error}

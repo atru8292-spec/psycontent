@@ -2,7 +2,8 @@
 
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Cpu, Info } from 'lucide-react'
+import { ArrowLeft, Zap } from 'lucide-react'
+import { EnergyTariffPanel } from '@/components/EnergyTariff'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -18,31 +19,19 @@ export default function SettingsPage() {
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <Cpu className="w-5 h-5 text-brand-accent" />
-          <span className="font-bold text-brand-text">Настройки</span>
+          <Zap className="w-5 h-5 text-brand-sage" />
+          <span className="font-bold text-brand-text">Тариф и энергия</span>
         </div>
       </nav>
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-
-          <h1 className="text-2xl font-bold text-brand-text mb-1">AI-модель</h1>
+          <h1 className="text-2xl font-bold text-brand-text mb-1">Тариф и энергия</h1>
           <p className="text-brand-muted mb-8">
-            Все генерации используют одну модель, GPT&nbsp;5.4. Она подобрана специально под психологический контент и обеспечивает лучший результат.
+            Ваш текущий тариф и остаток энергии. Всё только для просмотра.
           </p>
 
-          <div className="soft-panel flex items-start gap-4">
-            <div className="w-10 h-10 rounded-2xl bg-brand-soft-2 flex items-center justify-center shrink-0">
-              <Info className="w-5 h-5 text-brand-accent" />
-            </div>
-            <div>
-              <p className="font-semibold text-brand-text mb-1">GPT 5.4, единая модель</p>
-              <p className="text-sm text-brand-muted leading-relaxed">
-                Мы провели тесты и выбрали модель, которая лучше всего понимает контекст психологических текстов и звучит как живой человек, а не как нейросеть. Выбор модели вручную временно недоступен.
-              </p>
-            </div>
-          </div>
-
+          <EnergyTariffPanel />
         </motion.div>
       </div>
     </div>

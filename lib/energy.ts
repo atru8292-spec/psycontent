@@ -69,6 +69,7 @@ export interface Decision {
 interface PlanRow {
   id: string
   code: string
+  name: string
   is_unlimited: boolean
   energy_per_month: number
   fair_use_text_cap: number | null
@@ -276,4 +277,53 @@ export async function recordFailure(userId: string, operation: string): Promise<
 // Отказ ДО работы (нет энергии/доступа): денег не тратим, факт фиксируем.
 export async function recordRefusal(userId: string, operation: string): Promise<void> {
   await logUsage(admin(), userId, operation, 0, 0, 0)
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// getAccountSummary — read-only сводка для интерфейса (тариф + энергия + у Free
+// остаток проб текста). СТРОГО ТОЛЬКО ЧТЕНИЕ: ничего не списывает и не пополняет.
+// Скрытый счётчик текста у ПЛАТНЫХ и usage_log клиенту НЕ отдаём (по CLAUDE.md).
+// ───────────────────────────────────────────────────────────────────────────
+export interface AccountSummary {
+  plan: { code: string; name: string; isUnlimited: boolean; deepAnalysis: boolean }
+  energy: { balance: number; monthlyAllowance: number; nextRefill: string | null } | null
+  textTrial: { remaining: number; cap: number } | null
+}
+
+export async function getAccountSummary(userId: string): Promise<AccountSummary> {
+  const db = admin()
+  const plan = await getPlanForUser(db, userId)
+
+  // Энергию показываем только тарифам с месячным пулом (платные, не безлимит).
+  let energy: AccountSummary['energy'] = null
+  if (!plan.is_unlimited && plan.energy_per_month > 0) {
+    const { data: w } = await db
+      .from('energy_wallet')
+      .select('balance, monthly_allowance, next_refill')
+      .eq('user_id', userId)
+      .maybeSingle()
+    // Read-only: если срок пополнения прошёл, показываем месячную норму (пополнение
+    // реально произойдёт при следующей операции — здесь ничего не пишем).
+    const allowance = w?.monthly_allowance ?? plan.energy_per_month
+    const due = w?.next_refill ? new Date(w.next_refill) <= new Date() : false
+    energy = {
+      balance: due ? allowance : (w?.balance ?? 0),
+      monthlyAllowance: allowance,
+      nextRefill: w?.next_refill ?? null,
+    }
+  }
+
+  // Остаток проб текста — ТОЛЬКО для Free (это его витрина «N из 10»).
+  // Платным число скрыто (у них «Безлимит»), тарифу Тест — не показываем.
+  let textTrial: AccountSummary['textTrial'] = null
+  if (plan.code === 'free' && plan.fair_use_text_cap != null) {
+    const used = await textCount(db, userId)
+    textTrial = { remaining: Math.max(0, plan.fair_use_text_cap - used), cap: plan.fair_use_text_cap }
+  }
+
+  return {
+    plan: { code: plan.code, name: plan.name, isUnlimited: plan.is_unlimited, deepAnalysis: plan.deep_analysis },
+    energy,
+    textTrial,
+  }
 }

@@ -11,6 +11,7 @@ import {
   BookOpen, Star,
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
+import { EnergyBadge } from '@/components/EnergyTariff'
 
 const toolGroups = [
   {
@@ -122,6 +123,7 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            <EnergyBadge />
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-brand-card border border-brand-border text-sm text-brand-text font-medium">
               <TrendingUp className="w-3.5 h-3.5 text-brand-accent" />
               {stats.posts} постов
