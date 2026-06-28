@@ -14,6 +14,7 @@ import {
 import Squiggle from '@/components/Squiggle'
 import EmptyState from '@/components/EmptyState'
 import { LimitNotice } from '@/components/LimitNotice'
+import { ServerErrorNotice } from '@/components/ServerErrorNotice'
 
 type Topic = {
   id: number
@@ -133,6 +134,7 @@ export default function ResearchTopics() {
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [needOnboarding, setNeedOnboarding] = useState(false)
+  const [serverError, setServerError] = useState(false)
   const [filterBlock, setFilterBlock] = useState('all')
   const router = useRouter()
 
@@ -167,6 +169,7 @@ export default function ResearchTopics() {
     setSearching(true)
     setError(null)
     setNeedOnboarding(false)
+    setServerError(false)
     try {
       const res = await fetch('/api/research-topics', {
         method: 'POST',
@@ -175,6 +178,7 @@ export default function ResearchTopics() {
       })
       const data = await res.json()
       if (data?.error === 'need_onboarding') { setNeedOnboarding(true); return }
+      if (data?.error === 'server_error') { setServerError(true); return }
       if (!res.ok) throw new Error(data.error || 'Ошибка поиска')
       setTopics(data.topics)
     } catch (err: any) {
@@ -271,7 +275,12 @@ export default function ResearchTopics() {
                 <LimitNotice title="Сначала заполните профиль" message="Темы подбираются под вашу нишу из профиля. Пройдите короткую распаковку, и мы подберём идеи для вас." actionLabel="Заполнить профиль" actionHref="/onboarding" />
               </div>
             )}
-            {error && !needOnboarding && (
+            {serverError && (
+              <div className="mt-4">
+                <ServerErrorNotice onRetry={handleSearch} />
+              </div>
+            )}
+            {error && !needOnboarding && !serverError && (
               <div className="mt-4 p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-sm">{error}</div>
             )}
           </motion.div>

@@ -204,7 +204,14 @@ export async function POST(request: NextRequest) {
       .eq('user_id', userId)
       .single()
 
-    if (profileError || !profile) {
+    // Различаем «нет строки профиля» (PGRST116) от ошибки чтения (права/сеть/JWT).
+    // Только реальное отсутствие профиля = need_onboarding. Сбой чтения = server_error,
+    // НИКОГДА не врём юзеру «заполните профиль» из-за серверной поломки.
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.error('generate-passport: profile read failed', userId, profileError)
+      return NextResponse.json({ error: 'server_error', message: 'Что-то пошло не так на нашей стороне. Попробуйте через минуту.' }, { status: 500 })
+    }
+    if (!profile) {
       return NextResponse.json({ error: 'need_onboarding', message: 'Сначала заполните профиль', redirect: '/onboarding' }, { status: 404 })
     }
 

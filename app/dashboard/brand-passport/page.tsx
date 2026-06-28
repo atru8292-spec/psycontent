@@ -14,6 +14,7 @@ import {
 import Squiggle from '@/components/Squiggle'
 import EmptyState from '@/components/EmptyState'
 import { LimitNotice } from '@/components/LimitNotice'
+import { ServerErrorNotice } from '@/components/ServerErrorNotice'
 import { generatePassportPDF } from '@/lib/generate-passport-pdf'
 
 // ─────────────────────────────────────────────────────────
@@ -272,6 +273,7 @@ export default function BrandPassport() {
   const [generatingPDF, setGeneratingPDF] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [needOnboarding, setNeedOnboarding] = useState(false)
+  const [serverError, setServerError] = useState(false)
   const [copied, setCopied] = useState(false)
   const router = useRouter()
 
@@ -296,6 +298,7 @@ export default function BrandPassport() {
     setGenerating(true)
     setError(null)
     setNeedOnboarding(false)
+    setServerError(false)
     setPassport(null)
     setGeneratingChunk(0)
     const parts: string[] = []
@@ -311,6 +314,7 @@ export default function BrandPassport() {
         if (!response.ok || !response.body) {
           const info = await response.json().catch(() => null)
           if (info?.error === 'need_onboarding') { setNeedOnboarding(true); return }
+          if (info?.error === 'server_error') { setServerError(true); return }
           throw new Error(`Ошибка на этапе ${step.chunk}`)
         }
 
@@ -441,7 +445,12 @@ export default function BrandPassport() {
                 <LimitNotice title="Сначала заполните профиль" message="Паспорт бренда строится на вашей распаковке. Пройдите короткий онбординг, и мы соберём документ о вас." actionLabel="Заполнить профиль" actionHref="/onboarding" />
               </div>
             )}
-            {error && !needOnboarding && (
+            {serverError && (
+              <div className="mt-4">
+                <ServerErrorNotice onRetry={handleGenerate} />
+              </div>
+            )}
+            {error && !needOnboarding && !serverError && (
               <div className="mt-4 p-3 sm:p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-xs sm:text-sm">
                 {error}
               </div>

@@ -17,6 +17,7 @@ import {
 import Squiggle from '@/components/Squiggle'
 import EmptyState from '@/components/EmptyState'
 import { LimitNotice } from '@/components/LimitNotice'
+import { ServerErrorNotice } from '@/components/ServerErrorNotice'
 
 type DayItem = {
   day: number
@@ -321,6 +322,7 @@ export default function ContentPlan() {
   const [currentBatch, setCurrentBatch] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [needOnboarding, setNeedOnboarding] = useState(false)
+  const [serverError, setServerError] = useState(false)
   const [selected, setSelected] = useState<DayItem | null>(null)
   const [filter, setFilter] = useState<string>('all')
   const router = useRouter()
@@ -348,6 +350,7 @@ export default function ContentPlan() {
     setGenerating(true)
     setError(null)
     setNeedOnboarding(false)
+    setServerError(false)
     setPlan([])
     setCurrentBatch(0)
 
@@ -363,6 +366,7 @@ export default function ContentPlan() {
 
         const data = await res.json()
         if (data?.error === 'need_onboarding') { setNeedOnboarding(true); return }
+        if (data?.error === 'server_error') { setServerError(true); return }
         if (!res.ok) throw new Error(data.error || 'Ошибка генерации')
 
         setPlan(data.plan)
@@ -473,7 +477,8 @@ export default function ContentPlan() {
               onAction={handleGenerate}
             />
             {needOnboarding && <div className="mt-4"><LimitNotice title="Сначала заполните профиль" message="Чтобы собрать контент-план в вашем голосе, нужно пройти короткую распаковку профиля." actionLabel="Заполнить профиль" actionHref="/onboarding" /></div>}
-            {error && !needOnboarding && <div className="mt-4 p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-[15px] md:text-sm">{error}</div>}
+            {serverError && <div className="mt-4"><ServerErrorNotice onRetry={handleGenerate} /></div>}
+            {error && !needOnboarding && !serverError && <div className="mt-4 p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-[15px] md:text-sm">{error}</div>}
           </motion.div>
         )}
 
@@ -623,7 +628,7 @@ export default function ContentPlan() {
         )}
 
         {/* Ошибка */}
-        {error && !needOnboarding && !generating && (
+        {error && !needOnboarding && !serverError && !generating && (
           <div className="max-w-lg mx-auto mt-6 p-5 md:p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-[16px] md:text-sm text-center">
             {error}
             <button

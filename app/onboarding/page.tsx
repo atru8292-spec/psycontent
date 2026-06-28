@@ -369,6 +369,7 @@ export default function Onboarding() {
   const [answers, setAnswers] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(false)
   const [completed, setCompleted] = useState(false)
+  const [alreadyHasProfile, setAlreadyHasProfile] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const router = useRouter()
 
@@ -384,7 +385,10 @@ export default function Onboarding() {
         .eq('user_id', user.id)
         .single()
 
-      if (data) router.push('/dashboard')
+      // Анти-цикл: профиль уже есть → НЕ делаем слепой авто-push в дашборд
+      // (иначе при ложном редиректе сюда получается пинг-понг онбординг↔кабинет).
+      // Показываем экран с ручным переходом — авто-редиректа нет, цикл невозможен.
+      if (data) setAlreadyHasProfile(true)
     }
     checkUser()
   }, [router])
@@ -522,6 +526,26 @@ export default function Onboarding() {
     }
 
     setCompleted(true)
+  }
+
+  // --- ЭКРАН «ПРОФИЛЬ УЖЕ ЕСТЬ» (анти-цикл: без авто-редиректа) ---
+  if (alreadyHasProfile) {
+    return (
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center p-4 sm:p-6">
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-lg w-full rounded-2xl p-5 sm:p-8 border border-brand-border text-center shadow-xl">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-brand-soft rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+            <CheckCircle className="w-8 h-8 sm:w-10 sm:h-10 text-brand-accent" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-brand-text mb-3 sm:mb-4">Ваш профиль уже заполнен</h1>
+          <p className="text-sm sm:text-base text-brand-text-secondary mb-6 sm:mb-8 leading-relaxed">
+            Распаковка пройдена, всё на месте. Можно сразу создавать контент.
+          </p>
+          <button onClick={() => router.push('/dashboard')} className="w-full py-3.5 sm:py-4 bg-brand-accent hover:bg-brand-accent-hover text-white rounded-xl font-bold text-sm sm:text-base transition flex items-center justify-center gap-2 shadow-lg cursor-pointer">
+            В кабинет <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+          </button>
+        </motion.div>
+      </div>
+    )
   }
 
   // --- ЭКРАН ЗАВЕРШЕНИЯ ---

@@ -28,6 +28,11 @@ export async function POST(request: NextRequest) {
       supabaseAdmin.from('content_plans').select('plan').eq('user_id', userId).single()
     ])
 
+    // Различаем «нет строки профиля» (PGRST116) от ошибки чтения (права/сеть/JWT).
+    if (profileRes.error && profileRes.error.code !== 'PGRST116') {
+      console.error('generate-content-plan: profile read failed', userId, profileRes.error)
+      return NextResponse.json({ error: 'server_error', message: 'Что-то пошло не так на нашей стороне. Попробуйте через минуту.' }, { status: 500 })
+    }
     const profile = profileRes.data
     if (!profile) return NextResponse.json({ error: 'need_onboarding', message: 'Сначала заполните профиль', redirect: '/onboarding' }, { status: 404 })
 
