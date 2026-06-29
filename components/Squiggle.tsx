@@ -18,9 +18,11 @@ interface SquiggleProps {
   /** Ширина линии. По умолчанию '64%' */
   width?: string | number
   className?: string
+  /** Нарисовать сразу без анимации (для prefers-reduced-motion) */
+  staticDraw?: boolean
 }
 
-export default function Squiggle({ variant = 0, width = '64%', className = '' }: SquiggleProps) {
+export default function Squiggle({ variant = 0, width = '64%', className = '', staticDraw = false }: SquiggleProps) {
   const path = PATHS[variant % PATHS.length]
 
   return (
@@ -45,9 +47,9 @@ export default function Squiggle({ variant = 0, width = '64%', className = '' }:
           strokeLinecap="round"
           strokeLinejoin="round"
           fill="none"
-          initial={{ pathLength: 0, opacity: 0 }}
+          initial={staticDraw ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
           animate={{ pathLength: 1, opacity: 1 }}
-          transition={{
+          transition={staticDraw ? { duration: 0 } : {
             pathLength: { duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.15 },
             opacity: { duration: 0.15, delay: 0.15 },
           }}

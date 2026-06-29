@@ -64,6 +64,8 @@ function PostGeneratorContent() {
   const [firstMode, setFirstMode] = useState(false)
   const [showRubrics, setShowRubrics] = useState(false)
   const [platform, setPlatform] = useState<'instagram' | 'telegram'>('instagram')
+  // Мысль, с которой человек пришел из демо на лендинге (localStorage seed)
+  const [fromSeed, setFromSeed] = useState(false)
 
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState<string | null>(null)
@@ -107,6 +109,25 @@ function PostGeneratorContent() {
       setSelectedFormat('post')
     }
   }, [searchParams])
+
+  // Мысль из демо-перехвата на лендинге (localStorage, TTL 24ч). Удаляем только
+  // после успешной генерации (см. handleGenerate), чтобы при server_error не потерять.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('psycont_seed_thought')
+      if (!raw) return
+      const { text, ts } = JSON.parse(raw)
+      if (text && typeof ts === 'number' && Date.now() - ts < 24 * 3600 * 1000) {
+        setCustomTopic(String(text))
+        setUseCustom(true)
+        setSelectedFormat('post')
+        setFromSeed(true)
+        setFirstMode(true) // показать упрощенный композер и ярлык даже если пришли не через ?first=1
+      } else {
+        localStorage.removeItem('psycont_seed_thought')
+      }
+    } catch { /* localStorage недоступен — тихий фолбэк на пример+чипы */ }
+  }, [])
 
   useEffect(() => {
     const init = async () => {
@@ -168,6 +189,12 @@ function PostGeneratorContent() {
       setResult(data.post)
 
       setSaved(true)
+
+      // Мысль из демо использована, чистим seed (после успеха, не на чтении)
+      if (fromSeed) {
+        try { localStorage.removeItem('psycont_seed_thought') } catch {}
+        setFromSeed(false)
+      }
 
     } catch (err: any) {
       setError(err.message)
@@ -271,6 +298,12 @@ function PostGeneratorContent() {
           <div className="space-y-6">
             {firstMode && !showRubrics ? (
               <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl border border-brand-border p-5 sm:p-6 space-y-4">
+                {fromSeed && (
+                  <div>
+                    <p className="text-[10px] font-bold text-brand-muted uppercase tracking-widest mb-1">мысль, с которой ты пришел</p>
+                    <p className="text-xs text-brand-muted">Ты написал ее на главной. Соберем пост из нее или поменяй на другую.</p>
+                  </div>
+                )}
                 {/* Поле мысли: пример в placeholder, не значение */}
                 <div className="relative">
                   <textarea
@@ -286,10 +319,10 @@ function PostGeneratorContent() {
                   </button>
                 </div>
 
-                {/* Затравки: пока своей мысли нет */}
-                {(!customTopic.trim() || SEED_THOUGHTS.includes(customTopic.trim())) && (
+                {/* Затравки: пока своей мысли нет, либо «или начни с другого» при seed */}
+                {(!customTopic.trim() || SEED_THOUGHTS.includes(customTopic.trim()) || fromSeed) && (
                   <div>
-                    <p className="text-[10px] font-bold text-brand-muted uppercase tracking-widest mb-2">или начни с этого</p>
+                    <p className="text-[10px] font-bold text-brand-muted uppercase tracking-widest mb-2">{fromSeed ? 'или начни с другого' : 'или начни с этого'}</p>
                     <div className="space-y-2">
                       {SEED_THOUGHTS.map(t => (
                         <button type="button" key={t} onClick={() => setCustomTopic(t)}
