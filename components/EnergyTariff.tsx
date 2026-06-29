@@ -36,12 +36,33 @@ function refillDate(iso: string | null): string {
 }
 
 // ── Компактная плашка в шапке дашборда (ведет в «Тариф и энергия») ──
-export function EnergyBadge({ data }: { data?: Summary | null } = {}) {
+export function EnergyBadge({ data, compact }: { data?: Summary | null; compact?: boolean } = {}) {
   const auto = useAccount(data === undefined)
   const d = data === undefined ? auto : data
   const router = useRouter()
   if (!d?.plan) return null
   const { plan, energy, textTrial } = d
+
+  // Компактный вид для постоянной шапки/свернутого сайдбара: иконка + значение, без имени тарифа
+  if (compact) {
+    let v = ''
+    if (!plan.isUnlimited) {
+      if (textTrial) v = `${textTrial.remaining}/${textTrial.cap}`
+      else if (energy) v = `${energy.balance}/${energy.monthlyAllowance}`
+    }
+    return (
+      <button
+        onClick={() => router.push('/dashboard/settings#energy')}
+        aria-label="Энергия и тариф"
+        className="flex items-center gap-1 px-2.5 py-1.5 rounded-2xl bg-brand-soft border border-brand-border-soft text-sm font-semibold text-brand-accent hover:border-brand-accent/40 transition cursor-pointer"
+      >
+        <Zap className="w-3.5 h-3.5 text-brand-sage shrink-0" />
+        {plan.isUnlimited
+          ? <InfinityIcon className="w-3.5 h-3.5 shrink-0" />
+          : (v && <span className="whitespace-nowrap">{v}</span>)}
+      </button>
+    )
+  }
 
   let value: React.ReactNode = null
   if (plan.isUnlimited) {
@@ -62,7 +83,7 @@ export function EnergyBadge({ data }: { data?: Summary | null } = {}) {
 
   return (
     <button
-      onClick={() => router.push('/dashboard/settings')}
+      onClick={() => router.push('/dashboard/settings#energy')}
       className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-brand-soft border border-brand-border-soft text-sm text-brand-text font-medium hover:border-brand-accent/40 transition cursor-pointer"
     >
       <Zap className="w-3.5 h-3.5 text-brand-sage shrink-0" />
@@ -73,10 +94,16 @@ export function EnergyBadge({ data }: { data?: Summary | null } = {}) {
 
 // ── Иконка «?» с поповером «что такое энергия» (рядом с бейджем в шапке) ──
 // Объясняет на месте, не уводя в настройки. Тон успокаивающий: почти все бесплатно.
-export function EnergyInfo() {
+// placement задает позицию поповера так, чтобы он не уезжал за край в обоих местах:
+// 'header' (мобильная шапка) — fixed в правом верхнем углу под шапкой, всегда влезает;
+// 'sidebar' (низ десктоп-сайдбара) — открывается вверх и вправо, не режется низом экрана.
+export function EnergyInfo({ placement = 'header' }: { placement?: 'header' | 'sidebar' } = {}) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
   const ref = useRef<HTMLDivElement>(null)
+  const sidebar = placement === 'sidebar'
+  const popClass = sidebar ? 'absolute bottom-full mb-2 left-0' : 'fixed top-14 right-4'
+  const yFrom = sidebar ? 8 : -8
 
   useEffect(() => {
     if (!open) return
@@ -107,11 +134,11 @@ export function EnergyInfo() {
         {open && (
           <motion.div
             role="dialog"
-            initial={{ opacity: 0, y: -8 }}
+            initial={{ opacity: 0, y: yFrom }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
+            exit={{ opacity: 0, y: yFrom }}
             transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 w-[280px] max-w-[calc(100vw-32px)] z-50 rounded-3xl bg-brand-soft border border-brand-border-soft shadow-[0_18px_40px_-16px_rgba(46,42,69,0.35)] p-4"
+            className={`${popClass} w-[280px] max-w-[calc(100vw-32px)] z-50 rounded-3xl bg-brand-soft border border-brand-border-soft shadow-[0_18px_40px_-16px_rgba(46,42,69,0.35)] p-4`}
           >
             <p className="font-bold text-brand-text text-sm mb-1.5">Почему почти все бесплатно</p>
             <p className="text-[13px] text-brand-muted leading-relaxed">
@@ -187,7 +214,7 @@ export function EnergyTariffPanel({ data }: { data?: Summary | null } = {}) {
           </div>
           <Bar value={textTrial.remaining} max={textTrial.cap} />
           <p className="text-sm text-brand-muted leading-relaxed mt-3">
-            Пробный доступ к AI-картинкам, транскрибации и глубокому анализу конкурента — по одному разу.
+            Пробный доступ к AI-картинкам, транскрибации и глубокому анализу конкурента, по одному разу.
           </p>
         </div>
       ) : energy ? (

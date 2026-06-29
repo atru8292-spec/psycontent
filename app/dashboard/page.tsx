@@ -11,7 +11,6 @@ import {
   Star, Map,
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
-import { EnergyBadge, EnergyInfo } from '@/components/EnergyTariff'
 import { isVoiceIncomplete } from '@/lib/profile-status'
 
 const toolGroups = [
@@ -126,10 +125,6 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-0.5">
-              <EnergyBadge />
-              <EnergyInfo />
-            </div>
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-brand-card border border-brand-border text-sm text-brand-text font-medium">
               <TrendingUp className="w-3.5 h-3.5 text-brand-accent" />
               {stats.posts} постов

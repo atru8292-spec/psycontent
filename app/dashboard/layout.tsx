@@ -10,6 +10,7 @@ import {
   Wrench, Film, RefreshCcw, Search, History, Settings,
   LogOut, User, ChevronRight, LayoutDashboard,
 } from 'lucide-react'
+import { EnergyBadge, EnergyInfo } from '@/components/EnergyTariff'
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Главная', href: '/dashboard', exact: true },
@@ -39,8 +40,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // 'redirecting' — нет профиля/сессии, уводим (кабинет НЕ рендерим).
   const [status, setStatus] = useState<'loading' | 'ready' | 'redirecting' | 'error'>('loading')
   const [collapsed, setCollapsed] = useState(false)
+  // Сводка энергии тянется один раз в layout и отдается обоим бейджам (десктоп + мобилка)
+  const [energy, setEnergy] = useState<any>(null)
   const router = useRouter()
   const pathname = usePathname()
+
+  useEffect(() => {
+    let on = true
+    fetch('/api/me').then((r) => (r.ok ? r.json() : null)).then((j) => { if (on) setEnergy(j) }).catch(() => {})
+    return () => { on = false }
+  }, [])
 
   // Guard: в кабинет пускаем только юзера с заполненным профилем.
   // Используем тот же запрос профиля, что и для имени в сайдбаре.
@@ -156,6 +165,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Низ сайдбара */}
         <div className="border-t border-brand-border p-3 space-y-1 shrink-0">
+          {/* Энергия, всегда на глазах */}
+          {collapsed ? (
+            <Link href="/dashboard/settings#energy" title="Энергия и тариф" className="flex items-center justify-center py-2.5 rounded-2xl text-brand-muted hover:bg-brand-soft hover:text-brand-text transition">
+              <Zap className="w-[18px] h-[18px] text-brand-sage" />
+            </Link>
+          ) : (
+            <div className="flex items-center gap-1 px-1 pb-1">
+              <EnergyBadge data={energy} />
+              <EnergyInfo placement="sidebar" />
+            </div>
+          )}
+
           <Link href="/dashboard/settings" className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-brand-muted hover:bg-brand-soft hover:text-brand-text transition group relative ${collapsed ? 'justify-center' : ''}`}>
             <Settings className="w-[18px] h-[18px] shrink-0" />
             {!collapsed && <span className="text-[13px] font-medium">Настройки</span>}
@@ -193,7 +214,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             height={24}
             className="h-6 w-auto"
           />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <EnergyBadge compact data={energy} />
+            <EnergyInfo placement="header" />
             <Link href="/dashboard/settings" className="p-2 text-brand-muted hover:text-brand-accent transition">
               <Settings className="w-5 h-5" />
             </Link>
