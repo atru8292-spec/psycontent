@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion } from 'framer-motion'
-import { Sparkles, Mic, ArrowRight, Loader2 } from 'lucide-react'
+import { Sparkles, Mic, ArrowRight, Loader2, SlidersHorizontal, ChevronDown } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
 
 // Метки подхода = ровно ключи getApproachContext в generate-post (иначе стилевой блок
@@ -31,6 +31,14 @@ export default function ExpressOnboarding() {
   const [nicheText, setNicheText] = useState('')
   const [toneVerbal, setToneVerbal] = useState('')
   const [pain, setPain] = useState('')
+  // Бегунки тона: необязательные, по умолчанию по центру (50 = нейтрально в промпте).
+  // Дополняют текстовое поле манеры, не заменяют. Ориентация под движок profile-context:
+  // высокое значение = формальный / серьезный / осторожный.
+  const [toneFormal, setToneFormal] = useState(50)
+  const [toneSerious, setToneSerious] = useState(50)
+  const [toneCautious, setToneCautious] = useState(50)
+  // Бегунки спрятаны по умолчанию, чтобы не раздувать вопрос и держать краткость экспресса
+  const [showTone, setShowTone] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -76,6 +84,9 @@ export default function ExpressOnboarding() {
       niches: nicheChip ? [nicheChip] : [],
       one_niche: oneNiche,
       tone_verbal: toneVerbal.trim(),
+      tone_formal: toneFormal,
+      tone_serious: toneSerious,
+      tone_cautious: toneCautious,
       client_pain_phrases: pain.trim(),
     }
 
@@ -188,6 +199,22 @@ export default function ExpressOnboarding() {
               placeholder="Например: давай по-честному, без умных слов и без обесценивания"
               ariaLabel="Как ты говоришь с клиентами"
             />
+            <button
+              type="button"
+              onClick={() => setShowTone((v) => !v)}
+              aria-expanded={showTone}
+              className="mt-3 inline-flex items-center gap-1.5 text-sm text-brand-muted hover:text-brand-text transition cursor-pointer"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              Тонкая настройка тона, по желанию
+              <ChevronDown className={`w-4 h-4 transition-transform ${showTone ? 'rotate-180' : ''}`} />
+            </button>
+            {showTone && (
+              <ToneSliders
+                formal={toneFormal} serious={toneSerious} cautious={toneCautious}
+                setFormal={setToneFormal} setSerious={setToneSerious} setCautious={setToneCautious}
+              />
+            )}
           </Question>
 
           {/* 5. Боль клиента (текст + голос-заглушка) */}
@@ -281,6 +308,41 @@ function VoiceField({ value, onChange, placeholder, ariaLabel }: { value: string
       >
         <Mic className="w-4 h-4" />
       </button>
+    </div>
+  )
+}
+
+// Бегунки тона, необязательные. Дополняют поле манеры. Высокое значение = формальный/
+// серьезный/осторожный (так читает движок profile-context). По умолчанию 50 (нейтрально).
+function ToneSliders(props: {
+  formal: number; serious: number; cautious: number
+  setFormal: (n: number) => void; setSerious: (n: number) => void; setCautious: (n: number) => void
+}) {
+  const axes = [
+    { left: 'Разговорный', right: 'Формальный', value: props.formal, set: props.setFormal },
+    { left: 'С юмором', right: 'Серьезный', value: props.serious, set: props.setSerious },
+    { left: 'Прямой', right: 'Осторожный', value: props.cautious, set: props.setCautious },
+  ]
+  return (
+    <div className="mt-3 rounded-2xl bg-brand-card border border-brand-border p-4">
+      <p className="text-xs text-brand-muted mb-3">Можно подвинуть тон, по желанию. По умолчанию посередине.</p>
+      <div className="space-y-3.5">
+        {axes.map((ax) => (
+          <div key={ax.left}>
+            <div className="flex justify-between text-xs font-medium mb-1">
+              <span className={ax.value < 50 ? 'text-brand-accent' : 'text-brand-muted'}>{ax.left}</span>
+              <span className={ax.value > 50 ? 'text-brand-accent' : 'text-brand-muted'}>{ax.right}</span>
+            </div>
+            <input
+              type="range" min={0} max={100} value={ax.value}
+              onChange={(e) => ax.set(Number(e.target.value))}
+              aria-label={`${ax.left} или ${ax.right}`}
+              className="w-full cursor-pointer"
+              style={{ accentColor: 'var(--color-brand-accent)' }}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

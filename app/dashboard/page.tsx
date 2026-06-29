@@ -11,13 +11,14 @@ import {
   Star, Map,
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
-import { EnergyBadge } from '@/components/EnergyTariff'
+import { EnergyBadge, EnergyInfo } from '@/components/EnergyTariff'
+import { isVoiceIncomplete } from '@/lib/profile-status'
 
 const toolGroups = [
   {
     label: 'Создать контент',
     items: [
-      { icon: PenTool,    title: 'Генератор постов',   desc: 'Пост за 30 секунд под ваш голос',    href: '/dashboard/post-generator',      badge: null,    soft: false },
+      { icon: PenTool,    title: 'Генератор постов',   desc: 'Пост за 30 секунд под твой голос',    href: '/dashboard/post-generator',      badge: null,    soft: false },
       { icon: Layers,     title: 'Карусели',            desc: '8,10 слайдов с хуком и структурой',  href: '/dashboard/carousel-generator',  badge: null,    soft: false },
       { icon: Film,       title: 'Рилс-скрипты',        desc: 'Сценарии 30 и 60 сек',               href: '/dashboard/reels',               badge: null,    soft: false },
       { icon: Zap,        title: 'Генератор хуков',     desc: '12 хуков для любого формата',        href: '/dashboard/hooks-generator',     badge: 'NEW',   soft: false },
@@ -28,7 +29,7 @@ const toolGroups = [
     items: [
       { icon: FileText,   title: 'Контент-план',        desc: '30 дней публикаций',                 href: '/dashboard/content-plan',        badge: null,    soft: false },
       { icon: Map,        title: 'Карта бренда',        desc: 'Позиционирование и тон, PDF',               href: '/dashboard/brand-passport',      badge: null,    soft: true  },
-      { icon: Wrench,     title: 'Исследование тем',    desc: '30 трендовых тем под вашу нишу',     href: '/dashboard/research',            badge: null,    soft: false },
+      { icon: Wrench,     title: 'Исследование тем',    desc: '30 трендовых тем под твою нишу',     href: '/dashboard/research',            badge: null,    soft: false },
       { icon: Search,     title: 'Анализ конкурентов',  desc: 'Разбор Reels/TikTok/YouTube',        href: '/dashboard/competitor-analysis', badge: null,    soft: false },
     ],
   },
@@ -125,7 +126,10 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <EnergyBadge />
+            <div className="flex items-center gap-0.5">
+              <EnergyBadge />
+              <EnergyInfo />
+            </div>
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-brand-card border border-brand-border text-sm text-brand-text font-medium">
               <TrendingUp className="w-3.5 h-3.5 text-brand-accent" />
               {stats.posts} постов
@@ -162,6 +166,24 @@ export default function Dashboard() {
           ))}
         </div>
       </motion.div>
+
+      {/* Настроить голос точнее: экспресс-юзеру после первого поста (апселл по горячим следам) */}
+      {stats.posts > 0 && isVoiceIncomplete(profile) && (
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
+          className="soft-panel mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold text-brand-accent uppercase tracking-widest mb-1.5">Звучит как ты</p>
+            <p className="font-bold text-lg leading-tight text-brand-text mb-1">Настроить голос точнее</p>
+            <p className="text-brand-muted text-sm leading-relaxed">
+              PsyCont уже пишет в твоем стиле. Дай ему пару штрихов, ценности и живые фразы, и совпадение станет еще точнее.
+            </p>
+          </div>
+          <button onClick={() => router.push('/dashboard/edit-profile')}
+            className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-accent text-white font-semibold text-sm rounded-2xl hover:bg-brand-accent-hover transition cursor-pointer">
+            Дополнить профиль <ArrowRight className="w-4 h-4" />
+          </button>
+        </motion.div>
+      )}
 
       {/* Checklist */}
       {trackedDone < checklistSteps.length && (

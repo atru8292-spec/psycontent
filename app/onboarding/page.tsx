@@ -91,9 +91,9 @@ const questions = [
     subtitle: 'Представьте что вы пишете пост. Двигайте ползунки.',
     type: 'sliders',
     sliders: [
-      { key: 'tone_formal', left: 'Формальный', right: 'Разговорный' },
-      { key: 'tone_serious', left: 'Серьезный', right: 'С юмором' },
-      { key: 'tone_cautious', left: 'Осторожный', right: 'Прямой' },
+      { key: 'tone_formal', left: 'Разговорный', right: 'Формальный' },
+      { key: 'tone_serious', left: 'С юмором', right: 'Серьезный' },
+      { key: 'tone_cautious', left: 'Прямой', right: 'Осторожный' },
     ]
   },
   {
@@ -460,9 +460,9 @@ export default function Onboarding() {
     if (!userId) return
     setLoading(true)
 
-    const t_form = answers.tone_formal || 50
-    const t_ser = answers.tone_serious || 50
-    const t_cau = answers.tone_cautious || 50
+    const t_form = answers.tone_formal ?? 50
+    const t_ser = answers.tone_serious ?? 50
+    const t_cau = answers.tone_cautious ?? 50
 
     const profileData = {
       user_id: userId,

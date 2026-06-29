@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Zap, Infinity as InfinityIcon } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Zap, Infinity as InfinityIcon, HelpCircle } from 'lucide-react'
 
 // Данные приходят из read-only /api/me. Никакой логики энергии тут нет.
 interface Summary {
@@ -70,6 +71,67 @@ export function EnergyBadge({ data }: { data?: Summary | null } = {}) {
   )
 }
 
+// ── Иконка «?» с поповером «что такое энергия» (рядом с бейджем в шапке) ──
+// Объясняет на месте, не уводя в настройки. Тон успокаивающий: почти все бесплатно.
+export function EnergyInfo() {
+  const [open, setOpen] = useState(false)
+  const router = useRouter()
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative inline-flex">
+      <button
+        type="button"
+        aria-label="Что такое энергия"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="p-1 text-brand-muted hover:text-brand-accent transition cursor-pointer"
+      >
+        <HelpCircle className="w-4 h-4" />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            role="dialog"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 w-[280px] max-w-[calc(100vw-32px)] z-50 rounded-3xl bg-brand-soft border border-brand-border-soft shadow-[0_18px_40px_-16px_rgba(46,42,69,0.35)] p-4"
+          >
+            <p className="font-bold text-brand-text text-sm mb-1.5">Почему почти все бесплатно</p>
+            <p className="text-[13px] text-brand-muted leading-relaxed">
+              Тексты можно писать сколько хочешь: посты, карусели, хуки, рилс, контент-план и карту бренда. Они энергию не трогают.
+              Энергия нужна только для тяжелого: картинок к каруселям, расшифровки видео и глубокого разбора конкурента.
+            </p>
+            <button
+              type="button"
+              onClick={() => { setOpen(false); router.push('/dashboard/settings#energy') }}
+              className="mt-2.5 text-[13px] font-semibold text-brand-accent hover:underline cursor-pointer"
+            >
+              Тариф и энергия
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 function Bar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0
   return (
@@ -89,13 +151,22 @@ export function EnergyTariffPanel({ data }: { data?: Summary | null } = {}) {
   }
   const { plan, energy, textTrial } = d
 
+  const showTextUnlimited = !plan.isUnlimited && !textTrial && !!energy
+
   return (
     <div className="space-y-4">
-      {/* Тариф */}
-      <div className="rounded-3xl bg-brand-soft border border-brand-border-soft p-5 sm:p-6">
-        <p className="text-xs font-bold text-brand-muted uppercase tracking-widest mb-1">Ваш тариф</p>
-        <p className="text-2xl sm:text-3xl font-bold text-brand-accent leading-tight">{plan.name}</p>
-      </div>
+      {/* Сначала успокоить: на платных тексты без ограничений */}
+      {showTextUnlimited && (
+        <div className="rounded-3xl bg-brand-soft border border-brand-border-soft p-5 sm:p-6 flex items-start gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-brand-card flex items-center justify-center shrink-0">
+            <InfinityIcon className="w-5 h-5 text-brand-sage" />
+          </div>
+          <div>
+            <p className="font-semibold text-brand-text mb-1">Тексты без ограничений</p>
+            <p className="text-sm text-brand-muted leading-relaxed">Посты, карусели, хуки, рилс, контент-план и карту бренда пиши сколько нужно. Они энергию не тратят.</p>
+          </div>
+        </div>
+      )}
 
       {/* Энергия / пробы / безлимит */}
       {plan.isUnlimited ? (
@@ -105,7 +176,7 @@ export function EnergyTariffPanel({ data }: { data?: Summary | null } = {}) {
           </div>
           <div>
             <p className="font-semibold text-brand-text mb-1">Без ограничений</p>
-            <p className="text-sm text-brand-muted leading-relaxed">Энергия не расходуется. Пользуйтесь всеми инструментами свободно.</p>
+            <p className="text-sm text-brand-muted leading-relaxed">Энергия не расходуется. Пользуйся всеми инструментами свободно.</p>
           </div>
         </div>
       ) : textTrial ? (
@@ -128,9 +199,11 @@ export function EnergyTariffPanel({ data }: { data?: Summary | null } = {}) {
             </p>
           </div>
           <Bar value={energy.balance} max={energy.monthlyAllowance} />
-          <p className="text-sm text-brand-muted leading-relaxed mt-3">
-            {energy.nextRefill ? `Обновится ${refillDate(energy.nextRefill)}. ` : ''}Тексты энергию не тратят — они без ограничений.
-          </p>
+          {energy.nextRefill && (
+            <p className="text-sm text-brand-muted leading-relaxed mt-3">
+              Обновится {refillDate(energy.nextRefill)}
+            </p>
+          )}
         </div>
       ) : null}
 
