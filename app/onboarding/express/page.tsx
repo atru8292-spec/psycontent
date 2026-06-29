@@ -88,8 +88,8 @@ export default function ExpressOnboarding() {
       setSaving(false)
       return
     }
-    // мостик-оверлей держим коротко, затем к первому посту
-    setTimeout(() => router.push('/dashboard/post-generator?first=1'), 800)
+    // мостик-оверлей держим коротко, затем к первому посту с авто-генерацией
+    setTimeout(() => router.push('/dashboard/post-generator?first=1&auto=1'), 800)
   }
 
   if (!ready) {

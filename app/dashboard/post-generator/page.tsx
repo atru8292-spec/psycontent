@@ -47,6 +47,20 @@ const SEED_THOUGHTS = [
 ]
 const FIRST_PLACEHOLDER = 'клиенты на первой встрече извиняются, что занимают мое время'
 
+// Тема для авто-генерации первого поста после экспресса: мысль из демо (seed),
+// иначе первая фраза боли клиента (узнавание-материал), иначе ниша.
+function deriveFirstTopic(profile: any, seed: string): string {
+  const s = (seed || '').trim()
+  if (s) return s
+  const pain = String(profile?.client_pain_phrases || '').split('\n').map((x: string) => x.trim()).filter(Boolean)[0]
+  if (pain) return pain
+  if (profile?.one_niche) return String(profile.one_niche).slice(0, 140)
+  const n = Array.isArray(profile?.niches) ? profile.niches[0] : ''
+  if (n) return String(n)
+  // даже если нишу и боль пропустили, подход всегда есть и шейпит стиль через getApproachContext
+  return 'что для меня важно в работе с клиентами'
+}
+
 function PostGeneratorContent() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
@@ -66,6 +80,8 @@ function PostGeneratorContent() {
   const [platform, setPlatform] = useState<'instagram' | 'telegram'>('instagram')
   // Мысль, с которой человек пришел из демо на лендинге (localStorage seed)
   const [fromSeed, setFromSeed] = useState(false)
+  // Авто-генерация первого поста после экспресса (?auto=1), один раз
+  const [autoFired, setAutoFired] = useState(false)
 
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState<string | null>(null)
@@ -161,14 +177,19 @@ function PostGeneratorContent() {
   const currentPillar = defaultPillars.find(p => p.id === selectedPillar)
   const canGenerate = selectedFormat && (useCustom ? customTopic.trim() : selectedTopic)
 
-  const handleGenerate = async () => {
-    if (!user || !canGenerate) return
+  const handleGenerate = async (topicOverride?: string) => {
+    // topicOverride используется авто-генерацией после экспресса (без тайминга стейта).
+    // onClick кнопок передает event, поэтому строкой считаем только реальный string.
+    const useOverride = typeof topicOverride === 'string' && topicOverride.trim().length > 0
+    const topicVal = useOverride ? topicOverride.trim() : (useCustom ? customTopic : selectedTopic)
+    if (!user || generating) return
+    if (!selectedFormat || !topicVal || !String(topicVal).trim()) return
     setGenerating(true)
     setResult(null)
     setError(null)
     setSaved(false)
 
-    const topic = useCustom ? customTopic : selectedTopic
+    const isCustom = useOverride || useCustom
     const pillarLabel = planPillar || currentPillar?.label || 'Своя тема'
 
     try {
@@ -177,8 +198,8 @@ function PostGeneratorContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user.id,
-          topic: useCustom ? undefined : selectedTopic,
-          customTopic: useCustom ? customTopic : undefined,
+          topic: isCustom ? undefined : selectedTopic,
+          customTopic: isCustom ? topicVal : undefined,
           format: selectedFormat,
           pillar: pillarLabel,
           platform,
@@ -212,6 +233,21 @@ function PostGeneratorContent() {
       setTimeout(() => setCopied(false), 2000)
     }
   }
+
+  // Авто-генерация первого поста после экспресса (?auto=1): запускаем один раз,
+  // когда профиль загружен. Тема из seed (демо) или выведена из профиля.
+  useEffect(() => {
+    if (searchParams.get('auto') !== '1') return
+    if (autoFired || loading || !user || !profile || generating || result) return
+    const topic = deriveFirstTopic(profile, customTopic)
+    if (!topic) return
+    setAutoFired(true)
+    // убираем auto из URL, чтобы F5 не запускал генерацию повторно (не тратил пробу)
+    router.replace('/dashboard/post-generator?first=1')
+    if (!customTopic.trim()) { setCustomTopic(topic); setUseCustom(true) }
+    handleGenerate(topic)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoFired, loading, user, profile, customTopic, generating, result, searchParams])
 
   const clearFromPlan = () => {
     setFromPlan(false)
@@ -463,7 +499,7 @@ function PostGeneratorContent() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              onClick={handleGenerate}
+              onClick={() => handleGenerate()}
               disabled={!canGenerate || generating}
               className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl text-base font-semibold transition cursor-pointer ${canGenerate && !generating ? 'bg-brand-accent text-white hover:bg-brand-accent-hover shadow-lg shadow-brand-accent/25' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
             >
@@ -557,7 +593,7 @@ function PostGeneratorContent() {
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={handleGenerate}
+                        onClick={() => handleGenerate()}
                         className="flex items-center gap-1.5 text-xs text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-1.5 rounded-lg hover:bg-white"
                       >
                         <RefreshCw className="w-3.5 h-3.5" /> Переписать
