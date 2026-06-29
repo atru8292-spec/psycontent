@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion } from 'framer-motion'
 import {
-  Target, PenTool, Layers, Zap, FileText,
+  PenTool, Layers, Zap, FileText,
   Wrench, Film, RefreshCcw, Search, History,
   CheckCircle2, Circle, ArrowRight, TrendingUp,
-  Star,
+  Star, Map,
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
 import { EnergyBadge } from '@/components/EnergyTariff'
@@ -27,7 +27,7 @@ const toolGroups = [
     label: 'Стратегия',
     items: [
       { icon: FileText,   title: 'Контент-план',        desc: '30 дней публикаций',                 href: '/dashboard/content-plan',        badge: null,    soft: false },
-      { icon: Target,     title: 'Паспорт бренда',      desc: 'Позиционирование и тон голоса',             href: '/dashboard/brand-passport',      badge: null,    soft: false },
+      { icon: Map,        title: 'Карта бренда',        desc: 'Позиционирование и тон, PDF',               href: '/dashboard/brand-passport',      badge: null,    soft: true  },
       { icon: Wrench,     title: 'Исследование тем',    desc: '30 трендовых тем под вашу нишу',     href: '/dashboard/research',            badge: null,    soft: false },
       { icon: Search,     title: 'Анализ конкурентов',  desc: 'Разбор Reels/TikTok/YouTube',        href: '/dashboard/competitor-analysis', badge: null,    soft: false },
     ],
@@ -49,9 +49,8 @@ const quickActions = [
 ]
 
 const checklistSteps = [
-  { key: 'onboarding', label: 'Заполнить профиль',         href: '/dashboard/edit-profile' },
-  { key: 'passport',   label: 'Создать паспорт бренда',    href: '/dashboard/brand-passport' },
-  { key: 'post',       label: 'Сгенерировать первый пост', href: '/dashboard/post-generator' },
+  { key: 'onboarding', label: 'Профиль заполнен',          href: '/dashboard/edit-profile' },
+  { key: 'post',       label: 'Написать первый пост',      href: '/dashboard/post-generator?first=1' },
   { key: 'plan',       label: 'Составить контент-план',    href: '/dashboard/content-plan' },
 ]
 
@@ -103,7 +102,9 @@ export default function Dashboard() {
   }
 
   const firstName = profile?.full_name?.split(' ')[0] || 'Специалист'
-  const progress  = Math.round((checklist.length / 4) * 100)
+  const trackedDone = checklistSteps.filter(s => checklist.includes(s.key)).length
+  const firstUndone = checklistSteps.find(s => !checklist.includes(s.key))?.key
+  const progress  = Math.round((trackedDone / checklistSteps.length) * 100)
   const hour      = new Date().getHours()
   const greeting  = hour < 12 ? 'Доброе утро' : hour < 18 ? 'Добрый день' : 'Добрый вечер'
 
@@ -129,8 +130,8 @@ export default function Dashboard() {
             </div>
             {stats.passport && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-brand-soft border border-brand-border-soft text-sm text-brand-text font-medium">
-                <Target className="w-3.5 h-3.5 text-brand-accent" />
-                Паспорт готов
+                <Map className="w-3.5 h-3.5 text-brand-accent" />
+                Карта готова
               </div>
             )}
             {stats.plan && (
@@ -161,7 +162,7 @@ export default function Dashboard() {
       </motion.div>
 
       {/* Checklist */}
-      {checklist.length < 4 && (
+      {trackedDone < checklistSteps.length && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
           className="mb-8 p-5 rounded-3xl bg-brand-card border border-brand-border shadow-sm">
           <div className="flex items-center justify-between mb-4">
@@ -173,16 +174,19 @@ export default function Dashboard() {
               <div className="h-1.5 w-24 bg-brand-soft rounded-full overflow-hidden">
                 <div className="h-full bg-brand-accent rounded-full transition-all" style={{ width: `${progress}%` }} />
               </div>
-              <span className="text-xs text-brand-muted font-medium">{checklist.length}/4</span>
+              <span className="text-xs text-brand-muted font-medium">{trackedDone}/{checklistSteps.length}</span>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="space-y-2">
             {checklistSteps.map((step) => {
               const done = checklist.includes(step.key)
+              const active = step.key === firstUndone
               return (
                 <button key={step.key} onClick={() => !done && router.push(step.href)}
-                  className={`flex items-center gap-3 p-3 rounded-2xl text-left transition cursor-pointer ${
-                    done ? 'bg-brand-soft opacity-60 cursor-default' : 'bg-brand-bg hover:bg-brand-soft border border-brand-border hover:border-brand-accent/30'
+                  className={`w-full flex items-center gap-3 p-3 rounded-2xl text-left transition cursor-pointer ${
+                    done ? 'bg-brand-soft opacity-60 cursor-default'
+                    : active ? 'bg-brand-bg border border-brand-accent/30 ring-2 ring-brand-accent/15 hover:bg-brand-soft'
+                    : 'bg-brand-bg hover:bg-brand-soft border border-brand-border hover:border-brand-accent/30'
                   }`}>
                   {done
                     ? <CheckCircle2 className="w-4 h-4 text-brand-accent shrink-0" />
@@ -192,6 +196,19 @@ export default function Dashboard() {
                 </button>
               )
             })}
+          </div>
+          {/* Карта бренда вне нумерации, по желанию */}
+          <div className="mt-3 pt-3 border-t border-brand-border">
+            <p className="text-[10px] font-bold text-brand-muted uppercase tracking-widest mb-2">по желанию</p>
+            <button onClick={() => router.push('/dashboard/brand-passport')}
+              className="w-full flex items-center gap-3 p-3 rounded-2xl text-left bg-brand-bg hover:bg-brand-soft transition cursor-pointer">
+              <Map className="w-4 h-4 text-brand-sage shrink-0" />
+              <span className="min-w-0">
+                <span className="block text-sm text-brand-text">Карта бренда</span>
+                <span className="block text-xs text-brand-muted leading-snug">позиционирование и тон на одной странице, PDF</span>
+              </span>
+              <ArrowRight className="w-3.5 h-3.5 text-brand-muted ml-auto shrink-0" />
+            </button>
           </div>
         </motion.div>
       )}

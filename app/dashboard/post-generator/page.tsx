@@ -19,6 +19,7 @@ import {
   Lightbulb,
   CheckCircle,
   CalendarDays,
+  Mic,
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
 import EmptyState from '@/components/EmptyState'
@@ -37,6 +38,15 @@ const defaultPillars = [
   { id: 'positioning', label: 'Позиционирование', topics: ['Чем я отличаюсь от других психологов', 'С кем мне не по пути', 'Мой взгляд на быстрые результаты', 'Почему я против «гарантий» в психологии', 'Мои принципы работы'] },
 ]
 
+// Первый пост: сырые мысли психолога из практики (от первого лица, сцена),
+// не темы-рубрики и не клиентские жалобы. Затравки, если своей мысли еще нет.
+const SEED_THOUGHTS = [
+  'многие приходят с одним запросом, а работаем совсем про другое',
+  'люди стыдятся, что им нужна помощь, будто это слабость',
+  'клиент молчит, и это тоже работа',
+]
+const FIRST_PLACEHOLDER = 'клиенты часто стыдятся плакать у меня на сессии'
+
 function PostGeneratorContent() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
@@ -49,6 +59,11 @@ function PostGeneratorContent() {
   
   const [fromPlan, setFromPlan] = useState(false)
   const [planPillar, setPlanPillar] = useState<string | null>(null)
+
+  // Первый пост после онбординга: упрощенный композер, мысль из placeholder
+  const [firstMode, setFirstMode] = useState(false)
+  const [showRubrics, setShowRubrics] = useState(false)
+  const [platform, setPlatform] = useState<'instagram' | 'telegram'>('instagram')
 
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState<string | null>(null)
@@ -84,6 +99,13 @@ function PostGeneratorContent() {
     if (isFromPlan) {
       setFromPlan(true)
     }
+
+    // Первый пост после онбординга: упрощенный композер, поле пустое (мысль в placeholder)
+    if (searchParams.get('first') === '1') {
+      setFirstMode(true)
+      setUseCustom(true)
+      setSelectedFormat('post')
+    }
   }, [searchParams])
 
   useEffect(() => {
@@ -101,6 +123,13 @@ function PostGeneratorContent() {
 
       if (!data) { router.push('/onboarding'); return }
       setProfile(data)
+
+      // Дефолт площадки из профиля: только телеграм в platforms -> телеграм, иначе инстаграм
+      const plats = (Array.isArray(data.platforms) ? data.platforms : []).map((p: string) => String(p).toLowerCase())
+      const hasInsta = plats.some((p: string) => p.includes('insta') || p.includes('инстаг'))
+      const hasTg = plats.some((p: string) => p.includes('tele') || p.includes('телег'))
+      setPlatform(hasTg && !hasInsta ? 'telegram' : 'instagram')
+
       setLoading(false)
     }
     init()
@@ -129,6 +158,7 @@ function PostGeneratorContent() {
           customTopic: useCustom ? customTopic : undefined,
           format: selectedFormat,
           pillar: pillarLabel,
+          platform,
         }),
       })
 
@@ -194,11 +224,13 @@ function PostGeneratorContent() {
             Генератор постов
           </div>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-2">
-            Создайте пост в вашем голосе
+            {firstMode ? 'Твоя первая мысль станет постом' : 'Создайте пост в вашем голосе'}
           </h1>
           <Squiggle variant={0} width="60%" />
           <p className="text-brand-text-secondary mt-3">
-            AI учитывает ваш подход, тон и нишу, контент будет звучать как вы
+            {firstMode
+              ? 'Напиши или скажи мысль из практики, и я соберу из нее пост в твоем голосе'
+              : 'AI учитывает ваш подход, тон и нишу, контент будет звучать как вы'}
           </p>
         </motion.div>
 
@@ -237,6 +269,48 @@ function PostGeneratorContent() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
           <div className="space-y-6">
+            {firstMode && !showRubrics ? (
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl border border-brand-border p-5 sm:p-6 space-y-4">
+                {/* Поле мысли: пример в placeholder, не значение */}
+                <div className="relative">
+                  <textarea
+                    value={customTopic}
+                    onChange={e => setCustomTopic(e.target.value)}
+                    placeholder={FIRST_PLACEHOLDER}
+                    rows={3}
+                    autoFocus
+                    className="w-full px-4 py-3.5 rounded-3xl bg-brand-soft text-brand-text text-base leading-relaxed focus:outline-none focus:ring-2 focus:ring-brand-accent resize-none placeholder:text-brand-muted/60"
+                  />
+                  <button type="button" title="голосовой ввод скоро" className="absolute bottom-3 right-3 p-1.5 rounded-full text-brand-muted hover:text-brand-accent hover:bg-brand-soft transition cursor-pointer">
+                    <Mic className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Затравки: пока своей мысли нет */}
+                {(!customTopic.trim() || SEED_THOUGHTS.includes(customTopic.trim())) && (
+                  <div>
+                    <p className="text-[10px] font-bold text-brand-muted uppercase tracking-widest mb-2">или начни с этого</p>
+                    <div className="space-y-2">
+                      {SEED_THOUGHTS.map(t => (
+                        <button type="button" key={t} onClick={() => setCustomTopic(t)}
+                          className="w-full text-left px-4 py-2.5 rounded-2xl bg-brand-bg border border-brand-border text-sm text-brand-text-secondary hover:border-brand-accent/40 hover:bg-brand-highlight hover:text-brand-text transition cursor-pointer">
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Площадка: тихая подпись-переключатель, дефолт из профиля */}
+                <div className="flex items-center gap-2 text-sm pt-1">
+                  <span className="text-brand-muted">Соберу под</span>
+                  <button type="button" onClick={() => setPlatform('instagram')} className={`transition cursor-pointer ${platform === 'instagram' ? 'font-semibold text-brand-accent' : 'text-brand-muted hover:text-brand-text'}`}>инстаграм</button>
+                  <span className="text-brand-border">·</span>
+                  <button type="button" onClick={() => setPlatform('telegram')} className={`transition cursor-pointer ${platform === 'telegram' ? 'font-semibold text-brand-accent' : 'text-brand-muted hover:text-brand-text'}`}>телеграм</button>
+                </div>
+              </motion.div>
+            ) : (
+            <>
             {/* Формат */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white rounded-2xl border border-brand-border p-6">
               <h2 className="font-bold text-brand-text mb-4 flex items-center gap-2">
@@ -346,6 +420,9 @@ function PostGeneratorContent() {
               </motion.div>
             )}
 
+            </>
+            )}
+
             {/* Кнопка генерации */}
             <motion.button
               initial={{ opacity: 0, y: 20 }}
@@ -356,11 +433,22 @@ function PostGeneratorContent() {
               className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl text-base font-semibold transition cursor-pointer ${canGenerate && !generating ? 'bg-brand-accent text-white hover:bg-brand-accent-hover shadow-lg shadow-brand-accent/25' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
             >
               {generating ? (
-                <><Loader2 className="w-5 h-5 animate-spin" /> Генерирую...</>
+                <><Loader2 className="w-5 h-5 animate-spin" /> {firstMode ? 'Собираю пост в твоем голосе' : 'Генерирую...'}</>
               ) : (
-                <><Sparkles className="w-5 h-5" /> Сгенерировать</>
+                <><Sparkles className="w-5 h-5" /> {firstMode ? 'Собрать пост' : 'Сгенерировать'}</>
               )}
             </motion.button>
+
+            {firstMode && !showRubrics && (
+              <button type="button" onClick={() => setShowRubrics(true)} className="w-full text-center text-sm text-brand-muted hover:text-brand-text transition cursor-pointer">
+                Или выбрать тему по рубрикам
+              </button>
+            )}
+            {firstMode && showRubrics && (
+              <button type="button" onClick={() => setShowRubrics(false)} className="w-full text-center text-sm text-brand-muted hover:text-brand-text transition cursor-pointer">
+                Вернуться к своей мысли
+              </button>
+            )}
           </div>
 
           {/* Результат */}
@@ -375,8 +463,10 @@ function PostGeneratorContent() {
                 >
                   <EmptyState
                     variant={0}
-                    title={fromPlan ? 'Готово к записи' : 'Пост появится здесь'}
-                    subtitle={fromPlan
+                    title={firstMode ? 'Твой пост появится здесь' : fromPlan ? 'Готово к записи' : 'Пост появится здесь'}
+                    subtitle={firstMode
+                      ? 'Впиши мысль слева или возьми затравку, и я соберу пост в твоем голосе.'
+                      : fromPlan
                       ? 'Тема из вашего плана уже выбрана. Нажмите кнопку ниже, чтобы написать пост.'
                       : 'Выберите формат и тему слева, и AI напишет пост в вашем голосе.'}
                   />
@@ -391,9 +481,13 @@ function PostGeneratorContent() {
                   exit={{ opacity: 0 }}
                   className="h-full flex flex-col items-center justify-center text-center py-20 bg-white rounded-2xl border border-brand-border"
                 >
-                  <Loader2 className="w-10 h-10 text-brand-accent animate-spin mb-4" />
-                  <p className="font-semibold text-brand-text">AI пишет пост...</p>
-                  <p className="text-sm text-brand-text-secondary mt-1">Обычно 10,20 секунд</p>
+                  <div className="flex items-center gap-1.5 mb-4">
+                    <span className="w-2.5 h-2.5 rounded-full bg-brand-sage animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-2.5 h-2.5 rounded-full bg-brand-sage animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-2.5 h-2.5 rounded-full bg-brand-sage animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                  <p className="font-semibold text-brand-text">Собираю пост в твоем голосе</p>
+                  <p className="text-sm text-brand-text-secondary mt-1">Обычно 10-20 секунд</p>
                 </motion.div>
               )}
 
@@ -443,8 +537,18 @@ function PostGeneratorContent() {
                     </div>
                   </div>
 
-                  <div className="p-6">
-                    <p className="text-brand-text text-sm leading-relaxed whitespace-pre-wrap">{result}</p>
+                  <div className="p-6 space-y-3">
+                    {result.split(/\n{2,}/).map((para, i) => (
+                      <motion.p
+                        key={i}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                        className="text-brand-text text-sm leading-relaxed whitespace-pre-wrap"
+                      >
+                        {para}
+                      </motion.p>
+                    ))}
                   </div>
 
                   <div className="px-4 sm:px-6 pb-3 sm:pb-4 flex flex-wrap items-center justify-between gap-2">
@@ -466,6 +570,17 @@ function PostGeneratorContent() {
                       </button>
                     </div>
                   </div>
+
+                  {firstMode && (
+                    <div className="px-4 sm:px-6 pb-4 pt-1 border-t border-brand-border">
+                      <p className="text-sm text-brand-text-secondary">
+                        Готово. Дальше можно{' '}
+                        <button onClick={() => router.push('/dashboard/content-plan')} className="text-brand-accent hover:underline cursor-pointer">собрать контент-план</button>
+                        {' '}или{' '}
+                        <button onClick={() => { setResult(null); setError(null); setSaved(false); setCustomTopic('') }} className="text-brand-accent hover:underline cursor-pointer">написать еще пост</button>.
+                      </p>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

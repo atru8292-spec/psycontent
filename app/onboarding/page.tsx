@@ -553,20 +553,19 @@ export default function Onboarding() {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center p-4 sm:p-6">
         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white max-w-lg w-full rounded-2xl p-5 sm:p-8 border border-brand-border text-center shadow-xl">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-brand-soft rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-            <CheckCircle className="w-8 h-8 sm:w-10 sm:h-10 text-brand-accent" />
+          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-brand-soft rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-5">
+            <CheckCircle className="w-7 h-7 sm:w-8 sm:h-8 text-brand-accent" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-brand-text mb-3 sm:mb-4">Распаковка завершена!</h1>
-          <p className="text-sm sm:text-base text-brand-text-secondary mb-4 sm:mb-6 leading-relaxed">
-            Спасибо что были честны, это было не просто. Мы собрали достаточно, чтобы создать вашу уникальную стратегию.
+          <h1 className="text-2xl sm:text-3xl font-bold text-brand-text mb-1">Готово. Твой голос у нас есть</h1>
+          <div className="flex justify-center mb-3 sm:mb-4"><Squiggle variant={1} width="180px" /></div>
+          <p className="text-sm sm:text-base text-brand-text-secondary mb-6 sm:mb-8 leading-relaxed">
+            Теперь соберем из твоей мысли первый пост. Это пара минут.
           </p>
-          <ul className="text-left text-xs sm:text-sm text-brand-muted bg-brand-bg rounded-2xl p-4 sm:p-5 mb-6 sm:mb-8 space-y-2 sm:space-y-3">
-            <li>✅ Мы поняли <strong>КТО</strong> вы и чем отличаетесь</li>
-            <li>✅ Мы услышали ваш <strong>живой голос</strong></li>
-            <li>✅ Мы собрали боли вашего <strong>идеального клиента</strong></li>
-          </ul>
-                   <button onClick={() => router.push('/dashboard/brand-passport')} className="w-full py-3.5 sm:py-4 bg-brand-accent hover:bg-brand-accent-hover text-white rounded-xl font-bold text-sm sm:text-base transition flex items-center justify-center gap-2 shadow-lg cursor-pointer">
-            Создать мой Паспорт бренда <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+          <button onClick={() => router.push('/dashboard/post-generator?first=1')} className="w-full py-3.5 sm:py-4 bg-brand-accent hover:bg-brand-accent-hover text-white rounded-xl font-bold text-sm sm:text-base transition flex items-center justify-center gap-2 shadow-lg cursor-pointer">
+            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" /> Написать первый пост <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+          </button>
+          <button onClick={() => router.push('/dashboard/brand-passport')} className="mt-4 text-sm text-brand-muted hover:text-brand-text transition cursor-pointer">
+            Сначала заглянуть в карту бренда
           </button>
         </motion.div>
       </div>

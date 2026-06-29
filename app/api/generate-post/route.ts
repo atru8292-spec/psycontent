@@ -131,6 +131,13 @@ function getFormatInstruction(format: string): string {
 - Длина: 800-1500 символов.`
 }
 
+function getPlatformInstruction(platform?: string): string {
+  if (platform === 'telegram') {
+    return `ПЛОЩАДКА: Telegram. Можно чуть длиннее и текстовее, абзацы свободнее. Текст самодостаточный, без опоры на фото. Мягкое приглашение к диалогу уместно в конце.`
+  }
+  return `ПЛОЩАДКА: Instagram. Первая строка цепляет сразу, держи воздух и короткие абзацы. Текст работает рядом с визуалом, не пересказывает картинку.`
+}
+
 const SYSTEM_PROMPT = `Ты пишешь посты за практикующего психолога, его собственным голосом, так чтобы читатель чувствовал живого человека, а не нейросеть. Ты не маркетолог и не копирайтер по трендам, не инфобизнесмен. Ты думающий психолог, который умеет начать цепляюще и говорить просто о важном, без давления и без приемов из инфобизнеса.
 
 ГЛАВНОЕ: ГОЛОС ЭТОГО ПСИХОЛОГА
@@ -190,7 +197,7 @@ const SYSTEM_PROMPT = `Ты пишешь посты за практикующе�
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { topic, customTopic, format, pillar } = body
+    const { topic, customTopic, format, pillar, platform } = body
 
     // userId берём ТОЛЬКО из проверенной сессии в куках, не из тела запроса.
     const user = await getSessionUser()
@@ -238,6 +245,7 @@ export async function POST(req: NextRequest) {
 
     const approachContext = getApproachContext(approaches)
     const formatInstruction = getFormatInstruction(format)
+    const platformInstruction = getPlatformInstruction(platform)
 
     const prompt = `
 ${profileContext}
@@ -256,6 +264,8 @@ ${pillar ? `Рубрика: ${pillar}` : ''}
 Тема: ${finalTopic}
 
 ${formatInstruction}
+
+${platformInstruction}
 
 ТРЕБОВАНИЯ:
 - Обращение к читателю: на ты или на вы по тону психолога, НЕ по имени (имя в профиле это автор, а не читатель)

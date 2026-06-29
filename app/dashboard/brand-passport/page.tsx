@@ -9,7 +9,7 @@ import {
   Sparkles, ArrowLeft, Loader2, Target, RefreshCw, Download,
   Heart, Layers, Volume2, Users, Star, Instagram, Send,
   LayoutGrid, MessageSquare, AlertTriangle, PenTool,
-  ChevronDown, ChevronUp, Copy, Check, FileText,
+  ChevronDown, ChevronUp, Copy, Check, FileText, Map,
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
 import EmptyState from '@/components/EmptyState'
@@ -415,18 +415,19 @@ export default function BrandPassport() {
           className="text-center mb-8 sm:mb-10"
         >
           <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium mb-3 sm:mb-4">
-            <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            Паспорт бренда
+            <Map className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            Карта бренда
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-brand-text mb-2 sm:mb-3">
-            Ваш персональный паспорт бренда
+            Карта твоего бренда
           </h1>
           <div className="flex justify-center">
             <Squiggle variant={0} width="55%" />
           </div>
           <p className="text-brand-text-secondary max-w-xl mx-auto text-sm sm:text-base mt-3">
-            AI проанализировал вашу распаковку и создал стратегический документ
-            с позиционированием, архетипом, аватаром клиента и контент-стратегией
+            Кто ты, чем отличаешься, как звучишь и для кого пишешь, собрано в один документ.
+            Можно скачать PDF и держать перед глазами. Посты собираются по твоему профилю,
+            карта нужна для ясности, не для генерации.
           </p>
         </motion.div>
 
@@ -435,14 +436,14 @@ export default function BrandPassport() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
             <EmptyState
               variant={1}
-              title="Создайте документ о себе"
-              subtitle="AI проанализирует вашу распаковку и создаст стратегический документ с позиционированием, архетипом, аватаром клиента и контент-стратегией. Генерация идет поэтапно в 5 шагов."
-              actionLabel="Создать паспорт бренда"
+              title="Собрать карту бренда"
+              subtitle="Твое позиционирование, тон и аватар клиента на одной фирменной странице. Можно скачать PDF и держать под рукой, когда ведешь блог или работаешь с дизайнером. По желанию, в любой момент."
+              actionLabel="Собрать карту"
               onAction={handleGenerate}
             />
             {needOnboarding && (
               <div className="mt-4">
-                <LimitNotice title="Сначала заполните профиль" message="Паспорт бренда строится на вашей распаковке. Пройдите короткий онбординг, и мы соберем документ о вас." actionLabel="Заполнить профиль" actionHref="/onboarding" />
+                <LimitNotice title="Сначала заполни профиль" message="Карта бренда строится на твоей распаковке. Пройди короткий онбординг, и мы соберем документ о тебе." actionLabel="Заполнить профиль" actionHref="/onboarding" />
               </div>
             )}
             {serverError && (
@@ -464,7 +465,7 @@ export default function BrandPassport() {
             <div className="flex items-center gap-3 mb-6">
               <Loader2 className="w-5 h-5 text-brand-accent animate-spin shrink-0" />
               <h2 className="text-base sm:text-lg font-bold text-brand-text">
-                AI создает ваш паспорт бренда...
+                Собираю твою карту бренда...
               </h2>
             </div>
             <div className="max-w-md space-y-3">
@@ -573,17 +574,17 @@ export default function BrandPassport() {
             {/* CTA */}
             <div className="mt-6 sm:mt-8 p-4 sm:p-6 bg-brand-accent rounded-xl sm:rounded-2xl text-white text-center">
               <h3 className="text-base sm:text-lg font-bold mb-1.5 sm:mb-2">
-                Паспорт готов! Что дальше? 🚀
+                Карта бренда готова
               </h3>
               <p className="text-white/80 mb-3 sm:mb-4 text-xs sm:text-sm">
-                Используйте ваши рубрики для генерации постов
+                Скачай PDF и держи под рукой. А можно сразу написать пост.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3">
                 <button
-                  onClick={() => router.push('/dashboard')}
+                  onClick={() => router.push('/dashboard/post-generator')}
                   className="w-full sm:w-auto bg-white text-brand-accent px-6 py-2.5 sm:py-2 rounded-full font-semibold text-sm hover:bg-white/90 transition cursor-pointer"
                 >
-                  Вернуться в кабинет
+                  Написать пост
                 </button>
                 <button
                   onClick={handleDownloadPDF}
