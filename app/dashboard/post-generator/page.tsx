@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
 import EmptyState from '@/components/EmptyState'
+import { splitPostTitle } from '@/lib/post-format'
 
 // ============ УБРАНА КАРУСЕЛЬ ============
 const formats = [
@@ -85,6 +86,8 @@ function PostGeneratorContent() {
 
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState<string | null>(null)
+  // Формат, которым собран текущий result (а не живой селектор): заголовок парсим по нему
+  const [generatedFormat, setGeneratedFormat] = useState('post')
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -176,6 +179,9 @@ function PostGeneratorContent() {
 
   const currentPillar = defaultPillars.find(p => p.id === selectedPillar)
   const canGenerate = selectedFormat && (useCustom ? customTopic.trim() : selectedTopic)
+  // Заголовок-вывеска отделяется от тела (как в демо). Для сторис и старых постов
+  // без структуры title будет null, рендерим тело целиком.
+  const parsedPost = result ? splitPostTitle(result, generatedFormat) : null
 
   const handleGenerate = async (topicOverride?: string) => {
     // topicOverride используется авто-генерацией после экспресса (без тайминга стейта).
@@ -210,6 +216,7 @@ function PostGeneratorContent() {
       if (!response.ok) throw new Error(data.error || 'Ошибка генерации')
       
       setResult(data.post)
+      setGeneratedFormat(selectedFormat)
 
       setSaved(true)
 
@@ -608,18 +615,31 @@ function PostGeneratorContent() {
                     </div>
                   </div>
 
-                  <div className="p-6 space-y-3">
-                    {result.split(/\n{2,}/).map((para, i) => (
-                      <motion.p
-                        key={i}
+                  <div className="p-6">
+                    {parsedPost?.title && (
+                      <motion.div
                         initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                        className="text-brand-text text-sm leading-relaxed whitespace-pre-wrap"
+                        transition={{ ease: [0.22, 1, 0.36, 1] }}
+                        className="mb-4"
                       >
-                        {para}
-                      </motion.p>
-                    ))}
+                        <h3 className="text-lg sm:text-xl font-bold text-brand-text leading-snug">{parsedPost.title}</h3>
+                        <Squiggle variant={0} width="140px" />
+                      </motion.div>
+                    )}
+                    <div className="space-y-3">
+                      {(parsedPost?.body ?? result).split(/\n{2,}/).map((para, i) => (
+                        <motion.p
+                          key={i}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.08 + i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                          className="text-brand-text-secondary text-[15px] leading-relaxed whitespace-pre-wrap"
+                        >
+                          {para}
+                        </motion.p>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="px-4 sm:px-6 pb-3 sm:pb-4 flex flex-wrap items-center justify-between gap-2">

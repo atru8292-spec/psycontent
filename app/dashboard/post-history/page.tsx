@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
 import EmptyState from '@/components/EmptyState'
+import { splitPostTitle } from '@/lib/post-format'
 
 interface Post {
   id: string
@@ -240,7 +241,10 @@ export default function PostHistory() {
               {filteredPosts.map((post, i) => {
                 const FormatIcon = formatIcons[post.format] || AlignLeft
                 const isExpanded = expandedId === post.id
-                const preview = post.content.slice(0, 200)
+                // Заголовок-вывеска отделяется от тела (как в генераторе и демо).
+                const { title, body } = splitPostTitle(post.content, post.format)
+                const preview = body.slice(0, 200)
+                const hasMore = body.length > 200
 
                 return (
                   <motion.div
@@ -304,12 +308,18 @@ export default function PostHistory() {
 
                     {/* Post content */}
                     <div className="p-5">
-                      <p className="text-sm text-brand-text leading-relaxed whitespace-pre-wrap">
-                        {isExpanded ? post.content : preview}
-                        {!isExpanded && post.content.length > 200 && '...'}
+                      {title && (
+                        <div className="mb-3">
+                          <h3 className="text-base sm:text-lg font-bold text-brand-text leading-snug">{title}</h3>
+                          <Squiggle variant={0} width="120px" />
+                        </div>
+                      )}
+                      <p className="text-sm text-brand-text-secondary leading-relaxed whitespace-pre-wrap">
+                        {isExpanded ? body : preview}
+                        {!isExpanded && hasMore && '...'}
                       </p>
-                      
-                      {post.content.length > 200 && (
+
+                      {hasMore && (
                         <button
                           onClick={() => setExpandedId(isExpanded ? null : post.id)}
                           className="mt-3 text-sm text-brand-accent hover:underline cursor-pointer"
