@@ -43,57 +43,68 @@ export function EnergyBadge({ data, compact }: { data?: Summary | null; compact?
   if (!d?.plan) return null
   const { plan, energy, textTrial } = d
 
-  // Компактный вид для постоянной шапки/свернутого сайдбара: иконка + значение, без имени тарифа
+  // Остаток для полоски: пробы у Free, иначе месячная энергия. У безлимита полоски нет.
+  const frac = plan.isUnlimited
+    ? null
+    : textTrial
+    ? { val: textTrial.remaining, max: textTrial.cap }
+    : energy
+    ? { val: energy.balance, max: energy.monthlyAllowance }
+    : null
+  const title = plan.isUnlimited
+    ? 'Энергия без ограничений'
+    : frac
+    ? `Энергия: осталось ${frac.val} из ${frac.max}`
+    : 'Энергия и тариф'
+
+  // Компактный вид (постоянная шапка / свернутый сайдбар): иконка + полоска
   if (compact) {
-    let v = ''
-    if (!plan.isUnlimited) {
-      if (textTrial) v = `${textTrial.remaining}/${textTrial.cap}`
-      else if (energy) v = `${energy.balance}/${energy.monthlyAllowance}`
-    }
     return (
       <button
         onClick={() => router.push('/dashboard/settings#energy')}
-        aria-label="Энергия и тариф"
-        className="flex items-center gap-1 px-2.5 py-1.5 rounded-2xl bg-brand-soft border border-brand-border-soft text-sm font-semibold text-brand-accent hover:border-brand-accent/40 transition cursor-pointer"
+        title={title}
+        aria-label={title}
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl bg-brand-soft border border-brand-border-soft hover:border-brand-accent/40 transition cursor-pointer"
       >
         <Zap className="w-3.5 h-3.5 text-brand-sage shrink-0" />
         {plan.isUnlimited
-          ? <InfinityIcon className="w-3.5 h-3.5 shrink-0" />
-          : (v && <span className="whitespace-nowrap">{v}</span>)}
+          ? <InfinityIcon className="w-3.5 h-3.5 text-brand-accent shrink-0" />
+          : frac
+          ? <MiniBar val={frac.val} max={frac.max} className="w-8" />
+          : null}
       </button>
-    )
-  }
-
-  let value: React.ReactNode = null
-  if (plan.isUnlimited) {
-    value = <span className="text-brand-accent font-semibold">Безлимит</span>
-  } else if (textTrial) {
-    value = (
-      <span className="text-brand-accent font-semibold">
-        {textTrial.remaining}<span className="text-brand-muted font-normal"> из {textTrial.cap}</span>
-      </span>
-    )
-  } else if (energy) {
-    value = (
-      <span className="text-brand-accent font-semibold">
-        {energy.balance}<span className="text-brand-muted font-normal">/{energy.monthlyAllowance}</span>
-      </span>
     )
   }
 
   return (
     <button
       onClick={() => router.push('/dashboard/settings#energy')}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-brand-soft border border-brand-border-soft text-sm text-brand-text font-medium hover:border-brand-accent/40 transition cursor-pointer"
+      title={title}
+      className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-brand-soft border border-brand-border-soft text-sm text-brand-text font-medium hover:border-brand-accent/40 transition cursor-pointer"
     >
       <Zap className="w-3.5 h-3.5 text-brand-sage shrink-0" />
-      <span className="whitespace-nowrap">{plan.name}{value ? <> · {value}</> : null}</span>
+      <span className="whitespace-nowrap">{plan.name}</span>
+      {plan.isUnlimited
+        ? <InfinityIcon className="w-3.5 h-3.5 text-brand-accent shrink-0" />
+        : frac
+        ? <MiniBar val={frac.val} max={frac.max} className="w-12" />
+        : null}
     </button>
   )
 }
 
+// Мини-полоска остатка энергии внутри бейджа (трек белый, заливка аметист на лаванде)
+function MiniBar({ val, max, className = '' }: { val: number; max: number; className?: string }) {
+  const pct = max > 0 ? Math.max(0, Math.min(100, (val / max) * 100)) : 0
+  return (
+    <span className={`inline-block h-1.5 rounded-full bg-white/70 overflow-hidden shrink-0 ${className}`}>
+      <span className="block h-full bg-brand-accent rounded-full" style={{ width: `${pct}%` }} />
+    </span>
+  )
+}
+
 // ── Иконка «?» с поповером «что такое энергия» (рядом с бейджем в шапке) ──
-// Объясняет на месте, не уводя в настройки. Тон успокаивающий: почти все бесплатно.
+// Объясняет на месте, не уводя в настройки: что такое энергия и как она тратится.
 // placement задает позицию поповера так, чтобы он не уезжал за край в обоих местах:
 // 'header' (мобильная шапка) — fixed в правом верхнем углу под шапкой, всегда влезает;
 // 'sidebar' (низ десктоп-сайдбара) — открывается вверх и вправо, не режется низом экрана.
@@ -140,10 +151,10 @@ export function EnergyInfo({ placement = 'header' }: { placement?: 'header' | 's
             transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
             className={`${popClass} w-[280px] max-w-[calc(100vw-32px)] z-50 rounded-3xl bg-brand-soft border border-brand-border-soft shadow-[0_18px_40px_-16px_rgba(46,42,69,0.35)] p-4`}
           >
-            <p className="font-bold text-brand-text text-sm mb-1.5">Почему почти все бесплатно</p>
+            <p className="font-bold text-brand-text text-sm mb-1.5">Что такое энергия</p>
             <p className="text-[13px] text-brand-muted leading-relaxed">
-              Тексты можно писать сколько хочешь: посты, карусели, хуки, рилс, контент-план и карту бренда. Они энергию не трогают.
-              Энергия нужна только для тяжелого: картинок к каруселям, расшифровки видео и глубокого разбора конкурента.
+              Энергия это запас на тяжелые операции. Каждая тратит часть: картинка к карусели, расшифровка видео, глубокий разбор конкурента.
+              Тексты (посты, карусели, хуки, рилс, контент-план, карта бренда) энергию не тратят, их можно делать сколько хочешь.
             </p>
             <button
               type="button"
