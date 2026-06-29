@@ -166,24 +166,11 @@ function Hero() {
             <span className="flex items-center gap-1"><Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-sage" /> Бесплатный план</span>
           </motion.div>
 
-          {/* Подводка к демо: строка-крючок в боль + рукотворная линия вниз */}
-          <motion.div variants={fadeUp} className="mt-7 sm:mt-9 flex flex-col items-center">
+          {/* Подводка к демо: строка-крючок в боль */}
+          <motion.div variants={fadeUp} className="mt-7 sm:mt-9 flex justify-center">
             <a href="#demo" className="text-sm text-brand-muted hover:text-brand-text hover:underline underline-offset-4 transition cursor-pointer max-w-md">
               Пишешь посты, а отклика нет. Покажу, как звучит пост, который читают
             </a>
-            <svg viewBox="0 0 16 60" width="16" height="56" fill="none" aria-hidden className="mt-3 text-brand-sage overflow-visible">
-              <motion.path
-                d="M8 2 C 3 12, 13 22, 8 32 S 3 52, 8 58"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                fill="none"
-                initial={{ pathLength: 0, opacity: 0 }}
-                whileInView={{ pathLength: 1, opacity: 1 }}
-                viewport={{ once: true, margin: '-10% 0px' }}
-                transition={{ pathLength: { duration: 0.9, ease: [0.22, 1, 0.36, 1] }, opacity: { duration: 0.2 } }}
-              />
-            </svg>
           </motion.div>
         </motion.div>
       </section>

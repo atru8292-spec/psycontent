@@ -278,12 +278,6 @@ export default function LandingDemo() {
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[url('/paper-grain.png')] bg-repeat bg-[length:128px_128px] opacity-[0.05] mix-blend-soft-light"
       />
-      {/* Мягкий аметистовый глоу сверху по центру (глубина) */}
-      <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(90% 70% at 50% 0%, rgba(91,79,160,0.16) 0%, rgba(91,79,160,0) 60%)' }} />
-      {/* Мягкие переходы крем и индиго сверху и снизу */}
-      <div aria-hidden className="pointer-events-none absolute top-0 left-0 right-0 h-16 sm:h-24 z-[1]" style={{ background: 'linear-gradient(to bottom, #F7F3EC 0%, rgba(247,243,236,0) 100%)' }} />
-      <div aria-hidden className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 sm:h-24 z-[1]" style={{ background: 'linear-gradient(to top, #F7F3EC 0%, rgba(247,243,236,0) 100%)' }} />
-
       <div className="relative z-10 max-w-[1040px] mx-auto px-4 sm:px-6">
         {/* Заголовок секции */}
         <div className="text-center mb-8 sm:mb-12">
