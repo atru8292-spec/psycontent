@@ -251,7 +251,7 @@ export default function LandingDemo() {
         if (data?.user) {
           const { data: prof } = await supabase
             .from('onboarding_profiles').select('user_id').eq('user_id', data.user.id).single()
-          router.push(prof ? '/dashboard/post-generator' : '/onboarding')
+          router.push(prof ? '/dashboard/post-generator' : '/onboarding/express')
         } else {
           setShowAuth(true)
         }

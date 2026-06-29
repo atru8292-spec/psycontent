@@ -37,7 +37,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [profile, setProfile] = useState<any>(null)
   // 'loading' пока проверяем; 'ready' — профиль есть, рендерим кабинет;
   // 'redirecting' — нет профиля/сессии, уводим (кабинет НЕ рендерим).
-  const [status, setStatus] = useState<'loading' | 'ready' | 'redirecting'>('loading')
+  const [status, setStatus] = useState<'loading' | 'ready' | 'redirecting' | 'error'>('loading')
   const [collapsed, setCollapsed] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
@@ -50,15 +50,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (!active) return
       if (!user) { setStatus('redirecting'); router.replace('/'); return }
       supabase.from('onboarding_profiles').select('full_name').eq('user_id', user.id).single()
-        .then(({ data }) => {
+        .then(({ data, error }) => {
           if (!active) return
-          if (!data) { setStatus('redirecting'); router.replace('/onboarding'); return }
+          // PGRST116 = строки нет (нет профиля) -> ведем на короткий онбординг
+          if (error && error.code === 'PGRST116') { setStatus('redirecting'); router.replace('/onboarding/express'); return }
+          // иная ошибка = сбой чтения (права/сеть). НЕ выкидываем на онбординг (была петля), показываем мягкий повтор
+          if (error || !data) { setStatus('error'); return }
           setProfile(data)
           setStatus('ready')
         })
     })
     return () => { active = false }
   }, [router])
+
+  // Сбой чтения профиля: мягкий повтор, НЕ выкидываем на онбординг.
+  if (status === 'error') {
+    return (
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center p-6">
+        <div className="text-center max-w-sm">
+          <p className="text-brand-text font-semibold mb-2">Не удалось загрузить профиль</p>
+          <p className="text-sm text-brand-muted mb-4">Похоже, временный сбой связи. Попробуй обновить страницу.</p>
+          <button onClick={() => window.location.reload()} className="btn-primary px-5 py-2.5 text-sm">Обновить</button>
+        </div>
+      </div>
+    )
+  }
 
   // Пока идет проверка или уже уводим — не мигаем кабинетом.
   if (status !== 'ready') {

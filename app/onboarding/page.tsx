@@ -516,7 +516,7 @@ export default function Onboarding() {
 
     const { error } = await supabase
       .from('onboarding_profiles')
-      .insert(profileData)
+      .upsert(profileData, { onConflict: 'user_id' })
 
     if (error) {
       console.error('Save error:', error)

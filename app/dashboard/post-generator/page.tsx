@@ -136,20 +136,22 @@ function PostGeneratorContent() {
 
       setUser(user)
 
-      const { data } = await supabase
+      const { data, error: profErr } = await supabase
         .from('onboarding_profiles')
         .select('*')
         .eq('user_id', user.id)
         .single()
 
-      if (!data) { router.push('/onboarding'); return }
-      setProfile(data)
-
-      // Дефолт площадки из профиля: только телеграм в platforms -> телеграм, иначе инстаграм
-      const plats = (Array.isArray(data.platforms) ? data.platforms : []).map((p: string) => String(p).toLowerCase())
-      const hasInsta = plats.some((p: string) => p.includes('insta') || p.includes('инстаг'))
-      const hasTg = plats.some((p: string) => p.includes('tele') || p.includes('телег'))
-      setPlatform(hasTg && !hasInsta ? 'telegram' : 'instagram')
+      // PGRST116 = нет профиля -> короткий онбординг. Иной сбой чтения НЕ выкидываем.
+      if (profErr && profErr.code === 'PGRST116') { router.push('/onboarding/express'); return }
+      if (data) {
+        setProfile(data)
+        // Дефолт площадки из профиля: только телеграм в platforms -> телеграм, иначе инстаграм
+        const plats = (Array.isArray(data.platforms) ? data.platforms : []).map((p: string) => String(p).toLowerCase())
+        const hasInsta = plats.some((p: string) => p.includes('insta') || p.includes('инстаг'))
+        const hasTg = plats.some((p: string) => p.includes('tele') || p.includes('телег'))
+        setPlatform(hasTg && !hasInsta ? 'telegram' : 'instagram')
+      }
 
       setLoading(false)
     }
@@ -605,7 +607,11 @@ function PostGeneratorContent() {
                   </div>
 
                   {firstMode && (
-                    <div className="px-4 sm:px-6 pb-4 pt-1 border-t border-brand-border">
+                    <div className="px-4 sm:px-6 pb-4 pt-1 border-t border-brand-border space-y-2">
+                      <p className="text-sm text-brand-text-secondary">
+                        Будет звучать еще точнее, когда дорасскажешь о себе.{' '}
+                        <button onClick={() => router.push('/onboarding')} className="text-brand-accent hover:underline cursor-pointer">Настроить голос</button>
+                      </p>
                       <p className="text-sm text-brand-text-secondary">
                         Готово. Дальше можно{' '}
                         <button onClick={() => router.push('/dashboard/content-plan')} className="text-brand-accent hover:underline cursor-pointer">собрать контент-план</button>

@@ -59,13 +59,14 @@ export default function RewriteGenerator() {
 
       setUser(user)
 
-      const { data } = await supabase
+      const { error: profErr } = await supabase
         .from('onboarding_profiles')
-        .select('*')
+        .select('user_id')
         .eq('user_id', user.id)
         .single()
 
-      if (!data) { router.push('/onboarding'); return }
+      // PGRST116 = нет профиля -> короткий онбординг. Иной сбой чтения НЕ выкидываем (была петля).
+      if (profErr && profErr.code === 'PGRST116') { router.push('/onboarding/express'); return }
       setLoading(false)
     }
     init()

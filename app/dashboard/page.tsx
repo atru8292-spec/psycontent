@@ -66,10 +66,12 @@ export default function Dashboard() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
 
-      const { data: prof } = await supabase
+      const { data: prof, error: profErr } = await supabase
         .from('onboarding_profiles').select('*').eq('user_id', user.id).single()
-      if (!prof) { router.push('/onboarding'); return }
-      setProfile(prof)
+      // PGRST116 = нет профиля -> короткий онбординг. Иной сбой чтения НЕ выкидываем (layout уже впустил),
+      // просто продолжаем без редиректа (рендер использует profile? с фолбэками).
+      if (profErr && profErr.code === 'PGRST116') { router.push('/onboarding/express'); return }
+      if (prof) setProfile(prof)
 
       const completed: string[] = ['onboarding']
       const [passRes, postsRes, planRes] = await Promise.all([
