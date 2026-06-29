@@ -118,7 +118,7 @@ function Hero() {
 
   return (
     <>
-      <section className="pt-24 sm:pt-32 pb-12 sm:pb-20 px-4 sm:px-6">
+      <section className="pt-24 sm:pt-32 pb-6 sm:pb-10 px-4 sm:px-6">
         <motion.div className="max-w-4xl mx-auto text-center" initial="hidden" animate="visible" variants={stagger}>
           {/* Бейдж */}
           <motion.div variants={fadeUp} className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-3 sm:px-4 py-2 rounded-2xl text-xs sm:text-sm font-medium mb-6 sm:mb-8">
@@ -157,7 +157,7 @@ function Hero() {
             >
               Начать бесплатно <ArrowRight className="w-5 h-5" />
             </button>
-            <a href="#how" className="text-brand-muted hover:text-brand-text transition text-sm flex items-center gap-1 py-2">
+            <a href="#demo" className="text-brand-muted hover:text-brand-text transition text-sm flex items-center gap-1 py-2">
               Как это работает? <ChevronDown className="w-4 h-4" />
             </a>
           </motion.div>
@@ -168,6 +168,14 @@ function Hero() {
             <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-sage" /> 5 минут на старт</span>
             <span className="flex items-center gap-1"><Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-sage" /> Бесплатный план</span>
           </motion.div>
+
+          {/* Скролл-намек к живому демо */}
+          <motion.a variants={fadeUp} href="#demo" className="mt-8 sm:mt-10 inline-flex flex-col items-center gap-1 text-brand-muted hover:text-brand-text transition cursor-pointer">
+            <span className="text-xs">живой пример ниже</span>
+            <motion.span animate={{ y: [0, 6, 0] }} transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}>
+              <ChevronDown className="w-5 h-5 text-brand-sage" />
+            </motion.span>
+          </motion.a>
         </motion.div>
       </section>
       <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />
