@@ -83,8 +83,9 @@ export async function GET(req: Request) {
   })
   if (otpErr) return NextResponse.redirect(`${origin}/?error=yandex_session`)
 
-  // 5. Куда вести: если паспорт уже начат — в кабинет, иначе в онбординг.
-  let dest = '/onboarding'
+  // 5. Куда вести: если профиль уже есть, в кабинет, иначе в листалку-знакомство
+  // (она при наличии мысли из демо или профиля сама уведет дальше).
+  let dest = '/onboarding/intro'
   const userId = linkData.user?.id
   if (userId) {
     const { data: prof } = await admin

@@ -43,7 +43,7 @@ export default function AuthModal({
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/onboarding/express` },
+        options: { emailRedirectTo: `${window.location.origin}/onboarding/intro` },
       })
       if (signUpError) {
         setError(signUpError.message === 'User already registered'
@@ -51,7 +51,7 @@ export default function AuthModal({
           : signUpError.message)
       } else if (data.user) {
         if (data.session) {
-          router.push('/onboarding/express')
+          router.push('/onboarding/intro')
         } else {
           setSuccess('Проверьте почту, мы отправили ссылку для подтверждения')
         }
@@ -71,7 +71,7 @@ export default function AuthModal({
           .select('user_id')
           .eq('user_id', data.user.id)
           .single()
-        router.push(profile ? '/dashboard' : '/onboarding/express')
+        router.push(profile ? '/dashboard' : '/onboarding/intro')
       }
     }
     setLoading(false)
