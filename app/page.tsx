@@ -118,7 +118,7 @@ function Hero() {
 
   return (
     <>
-      <section className="pt-24 sm:pt-32 pb-6 sm:pb-10 px-4 sm:px-6">
+      <section className="pt-24 sm:pt-32 pb-4 sm:pb-8 px-4 sm:px-6">
         <motion.div className="max-w-4xl mx-auto text-center" initial="hidden" animate="visible" variants={stagger}>
           {/* Бейдж */}
           <motion.div variants={fadeUp} className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-3 sm:px-4 py-2 rounded-2xl text-xs sm:text-sm font-medium mb-6 sm:mb-8">
@@ -157,9 +157,6 @@ function Hero() {
             >
               Начать бесплатно <ArrowRight className="w-5 h-5" />
             </button>
-            <a href="#demo" className="text-brand-muted hover:text-brand-text transition text-sm flex items-center gap-1 py-2">
-              Как это работает? <ChevronDown className="w-4 h-4" />
-            </a>
           </motion.div>
 
           {/* Бенефиты */}
@@ -169,13 +166,25 @@ function Hero() {
             <span className="flex items-center gap-1"><Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-sage" /> Бесплатный план</span>
           </motion.div>
 
-          {/* Скролл-намек к живому демо */}
-          <motion.a variants={fadeUp} href="#demo" className="mt-8 sm:mt-10 inline-flex flex-col items-center gap-1 text-brand-muted hover:text-brand-text transition cursor-pointer">
-            <span className="text-xs">живой пример ниже</span>
-            <motion.span animate={{ y: [0, 6, 0] }} transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}>
-              <ChevronDown className="w-5 h-5 text-brand-sage" />
-            </motion.span>
-          </motion.a>
+          {/* Подводка к демо: строка-крючок в боль + рукотворная линия вниз */}
+          <motion.div variants={fadeUp} className="mt-7 sm:mt-9 flex flex-col items-center">
+            <a href="#demo" className="text-sm text-brand-muted hover:text-brand-text hover:underline underline-offset-4 transition cursor-pointer max-w-md">
+              Пишешь посты, а отклика нет. Покажу, как звучит пост, который читают
+            </a>
+            <svg viewBox="0 0 16 60" width="16" height="56" fill="none" aria-hidden className="mt-3 text-brand-sage overflow-visible">
+              <motion.path
+                d="M8 2 C 3 12, 13 22, 8 32 S 3 52, 8 58"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                fill="none"
+                initial={{ pathLength: 0, opacity: 0 }}
+                whileInView={{ pathLength: 1, opacity: 1 }}
+                viewport={{ once: true, margin: '-10% 0px' }}
+                transition={{ pathLength: { duration: 0.9, ease: [0.22, 1, 0.36, 1] }, opacity: { duration: 0.2 } }}
+              />
+            </svg>
+          </motion.div>
         </motion.div>
       </section>
       <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />

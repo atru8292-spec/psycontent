@@ -22,8 +22,6 @@ const POST_BODY =
 const CONTEXT_NOTE =
   'Сохраним твою мысль и заведем кабинет. Сначала короткое знакомство, потом соберем из нее твой первый пост.'
 
-const SCENE_BG = 'radial-gradient(120% 120% at 50% 0%, #353052 0%, #2E2A45 55%, #28233B 100%)'
-
 const EASE_SOFT = [0.22, 1, 0.36, 1] as const
 const EASE_MOVE = [0.45, 0, 0.25, 1] as const
 
@@ -212,7 +210,8 @@ export default function LandingDemo() {
           startedRef.current = false
         }
       },
-      { threshold: 0.25 }
+      // порог почти 0: печать стартует как только темная секция выглядывает над сгибом (peek)
+      { threshold: 0.01 }
     )
     obs.observe(el)
     return () => obs.disconnect()
@@ -269,36 +268,39 @@ export default function LandingDemo() {
   const caret = mode === 'auto' && phaseRef.current <= 2 && !reduced && !frozen
 
   return (
-    <section id="demo" className="px-4 sm:px-6 pt-6 sm:pt-10 pb-16 sm:pb-24">
-      <div className="max-w-[1040px] mx-auto">
-        {/* Темная плавающая сцена на креме */}
-        <div
-          ref={surfaceRef}
-          className="relative overflow-hidden rounded-[28px] sm:rounded-[40px] p-6 sm:p-10 lg:p-14 shadow-[0_30px_80px_-30px_rgba(46,42,69,0.45)]"
-          style={{ background: SCENE_BG }}
-        >
-          {/* Теплая зернистость на темном */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 bg-[url('/paper-grain.png')] bg-repeat bg-[length:128px_128px] opacity-[0.05] mix-blend-soft-light"
-          />
+    <section
+      id="demo"
+      ref={surfaceRef}
+      className="relative w-full overflow-hidden bg-brand-text pt-16 sm:pt-24 pb-20 sm:pb-28"
+    >
+      {/* Теплая зернистость на темном */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[url('/paper-grain.png')] bg-repeat bg-[length:128px_128px] opacity-[0.05] mix-blend-soft-light"
+      />
+      {/* Мягкий аметистовый глоу сверху по центру (глубина) */}
+      <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(90% 70% at 50% 0%, rgba(91,79,160,0.16) 0%, rgba(91,79,160,0) 60%)' }} />
+      {/* Мягкие переходы крем и индиго сверху и снизу */}
+      <div aria-hidden className="pointer-events-none absolute top-0 left-0 right-0 h-16 sm:h-24 z-[1]" style={{ background: 'linear-gradient(to bottom, #F7F3EC 0%, rgba(247,243,236,0) 100%)' }} />
+      <div aria-hidden className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 sm:h-24 z-[1]" style={{ background: 'linear-gradient(to top, #F7F3EC 0%, rgba(247,243,236,0) 100%)' }} />
 
-          {/* Заголовок секции */}
-          <div className="relative text-center mb-8 sm:mb-12">
-            <p className="text-sm font-semibold text-brand-sage mb-2">Живой пример</p>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-bg">
-              Одна мысль вслух. И готовый пост в твоем голосе.
-            </h2>
-            <p className="text-sm text-brand-bg/70 mt-3 max-w-xl mx-auto">
-              Пример на вымышленном психологе. Твой пост соберется на твоей мысли после входа.
-            </p>
-          </div>
+      <div className="relative z-10 max-w-[1040px] mx-auto px-4 sm:px-6">
+        {/* Заголовок секции */}
+        <div className="text-center mb-8 sm:mb-12">
+          <p className="text-sm font-semibold text-[#C9C2E8] mb-2">Как это работает</p>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-bg">
+            Одна мысль вслух. И готовый пост в твоем голосе.
+          </h2>
+          <p className="text-sm text-[#A79CC9] mt-3 max-w-xl mx-auto">
+            Пример на вымышленном психологе. Твой пост соберется на твоей мысли после входа.
+          </p>
+        </div>
 
           {/* Рабочая поверхность */}
           <div ref={stageRef} className="relative grid grid-cols-1 lg:grid-cols-[40%_1fr] gap-6 lg:gap-12 items-start">
             {/* ЛЕВО: мысль */}
             <div>
-              <p className="text-[11px] font-bold text-brand-sage uppercase tracking-widest mb-2">твоя мысль</p>
+              <p className="text-[11px] font-bold text-[#A79CC9] uppercase tracking-widest mb-2">твоя мысль</p>
 
               {mode === 'live' ? (
                 <div className="relative">
@@ -326,10 +328,10 @@ export default function LandingDemo() {
               )}
 
               {mode === 'live' && (
-                <p className="text-xs text-brand-bg/60 mt-2">Это уже про тебя. Впиши мысль, дальше превратим в пост.</p>
+                <p className="text-xs text-[#C2BAE0] mt-2">Это уже про тебя. Впиши мысль, дальше превратим в пост.</p>
               )}
               {mode !== 'live' && !isMobile && (
-                <p className="text-xs text-brand-bg/60 mt-2">можно вписать свою мысль</p>
+                <p className="text-xs text-[#C2BAE0] mt-2">можно вписать свою мысль</p>
               )}
 
               <button
@@ -340,7 +342,7 @@ export default function LandingDemo() {
                 className={`mt-4 w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-semibold text-sm transition ${
                   mode === 'live' && !liveText.trim()
                     ? 'bg-white/[0.06] text-brand-bg/40 cursor-not-allowed'
-                    : 'bg-brand-accent text-white hover:bg-brand-accent-hover shadow-[0_10px_30px_-8px_rgba(91,79,160,0.6)] cursor-pointer'
+                    : 'bg-brand-accent text-white hover:bg-brand-accent-hover ring-1 ring-white/12 shadow-[0_10px_30px_-8px_rgba(91,79,160,0.6)] cursor-pointer'
                 }`}
               >
                 {thinking ? (
@@ -350,7 +352,7 @@ export default function LandingDemo() {
                     <span className="w-1.5 h-1.5 rounded-full bg-white/80 animate-bounce" style={{ animationDelay: '300ms' }} />
                   </span>
                 ) : (
-                  <><Sparkles className="w-4 h-4 text-brand-sage" /> Сделать пост</>
+                  <><Sparkles className="w-4 h-4 text-white" /> Сделать пост</>
                 )}
               </button>
 
@@ -361,17 +363,17 @@ export default function LandingDemo() {
               )}
 
               {frozen && mode === 'auto' && !reduced && (
-                <button type="button" onClick={showAgain} className="mt-3 text-xs text-brand-bg/55 hover:text-brand-bg transition cursor-pointer">
+                <button type="button" onClick={showAgain} className="mt-3 text-xs text-[#A79CC9] hover:text-brand-bg transition cursor-pointer">
                   показать снова
                 </button>
               )}
               {mode === 'live' && dismissedOnce && (
-                <p className="mt-3 text-xs text-brand-sage">Твоя мысль на месте. Зарегистрируйся, и соберем из нее пост.</p>
+                <p className="mt-3 text-xs text-[#C9C2E8]">Твоя мысль на месте. Зарегистрируйся, и соберем из нее пост.</p>
               )}
             </div>
 
-            {/* ПРАВО: пост как в ленте (высота зарезервирована) */}
-            <div className="min-h-[300px] lg:min-h-[360px] flex flex-col">
+            {/* ПРАВО: пост как в ленте (высота зарезервирована под полный пост) */}
+            <div className="min-h-[420px] lg:min-h-[460px] flex flex-col">
               <AnimatePresence>
                 {showPost && (
                   <motion.div
@@ -393,33 +395,34 @@ export default function LandingDemo() {
                       </div>
                     </div>
 
-                    {/* Тело */}
-                    {showTitle && (
-                      <div className="mt-4">
-                        <motion.h3
-                          initial={reduced ? false : { opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.25 }}
-                          className="text-lg sm:text-xl font-bold text-brand-text"
-                        >
-                          {POST_TITLE}
-                        </motion.h3>
-                        <Squiggle variant={0} width="150px" staticDraw={reduced} />
-                      </div>
-                    )}
+                    {/* Заголовок: всегда в DOM, раскрытие через opacity/transform */}
+                    <div
+                      className="mt-4"
+                      style={{
+                        opacity: showTitle ? 1 : 0,
+                        transform: showTitle ? 'none' : 'translateY(6px)',
+                        transition: reduced ? 'none' : 'opacity .25s ease, transform .25s ease',
+                      }}
+                    >
+                      <h3 className="text-lg sm:text-xl font-bold text-brand-text">{POST_TITLE}</h3>
+                      <Squiggle variant={0} width="150px" staticDraw={reduced} />
+                    </div>
+                    {/* Тело: все слова в DOM сразу (высота зарезервирована), раскрытие по индексу */}
                     <div className="mt-3 text-brand-muted text-[15px] leading-relaxed">
-                      {BODY_TOKENS.slice(0, revealed).map((t, i) =>
+                      {BODY_TOKENS.map((t, i) =>
                         t.br ? (
                           <span key={i} className="block h-3" />
                         ) : (
-                          <motion.span
+                          <span
                             key={i}
-                            initial={reduced ? false : { opacity: 0, y: 4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.25 }}
+                            style={{
+                              opacity: i < revealed ? 1 : 0,
+                              transform: i < revealed ? 'none' : 'translateY(4px)',
+                              transition: reduced ? 'none' : 'opacity .25s ease, transform .25s ease',
+                            }}
                           >
                             {t.w}{' '}
-                          </motion.span>
+                          </span>
                         )
                       )}
                     </div>
@@ -441,7 +444,7 @@ export default function LandingDemo() {
                   initial={reduced ? false : { opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="text-sm text-brand-bg/55 mt-4 text-center lg:text-left"
+                  className="text-sm text-[#A79CC9] mt-4 text-center lg:text-left"
                 >
                   Так выглядит готовый пост. Слева впиши свою мысль.
                 </motion.p>
@@ -522,7 +525,6 @@ export default function LandingDemo() {
             )}
           </div>
         </div>
-      </div>
 
       <AuthModal isOpen={showAuth} onClose={closeAuth} contextNote={CONTEXT_NOTE} />
     </section>
