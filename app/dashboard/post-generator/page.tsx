@@ -21,6 +21,7 @@ import {
   CalendarDays,
   Mic,
   ArrowRight,
+  X,
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
 import EmptyState from '@/components/EmptyState'
@@ -187,6 +188,9 @@ function PostGeneratorContent() {
   // Заголовок-вывеска отделяется от тела (как в демо). Для сторис и старых постов
   // без структуры title будет null, рендерим тело целиком.
   const parsedPost = result ? splitPostTitle(result, generatedFormat) : null
+  // Этап 4: прилипающая полоса-предложение разбора. Показываем экспресс-юзеру с
+  // неполным голосом после первого поста, гарантированно видна пока читаешь пост.
+  const showVoiceBar = !!result && !generating && firstMode && isVoiceIncomplete(profile) && !voiceOfferDismissed
 
   const handleGenerate = async (topicOverride?: string) => {
     // topicOverride используется авто-генерацией после экспресса (без тайминга стейта).
@@ -294,7 +298,7 @@ function PostGeneratorContent() {
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+      <div className={`max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12 ${showVoiceBar ? 'pb-40 sm:pb-24' : ''}`}>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 sm:mb-10">
           <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-4 py-2 rounded-full text-sm font-medium mb-4">
             <PenTool className="w-4 h-4" />
@@ -680,39 +684,53 @@ function PostGeneratorContent() {
                 </motion.div>
               )}
             </AnimatePresence>
-
-            {/* Этап 4: предложение полного разбора после первого поста (момент вау).
-                Только экспресс-юзеру с неполным голосом, не модалка, можно отложить. */}
-            {result && !generating && firstMode && isVoiceIncomplete(profile) && !voiceOfferDismissed && (
-              <motion.div
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                className="mt-4 rounded-3xl bg-brand-soft border border-brand-border-soft p-5 sm:p-6 shadow-[0_12px_32px_-14px_rgba(91,79,160,0.35)]"
-              >
-                <p className="text-xs font-bold text-brand-accent uppercase tracking-widest mb-1.5">А дальше точнее</p>
-                <h3 className="font-bold text-lg leading-snug text-brand-text mb-1">Этот пост, только ближе к тебе</h3>
-                <Squiggle variant={2} width="96px" />
-                <p className="text-sm text-brand-muted leading-relaxed mt-2 mb-4">
-                  Пока я знаю о тебе только главное, а звучит уже как ты. Расскажи о себе подробнее, и я начну попадать в твой голос еще точнее. Это минут десять и интереснее обычной анкеты.
-                </p>
-                <button
-                  onClick={() => router.push('/dashboard/edit-profile')}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-brand-accent text-white font-semibold text-sm hover:bg-brand-accent-hover active:scale-[0.98] transition cursor-pointer"
-                >
-                  Рассказать о себе <ArrowRight className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setVoiceOfferDismissed(true)}
-                  className="block mt-3 text-sm text-brand-muted hover:text-brand-text transition cursor-pointer"
-                >
-                  Пока пишу сам
-                </button>
-              </motion.div>
-            )}
           </div>
         </div>
       </div>
+
+      {/* Этап 4: прилипающая полоса-предложение разбора (момент вау, гарантированно видна) */}
+      <AnimatePresence>
+        {showVoiceBar && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0, transition: { delay: 0, duration: 0.28, ease: [0.22, 1, 0.36, 1] } }}
+            transition={{ delay: 0.6, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)]"
+          >
+            <div className="max-w-6xl mx-auto px-0 sm:px-6">
+              <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-6 bg-brand-soft border-t border-brand-border-soft sm:rounded-t-3xl sm:border sm:border-b-0 shadow-[0_-10px_30px_-12px_rgba(91,79,160,0.30)] px-4 sm:px-6 py-3 sm:py-4">
+                <div className="min-w-0">
+                  <p className="text-sm sm:text-[15px] font-semibold text-brand-text leading-snug">Расскажи о себе, и посты станут точнее</p>
+                  <p className="hidden sm:block text-xs text-brand-muted mt-0.5">Минут десять, и живее обычной анкеты</p>
+                </div>
+                <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3 shrink-0">
+                  <button
+                    onClick={() => router.push('/dashboard/edit-profile')}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-brand-accent text-white font-semibold text-sm hover:bg-brand-accent-hover active:scale-[0.98] transition cursor-pointer"
+                  >
+                    Рассказать о себе <ArrowRight className="w-4 h-4 hidden sm:inline" />
+                  </button>
+                  <button
+                    onClick={() => setVoiceOfferDismissed(true)}
+                    aria-label="Позже"
+                    title="Позже"
+                    className="hidden sm:flex p-2 rounded-full text-brand-muted hover:text-brand-text hover:bg-white/60 transition cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setVoiceOfferDismissed(true)}
+                    className="sm:hidden text-sm text-brand-muted hover:text-brand-text transition cursor-pointer"
+                  >
+                    Позже
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
