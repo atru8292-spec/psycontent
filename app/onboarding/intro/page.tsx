@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, ArrowRight, ArrowDown, Sparkles, Check, Heart, MessageCircle, Bookmark, Mic, Layers, Play, Type, CalendarCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowDown, Sparkles, Check, Heart, MessageCircle, Bookmark, Layers, Play, Type, CalendarCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import Squiggle from '@/components/Squiggle'
 
@@ -181,8 +181,8 @@ export default function IntroPage() {
               transition={{ duration: 0.45, ease: EASE }}
               className="w-full grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 xl:gap-20 items-center"
             >
-              {/* Иллюстрация */}
-              <div className="flex items-center justify-center min-h-[230px] sm:min-h-[300px] lg:min-h-[380px] order-1">
+              {/* Иллюстрация (декоративная, текст несет правая колонка) */}
+              <div aria-hidden className="flex items-center justify-center min-h-[230px] sm:min-h-[300px] lg:min-h-[380px] order-1">
                 <div className="scale-[0.8] sm:scale-90 lg:scale-100 origin-center">
                   <Motif motif={slide.motif} reduced={reduced} appear={appear} />
                 </div>
@@ -239,50 +239,50 @@ function Pad({ className = '' }: { className?: string }) {
 
 // ── Визуальные мотивы слайдов (один вес, герой + пад + система теней) ──
 function Motif({ motif, reduced, appear }: { motif: Motif; reduced: boolean; appear: AppearFn }) {
-  // 1. Тишина: крупный старательный пост, а откликов ноль
+  // 1. ТИШИНА: реальный пост в ленте, а откликов ноль
   if (motif === 'silence') {
     return (
       <div className="relative">
         <Pad />
         <motion.div {...appear(0)} className={`relative bg-white rounded-3xl p-5 w-[320px] rotate-[1.5deg] ring-1 ring-brand-border/60 ${SHADOW_L2}`}>
-          <div className="flex items-center gap-3 pb-3 border-b border-brand-border">
-            <div className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand-accent text-sm font-bold">А</div>
-            <div className="h-2.5 w-24 rounded-full bg-brand-border/70" />
-          </div>
-          <div className="mt-3.5">
-            <div className="h-3 w-40 rounded-full bg-brand-text/85" />
-            <div className="mt-1.5"><Squiggle variant={0} width="110px" staticDraw={reduced} /></div>
-            <div className="mt-3 space-y-2">
-              <div className="h-2.5 w-full rounded-full bg-brand-border/60" />
-              <div className="h-2.5 w-11/12 rounded-full bg-brand-border/60" />
-              <div className="h-2.5 w-2/3 rounded-full bg-brand-border/60" />
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-brand-soft flex items-center justify-center text-brand-accent text-sm font-bold shrink-0">М</div>
+            <div className="leading-tight">
+              <p className="text-[13px] font-semibold text-brand-text">Мария</p>
+              <p className="text-[11px] text-brand-muted">психолог</p>
             </div>
           </div>
+          <div className="mt-3.5">
+            <p className="text-[15px] font-bold text-brand-text leading-snug">Как справиться с тревогой</p>
+            <p className="text-[12px] text-brand-muted leading-snug mt-1.5">Тревога это естественная реакция организма. Важно замечать свои эмоции и заботиться о себе.</p>
+          </div>
           <motion.div {...appear(0.28)} className="flex items-center gap-5 mt-4 pt-3 border-t border-brand-border">
-            <span className="flex items-center gap-1.5"><Heart className="w-5 h-5 text-brand-muted/30" /><span className="text-xs text-brand-muted/40">0</span></span>
-            <span className="flex items-center gap-1.5"><MessageCircle className="w-5 h-5 text-brand-muted/30" /><span className="text-xs text-brand-muted/40">0</span></span>
-            <span className="flex items-center gap-1.5"><Bookmark className="w-5 h-5 text-brand-muted/30" /><span className="text-xs text-brand-muted/40">0</span></span>
-            <span className="ml-auto text-xs text-brand-muted/40">сегодня</span>
+            <span className="flex items-center gap-1.5"><Heart className="w-[18px] h-[18px] text-brand-muted/30" /><span className="text-xs text-brand-muted/40">0</span></span>
+            <span className="flex items-center gap-1.5"><MessageCircle className="w-[18px] h-[18px] text-brand-muted/30" /><span className="text-xs text-brand-muted/40">0</span></span>
+            <span className="flex items-center gap-1.5"><Bookmark className="w-[18px] h-[18px] text-brand-muted/30" /><span className="text-xs text-brand-muted/40">0</span></span>
+            <span className="ml-auto text-[11px] text-brand-muted/40">2 дня назад</span>
           </motion.div>
         </motion.div>
       </div>
     )
   }
 
-  // 2. Язык клиента: сухая академичная (утоплена) против живой фразы (плавает, подчеркнута)
+  // 2. ЯЗЫК КЛИЕНТА: научно (утоплено) против живого (плавает, подчеркнуто)
   if (motif === 'language') {
     return (
-      <div className="flex flex-col items-center gap-2.5 w-[300px]">
+      <div className="flex flex-col items-center w-[310px]">
         <motion.div {...appear(0)} className="self-stretch bg-brand-border/25 ring-1 ring-brand-border/40 rounded-2xl px-4 py-3 opacity-70">
           <p className="text-[10px] font-semibold text-brand-muted uppercase tracking-wider mb-1">по-научному</p>
-          <p className="text-[13px] italic text-brand-muted/80 leading-snug">созависимое поведение в близких отношениях</p>
+          <p className="text-[12.5px] italic text-brand-muted/80 leading-snug">Созависимое поведение в близких отношениях</p>
         </motion.div>
-        <motion.div {...appear(0.12)} className="w-[2px] h-6 rounded-full bg-brand-sage" />
+        <motion.div {...appear(0.12)} className="my-2.5 w-8 h-8 rounded-full bg-brand-soft-2 flex items-center justify-center">
+          <ArrowDown className="w-4 h-4 text-brand-sage" />
+        </motion.div>
         <div className="relative self-stretch">
           <Pad className="translate-x-2.5 translate-y-3" />
           <motion.div {...appear(0.2)} className={`relative bg-white rounded-3xl px-5 py-4 ring-1 ring-brand-soft scale-[1.03] ${SHADOW_L3}`}>
             <p className="text-[10px] font-semibold text-brand-accent uppercase tracking-wider mb-1">как чувствует клиент</p>
-            <p className="text-[15px] text-brand-text leading-snug">снова выбираешь тех, кто не выбирает тебя</p>
+            <p className="text-[14px] text-brand-text leading-snug">Снова выбираешь тех, кто не выбирает тебя</p>
             <div className="mt-1"><Squiggle variant={2} width="150px" staticDraw={reduced} /></div>
           </motion.div>
         </div>
@@ -290,147 +290,127 @@ function Motif({ motif, reduced, appear }: { motif: Motif; reduced: boolean; app
     )
   }
 
-  // 3. Не маркетолог: чужие ярлыки сняты сверху, продукт выдает чистый результат снизу
+  // 3. НЕ МАРКЕТОЛОГ: чеклист берем на себя -> чистый живой пост
   if (motif === 'notmarketer') {
-    const chips = ['алгоритмы', 'рилсы', 'охваты', 'продающий текст']
-    const rot = ['-rotate-2', 'rotate-1', 'rotate-2', '-rotate-1']
+    const taken = ['Алгоритмы и охваты', 'Форматы и рилсы', 'Продающие тексты']
     return (
-      <div className="flex flex-col items-center w-[300px]">
-        <div className="flex flex-wrap justify-center gap-2 max-w-[300px] opacity-80">
-          {chips.map((c, i) => (
-            <motion.span key={c} {...appear(i * 0.06)} className={`inline-flex items-center bg-brand-border/40 text-brand-muted text-xs rounded-full px-3 py-1.5 line-through ${rot[i]}`}>
-              {c}
-            </motion.span>
-          ))}
-        </div>
-        <motion.div {...appear(0.26)} className="my-3">
-          <div className="w-9 h-9 rounded-full bg-brand-soft-2 flex items-center justify-center"><ArrowDown className="w-5 h-5 text-brand-sage" /></div>
-        </motion.div>
-        <div className="relative">
-          <Pad className="translate-x-2.5 translate-y-3" />
-          <motion.div {...appear(0.34)} className={`relative bg-white rounded-2xl p-4 w-[230px] ring-1 ring-brand-soft ${SHADOW_ACC}`}>
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-4 h-4 text-brand-accent" />
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-accent" />
-            </div>
-            <div className="h-2.5 w-32 rounded-full bg-brand-text/80" />
-            <div className="mt-1"><Squiggle variant={1} width="90px" staticDraw={reduced} /></div>
-            <div className="mt-2.5 space-y-2">
-              <div className="h-2.5 w-full rounded-full bg-brand-border/60" />
-              <div className="h-2.5 w-3/4 rounded-full bg-brand-border/60" />
-            </div>
-          </motion.div>
-        </div>
-      </div>
-    )
-  }
-
-  // 4. Продажи: человек пишет первым, плавающий входящий пузырь, без кнопок купить
-  if (motif === 'selling') {
-    return (
-      <div className="flex flex-col items-center w-[290px]">
-        <motion.div {...appear(0)} className="flex items-center gap-2 opacity-80 mb-4">
-          <div className="w-8 h-8 rounded-full bg-brand-soft flex items-center justify-center text-brand-accent text-xs font-bold">А</div>
-          <Squiggle variant={0} width="64px" staticDraw={reduced} />
-        </motion.div>
-        <motion.div {...appear(0.34)} className="self-start flex items-center gap-1.5 mb-2 ml-1">
-          <span className="w-2 h-2 rounded-full bg-brand-accent" />
-          <span className="text-[10px] text-brand-muted">новое сообщение</span>
-        </motion.div>
-        <motion.div
-          initial={reduced ? false : { opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4, ease: EASE, delay: 0.18 }}
-          className="self-start flex items-start gap-2.5 max-w-[270px]"
-        >
-          <div className="w-7 h-7 rounded-full bg-brand-soft-2 shrink-0 mt-1" />
-          <div className="relative">
-            <Pad className="translate-x-2 translate-y-2.5" />
-            <div className={`relative bg-white rounded-3xl rounded-tl-md px-5 py-3.5 ring-1 ring-brand-soft ${SHADOW_L3}`}>
-              <p className="text-[14px] text-brand-text leading-snug">Здравствуйте, давно вас читаю. Можно записаться к вам?</p>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    )
-  }
-
-  // 5. Форматы: колода веером + герой-пост + лента контент-плана
-  if (motif === 'formats') {
-    const back = [
-      { icon: Layers, label: 'карусель', cls: '-rotate-6 -translate-x-12' },
-      { icon: Play, label: 'рилс', cls: 'rotate-3 translate-x-12' },
-      { icon: Type, label: 'хук', cls: 'rotate-[8deg] translate-x-20 translate-y-3' },
-    ]
-    return (
-      <div className="flex flex-col items-center">
-        <div className="relative w-[260px] h-[150px] flex items-center justify-center">
-          {back.map((b, i) => (
-            <motion.div key={b.label} {...appear(i * 0.06)} className={`absolute w-[176px] h-[116px] rounded-2xl bg-white ring-1 ring-brand-border/60 ${SHADOW_L1} ${b.cls}`}>
-              <div className="absolute top-2.5 right-3 flex items-center gap-1 text-brand-muted">
-                <b.icon className="w-4 h-4" />
-                <span className="text-[10px]">{b.label}</span>
+      <div className="flex flex-col items-center w-[250px]">
+        <motion.div {...appear(0)} className={`self-stretch bg-brand-soft/50 rounded-2xl px-4 py-3 ring-1 ring-brand-border/60 ${SHADOW_L1}`}>
+          <p className="text-[10px] font-semibold text-brand-muted uppercase tracking-wider mb-2">берем на себя</p>
+          <div className="space-y-1.5">
+            {taken.map((t) => (
+              <div key={t} className="flex items-center gap-2">
+                <Check className="w-3.5 h-3.5 text-brand-sage shrink-0" />
+                <span className="text-[12px] text-brand-muted">{t}</span>
               </div>
-            </motion.div>
-          ))}
-          <div className="relative">
-            <Pad className="translate-x-2.5 translate-y-3 rounded-3xl" />
-            <motion.div {...appear(0.2)} className={`relative bg-white rounded-3xl p-4 w-[200px] ring-1 ring-brand-border/60 ${SHADOW_L2}`}>
-              <p className="text-[10px] font-semibold text-brand-accent uppercase tracking-wider mb-1.5">пост</p>
-              <div className="h-2.5 w-28 rounded-full bg-brand-text/80" />
-              <div className="mt-1"><Squiggle variant={1} width="90px" staticDraw={reduced} /></div>
-              <div className="mt-2.5 space-y-2">
-                <div className="h-2.5 w-full rounded-full bg-brand-border/60" />
-                <div className="h-2.5 w-3/4 rounded-full bg-brand-border/60" />
-              </div>
-            </motion.div>
-          </div>
-        </div>
-        <motion.div {...appear(0.3)} className="flex items-center gap-2 mt-5 w-[230px] h-9 rounded-full bg-brand-soft px-3.5">
-          <CalendarCheck className="w-4 h-4 text-brand-accent shrink-0" />
-          <div className="flex items-center gap-1.5">
-            {[0, 1, 2, 3].map((i) => (
-              <span key={i} className={`w-1.5 h-1.5 rounded-full ${i === 0 ? 'bg-brand-accent' : 'bg-brand-border'}`} />
             ))}
           </div>
-          <span className="ml-auto text-[10px] text-brand-muted">контент-план</span>
+        </motion.div>
+        <motion.div {...appear(0.22)} className="my-2 w-8 h-8 rounded-full bg-brand-soft-2 flex items-center justify-center">
+          <ArrowDown className="w-4 h-4 text-brand-sage" />
+        </motion.div>
+        <div className="relative self-stretch">
+          <Pad className="translate-x-2.5 translate-y-3 rounded-2xl" />
+          <motion.div {...appear(0.32)} className={`relative bg-white rounded-2xl px-4 py-3.5 ring-1 ring-brand-soft ${SHADOW_ACC}`}>
+            <p className="text-[10px] font-semibold text-brand-accent uppercase tracking-wider mb-1">остается тебе</p>
+            <p className="text-[14px] font-bold text-brand-text leading-snug">Опять согласилась, опять злюсь</p>
+            <p className="text-[12px] text-brand-muted leading-snug mt-1">Ты не добрая. Ты просто разучилась говорить нет.</p>
+            <div className="mt-1"><Squiggle variant={1} width="120px" staticDraw={reduced} /></div>
+          </motion.div>
+        </div>
+      </div>
+    )
+  }
+
+  // 4. ПРОДАЖИ: чистое входящее сообщение клиента в директ
+  if (motif === 'selling') {
+    return (
+      <div className="relative w-[300px]">
+        <Pad />
+        <motion.div {...appear(0)} className={`relative bg-white rounded-3xl p-4 ring-1 ring-brand-border/60 ${SHADOW_L2}`}>
+          <div className="flex items-center gap-2.5 pb-3 border-b border-brand-border">
+            <div className="w-8 h-8 rounded-full bg-brand-soft flex items-center justify-center text-brand-accent text-xs font-bold shrink-0">И</div>
+            <p className="text-[13px] font-semibold text-brand-text">Ирина</p>
+            <span className="ml-auto w-2 h-2 rounded-full bg-brand-accent" />
+          </div>
+          <motion.div
+            initial={reduced ? false : { opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, ease: EASE, delay: 0.2 }}
+            className="mt-3"
+          >
+            <div className="inline-block max-w-[232px] bg-brand-soft rounded-2xl rounded-tl-md px-4 py-2.5">
+              <p className="text-[13px] text-brand-text leading-snug">Здравствуйте. Давно вас читаю, как будто про меня пишете. Можно к вам записаться?</p>
+            </div>
+            <p className="text-[10px] text-brand-muted mt-1.5 ml-1">сегодня, 14:32</p>
+          </motion.div>
         </motion.div>
       </div>
     )
   }
 
-  // 6. Старт: пара коротких вопросов -> пост (всегда горизонтально, высота ограничена)
-  return (
-    <div className="flex flex-col items-center">
-      <motion.div {...appear(0)} className="flex items-center gap-2 mb-5">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <span key={i} className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-brand-accent' : 'bg-brand-border-soft'}`} />
-        ))}
-      </motion.div>
-      <div className="flex items-center gap-4">
-        <div className="flex flex-col gap-2.5">
-          {[0, 1, 2].map((i) => (
-            <motion.div key={i} {...appear(0.08 + i * 0.08)} className="flex items-center gap-2 bg-brand-soft rounded-2xl px-3.5 py-2.5 w-[160px]">
-              {i === 2
-                ? <Check className="w-4 h-4 text-brand-sage shrink-0" />
-                : <Mic className="w-4 h-4 text-brand-sage shrink-0" />}
-              <span className="h-2.5 w-16 rounded-full bg-brand-muted/40" />
-            </motion.div>
+  // 5. ФОРМАТЫ: переключатель форматов + живой пример поста
+  if (motif === 'formats') {
+    const seg: { label: string; active?: boolean; icon?: typeof Layers }[] = [
+      { label: 'Пост', active: true },
+      { label: 'Карусель', icon: Layers },
+      { label: 'Рилс', icon: Play },
+      { label: 'Хук', icon: Type },
+    ]
+    return (
+      <div className="flex flex-col items-center w-[320px]">
+        <motion.div {...appear(0)} className={`flex items-center gap-1 bg-white rounded-full p-1 ring-1 ring-brand-border/60 ${SHADOW_L1}`}>
+          {seg.map((s) => (
+            <span key={s.label} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-medium ${s.active ? 'bg-brand-accent text-white' : 'text-brand-muted'}`}>
+              {s.icon ? <s.icon className="w-3 h-3" /> : null}
+              {s.label}
+            </span>
           ))}
-        </div>
-        <motion.div {...appear(0.3)}><ArrowRight className="w-5 h-5 text-brand-sage" /></motion.div>
-        <div className="relative">
-          <Pad className="translate-x-2 translate-y-3" />
-          <motion.div {...appear(0.38)} className={`relative bg-white rounded-3xl p-4 w-[136px] ring-1 ring-brand-soft ${SHADOW_L3}`}>
-            <Sparkles className="absolute top-3 right-3 w-4 h-4 text-brand-accent" />
-            <div className="h-2.5 w-14 rounded-full bg-brand-text/80" />
-            <div className="mt-1"><Squiggle variant={1} width="56px" staticDraw={reduced} /></div>
-            <div className="mt-2.5 space-y-2">
-              <div className="h-2.5 w-full rounded-full bg-brand-border/60" />
-              <div className="h-2.5 w-2/3 rounded-full bg-brand-border/60" />
-            </div>
+        </motion.div>
+        <div className="relative mt-4">
+          <Pad className="translate-x-2.5 translate-y-3" />
+          <motion.div {...appear(0.18)} className={`relative bg-white rounded-3xl p-4 w-[260px] rotate-[1deg] ring-1 ring-brand-border/60 ${SHADOW_L3}`}>
+            <p className="text-[15px] font-bold text-brand-text leading-snug">Плакать тут не стыдно</p>
+            <div className="mt-1"><Squiggle variant={1} width="110px" staticDraw={reduced} /></div>
+            <p className="text-[12px] text-brand-muted leading-snug mt-2">Почти каждый, кто впервые плачет на сессии, потом извиняется.</p>
           </motion.div>
         </div>
+        <motion.div {...appear(0.3)} className="flex items-center gap-2 mt-4 bg-brand-soft rounded-full px-3.5 h-8">
+          <CalendarCheck className="w-3.5 h-3.5 text-brand-muted shrink-0" />
+          <span className="text-[11px] text-brand-muted">контент-план: о чем писать дальше</span>
+        </motion.div>
+      </div>
+    )
+  }
+
+  // 6. ПЕРВЫЙ ПОСТ: пара вопросов с ответами -> готовый пост
+  const qs = [
+    { q: 'В каком подходе?', a: 'Гештальт' },
+    { q: 'С чем работаешь?', a: 'Тревога' },
+    { q: 'Как звучишь?', a: 'Тепло, на ты' },
+  ]
+  return (
+    <div className="flex items-center gap-2.5">
+      <motion.div {...appear(0)} className={`bg-white rounded-2xl p-3.5 w-[150px] ring-1 ring-brand-border/60 ${SHADOW_L1}`}>
+        <p className="text-[10px] font-semibold text-brand-muted uppercase tracking-wider mb-2">пара вопросов</p>
+        <div className="space-y-2">
+          {qs.map((x) => (
+            <div key={x.q}>
+              <p className="text-[10px] text-brand-muted mb-0.5">{x.q}</p>
+              <span className="inline-block text-[11px] font-medium text-brand-accent bg-brand-soft rounded-full px-2.5 py-0.5">{x.a}</span>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+      <motion.div {...appear(0.28)}><ArrowRight className="w-5 h-5 text-brand-sage shrink-0" /></motion.div>
+      <div className="relative">
+        <Pad className="translate-x-2 translate-y-3" />
+        <motion.div {...appear(0.36)} className={`relative bg-white rounded-3xl p-3.5 w-[148px] ring-1 ring-brand-soft ${SHADOW_L3}`}>
+          <p className="text-[9px] font-semibold text-brand-accent uppercase tracking-wider">твой пост</p>
+          <p className="text-[13px] font-bold text-brand-text leading-snug mt-1">Три ночи, а ты не спишь</p>
+          <div className="mt-1"><Squiggle variant={1} width="80px" staticDraw={reduced} /></div>
+          <p className="text-[11px] text-brand-muted leading-snug mt-1.5">Тревога не выключается по команде.</p>
+        </motion.div>
       </div>
     </div>
   )
