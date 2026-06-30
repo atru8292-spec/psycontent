@@ -94,9 +94,11 @@ function PostGeneratorContent() {
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [saved, setSaved] = useState(false)
-  // Предложение полного разбора после первого поста: спрятано если человек нажал «потом»
-  // (флаг держим на сессию, при «написать еще пост» НЕ сбрасываем, чтобы не долбить)
-  const [voiceOfferDismissed, setVoiceOfferDismissed] = useState(false)
+  // Частота полосы-предложения: счетчик постов и точка последнего «Позже» (localStorage,
+  // переживает перезагрузку). Показ после 1-го поста, затем пауза 3 поста после каждого
+  // «Позже», и так пока профиль неполный (заполнил профиль -> полоса исчезает сама).
+  const [postCount, setPostCount] = useState(0)
+  const [voiceDismissAt, setVoiceDismissAt] = useState<number | null>(null)
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -178,6 +180,14 @@ function PostGeneratorContent() {
         setPlatform(hasTg && !hasInsta ? 'telegram' : 'instagram')
       }
 
+      // Счетчики частоты полосы-предложения
+      try {
+        const pc = parseInt(localStorage.getItem('psycont_post_count') || '0', 10)
+        if (!Number.isNaN(pc)) setPostCount(pc)
+        const d = localStorage.getItem('psycont_voice_offer_dismiss')
+        setVoiceDismissAt(d != null ? parseInt(d, 10) : null)
+      } catch { /* localStorage недоступен, полоса покажется по дефолту */ }
+
       setLoading(false)
     }
     init()
@@ -190,7 +200,13 @@ function PostGeneratorContent() {
   const parsedPost = result ? splitPostTitle(result, generatedFormat) : null
   // Этап 4: прилипающая полоса-предложение разбора. Показываем экспресс-юзеру с
   // неполным голосом после первого поста, гарантированно видна пока читаешь пост.
-  const showVoiceBar = !!result && !generating && firstMode && isVoiceIncomplete(profile) && !voiceOfferDismissed
+  // Показ полосы: профиль неполный + после 1-го поста, после «Позже» пауза 3 поста.
+  const showVoiceBar = !!result && !generating && isVoiceIncomplete(profile) &&
+    (voiceDismissAt == null ? postCount >= 1 : postCount - voiceDismissAt >= 3)
+  const dismissVoiceOffer = () => {
+    setVoiceDismissAt(postCount)
+    try { localStorage.setItem('psycont_voice_offer_dismiss', String(postCount)) } catch {}
+  }
 
   const handleGenerate = async (topicOverride?: string) => {
     // topicOverride используется авто-генерацией после экспресса (без тайминга стейта).
@@ -226,6 +242,12 @@ function PostGeneratorContent() {
       
       setResult(data.post)
       setGeneratedFormat(selectedFormat)
+      // Счетчик постов для частоты полосы-предложения
+      setPostCount((c) => {
+        const n = c + 1
+        try { localStorage.setItem('psycont_post_count', String(n)) } catch {}
+        return n
+      })
 
       setSaved(true)
 
@@ -701,18 +723,18 @@ function PostGeneratorContent() {
             <div className="max-w-6xl mx-auto px-0 sm:px-6">
               <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-6 bg-brand-soft border-t border-brand-border-soft sm:rounded-t-3xl sm:border sm:border-b-0 shadow-[0_-10px_30px_-12px_rgba(91,79,160,0.30)] px-4 sm:px-6 py-3 sm:py-4">
                 <div className="min-w-0">
-                  <p className="text-sm sm:text-[15px] font-semibold text-brand-text leading-snug">Расскажи о себе, и посты станут точнее</p>
-                  <p className="hidden sm:block text-xs text-brand-muted mt-0.5">Минут десять, и живее обычной анкеты</p>
+                  <p className="text-sm sm:text-[15px] font-semibold text-brand-text leading-snug">Это было знакомство на бегу. Теперь копнем глубже</p>
+                  <p className="hidden sm:block text-xs text-brand-muted mt-0.5">Не та же анкета по новой, а настоящая распаковка: история, ценности, манера. Отсюда посты звучат совсем как ты</p>
                 </div>
                 <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3 shrink-0">
                   <button
-                    onClick={() => router.push('/dashboard/edit-profile')}
+                    onClick={() => router.push('/dashboard/edit-profile?deepen=1')}
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-brand-accent text-white font-semibold text-sm hover:bg-brand-accent-hover active:scale-[0.98] transition cursor-pointer"
                   >
-                    Рассказать о себе <ArrowRight className="w-4 h-4 hidden sm:inline" />
+                    Копнуть глубже <ArrowRight className="w-4 h-4 hidden sm:inline" />
                   </button>
                   <button
-                    onClick={() => setVoiceOfferDismissed(true)}
+                    onClick={dismissVoiceOffer}
                     aria-label="Позже"
                     title="Позже"
                     className="hidden sm:flex p-2 rounded-full text-brand-muted hover:text-brand-text hover:bg-white/60 transition cursor-pointer"
@@ -720,7 +742,7 @@ function PostGeneratorContent() {
                     <X className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => setVoiceOfferDismissed(true)}
+                    onClick={dismissVoiceOffer}
                     className="sm:hidden text-sm text-brand-muted hover:text-brand-text transition cursor-pointer"
                   >
                     Позже

@@ -173,7 +173,7 @@ export default function Dashboard() {
               PsyCont уже пишет в твоем стиле. Дай ему пару штрихов, ценности и живые фразы, и совпадение станет еще точнее.
             </p>
           </div>
-          <button onClick={() => router.push('/dashboard/edit-profile')}
+          <button onClick={() => router.push('/dashboard/edit-profile?deepen=1')}
             className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-accent text-white font-semibold text-sm rounded-2xl hover:bg-brand-accent-hover transition cursor-pointer">
             Дополнить профиль <ArrowRight className="w-4 h-4" />
           </button>

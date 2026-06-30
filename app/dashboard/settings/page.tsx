@@ -126,7 +126,7 @@ export default function SettingsPage() {
                   </p>
                   <p className="text-xs text-brand-muted mb-4">Основное готово, осталось дописать голос.</p>
                   <button
-                    onClick={() => router.push('/dashboard/edit-profile')}
+                    onClick={() => router.push('/dashboard/edit-profile?deepen=1')}
                     className="inline-flex items-center gap-2 bg-brand-accent text-white font-semibold text-sm rounded-2xl px-5 py-2.5 hover:bg-brand-accent-hover transition cursor-pointer"
                   >
                     Дополнить профиль <ArrowRight className="w-4 h-4" />

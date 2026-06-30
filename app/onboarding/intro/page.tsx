@@ -146,7 +146,7 @@ export default function IntroPage() {
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[url('/paper-grain.png')] bg-repeat bg-[length:128px_128px] opacity-[0.06]" />
 
       <div
-        className="relative z-10 mx-auto w-full max-w-[1120px] min-h-[100dvh] flex flex-col px-5 sm:px-8 lg:px-10 py-6 lg:py-9"
+        className="relative z-10 mx-auto w-full max-w-[1120px] h-[100dvh] flex flex-col px-5 sm:px-8 lg:px-10 py-3 sm:py-6 lg:py-9"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
@@ -169,7 +169,7 @@ export default function IntroPage() {
         </header>
 
         {/* ── Сцена: десктоп 2 колонки, мобилка стек ── */}
-        <main className="flex-1 flex items-center py-4">
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col py-2 sm:py-4">
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div
               key={index}
@@ -179,23 +179,23 @@ export default function IntroPage() {
               animate="center"
               exit="exit"
               transition={{ duration: 0.45, ease: EASE }}
-              className="w-full grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 xl:gap-20 items-center"
+              className="w-full my-auto grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-8 lg:gap-16 xl:gap-20 items-center"
             >
               {/* Иллюстрация (декоративная, текст несет правая колонка) */}
-              <div aria-hidden className="flex items-center justify-center min-h-[230px] sm:min-h-[300px] lg:min-h-[380px] order-1">
-                <div className="scale-[0.8] sm:scale-90 lg:scale-100 origin-center">
+              <div aria-hidden className="flex items-center justify-center min-h-[140px] max-h-[30dvh] sm:min-h-[300px] sm:max-h-none lg:min-h-[380px] order-1">
+                <div className="scale-[0.58] sm:scale-90 lg:scale-100 origin-center">
                   <Motif motif={slide.motif} reduced={reduced} appear={appear} />
                 </div>
               </div>
 
               {/* Текст */}
               <div className="order-2 text-center lg:text-left max-w-[340px] lg:max-w-[460px] mx-auto lg:mx-0">
-                <motion.p {...appear(0.05)} className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-accent mb-3">{stepper}</motion.p>
-                <motion.h2 {...appear(0.1)} className="text-[28px] sm:text-[32px] lg:text-[40px] font-bold text-brand-text tracking-[-0.02em] leading-[1.1]">
+                <motion.p {...appear(0.05)} className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-accent mb-2 sm:mb-3">{stepper}</motion.p>
+                <motion.h2 {...appear(0.1)} className="text-[28px] sm:text-[32px] lg:text-[40px] font-bold text-brand-text tracking-[-0.02em] leading-[1.08]">
                   {slide.title}
                 </motion.h2>
-                <div className="flex justify-center lg:justify-start mt-2"><Squiggle variant={index % 3 as 0 | 1 | 2} width="140px" staticDraw={reduced} /></div>
-                <motion.p {...appear(0.18)} className="text-[15px] lg:text-[17px] text-brand-muted leading-[1.6] mt-4">
+                <div className="flex justify-center lg:justify-start mt-1.5 sm:mt-2"><Squiggle variant={index % 3 as 0 | 1 | 2} width="140px" staticDraw={reduced} /></div>
+                <motion.p {...appear(0.18)} className="text-[13.5px] lg:text-[17px] text-brand-muted leading-[1.45] mt-3 sm:mt-4">
                   {slide.subtitle}
                 </motion.p>
               </div>
@@ -204,7 +204,7 @@ export default function IntroPage() {
         </main>
 
         {/* ── Подвал: Назад + Дальше/Начнем (фикс позиции) ── */}
-        <footer className="shrink-0 pt-6 lg:pt-8">
+        <footer className="shrink-0 pt-3 sm:pt-6 lg:pt-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
             <div className="h-6 lg:h-auto flex items-center justify-center lg:justify-start">
               {index > 0 && (
@@ -216,7 +216,7 @@ export default function IntroPage() {
             <button
               type="button"
               onClick={next}
-              className="w-full lg:w-auto inline-flex items-center justify-center gap-2 bg-brand-accent text-white font-semibold text-sm rounded-2xl px-7 py-4 lg:py-3.5 hover:bg-brand-accent-hover transition-colors cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#F7F3EC]"
+              className="w-full lg:w-auto inline-flex items-center justify-center gap-2 bg-brand-accent text-white font-semibold text-sm rounded-2xl px-7 py-3.5 hover:bg-brand-accent-hover transition-colors cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#F7F3EC]"
             >
               {index === last
                 ? <><Sparkles className="w-4 h-4" /> Начнем</>

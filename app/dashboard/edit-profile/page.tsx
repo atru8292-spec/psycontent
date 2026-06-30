@@ -286,6 +286,11 @@ const questions = [
   }
 ]
 
+// Режим углубления (?deepen=1, вход через предложение «копнуть глубже»): пропускаем
+// вопросы, уже отвеченные в экспрессе, чтобы не переспрашивать. Данные не теряются
+// (форма префилит ответы из профиля и пишет весь объект через .update).
+const DEEPEN_SKIP = new Set(['approaches', 'niches', 'tone_verbal', 'tone_sliders', 'client_pain_phrases'])
+
 export default function EditProfile() {
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<Record<string, any>>({})
@@ -293,7 +298,14 @@ export default function EditProfile() {
   const [saving, setSaving] = useState(false)
   const [completed, setCompleted] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
+  const [deepen, setDeepen] = useState(false)
   const router = useRouter()
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setDeepen(new URLSearchParams(window.location.search).get('deepen') === '1')
+    }
+  }, [])
 
   // Загрузка существующего профиля
   useEffect(() => {
@@ -361,9 +373,10 @@ export default function EditProfile() {
     loadProfile()
   }, [router])
 
-  const currentQuestion = questions[step]
+  const visibleQuestions = deepen ? questions.filter((qq) => !DEEPEN_SKIP.has(qq.key)) : questions
+  const currentQuestion = visibleQuestions[Math.min(step, visibleQuestions.length - 1)]
   const currentBlock = blocks[currentQuestion.block]
-  const progress = ((step + 1) / questions.length) * 100
+  const progress = ((step + 1) / visibleQuestions.length) * 100
 
   const toggleArrayItem = (key: string, item: string, max?: number) => {
     const arr = answers[key] || []
@@ -396,7 +409,7 @@ export default function EditProfile() {
   }
 
   const handleNext = () => {
-    if (step < questions.length - 1) {
+    if (step < visibleQuestions.length - 1) {
       setStep(step + 1)
       window.scrollTo(0, 0)
     } else {
@@ -487,7 +500,7 @@ export default function EditProfile() {
           <div className="w-20 h-20 bg-brand-soft rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-brand-sage" />
           </div>
-          <h1 className="text-3xl font-bold text-brand-text mb-4">✅ Профиль обновлен!</h1>
+          <h1 className="text-3xl font-bold text-brand-text mb-4">Профиль обновлен</h1>
           <p className="text-brand-text-secondary mb-6 leading-relaxed">
             Изменения сохранены. Рекомендуем перегенерировать паспорт бренда, чтобы он отражал новые данные.
           </p>
@@ -535,7 +548,7 @@ export default function EditProfile() {
               {currentBlock.title}
             </span>
             <div className="flex items-center gap-4">
-              <span className="text-brand-text-secondary">{step + 1} / {questions.length}</span>
+              <span className="text-brand-text-secondary">{step + 1} / {visibleQuestions.length}</span>
               <button 
                 onClick={() => router.push('/dashboard')}
                 className="text-gray-400 hover:text-gray-600 text-sm"
@@ -565,10 +578,6 @@ export default function EditProfile() {
             exit={{ opacity: 0, y: -15 }} 
             transition={{ duration: 0.3 }}
           >
-            <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-3 py-1 rounded-full text-sm font-medium mb-4">
-              ✏️ Режим редактирования
-            </div>
-
             <h2 className="text-2xl md:text-4xl font-extrabold text-brand-text mb-4 leading-tight">
               {q.title}
             </h2>
@@ -626,13 +635,13 @@ export default function EditProfile() {
               {((q as any).textKey) && (
                 <div className="pt-6 mt-6 border-t border-gray-100">
                   <p className="font-bold text-brand-text mb-3 text-lg">
-                    {q.key === 'niches' && 'А если бы можно было выбрать только одну проблему, с чем бы вы работали и почему именно с этим? 💭'}
-                    {q.key === 'experience' && 'Расскажите, как все началось. Что в какой-то момент щелкнуло и вы поняли, хочу в психологию? 🤔'}
-                    {q.key === 'values' && 'А вот что интересно, чем вы отличаетесь от коллег? Что делаете по-своему? ✨'}
-                    {q.key === 'anti_values' && 'Представьте, что вас слышат все коллеги разом. Что бы вы им сказали? Без цензуры 😄'}
-                    {q.key === 'client_avatar' && 'Расскажите про этого человека, кто он, чем занимается, как живет? 🙂'}
-                    {q.key === 'content_pain' && 'Опишите как это обычно происходит. Вот вы садитесь писать пост, и что дальше? 👀'}
-                    {!['niches', 'experience', 'values', 'anti_values', 'client_avatar', 'content_pain'].includes(q.key) && 'Расскажите подробнее 🙂'}
+                    {q.key === 'niches' && 'А если бы можно было выбрать только одну проблему, с чем бы вы работали и почему именно с этим?'}
+                    {q.key === 'experience' && 'Расскажите, как все началось. Что в какой-то момент щелкнуло и вы поняли, хочу в психологию?'}
+                    {q.key === 'values' && 'А вот что интересно, чем вы отличаетесь от коллег? Что делаете по-своему?'}
+                    {q.key === 'anti_values' && 'Представьте, что вас слышат все коллеги разом. Что бы вы им сказали? Без цензуры'}
+                    {q.key === 'client_avatar' && 'Расскажите про этого человека, кто он, чем занимается, как живет?'}
+                    {q.key === 'content_pain' && 'Опишите как это обычно происходит. Вот вы садитесь писать пост, и что дальше?'}
+                    {!['niches', 'experience', 'values', 'anti_values', 'client_avatar', 'content_pain'].includes(q.key) && 'Расскажите подробнее'}
                   </p>
                   <textarea
                     value={answers[(q as any).textKey] || ''} 
@@ -724,8 +733,8 @@ export default function EditProfile() {
               <>
                 <Loader2 className="w-5 h-5 animate-spin" /> Сохраняем...
               </>
-            ) : step === questions.length - 1 ? (
-              'Сохранить изменения ✅'
+            ) : step === visibleQuestions.length - 1 ? (
+              'Сохранить изменения'
             ) : (
               <>Далее <ArrowRight className="w-5 h-5" /></>
             )}
