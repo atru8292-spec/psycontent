@@ -20,10 +20,12 @@ import {
   CheckCircle,
   CalendarDays,
   Mic,
+  ArrowRight,
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
 import EmptyState from '@/components/EmptyState'
 import { splitPostTitle } from '@/lib/post-format'
+import { isVoiceIncomplete } from '@/lib/profile-status'
 
 // ============ УБРАНА КАРУСЕЛЬ ============
 const formats = [
@@ -91,6 +93,9 @@ function PostGeneratorContent() {
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [saved, setSaved] = useState(false)
+  // Предложение полного разбора после первого поста: спрятано если человек нажал «потом»
+  // (флаг держим на сессию, при «написать еще пост» НЕ сбрасываем, чтобы не долбить)
+  const [voiceOfferDismissed, setVoiceOfferDismissed] = useState(false)
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -663,11 +668,7 @@ function PostGeneratorContent() {
                   </div>
 
                   {firstMode && (
-                    <div className="px-4 sm:px-6 pb-4 pt-1 border-t border-brand-border space-y-2">
-                      <p className="text-sm text-brand-text-secondary">
-                        Будет звучать еще точнее, когда дорасскажешь о себе.{' '}
-                        <button onClick={() => router.push('/onboarding')} className="text-brand-accent hover:underline cursor-pointer">Настроить голос</button>
-                      </p>
+                    <div className="px-4 sm:px-6 pb-4 pt-1 border-t border-brand-border">
                       <p className="text-sm text-brand-text-secondary">
                         Готово. Дальше можно{' '}
                         <button onClick={() => router.push('/dashboard/content-plan')} className="text-brand-accent hover:underline cursor-pointer">собрать контент-план</button>
@@ -679,6 +680,36 @@ function PostGeneratorContent() {
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Этап 4: предложение полного разбора после первого поста (момент вау).
+                Только экспресс-юзеру с неполным голосом, не модалка, можно отложить. */}
+            {result && !generating && firstMode && isVoiceIncomplete(profile) && !voiceOfferDismissed && (
+              <motion.div
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                className="mt-4 rounded-3xl bg-brand-soft border border-brand-border-soft p-5 sm:p-6 shadow-[0_12px_32px_-14px_rgba(91,79,160,0.35)]"
+              >
+                <p className="text-xs font-bold text-brand-accent uppercase tracking-widest mb-1.5">А дальше точнее</p>
+                <h3 className="font-bold text-lg leading-snug text-brand-text mb-1">Этот пост, только ближе к тебе</h3>
+                <Squiggle variant={2} width="96px" />
+                <p className="text-sm text-brand-muted leading-relaxed mt-2 mb-4">
+                  Пока я знаю о тебе только главное, а звучит уже как ты. Расскажи о себе подробнее, и я начну попадать в твой голос еще точнее. Это минут десять и интереснее обычной анкеты.
+                </p>
+                <button
+                  onClick={() => router.push('/dashboard/edit-profile')}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-brand-accent text-white font-semibold text-sm hover:bg-brand-accent-hover active:scale-[0.98] transition cursor-pointer"
+                >
+                  Рассказать о себе <ArrowRight className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setVoiceOfferDismissed(true)}
+                  className="block mt-3 text-sm text-brand-muted hover:text-brand-text transition cursor-pointer"
+                >
+                  Пока пишу сам
+                </button>
+              </motion.div>
+            )}
           </div>
         </div>
       </div>
