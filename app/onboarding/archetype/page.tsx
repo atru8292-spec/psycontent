@@ -46,6 +46,19 @@ const OPEN_COUNT = OPEN_QUESTIONS.length // 3
 
 type Phase = 'intro' | 'situation' | 'break' | 'open' | 'finishing'
 
+// Кнопка «Назад»: контурная тихая, заметна как объект, но не спорит с аметистовой «Дальше».
+function BackBtn({ onClick, className = '' }: { onClick: () => void; className?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`group inline-flex items-center gap-1.5 rounded-full border border-brand-border-soft/70 px-4 py-3 lg:py-2.5 text-sm font-medium text-brand-muted hover:bg-brand-soft hover:text-brand-text hover:border-brand-soft active:scale-[0.98] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${className}`}
+    >
+      <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+      Назад
+    </button>
+  )
+}
+
 export default function ArchetypeTest() {
   const router = useRouter()
   const [phase, setPhase] = useState<Phase>('intro')
@@ -135,6 +148,12 @@ export default function ArchetypeTest() {
     else finish()
   }
 
+  const backOpen = () => {
+    setMicOpen(false)
+    if (oIdx > 0) { setDir(-1); setOIdx(oIdx - 1) }
+    else setPhase('break')
+  }
+
   const clearFinishTimers = () => { finishTimers.current.forEach(clearTimeout); finishTimers.current = [] }
 
   const finish = async () => {
@@ -212,24 +231,21 @@ export default function ArchetypeTest() {
 
   return (
     <div className="relative h-[100dvh] flex flex-col bg-brand-bg overflow-hidden">
-      {/* фоновые мягкие пятна */}
-      <div aria-hidden className="pointer-events-none absolute -top-32 -left-24 w-[380px] h-[380px] rounded-full bg-brand-soft/50 blur-[120px]" />
-      <div aria-hidden className="pointer-events-none absolute -bottom-40 -right-28 w-[420px] h-[420px] rounded-full bg-brand-soft-2/60 blur-[130px]" />
+      {/* фоновые мягкие пятна + декор. Усиление и squiggle только на десктопе (lg), мобилку не трогаем */}
+      <div aria-hidden className="pointer-events-none absolute -top-32 -left-24 w-[380px] h-[380px] lg:w-[560px] lg:h-[560px] rounded-full bg-brand-soft/50 lg:bg-brand-soft/60 blur-[120px]" />
+      <div aria-hidden className="pointer-events-none absolute -bottom-40 -right-28 w-[420px] h-[420px] lg:w-[600px] lg:h-[600px] rounded-full bg-brand-soft-2/60 lg:bg-brand-soft-2/70 blur-[130px]" />
+      <div aria-hidden className="hidden lg:block pointer-events-none absolute top-[12%] left-1/2 -translate-x-1/2 w-[720px] h-[420px] rounded-full bg-brand-soft-2/45 blur-[150px]" />
+      <div aria-hidden className="hidden lg:block pointer-events-none absolute left-[6%] top-[58%] opacity-40 -rotate-6"><Squiggle variant={2} width="120px" staticDraw /></div>
+      <div aria-hidden className="hidden lg:block pointer-events-none absolute right-[7%] top-[26%] opacity-35 rotate-[8deg]"><Squiggle variant={0} width="96px" staticDraw /></div>
 
       {/* ШАПКА */}
       {phase !== 'finishing' && (
         <header className="relative z-10 shrink-0 h-14 flex items-center justify-between px-5 sm:px-6">
-          <div className="w-16 flex items-center">
-            {phase === 'situation' && (
-              <button onClick={backSituation} aria-label="Назад" className="inline-flex items-center gap-1 text-sm text-brand-muted hover:text-brand-text transition-colors cursor-pointer">
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-            )}
-          </div>
+          <div className="w-16" />
           {(phase === 'situation' || phase === 'open') ? <Progress /> : <span />}
           <div className="w-16 flex justify-end">
-            {(phase === 'situation' || phase === 'open') && (
-              <button onClick={phase === 'situation' ? skipSituation : nextOpen} className="text-sm text-brand-muted hover:text-brand-text transition-colors cursor-pointer">Пропустить</button>
+            {phase === 'situation' && (
+              <button onClick={skipSituation} className="text-sm text-brand-muted hover:text-brand-text transition-colors cursor-pointer">Пропустить</button>
             )}
           </div>
         </header>
@@ -237,7 +253,8 @@ export default function ArchetypeTest() {
 
       {/* ТЕЛО */}
       <main className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
-        <div className="w-full max-w-[560px] mx-auto px-6 my-auto py-6">
+        <div className="w-full max-w-[560px] lg:max-w-[600px] mx-auto px-6 my-auto py-6">
+          <div className="lg:bg-[#FDFBF7] lg:rounded-[32px] lg:border lg:border-brand-border-soft/70 lg:px-12 lg:py-11 lg:shadow-[0_2px_4px_rgba(46,42,69,0.03),0_24px_60px_-24px_rgba(46,42,69,0.16),0_8px_20px_-12px_rgba(91,79,160,0.10)]">
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div key={stepKey} custom={dir} variants={stepVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.26, ease: EASE }}>
 
@@ -245,9 +262,9 @@ export default function ArchetypeTest() {
               {phase === 'intro' && (
                 <div className="text-center">
                   <div className="flex justify-center mb-5"><Squiggle variant={1} width="96px" /></div>
-                  <h1 className="text-3xl sm:text-4xl font-bold text-brand-text tracking-[-0.02em] leading-[1.1]">{T.introTitle}</h1>
+                  <h1 className="text-3xl sm:text-4xl lg:text-[44px] lg:leading-[1.08] font-bold text-brand-text tracking-[-0.02em] leading-[1.1]">{T.introTitle}</h1>
                   <div className="flex justify-center mt-2 mb-5"><Squiggle variant={2} width="150px" /></div>
-                  <p className="text-[15px] sm:text-base text-brand-muted leading-relaxed max-w-[420px] mx-auto">{T.introSub}</p>
+                  <p className="text-[15px] sm:text-base lg:text-[17px] text-brand-muted leading-relaxed max-w-[420px] mx-auto">{T.introSub}</p>
                   <div className="mt-6 rounded-2xl bg-brand-soft border border-brand-border-soft px-5 py-4 text-sm text-brand-text/80 leading-relaxed">{T.promise}</div>
                 </div>
               )}
@@ -258,8 +275,8 @@ export default function ArchetypeTest() {
                 const chosen = answers[sit.id]
                 return (
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-sage mb-3">Ситуация</p>
-                    <h2 className="text-xl sm:text-2xl font-semibold text-brand-text leading-snug mb-6">{sit.scene}</h2>
+                    <p className="text-xs lg:text-[13px] font-semibold uppercase tracking-[0.16em] text-brand-sage mb-3">Ситуация</p>
+                    <h2 className="text-xl sm:text-2xl lg:text-[28px] lg:leading-[1.25] font-semibold text-brand-text leading-snug mb-6 lg:mb-8">{sit.scene}</h2>
                     <div className="flex flex-col gap-3">
                       {sit.options.map((opt, i) => {
                         const isSel = selecting === i || (selecting === null && chosen === i)
@@ -268,10 +285,10 @@ export default function ArchetypeTest() {
                           <button
                             key={i}
                             onClick={() => selectOption(i)}
-                            className={`group relative text-left rounded-2xl border px-5 py-4 pl-6 transition-all duration-200 cursor-pointer ${SHADOW_REST} ${isSel ? 'bg-brand-soft border-brand-accent' : 'bg-[#FDFBF7] border-brand-border/70 hover:-translate-y-0.5 hover:border-brand-sage/50'} ${!isSel ? 'hover:' + SHADOW_HOVER : ''} ${dimmed ? 'opacity-55' : 'opacity-100'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg`}
+                            className={`group relative text-left rounded-2xl border px-5 py-4 pl-6 lg:px-6 lg:py-[18px] lg:pl-7 transition-all duration-200 cursor-pointer ${SHADOW_REST} ${isSel ? 'bg-brand-soft border-brand-accent' : 'bg-[#FDFBF7] border-brand-border/70 hover:-translate-y-0.5 hover:border-brand-sage/50'} ${!isSel ? 'hover:' + SHADOW_HOVER : ''} ${dimmed ? 'opacity-55' : 'opacity-100'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg`}
                           >
                             <span className={`absolute left-2 top-4 bottom-4 w-[3px] rounded-full origin-center transition-all duration-200 ${isSel ? 'bg-brand-accent scale-y-100' : 'bg-brand-soft-2 scale-y-75'}`} />
-                            <span className="block text-[15px] sm:text-[17px] text-brand-text/90 leading-snug pr-6">{opt.text}</span>
+                            <span className="block text-[15px] sm:text-[17px] lg:text-[18px] text-brand-text/90 leading-snug pr-6">{opt.text}</span>
                             {isSel && (
                               <motion.span initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.22, ease: EASE }} className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-sage">
                                 <Check className="w-4 h-4" strokeWidth={2.4} />
@@ -292,7 +309,7 @@ export default function ArchetypeTest() {
               {phase === 'break' && (
                 <div className="text-center">
                   <div className="flex justify-center mb-5"><Squiggle variant={0} width="180px" /></div>
-                  <h2 className="text-2xl font-bold text-brand-text leading-snug mb-3">{T.breakTitle}</h2>
+                  <h2 className="text-2xl lg:text-[30px] font-bold text-brand-text leading-snug mb-3">{T.breakTitle}</h2>
                   <p className="text-sm text-brand-accent font-medium mb-3">{T.breakTeaser}</p>
                   <p className="text-[15px] text-brand-muted leading-relaxed max-w-[440px] mx-auto mb-5">{T.breakBody}</p>
                   <div className="inline-flex items-center gap-2 rounded-2xl bg-brand-soft border border-brand-border-soft px-4 py-2.5 text-sm text-brand-text/80">
@@ -306,8 +323,8 @@ export default function ArchetypeTest() {
                 const q = OPEN_QUESTIONS[oIdx]
                 return (
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-sage mb-3">Своими словами</p>
-                    <h2 className="text-xl sm:text-2xl font-semibold text-brand-text leading-snug mb-5">{q.prompt}</h2>
+                    <p className="text-xs lg:text-[13px] font-semibold uppercase tracking-[0.16em] text-brand-sage mb-3">Своими словами</p>
+                    <h2 className="text-xl sm:text-2xl lg:text-[28px] lg:leading-[1.25] font-semibold text-brand-text leading-snug mb-5">{q.prompt}</h2>
                     <div className="relative">
                       <textarea
                         value={openAnswers[q.id] || ''}
@@ -360,13 +377,14 @@ export default function ArchetypeTest() {
 
             </motion.div>
           </AnimatePresence>
+          </div>
         </div>
       </main>
 
       {/* ПАНЕЛЬ ДЕЙСТВИЙ */}
-      {phase !== 'finishing' && (phase === 'intro' || phase === 'break' || phase === 'open') && (
+      {phase !== 'finishing' && (
         <footer className="relative z-10 shrink-0 px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-3">
-          <div className="max-w-[560px] mx-auto flex flex-col items-center gap-2">
+          <div className="max-w-[560px] lg:max-w-[600px] mx-auto lg:relative flex flex-col items-center gap-2.5">
             {phase === 'intro' && (
               <>
                 <button onClick={() => goNextFrom('situation')} className="w-full sm:w-auto sm:min-w-[220px] inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-brand-accent text-white font-semibold text-[15px] hover:bg-brand-accent-hover active:scale-[0.98] transition cursor-pointer">{T.start}</button>
@@ -384,6 +402,9 @@ export default function ArchetypeTest() {
                 <button onClick={nextOpen} className="w-full sm:w-auto sm:min-w-[220px] inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-brand-accent text-white font-semibold text-[15px] hover:bg-brand-accent-hover active:scale-[0.98] transition cursor-pointer">{oIdx < OPEN_COUNT - 1 ? T.next : T.toResult} <ArrowRight className="w-4 h-4" /></button>
                 <button onClick={nextOpen} className="text-sm text-brand-muted/70 hover:text-brand-text transition-colors cursor-pointer">{T.skipOne}</button>
               </>
+            )}
+            {(phase === 'situation' || phase === 'open') && (
+              <BackBtn onClick={phase === 'situation' ? backSituation : backOpen} className="lg:absolute lg:left-0 lg:top-1/2 lg:-translate-y-1/2" />
             )}
           </div>
         </footer>
