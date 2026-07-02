@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
 import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { buildProfileContext } from '@/lib/profile-context'
+import { getArchetypeContextFromProfile } from '@/lib/archetypes'
 import { getSessionUser } from '@/lib/auth'
 
 function getSupabaseAdmin() {
@@ -129,6 +130,8 @@ export async function POST(req: NextRequest) {
 
     const profileContext = buildProfileContext(profile)
     const approachStyle = getApproachReelsStyle(approaches)
+    // Архетип автора (тест-распаковка) кормит почерк. Единый хелпер на все генераторы.
+    const archetypeContext = getArchetypeContextFromProfile(profile)
 
     const prompt = `${profileContext}
 
@@ -138,7 +141,12 @@ ${passport ? `ПАСПОРТ БРЕНДА:\n${passport.substring(0, 600)}` : ''}
 СТИЛЬ ПОДХОДА
 ═══════════════════════════════
 ${approachStyle}
-
+${archetypeContext ? `
+═══════════════════════════════
+АВТОРСКИЙ ПОЧЕРК
+═══════════════════════════════
+${archetypeContext}
+` : ''}
 ═══════════════════════════════
 ЗАДАНИЕ: СЦЕНАРИЙ ВИДЕО
 ═══════════════════════════════

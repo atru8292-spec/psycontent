@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
 import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { buildProfileContext } from '@/lib/profile-context'
+import { getArchetypeContextFromProfile } from '@/lib/archetypes'
 import { getSessionUser } from '@/lib/auth'
 
 function getSupabaseAdmin() {
@@ -168,11 +169,19 @@ export async function POST(req: NextRequest) {
       profileContext = 'Профиль психолога не заполнен.'
     }
 
+    // Архетип автора (тест-распаковка) кормит почерк. Единый хелпер на все генераторы.
+    const archetypeContext = getArchetypeContextFromProfile(profile)
+
     const userPrompt = `
 ${profileContext}
 
 ${passport ? `ПАСПОРТ БРЕНДА (кратко):\n${passport.substring(0, 500)}` : ''}
-
+${archetypeContext ? `
+═══════════════════════
+АВТОРСКИЙ ПОЧЕРК
+═══════════════════════
+${archetypeContext}
+` : ''}
 ═══════════════════════
 ЗАДАНИЕ
 ═══════════════════════

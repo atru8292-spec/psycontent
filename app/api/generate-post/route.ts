@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
 import { buildProfileContext } from '@/lib/profile-context'
-import { getArchetypeContext } from '@/lib/archetypes'
+import { getArchetypeContextFromProfile } from '@/lib/archetypes'
 import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { getSessionUser } from '@/lib/auth'
 
@@ -266,12 +266,8 @@ export async function POST(req: NextRequest) {
     }
 
     const approachContext = getApproachContext(approaches)
-    // Архетип автора (тест-распаковка) кормит почерк. selection лежит в archetype_scores,
-    // денормализованный ведущий в archetype_primary. Нет архетипа -> блок пустой.
-    const archSel = profile?.archetype_scores?.selection
-      ? profile.archetype_scores.selection
-      : (profile?.archetype_primary ? { primary: profile.archetype_primary } : null)
-    const archetypeContext = archSel ? getArchetypeContext(archSel) : ''
+    // Архетип автора (тест-распаковка) кормит почерк. Единый хелпер на все генераторы.
+    const archetypeContext = getArchetypeContextFromProfile(profile)
     const formatInstruction = getFormatInstruction(format)
     const platformInstruction = getPlatformInstruction(platform)
 
