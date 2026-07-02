@@ -8,8 +8,8 @@ import { supabase } from '@/lib/supabase'
 import { EnergyTariffPanel } from '@/components/EnergyTariff'
 import TariffSection from '@/components/TariffSection'
 import { isVoiceIncomplete } from '@/lib/profile-status'
-import { ARCHETYPES, ARCHETYPE_ACCENT, archetypeLabel, type ArchetypeSelection } from '@/lib/archetypes'
-import { ArchetypeGlyph } from '@/lib/archetype-glyphs'
+import { ARCHETYPES, ARCHETYPE_ACCENT, archetypeLabel, flexibleLine, type ArchetypeSelection } from '@/lib/archetypes'
+import { ArchetypeGlyph, FlexibleGlyph } from '@/lib/archetype-glyphs'
 import Squiggle from '@/components/Squiggle'
 
 const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
@@ -133,17 +133,19 @@ export default function SettingsPage() {
                   )
                 }
                 const pk = sel.primary
-                const accent = ARCHETYPE_ACCENT[pk]
+                const accent = sel.flexible ? '#5B4FA0' : ARCHETYPE_ACCENT[pk]
                 const top3 = (profile?.archetype_scores?.top3 || []) as { key: keyof typeof ARCHETYPES; percent: number }[]
                 return (
                   <div className="rounded-3xl bg-brand-card border border-brand-border p-5 sm:p-6">
                     <div className="flex items-start gap-4">
                       <div className="shrink-0 w-14 h-14 rounded-full flex items-center justify-center" style={{ backgroundColor: accent + '1A' }}>
-                        <div style={{ color: accent }}><ArchetypeGlyph k={pk} size={30} /></div>
+                        <div style={{ color: accent }}>{sel.flexible ? <FlexibleGlyph size={30} /> : <ArchetypeGlyph k={pk} size={30} />}</div>
                       </div>
                       <div className="min-w-0 flex-1">
                         <h3 className="text-lg font-bold text-brand-text">{archetypeLabel(sel)}</h3>
-                        {!sel.flexible && <p className="text-sm text-brand-muted leading-relaxed mt-0.5">{cap(ARCHETYPES[pk].gift)}</p>}
+                        <p className="text-sm text-brand-muted leading-relaxed mt-0.5">
+                          {sel.flexible ? flexibleLine(sel) : cap(ARCHETYPES[pk].gift)}
+                        </p>
                       </div>
                     </div>
                     {top3.length > 0 && (

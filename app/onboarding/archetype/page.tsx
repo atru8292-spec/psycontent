@@ -14,8 +14,8 @@ import { supabase } from '@/lib/supabase'
 import Squiggle from '@/components/Squiggle'
 import { SITUATIONS, OPEN_QUESTIONS } from '@/lib/archetype-quiz'
 import { computeArchetypes, type ArchetypeWeights } from '@/lib/archetype-score'
-import { ARCHETYPES, ARCHETYPE_ACCENT, ARCHETYPE_CHANGES, archetypeLabel } from '@/lib/archetypes'
-import { ArchetypeGlyph } from '@/lib/archetype-glyphs'
+import { ARCHETYPES, ARCHETYPE_ACCENT, ARCHETYPE_CHANGES, archetypeLabel, flexibleLine } from '@/lib/archetypes'
+import { ArchetypeGlyph, FlexibleGlyph } from '@/lib/archetype-glyphs'
 
 const EASE = [0.22, 1, 0.36, 1] as const
 const SHADOW_REST = 'shadow-[0_1px_2px_rgba(46,42,69,0.04),0_8px_24px_rgba(46,42,69,0.05)]'
@@ -413,7 +413,7 @@ export default function ArchetypeTest() {
               {phase === 'result' && finalResult && finalResult.selection.primary && (() => {
                 const sel = finalResult.selection
                 const pk = sel.primary as keyof typeof ARCHETYPES
-                const accent = ARCHETYPE_ACCENT[pk]
+                const accent = sel.flexible ? '#5B4FA0' : ARCHETYPE_ACCENT[pk]
                 const changes = ARCHETYPE_CHANGES[pk]
                 // Абзац истории: выделяем ОДНУ ключевую фразу **...** аметистом
                 const renderPara = (text: string) =>
@@ -428,7 +428,7 @@ export default function ArchetypeTest() {
                       <div className="absolute inset-[10px] rounded-full" style={{ backgroundColor: '#FDFBF7', boxShadow: `inset 0 0 0 1px ${accent}22` }} />
                       <div className="absolute inset-[22px] rounded-full" style={{ background: `radial-gradient(120% 120% at 30% 25%, ${accent}26, ${accent}12)`, boxShadow: `inset 0 1px 2px ${accent}22` }} />
                       <div className="relative flex items-center justify-center" style={{ color: accent }}>
-                        <ArchetypeGlyph k={pk} size={50} />
+                        {sel.flexible ? <FlexibleGlyph size={50} /> : <ArchetypeGlyph k={pk} size={50} />}
                       </div>
                     </div>
                   </motion.div>
@@ -442,7 +442,9 @@ export default function ArchetypeTest() {
                         {glyph}
                         <h1 className="text-3xl lg:text-[34px] font-bold text-brand-text tracking-[-0.02em] leading-[1.1]">{archetypeLabel(sel)}</h1>
                         <div className="flex justify-center mt-2 mb-3"><Squiggle variant={2} width="140px" /></div>
-                        {!sel.flexible && <p className="text-[15px] lg:text-base text-brand-muted leading-relaxed max-w-[400px] mx-auto lg:mx-0 mb-7 lg:mb-6">{cap(ARCHETYPES[pk].gift)}</p>}
+                        <p className="text-[15px] lg:text-base text-brand-muted leading-relaxed max-w-[400px] mx-auto lg:mx-0 mb-7 lg:mb-6">
+                          {sel.flexible ? flexibleLine(sel) : cap(ARCHETYPES[pk].gift)}
+                        </p>
                         <div className="text-left max-w-[380px] lg:max-w-none mx-auto lg:mx-0 space-y-3 mb-8 lg:mb-0">
                           {finalResult.top3.map((t, i) => (
                             <div key={t.key}>
@@ -462,8 +464,11 @@ export default function ArchetypeTest() {
                       <div className="text-left lg:mt-1 mt-8">
                         <div className="mb-6">
                           {storyState === 'loading' && (
-                            <div className="space-y-2.5">
-                              {[0, 1, 2, 3, 4].map((i) => <div key={i} className="h-3.5 rounded-full bg-brand-soft/70 animate-pulse" style={{ width: i === 4 ? '55%' : '100%' }} />)}
+                            <div>
+                              <p className="text-sm text-brand-muted mb-4">Читаю твой почерк, минутку.</p>
+                              <div className="space-y-2.5">
+                                {[0, 1, 2, 3, 4].map((i) => <div key={i} className="h-3.5 rounded-full bg-brand-soft/70 animate-pulse" style={{ width: i === 4 ? '55%' : '100%' }} />)}
+                              </div>
                             </div>
                           )}
                           {storyState === 'ok' && paras.map((p, i) => (

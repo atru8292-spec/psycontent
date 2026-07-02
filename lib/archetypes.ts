@@ -214,6 +214,7 @@ export interface ArchetypeSelection {
   primary: ArchetypeKey | null
   secondary?: ArchetypeKey | null
   flexible?: boolean // баллы размазаны, нет явного лидера
+  peers?: ArchetypeKey[] // при flexible: все архетипы на равных (2 или 3), включая ведущего
 }
 
 // Блок для промпта генерации. Ведущий архетип задает почерк, оттенок добавляет краску.
@@ -223,7 +224,7 @@ export function getArchetypeContext(sel: ArchetypeSelection): string {
 
   if (sel.flexible) {
     return `АВТОРСКИЙ ПОЧЕРК: гибкий голос
-- У этого автора нет одного ведущего архетипа, он держит несколько регистров.
+- У этого автора нет одного ведущего архетипа, он одинаково хорошо пишет в нескольких разных стилях.
 - Не форсируй один тон. Веди от темы и от живого голоса автора (его словечки и интонация важнее любого шаблона стиля).
 - Держи баланс: где-то глубже, где-то легче, по тому, чего просит тема.`
   }
@@ -245,10 +246,20 @@ export function getArchetypeContext(sel: ArchetypeSelection): string {
   return lines.join('\n')
 }
 
+// Пояснительная строка для «Широкого диапазона»: перечисляет всех равных архетипов
+// (2 или 3), живым языком без терминов. Работает под любое число.
+export function flexibleLine(sel: ArchetypeSelection): string {
+  const peers = (sel.peers && sel.peers.length
+    ? sel.peers
+    : [sel.primary, sel.secondary].filter(Boolean)) as ArchetypeKey[]
+  const names = peers.map((k) => `и как ${ARCHETYPES[k].name}`).join(', ')
+  return `Ты умеешь ${names}, так гибко получается не у всех.`
+}
+
 // Короткая строка «Мудрец с оттенком Заботливого» для карточки-результата и профиля.
 export function archetypeLabel(sel: ArchetypeSelection): string {
   if (!sel || !sel.primary) return ''
-  if (sel.flexible) return 'Гибкий голос'
+  if (sel.flexible) return 'Широкий диапазон'
   const p = ARCHETYPES[sel.primary].name
   if (sel.secondary && sel.secondary !== sel.primary) {
     return `${p} с оттенком ${ARCHETYPES[sel.secondary].name}`

@@ -88,3 +88,14 @@ export function ArchetypeGlyph({ k, size = 44, className = '' }: { k: ArchetypeK
     </svg>
   )
 }
+
+// Гибкий голос (нет одного ведущего): два переплетенных росчерка = широта между стилями,
+// проработан как остальные 10, не старая заготовка.
+export function FlexibleGlyph({ size = 44, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth={2.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
+      <path d="M12 18c6 0 6 12 12 12s6-12 12-12" />
+      <path d="M12 30c6 0 6-12 12-12s6 12 12 12" />
+    </svg>
+  )
+}

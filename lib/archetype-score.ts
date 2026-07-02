@@ -61,7 +61,11 @@ export function computeArchetypes(answers: ArchetypeWeights[]): ArchetypeResult 
 
   let selection: ArchetypeSelection
   if (flexible) {
-    selection = { primary: first.key, secondary: second ? second.key : null, flexible: true }
+    // все архетипы в пределах FLEXIBLE_GAP от лидера = равные (2 или 3), включая ведущего
+    const peers = ranked
+      .filter((r) => r.score > 0 && first.score - r.score <= first.score * FLEXIBLE_GAP)
+      .map((r) => r.key)
+    selection = { primary: first.key, secondary: second ? second.key : null, flexible: true, peers }
   } else {
     const hasShade = !!second && second.score >= first.score * SHADE_THRESHOLD
     selection = { primary: first.key, secondary: hasShade ? second.key : null }
