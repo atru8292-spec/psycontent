@@ -14,6 +14,7 @@ import { supabase } from '@/lib/supabase'
 import Squiggle from '@/components/Squiggle'
 import { SITUATIONS, OPEN_QUESTIONS } from '@/lib/archetype-quiz'
 import { computeArchetypes, type ArchetypeWeights } from '@/lib/archetype-score'
+import { ARCHETYPES, ARCHETYPE_ACCENT, ARCHETYPE_CHANGES, archetypeLabel } from '@/lib/archetypes'
 
 const EASE = [0.22, 1, 0.36, 1] as const
 const SHADOW_REST = 'shadow-[0_1px_2px_rgba(46,42,69,0.04),0_8px_24px_rgba(46,42,69,0.05)]'
@@ -44,7 +45,9 @@ const LS_KEY = 'psycont_archetype_progress'
 const SITU_COUNT = SITUATIONS.length // 10
 const OPEN_COUNT = OPEN_QUESTIONS.length // 3
 
-type Phase = 'intro' | 'situation' | 'break' | 'open' | 'finishing'
+type Phase = 'intro' | 'situation' | 'break' | 'open' | 'finishing' | 'result'
+
+const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
 
 // Кнопка «Назад»: контурная тихая, заметна как объект, но не спорит с аметистовой «Дальше».
 function BackBtn({ onClick, className = '' }: { onClick: () => void; className?: string }) {
@@ -71,6 +74,9 @@ export default function ArchetypeTest() {
   const [micOpen, setMicOpen] = useState(false)
   const [finishLine, setFinishLine] = useState(0)
   const [saveError, setSaveError] = useState(false)
+  const [finalResult, setFinalResult] = useState<ReturnType<typeof computeArchetypes> | null>(null)
+  const [story, setStory] = useState('')
+  const [storyState, setStoryState] = useState<'loading' | 'ok' | 'error'>('loading')
   const reduced = useRef(false)
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const finishTimers = useRef<ReturnType<typeof setTimeout>[]>([])
@@ -172,7 +178,8 @@ export default function ArchetypeTest() {
       const { data: prof, error: readErr } = await supabase
         .from('onboarding_profiles').select('live_voice').eq('user_id', user.id).maybeSingle()
       const payload: Record<string, unknown> = {
-        archetype_scores: { selection: result.selection, top3: result.top3, percents: result.percents },
+        // answers = сырые выборы (включая болевые в2/в6), храним рядом, чтобы не потерять данные
+        archetype_scores: { selection: result.selection, top3: result.top3, percents: result.percents, answers },
         archetype_primary: result.selection.primary,
       }
       if (!readErr) {
@@ -185,12 +192,31 @@ export default function ArchetypeTest() {
       if (error) throw error
       if (!updated || updated.length === 0) throw new Error('no_profile_row') // нет строки -> не увозим молча
       try { localStorage.removeItem(LS_KEY) } catch {}
-      // Держим сцену ~1.4с, потом к результату (карточка = этап 5.3, пока /dashboard)
-      finishTimers.current.push(setTimeout(() => router.replace('/dashboard'), 1400))
+      setFinalResult(result)
+      // Держим сцену сборки ~1.4с, потом карточка-результат (кульминация), не в дашборд
+      finishTimers.current.push(setTimeout(() => { setPhase('result'); fetchStory() }, 1400))
     } catch {
       clearFinishTimers()
       setSaveError(true)
     }
+  }
+
+  const fetchStory = async () => {
+    setStoryState('loading')
+    try {
+      const res = await fetch('/api/archetype-story', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok || !data.story) throw new Error()
+      setStory(data.story)
+      setStoryState('ok')
+    } catch { setStoryState('error') }
+  }
+
+  const restart = () => {
+    setAnswers({}); setOpenAnswers({}); setSIdx(0); setOIdx(0)
+    setFinalResult(null); setStory(''); setSelecting(null)
+    try { localStorage.removeItem(LS_KEY) } catch {}
+    setDir(1); setPhase('intro')
   }
 
   // ---- прогресс ----
@@ -239,7 +265,7 @@ export default function ArchetypeTest() {
       <div aria-hidden className="hidden lg:block pointer-events-none absolute right-[7%] top-[26%] opacity-35 rotate-[8deg]"><Squiggle variant={0} width="96px" staticDraw /></div>
 
       {/* ШАПКА */}
-      {phase !== 'finishing' && (
+      {phase !== 'finishing' && phase !== 'result' && (
         <header className="relative z-10 shrink-0 h-14 flex items-center justify-between px-5 sm:px-6">
           <div className="w-16" />
           {(phase === 'situation' || phase === 'open') ? <Progress /> : <span />}
@@ -375,6 +401,68 @@ export default function ArchetypeTest() {
                 </div>
               )}
 
+              {/* КАРТОЧКА-РЕЗУЛЬТАТ (кульминация) */}
+              {phase === 'result' && finalResult && finalResult.selection.primary && (() => {
+                const sel = finalResult.selection
+                const pk = sel.primary as keyof typeof ARCHETYPES
+                const accent = ARCHETYPE_ACCENT[pk]
+                const changes = ARCHETYPE_CHANGES[pk]
+                return (
+                  <div className="text-center">
+                    <p className="text-xs lg:text-[13px] font-semibold uppercase tracking-[0.16em] text-brand-sage mb-4">Твой авторский почерк</p>
+                    <div className="mx-auto mb-4 w-[72px] h-[72px] rounded-full flex items-center justify-center" style={{ backgroundColor: accent + '22' }}>
+                      <div style={{ color: accent }}><Squiggle variant={1} width="40px" /></div>
+                    </div>
+                    <h1 className="text-3xl lg:text-[40px] font-bold text-brand-text tracking-[-0.02em] leading-[1.1]">{archetypeLabel(sel)}</h1>
+                    <div className="flex justify-center mt-2 mb-3"><Squiggle variant={2} width="140px" /></div>
+                    {!sel.flexible && <p className="text-[15px] lg:text-base text-brand-muted leading-relaxed max-w-[400px] mx-auto mb-7">{cap(ARCHETYPES[pk].gift)}</p>}
+
+                    <div className="text-left max-w-[380px] mx-auto space-y-3 mb-8">
+                      {finalResult.top3.map((t, i) => (
+                        <div key={t.key}>
+                          <div className="flex items-baseline justify-between mb-1.5">
+                            <span className={i === 0 ? 'text-[15px] font-semibold text-brand-text' : 'text-sm text-brand-muted'}>{ARCHETYPES[t.key].name}</span>
+                            <span className="text-xs text-brand-muted tabular-nums">{t.percent}</span>
+                          </div>
+                          <div className="h-2 rounded-full bg-brand-soft overflow-hidden">
+                            <motion.div initial={{ width: 0 }} animate={{ width: `${t.percent}%` }} transition={{ duration: 0.6, delay: 0.2 + i * 0.1, ease: EASE }} className="h-full rounded-full" style={{ backgroundColor: ARCHETYPE_ACCENT[t.key] }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="text-left mb-6">
+                      {storyState === 'loading' && (
+                        <div className="space-y-2.5">
+                          {[0, 1, 2, 3].map((i) => <div key={i} className="h-3.5 rounded-full bg-brand-soft/70 animate-pulse" style={{ width: i === 3 ? '55%' : '100%' }} />)}
+                        </div>
+                      )}
+                      {storyState === 'ok' && story.split('\n').filter((p) => p.trim()).map((p, i) => (
+                        <p key={i} className="text-[15px] lg:text-base text-brand-text/85 leading-relaxed mb-3">{p}</p>
+                      ))}
+                      {storyState === 'error' && (
+                        <div className="rounded-2xl bg-brand-soft border border-brand-border-soft p-4 text-center">
+                          <p className="text-sm text-brand-muted mb-3">Разбор соберу через минуту, почерк уже сохранен.</p>
+                          <button onClick={fetchStory} className="text-sm font-semibold text-brand-accent hover:text-brand-accent-hover transition cursor-pointer">Собрать разбор</button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-left rounded-2xl bg-brand-soft/60 border border-brand-border-soft p-5">
+                      <p className="text-sm font-semibold text-brand-text mb-3">Что изменится в твоих постах</p>
+                      <ul className="space-y-2">
+                        {changes.map((c, i) => (
+                          <li key={i} className="flex gap-2.5 text-[14px] text-brand-text/85 leading-snug">
+                            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-brand-sage shrink-0" />
+                            <span>{c}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )
+              })()}
+
             </motion.div>
           </AnimatePresence>
           </div>
@@ -401,6 +489,12 @@ export default function ArchetypeTest() {
               <>
                 <button onClick={nextOpen} className="w-full sm:w-auto sm:min-w-[220px] inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-brand-accent text-white font-semibold text-[15px] hover:bg-brand-accent-hover active:scale-[0.98] transition cursor-pointer">{oIdx < OPEN_COUNT - 1 ? T.next : T.toResult} <ArrowRight className="w-4 h-4" /></button>
                 <button onClick={nextOpen} className="text-sm text-brand-muted/70 hover:text-brand-text transition-colors cursor-pointer">{T.skipOne}</button>
+              </>
+            )}
+            {phase === 'result' && (
+              <>
+                <button onClick={() => router.replace('/dashboard')} className="w-full sm:w-auto sm:min-w-[220px] inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-brand-accent text-white font-semibold text-[15px] hover:bg-brand-accent-hover active:scale-[0.98] transition cursor-pointer">Перейти к темам <ArrowRight className="w-4 h-4" /></button>
+                <button onClick={restart} className="text-sm text-brand-muted/70 hover:text-brand-text transition-colors cursor-pointer">Пройти заново</button>
               </>
             )}
             {(phase === 'situation' || phase === 'open') && (
