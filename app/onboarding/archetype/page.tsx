@@ -257,12 +257,13 @@ export default function ArchetypeTest() {
 
   return (
     <div className="relative h-[100dvh] flex flex-col bg-brand-bg overflow-hidden">
-      {/* фоновые мягкие пятна + декор. Усиление и squiggle только на десктопе (lg), мобилку не трогаем */}
-      <div aria-hidden className="pointer-events-none absolute -top-32 -left-24 w-[380px] h-[380px] lg:w-[560px] lg:h-[560px] rounded-full bg-brand-soft/50 lg:bg-brand-soft/60 blur-[120px]" />
-      <div aria-hidden className="pointer-events-none absolute -bottom-40 -right-28 w-[420px] h-[420px] lg:w-[600px] lg:h-[600px] rounded-full bg-brand-soft-2/60 lg:bg-brand-soft-2/70 blur-[130px]" />
-      <div aria-hidden className="hidden lg:block pointer-events-none absolute top-[12%] left-1/2 -translate-x-1/2 w-[720px] h-[420px] rounded-full bg-brand-soft-2/45 blur-[150px]" />
-      <div aria-hidden className="hidden lg:block pointer-events-none absolute left-[6%] top-[58%] opacity-40 -rotate-6"><Squiggle variant={2} width="120px" staticDraw /></div>
-      <div aria-hidden className="hidden lg:block pointer-events-none absolute right-[7%] top-[26%] opacity-35 rotate-[8deg]"><Squiggle variant={0} width="96px" staticDraw /></div>
+      {/* Фон. Мобилка: два угловых пятна (как было). Десктоп (lg): глубина через свет,
+          карточка парит в мягком лавандово-шалфейном свете, без росчерков на фоне. */}
+      <div aria-hidden className="lg:hidden pointer-events-none absolute -top-32 -left-24 w-[380px] h-[380px] rounded-full bg-brand-soft/50 blur-[120px]" />
+      <div aria-hidden className="lg:hidden pointer-events-none absolute -bottom-40 -right-28 w-[420px] h-[420px] rounded-full bg-brand-soft-2/60 blur-[130px]" />
+      <div aria-hidden className="hidden lg:block pointer-events-none absolute top-[-6%] left-[-4%] w-[720px] h-[720px] rounded-full bg-brand-soft opacity-[0.60] blur-[150px]" />
+      <div aria-hidden className="hidden lg:block pointer-events-none absolute bottom-[-10%] right-[-6%] w-[640px] h-[640px] rounded-full bg-brand-sage opacity-[0.10] blur-[160px]" />
+      <div aria-hidden className="hidden lg:block pointer-events-none absolute top-[8%] right-[-2%] w-[420px] h-[420px] rounded-full bg-brand-soft-2 opacity-[0.45] blur-[150px]" />
 
       {/* ШАПКА */}
       {phase !== 'finishing' && phase !== 'result' && (
