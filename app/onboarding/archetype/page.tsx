@@ -54,10 +54,10 @@ function BackBtn({ onClick, className = '' }: { onClick: () => void; className?:
   return (
     <button
       onClick={onClick}
-      className={`group inline-flex items-center gap-1.5 rounded-full border border-brand-border-soft/70 px-4 py-3 lg:py-2.5 text-sm font-medium text-brand-muted hover:bg-brand-soft hover:text-brand-text hover:border-brand-soft active:scale-[0.98] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${className}`}
+      className={`group inline-flex items-center gap-1.5 rounded-full border border-brand-border-soft/70 pl-2.5 pr-3.5 h-9 text-[13px] font-medium text-brand-muted bg-[#FDFBF7]/70 lg:bg-transparent hover:bg-brand-soft hover:text-brand-text hover:border-brand-soft active:scale-[0.97] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${className}`}
     >
-      <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-      Назад
+      <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+      <span className="hidden min-[360px]:inline">Назад</span>
     </button>
   )
 }
@@ -268,9 +268,13 @@ export default function ArchetypeTest() {
       {/* ШАПКА */}
       {phase !== 'finishing' && phase !== 'result' && (
         <header className="relative z-10 shrink-0 h-14 flex items-center justify-between px-5 sm:px-6">
-          <div className="w-16" />
+          <div className="w-24 lg:w-28 flex items-center">
+            {(phase === 'situation' || phase === 'open') && (
+              <BackBtn onClick={phase === 'situation' ? backSituation : backOpen} />
+            )}
+          </div>
           {(phase === 'situation' || phase === 'open') ? <Progress /> : <span />}
-          <div className="w-16 flex justify-end">
+          <div className="w-24 lg:w-28 flex justify-end">
             {phase === 'situation' && (
               <button onClick={skipSituation} className="text-sm text-brand-muted hover:text-brand-text transition-colors cursor-pointer">Пропустить</button>
             )}
@@ -280,8 +284,8 @@ export default function ArchetypeTest() {
 
       {/* ТЕЛО */}
       <main className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
-        <div className="w-full max-w-[560px] lg:max-w-[600px] mx-auto px-6 my-auto py-6">
-          <div className="lg:bg-[#FDFBF7] lg:rounded-[32px] lg:border lg:border-brand-border-soft/70 lg:px-12 lg:py-11 lg:shadow-[0_2px_4px_rgba(46,42,69,0.03),0_24px_60px_-24px_rgba(46,42,69,0.16),0_8px_20px_-12px_rgba(91,79,160,0.10)]">
+        <div className={`w-full max-w-[560px] mx-auto px-6 my-auto py-6 ${phase === 'result' ? 'lg:max-w-[920px]' : 'lg:max-w-[660px]'}`}>
+          <div className={`lg:bg-[#FDFBF7] lg:rounded-[32px] lg:border lg:border-brand-border-soft/70 lg:py-11 lg:shadow-[0_2px_4px_rgba(46,42,69,0.03),0_24px_60px_-24px_rgba(46,42,69,0.16),0_8px_20px_-12px_rgba(91,79,160,0.10)] ${phase === 'result' ? 'lg:px-14' : 'lg:px-12'}`}>
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div key={stepKey} custom={dir} variants={stepVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.26, ease: EASE }}>
 
@@ -408,57 +412,86 @@ export default function ArchetypeTest() {
                 const pk = sel.primary as keyof typeof ARCHETYPES
                 const accent = ARCHETYPE_ACCENT[pk]
                 const changes = ARCHETYPE_CHANGES[pk]
+                // Абзац истории: выделяем ОДНУ ключевую фразу **...** аметистом
+                const renderPara = (text: string) =>
+                  text.split(/\*\*(.+?)\*\*/g).map((seg, i) =>
+                    i % 2 === 1 ? <span key={i} className="font-semibold text-brand-accent">{seg}</span> : seg
+                  )
+                const paras = story.split('\n').map((p) => p.trim()).filter(Boolean)
+                const glyph = (
+                  <motion.div initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5, ease: EASE }} className="relative mx-auto mb-5 w-[104px] h-[104px] lg:w-[120px] lg:h-[120px]">
+                    <motion.div aria-hidden animate={reduced.current ? {} : { opacity: [0.5, 0.7, 0.5] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }} className="absolute inset-[-14px] rounded-full blur-[22px]" style={{ backgroundColor: accent + '33' }} />
+                    <div className="relative w-full h-full rounded-full flex items-center justify-center" style={{ backgroundColor: accent + '14', boxShadow: `inset 0 0 0 1px ${accent}33, 0 8px 20px -8px ${accent}55` }}>
+                      <div className="absolute inset-[10px] rounded-full" style={{ backgroundColor: '#FDFBF7', boxShadow: `inset 0 0 0 1px ${accent}22` }} />
+                      <div className="absolute inset-[22px] rounded-full" style={{ background: `radial-gradient(120% 120% at 30% 25%, ${accent}26, ${accent}12)`, boxShadow: `inset 0 1px 2px ${accent}22` }} />
+                      <div className="relative flex flex-col items-center justify-center">
+                        <div style={{ color: accent }}><Squiggle variant={1} width="52px" /></div>
+                        <div className="mt-[3px] opacity-40"><Squiggle variant={2} width="30px" /></div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )
                 return (
                   <div className="text-center">
-                    <p className="text-xs lg:text-[13px] font-semibold uppercase tracking-[0.16em] text-brand-sage mb-4">Твой авторский почерк</p>
-                    <div className="mx-auto mb-4 w-[72px] h-[72px] rounded-full flex items-center justify-center" style={{ backgroundColor: accent + '22' }}>
-                      <div style={{ color: accent }}><Squiggle variant={1} width="40px" /></div>
-                    </div>
-                    <h1 className="text-3xl lg:text-[40px] font-bold text-brand-text tracking-[-0.02em] leading-[1.1]">{archetypeLabel(sel)}</h1>
-                    <div className="flex justify-center mt-2 mb-3"><Squiggle variant={2} width="140px" /></div>
-                    {!sel.flexible && <p className="text-[15px] lg:text-base text-brand-muted leading-relaxed max-w-[400px] mx-auto mb-7">{cap(ARCHETYPES[pk].gift)}</p>}
-
-                    <div className="text-left max-w-[380px] mx-auto space-y-3 mb-8">
-                      {finalResult.top3.map((t, i) => (
-                        <div key={t.key}>
-                          <div className="flex items-baseline justify-between mb-1.5">
-                            <span className={i === 0 ? 'text-[15px] font-semibold text-brand-text' : 'text-sm text-brand-muted'}>{ARCHETYPES[t.key].name}</span>
-                            <span className="text-xs text-brand-muted tabular-nums">{t.percent}</span>
-                          </div>
-                          <div className="h-2 rounded-full bg-brand-soft overflow-hidden">
-                            <motion.div initial={{ width: 0 }} animate={{ width: `${t.percent}%` }} transition={{ duration: 0.6, delay: 0.2 + i * 0.1, ease: EASE }} className="h-full rounded-full" style={{ backgroundColor: ARCHETYPE_ACCENT[t.key] }} />
-                          </div>
+                    <p className="text-xs lg:text-[13px] font-semibold uppercase tracking-[0.16em] text-brand-sage mb-5">Твой авторский почерк</p>
+                    <div className="lg:grid lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] lg:gap-x-12 lg:items-start">
+                      {/* ЛЕВАЯ КОЛОНКА: паспорт архетипа */}
+                      <div className="lg:text-center">
+                        {glyph}
+                        <h1 className="text-3xl lg:text-[34px] font-bold text-brand-text tracking-[-0.02em] leading-[1.1]">{archetypeLabel(sel)}</h1>
+                        <div className="flex justify-center mt-2 mb-3"><Squiggle variant={2} width="140px" /></div>
+                        {!sel.flexible && <p className="text-[15px] lg:text-base text-brand-muted leading-relaxed max-w-[400px] mx-auto lg:mx-0 mb-7 lg:mb-6">{cap(ARCHETYPES[pk].gift)}</p>}
+                        <div className="text-left max-w-[380px] lg:max-w-none mx-auto lg:mx-0 space-y-3 mb-8 lg:mb-0">
+                          {finalResult.top3.map((t, i) => (
+                            <div key={t.key}>
+                              <div className="flex items-baseline justify-between mb-1.5">
+                                <span className={i === 0 ? 'text-[15px] font-semibold text-brand-text' : 'text-sm text-brand-muted'}>{ARCHETYPES[t.key].name}</span>
+                                <span className="text-xs text-brand-muted tabular-nums">{t.percent}</span>
+                              </div>
+                              <div className="h-2 rounded-full bg-brand-soft overflow-hidden">
+                                <motion.div initial={{ width: 0 }} animate={{ width: `${t.percent}%` }} transition={{ duration: 0.6, delay: 0.2 + i * 0.1, ease: EASE }} className="h-full rounded-full" style={{ backgroundColor: ARCHETYPE_ACCENT[t.key] }} />
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      </div>
 
-                    <div className="text-left mb-6">
-                      {storyState === 'loading' && (
-                        <div className="space-y-2.5">
-                          {[0, 1, 2, 3].map((i) => <div key={i} className="h-3.5 rounded-full bg-brand-soft/70 animate-pulse" style={{ width: i === 3 ? '55%' : '100%' }} />)}
+                      {/* ПРАВАЯ КОЛОНКА: разбор */}
+                      <div className="text-left lg:mt-1 mt-8">
+                        <div className="mb-6">
+                          {storyState === 'loading' && (
+                            <div className="space-y-2.5">
+                              {[0, 1, 2].map((i) => <div key={i} className="h-3.5 rounded-full bg-brand-soft/70 animate-pulse" />)}
+                              <div className="my-2 opacity-20"><Squiggle variant={2} width="34px" /></div>
+                              {[0, 1].map((i) => <div key={i} className="h-3.5 rounded-full bg-brand-soft/70 animate-pulse" style={{ width: i === 1 ? '55%' : '100%' }} />)}
+                            </div>
+                          )}
+                          {storyState === 'ok' && paras.map((p, i) => (
+                            <div key={i}>
+                              {i > 0 && <div className="my-4 opacity-30"><Squiggle variant={2} width="34px" /></div>}
+                              <p className={i === 0 ? 'text-[15px] lg:text-[17px] text-brand-text/90 leading-[1.7]' : 'text-[15px] lg:text-[16px] text-brand-text/80 leading-[1.7]'}>{renderPara(p)}</p>
+                            </div>
+                          ))}
+                          {storyState === 'error' && (
+                            <div className="rounded-2xl bg-brand-soft border border-brand-border-soft p-4 text-center">
+                              <p className="text-sm text-brand-muted mb-3">Разбор соберу через минуту, почерк уже сохранен.</p>
+                              <button onClick={fetchStory} className="text-sm font-semibold text-brand-accent hover:text-brand-accent-hover transition cursor-pointer">Собрать разбор</button>
+                            </div>
+                          )}
                         </div>
-                      )}
-                      {storyState === 'ok' && story.split('\n').filter((p) => p.trim()).map((p, i) => (
-                        <p key={i} className="text-[15px] lg:text-base text-brand-text/85 leading-relaxed mb-3">{p}</p>
-                      ))}
-                      {storyState === 'error' && (
-                        <div className="rounded-2xl bg-brand-soft border border-brand-border-soft p-4 text-center">
-                          <p className="text-sm text-brand-muted mb-3">Разбор соберу через минуту, почерк уже сохранен.</p>
-                          <button onClick={fetchStory} className="text-sm font-semibold text-brand-accent hover:text-brand-accent-hover transition cursor-pointer">Собрать разбор</button>
-                        </div>
-                      )}
-                    </div>
 
-                    <div className="text-left rounded-2xl bg-brand-soft/60 border border-brand-border-soft p-5">
-                      <p className="text-sm font-semibold text-brand-text mb-3">Что изменится в твоих постах</p>
-                      <ul className="space-y-2">
-                        {changes.map((c, i) => (
-                          <li key={i} className="flex gap-2.5 text-[14px] text-brand-text/85 leading-snug">
-                            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-brand-sage shrink-0" />
-                            <span>{c}</span>
-                          </li>
-                        ))}
-                      </ul>
+                        <div className="rounded-2xl bg-brand-soft/60 border border-brand-border-soft p-5">
+                          <p className="text-sm font-semibold text-brand-text mb-3">Что изменится в твоих постах</p>
+                          <ul className="space-y-2">
+                            {changes.map((c, i) => (
+                              <li key={i} className="flex gap-2.5 text-[14px] text-brand-text/85 leading-snug">
+                                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-brand-sage shrink-0" />
+                                <span>{c}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )
@@ -473,7 +506,7 @@ export default function ArchetypeTest() {
       {/* ПАНЕЛЬ ДЕЙСТВИЙ */}
       {phase !== 'finishing' && (
         <footer className="relative z-10 shrink-0 px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-3">
-          <div className="max-w-[560px] lg:max-w-[600px] mx-auto lg:relative flex flex-col items-center gap-2.5">
+          <div className={`max-w-[560px] mx-auto flex flex-col items-center gap-2.5 ${phase === 'result' ? 'lg:max-w-[920px]' : 'lg:max-w-[660px]'}`}>
             {phase === 'intro' && (
               <>
                 <button onClick={() => goNextFrom('situation')} className="w-full sm:w-auto sm:min-w-[220px] inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-brand-accent text-white font-semibold text-[15px] hover:bg-brand-accent-hover active:scale-[0.98] transition cursor-pointer">{T.start}</button>
@@ -497,9 +530,6 @@ export default function ArchetypeTest() {
                 <button onClick={() => router.replace('/dashboard')} className="w-full sm:w-auto sm:min-w-[220px] inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-brand-accent text-white font-semibold text-[15px] hover:bg-brand-accent-hover active:scale-[0.98] transition cursor-pointer">Перейти к темам <ArrowRight className="w-4 h-4" /></button>
                 <button onClick={restart} className="text-sm text-brand-muted/70 hover:text-brand-text transition-colors cursor-pointer">Пройти заново</button>
               </>
-            )}
-            {(phase === 'situation' || phase === 'open') && (
-              <BackBtn onClick={phase === 'situation' ? backSituation : backOpen} className="lg:absolute lg:left-0 lg:top-1/2 lg:-translate-y-1/2" />
             )}
           </div>
         </footer>
