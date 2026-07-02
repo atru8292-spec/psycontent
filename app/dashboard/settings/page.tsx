@@ -8,7 +8,11 @@ import { supabase } from '@/lib/supabase'
 import { EnergyTariffPanel } from '@/components/EnergyTariff'
 import TariffSection from '@/components/TariffSection'
 import { isVoiceIncomplete } from '@/lib/profile-status'
+import { ARCHETYPES, ARCHETYPE_ACCENT, archetypeLabel, type ArchetypeSelection } from '@/lib/archetypes'
+import { ArchetypeGlyph } from '@/lib/archetype-glyphs'
 import Squiggle from '@/components/Squiggle'
+
+const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
 
 interface Summary {
   plan: { code: string; name: string; isUnlimited: boolean; deepAnalysis: boolean }
@@ -17,6 +21,7 @@ interface Summary {
 }
 
 const ANCHORS = [
+  { id: 'archetype', label: 'Архетип' },
   { id: 'voice', label: 'Голос' },
   { id: 'tariff', label: 'Тариф' },
   { id: 'energy', label: 'Энергия' },
@@ -36,7 +41,7 @@ export default function SettingsPage() {
       if (!user) { router.replace('/'); return }
       const [meRes, profRes] = await Promise.all([
         fetch('/api/me').then((r) => (r.ok ? r.json() : null)).catch(() => null),
-        supabase.from('onboarding_profiles').select('full_name, live_voice, values').eq('user_id', user.id).maybeSingle(),
+        supabase.from('onboarding_profiles').select('full_name, live_voice, values, archetype_scores, archetype_primary').eq('user_id', user.id).maybeSingle(),
       ])
       if (!on) return
       if (!meRes) { setStatus('error'); return }
@@ -113,6 +118,50 @@ export default function SettingsPage() {
 
         {status === 'ready' && (
           <div className="mt-8 space-y-12">
+            {/* ── Твой архетип ── */}
+            <section id="archetype" className="scroll-mt-20">
+              <SectionTitle>Твой архетип</SectionTitle>
+              {(() => {
+                const sel: ArchetypeSelection | null = profile?.archetype_scores?.selection || (profile?.archetype_primary ? { primary: profile.archetype_primary } : null)
+                if (!sel || !sel.primary) {
+                  return (
+                    <div className="rounded-3xl bg-brand-card border border-brand-border p-5 sm:p-6">
+                      <h3 className="text-lg font-bold text-brand-text mb-1">Узнай свой архетип</h3>
+                      <p className="text-sm text-brand-muted leading-relaxed mb-4">Тест на семь минут. Поймем, какой ты автор, и посты начнут собираться в твоем голосе.</p>
+                      <button onClick={() => router.push('/onboarding/archetype')} className="inline-flex items-center gap-2 text-brand-accent font-semibold text-sm rounded-2xl px-5 py-2.5 border border-brand-accent/40 hover:bg-brand-soft transition cursor-pointer">Пройти тест <ArrowRight className="w-4 h-4" /></button>
+                    </div>
+                  )
+                }
+                const pk = sel.primary
+                const accent = ARCHETYPE_ACCENT[pk]
+                const top3 = (profile?.archetype_scores?.top3 || []) as { key: keyof typeof ARCHETYPES; percent: number }[]
+                return (
+                  <div className="rounded-3xl bg-brand-card border border-brand-border p-5 sm:p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="shrink-0 w-14 h-14 rounded-full flex items-center justify-center" style={{ backgroundColor: accent + '1A' }}>
+                        <div style={{ color: accent }}><ArchetypeGlyph k={pk} size={30} /></div>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-lg font-bold text-brand-text">{archetypeLabel(sel)}</h3>
+                        {!sel.flexible && <p className="text-sm text-brand-muted leading-relaxed mt-0.5">{cap(ARCHETYPES[pk].gift)}</p>}
+                      </div>
+                    </div>
+                    {top3.length > 0 && (
+                      <div className="mt-4 space-y-2 max-w-[420px]">
+                        {top3.map((t) => (
+                          <div key={t.key}>
+                            <div className="flex items-baseline justify-between mb-1"><span className="text-sm text-brand-text">{ARCHETYPES[t.key].name}</span><span className="text-xs text-brand-muted tabular-nums">{t.percent}</span></div>
+                            <div className="h-1.5 rounded-full bg-brand-soft overflow-hidden"><div className="h-full rounded-full" style={{ width: `${t.percent}%`, backgroundColor: ARCHETYPE_ACCENT[t.key] }} /></div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <button onClick={() => { if (window.confirm('Пройти тест заново? Твой текущий архетип заменится новым результатом.')) router.push('/onboarding/archetype') }} className="mt-5 text-sm text-brand-muted/80 hover:text-brand-text transition cursor-pointer">Пройти тест заново</button>
+                  </div>
+                )
+              })()}
+            </section>
+
             {/* ── Голос (профиль) ── */}
             <section id="voice" className="scroll-mt-20">
               <SectionTitle>Голос</SectionTitle>

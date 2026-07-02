@@ -15,6 +15,7 @@ import Squiggle from '@/components/Squiggle'
 import { SITUATIONS, OPEN_QUESTIONS } from '@/lib/archetype-quiz'
 import { computeArchetypes, type ArchetypeWeights } from '@/lib/archetype-score'
 import { ARCHETYPES, ARCHETYPE_ACCENT, ARCHETYPE_CHANGES, archetypeLabel } from '@/lib/archetypes'
+import { ArchetypeGlyph } from '@/lib/archetype-glyphs'
 
 const EASE = [0.22, 1, 0.36, 1] as const
 const SHADOW_REST = 'shadow-[0_1px_2px_rgba(46,42,69,0.04),0_8px_24px_rgba(46,42,69,0.05)]'
@@ -193,8 +194,10 @@ export default function ArchetypeTest() {
       if (!updated || updated.length === 0) throw new Error('no_profile_row') // нет строки -> не увозим молча
       try { localStorage.removeItem(LS_KEY) } catch {}
       setFinalResult(result)
-      // Держим сцену сборки ~1.4с, потом карточка-результат (кульминация), не в дашборд
-      finishTimers.current.push(setTimeout(() => { setPhase('result'); fetchStory() }, 1400))
+      // История стартует СРАЗУ (пока идет сцена сборки ~1.4с), чтобы к показу карточки
+      // текст уже был готов или почти готов, без ощущения паузы.
+      fetchStory()
+      finishTimers.current.push(setTimeout(() => { setPhase('result') }, 1400))
     } catch {
       clearFinishTimers()
       setSaveError(true)
@@ -214,7 +217,7 @@ export default function ArchetypeTest() {
 
   const restart = () => {
     setAnswers({}); setOpenAnswers({}); setSIdx(0); setOIdx(0)
-    setFinalResult(null); setStory(''); setSelecting(null)
+    setFinalResult(null); setStory(''); setStoryState('loading'); setSelecting(null)
     try { localStorage.removeItem(LS_KEY) } catch {}
     setDir(1); setPhase('intro')
   }
@@ -424,9 +427,8 @@ export default function ArchetypeTest() {
                     <div className="relative w-full h-full rounded-full flex items-center justify-center" style={{ backgroundColor: accent + '14', boxShadow: `inset 0 0 0 1px ${accent}33, 0 8px 20px -8px ${accent}55` }}>
                       <div className="absolute inset-[10px] rounded-full" style={{ backgroundColor: '#FDFBF7', boxShadow: `inset 0 0 0 1px ${accent}22` }} />
                       <div className="absolute inset-[22px] rounded-full" style={{ background: `radial-gradient(120% 120% at 30% 25%, ${accent}26, ${accent}12)`, boxShadow: `inset 0 1px 2px ${accent}22` }} />
-                      <div className="relative flex flex-col items-center justify-center">
-                        <div style={{ color: accent }}><Squiggle variant={1} width="52px" /></div>
-                        <div className="mt-[3px] opacity-40"><Squiggle variant={2} width="30px" /></div>
+                      <div className="relative flex items-center justify-center" style={{ color: accent }}>
+                        <ArchetypeGlyph k={pk} size={50} />
                       </div>
                     </div>
                   </motion.div>
@@ -461,16 +463,11 @@ export default function ArchetypeTest() {
                         <div className="mb-6">
                           {storyState === 'loading' && (
                             <div className="space-y-2.5">
-                              {[0, 1, 2].map((i) => <div key={i} className="h-3.5 rounded-full bg-brand-soft/70 animate-pulse" />)}
-                              <div className="my-2 opacity-20"><Squiggle variant={2} width="34px" /></div>
-                              {[0, 1].map((i) => <div key={i} className="h-3.5 rounded-full bg-brand-soft/70 animate-pulse" style={{ width: i === 1 ? '55%' : '100%' }} />)}
+                              {[0, 1, 2, 3, 4].map((i) => <div key={i} className="h-3.5 rounded-full bg-brand-soft/70 animate-pulse" style={{ width: i === 4 ? '55%' : '100%' }} />)}
                             </div>
                           )}
                           {storyState === 'ok' && paras.map((p, i) => (
-                            <div key={i}>
-                              {i > 0 && <div className="my-4 opacity-30"><Squiggle variant={2} width="34px" /></div>}
-                              <p className={i === 0 ? 'text-[15px] lg:text-[17px] text-brand-text/90 leading-[1.7]' : 'text-[15px] lg:text-[16px] text-brand-text/80 leading-[1.7]'}>{renderPara(p)}</p>
-                            </div>
+                            <p key={i} className={`${i === 0 ? 'text-[15px] lg:text-[17px] text-brand-text/90' : 'text-[15px] lg:text-[16px] text-brand-text/80'} leading-[1.7] ${i < paras.length - 1 ? 'mb-4' : ''}`}>{renderPara(p)}</p>
                           ))}
                           {storyState === 'error' && (
                             <div className="rounded-2xl bg-brand-soft border border-brand-border-soft p-4 text-center">
