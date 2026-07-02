@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
+import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { buildProfileContext } from '@/lib/profile-context'
 import { getSessionUser } from '@/lib/auth'
 
@@ -138,16 +139,9 @@ ${pillar ? `Рубрика: ${pillar}` : ''}
 - Избегай: ${Array.isArray(profile.anti_values) ? profile.anti_values.join(', ') : 'шаблонность'}
 
 Создай карусель из 8-10 слайдов. Ответ ТОЛЬКО в формате JSON массива.`
-    // Получаем предпочитаемую модель пользователя
-    const { data: userSettings } = await supabase
-      .from('user_settings')
-      .select('preferred_model')
-      .eq('user_id', userId)
-      .maybeSingle()
-    const model = (body as any).model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
 
-    const response = await generateWithAI(CAROUSEL_SYSTEM_PROMPT, prompt, { userId, operation: 'generate_carousel', knownNames: profile?.full_name ? [profile.full_name] : undefined })
+    const response = await generateWithAI(`${CAROUSEL_SYSTEM_PROMPT}\n\n${ANTI_SLOP_RULES}`, prompt, { userId, operation: 'generate_carousel', knownNames: profile?.full_name ? [profile.full_name] : undefined })
 
     if (!response) {
       throw new Error('AI returned empty response')

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
 import { buildProfileContext } from '@/lib/profile-context'
+import { getArchetypeContext } from '@/lib/archetypes'
+import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { getSessionUser } from '@/lib/auth'
 
 function getSupabaseAdmin() {
@@ -264,6 +266,12 @@ export async function POST(req: NextRequest) {
     }
 
     const approachContext = getApproachContext(approaches)
+    // Архетип автора (тест-распаковка) кормит почерк. selection лежит в archetype_scores,
+    // денормализованный ведущий в archetype_primary. Нет архетипа -> блок пустой.
+    const archSel = profile?.archetype_scores?.selection
+      ? profile.archetype_scores.selection
+      : (profile?.archetype_primary ? { primary: profile.archetype_primary } : null)
+    const archetypeContext = archSel ? getArchetypeContext(archSel) : ''
     const formatInstruction = getFormatInstruction(format)
     const platformInstruction = getPlatformInstruction(platform)
 
@@ -276,7 +284,12 @@ ${passport ? `ПАСПОРТ БРЕНДА:\n${passport.substring(0, 800)}` : ''}
 ПОДХОД
 ═══════════════════════════════
 ${approachContext}
-
+${archetypeContext ? `
+═══════════════════════════════
+АВТОРСКИЙ ПОЧЕРК
+═══════════════════════════════
+${archetypeContext}
+` : ''}
 ═══════════════════════════════
 ЗАДАНИЕ
 ═══════════════════════════════
@@ -296,7 +309,7 @@ ${platformInstruction}
 Напиши пост. Только текст, без предисловий.`
 
     // Модель всегда GPT-5.4 (задаётся внутри generateWithAI). Виджет выбора модели мёртвый.
-    const post = await generateWithAI(SYSTEM_PROMPT, prompt, { userId, operation: 'generate_post', knownNames: profile?.full_name ? [profile.full_name] : undefined })
+    const post = await generateWithAI(`${SYSTEM_PROMPT}\n\n${ANTI_SLOP_RULES}`, prompt, { userId, operation: 'generate_post', knownNames: profile?.full_name ? [profile.full_name] : undefined })
     console.log('Post generated, length:', post?.length)
 
     if (!post) {

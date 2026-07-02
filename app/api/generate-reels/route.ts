@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
+import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { buildProfileContext } from '@/lib/profile-context'
 import { getSessionUser } from '@/lib/auth'
 
@@ -178,16 +179,9 @@ ${getStyleInstruction(videoStyle)}
 [Финал] Сохрани. Утром перечитаешь.
 
 Выдай готовый скрипт. Без предисловий.`
-    // Получаем предпочитаемую модель пользователя
-    const { data: userSettings } = await supabase
-      .from('user_settings')
-      .select('preferred_model')
-      .eq('user_id', userId)
-      .maybeSingle()
-    const model = reqBody.model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
 
-    const script = await generateWithAI(SYSTEM_PROMPT, prompt, { userId, operation: 'generate_reels', knownNames: profile?.full_name ? [profile.full_name] : undefined })
+    const script = await generateWithAI(`${SYSTEM_PROMPT}\n\n${ANTI_SLOP_RULES}`, prompt, { userId, operation: 'generate_reels', knownNames: profile?.full_name ? [profile.full_name] : undefined })
 
     try {
       await supabase.from('generated_posts').insert({

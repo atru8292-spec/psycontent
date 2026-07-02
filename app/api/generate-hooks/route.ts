@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
+import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { buildProfileContext } from '@/lib/profile-context'
 import { getSessionUser } from '@/lib/auth'
 
@@ -200,15 +201,8 @@ ${passport ? `ПАСПОРТ БРЕНДА (кратко):\n${passport.substring(
 ТОЛЬКО JSON массив.`
 
     console.log('Generating hooks for topic:', topic)
-    // Получаем предпочитаемую модель пользователя
-    const { data: userSettings } = await supabase
-      .from('user_settings')
-      .select('preferred_model')
-      .eq('user_id', userId)
-      .maybeSingle()
-    const model = reqBody.model || userSettings?.preferred_model || 'anthropic/claude-sonnet-4-5'
 
-    const response = await generateWithAI(HOOKS_SYSTEM_PROMPT, userPrompt, { userId, operation: 'generate_hooks', knownNames: profile?.full_name ? [profile.full_name] : undefined })
+    const response = await generateWithAI(`${HOOKS_SYSTEM_PROMPT}\n\n${ANTI_SLOP_RULES}`, userPrompt, { userId, operation: 'generate_hooks', knownNames: profile?.full_name ? [profile.full_name] : undefined })
 
     // Парсим JSON
     let hooks: Array<{ type: string; hook: string; use: string; why: string }>
