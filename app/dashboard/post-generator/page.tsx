@@ -26,7 +26,7 @@ import {
 import Squiggle from '@/components/Squiggle'
 import EmptyState from '@/components/EmptyState'
 import { splitPostTitle } from '@/lib/post-format'
-import { isVoiceIncomplete } from '@/lib/profile-status'
+import { isArchetypeIncomplete } from '@/lib/profile-status'
 
 // ============ УБРАНА КАРУСЕЛЬ ============
 const formats = [
@@ -198,10 +198,10 @@ function PostGeneratorContent() {
   // Заголовок-вывеска отделяется от тела (как в демо). Для сторис и старых постов
   // без структуры title будет null, рендерим тело целиком.
   const parsedPost = result ? splitPostTitle(result, generatedFormat) : null
-  // Этап 4: прилипающая полоса-предложение разбора. Показываем экспресс-юзеру с
-  // неполным голосом после первого поста, гарантированно видна пока читаешь пост.
-  // Показ полосы: профиль неполный + после 1-го поста, после «Позже» пауза 3 поста.
-  const showVoiceBar = !!result && !generating && isVoiceIncomplete(profile) &&
+  // Прилипающая полоса-приглашение пройти тест-архетип. Показываем тому, кто еще не
+  // прошел тест, после первого поста, гарантированно видна пока читаешь пост.
+  // Показ полосы: архетип не пройден + после 1-го поста, после «Позже» пауза 3 поста.
+  const showVoiceBar = !!result && !generating && isArchetypeIncomplete(profile) &&
     (voiceDismissAt == null ? postCount >= 1 : postCount - voiceDismissAt >= 3)
   const dismissVoiceOffer = () => {
     setVoiceDismissAt(postCount)
@@ -710,7 +710,7 @@ function PostGeneratorContent() {
         </div>
       </div>
 
-      {/* Этап 4: прилипающая полоса-предложение разбора (момент вау, гарантированно видна) */}
+      {/* Прилипающая полоса-приглашение пройти тест-архетип (момент вау, гарантированно видна) */}
       <AnimatePresence>
         {showVoiceBar && (
           <motion.div
@@ -723,15 +723,15 @@ function PostGeneratorContent() {
             <div className="max-w-6xl mx-auto px-0 sm:px-6">
               <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-6 bg-brand-soft border-t border-brand-border-soft sm:rounded-t-3xl sm:border sm:border-b-0 shadow-[0_-10px_30px_-12px_rgba(91,79,160,0.30)] px-4 sm:px-6 py-3 sm:py-4">
                 <div className="min-w-0">
-                  <p className="text-sm sm:text-[15px] font-semibold text-brand-text leading-snug">Это было знакомство на бегу. Теперь копнем глубже</p>
-                  <p className="hidden sm:block text-xs text-brand-muted mt-0.5">Не та же анкета по новой, а настоящая распаковка: история, ценности, манера. Отсюда посты звучат совсем как ты</p>
+                  <p className="text-sm sm:text-[15px] font-semibold text-brand-text leading-snug">Хочешь, чтобы твои посты звучали еще ближе к тебе?</p>
+                  <p className="hidden sm:block text-xs text-brand-muted mt-0.5">Короткий тест на семь минут покажет, какой ты автор. После него посты попадают прямо в твою манеру</p>
                 </div>
                 <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3 shrink-0">
                   <button
-                    onClick={() => router.push('/dashboard/edit-profile?deepen=1')}
+                    onClick={() => router.push('/onboarding/archetype')}
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-brand-accent text-white font-semibold text-sm hover:bg-brand-accent-hover active:scale-[0.98] transition cursor-pointer"
                   >
-                    Копнуть глубже <ArrowRight className="w-4 h-4 hidden sm:inline" />
+                    Пройти тест <ArrowRight className="w-4 h-4 hidden sm:inline" />
                   </button>
                   <button
                     onClick={dismissVoiceOffer}

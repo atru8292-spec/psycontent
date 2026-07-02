@@ -11,7 +11,7 @@ import {
   Star, Map,
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
-import { isVoiceIncomplete } from '@/lib/profile-status'
+import { isArchetypeIncomplete } from '@/lib/profile-status'
 
 const toolGroups = [
   {
@@ -163,19 +163,19 @@ export default function Dashboard() {
       </motion.div>
 
       {/* Настроить голос точнее: экспресс-юзеру после первого поста (апселл по горячим следам) */}
-      {stats.posts > 0 && isVoiceIncomplete(profile) && (
+      {stats.posts > 0 && isArchetypeIncomplete(profile) && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
           className="soft-panel mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <p className="text-xs font-bold text-brand-accent uppercase tracking-widest mb-1.5">Звучит как ты</p>
             <p className="font-bold text-lg leading-tight text-brand-text mb-1">Настроить голос точнее</p>
             <p className="text-brand-muted text-sm leading-relaxed">
-              PsyCont уже пишет в твоем стиле. Дай ему пару штрихов, ценности и живые фразы, и совпадение станет еще точнее.
+              Пройди тест на семь минут, и PsyCont поймет, какой ты автор. Посты начнут точнее попадать в твой голос.
             </p>
           </div>
-          <button onClick={() => router.push('/dashboard/edit-profile?deepen=1')}
+          <button onClick={() => router.push('/onboarding/archetype')}
             className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-accent text-white font-semibold text-sm rounded-2xl hover:bg-brand-accent-hover transition cursor-pointer">
-            Дополнить профиль <ArrowRight className="w-4 h-4" />
+            Пройти тест <ArrowRight className="w-4 h-4" />
           </button>
         </motion.div>
       )}
