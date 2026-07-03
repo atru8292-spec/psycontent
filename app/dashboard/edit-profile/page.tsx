@@ -6,25 +6,27 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Sparkles, ArrowRight, ArrowLeft, CheckCircle, User, MessageCircle, 
-  Heart, MapPin, Flag, Star, Loader2, AlertTriangle
+  ArrowRight, ArrowLeft, CheckCircle, User,
+  Heart, MapPin, Loader2, AlertTriangle
 } from 'lucide-react'
+import VoiceTextarea from '@/components/VoiceTextarea'
 
+// Профиль практики (этап 5.5 шаг 2): только ФАКТЫ о работе. Стиль и личность теперь
+// целиком держит тест-архетип, поэтому стилевые вопросы (тон, ценности, суперсилы,
+// живой голос) из анкеты убраны. Цели уехали в трекер контент-плана. Мертвые поля
+// (content_struggles, content_pain, idols, something_else) выкинуты совсем.
 const blocks = [
-  { id: 'who', title: 'Кто вы', icon: User, color: 'text-brand-accent bg-brand-soft' },
-  { id: 'voice', title: 'Ваш голос', icon: MessageCircle, color: 'text-brand-accent bg-brand-soft' },
-  { id: 'client', title: 'Идеальный клиент', icon: Heart, color: 'text-brand-accent bg-brand-soft' },
-  { id: 'current', title: 'Где вы сейчас', icon: MapPin, color: 'text-brand-accent bg-brand-soft' },
-  { id: 'goal', title: 'Куда хотите', icon: Flag, color: 'text-brand-sage bg-brand-soft' },
-  { id: 'final', title: 'Финальный штрих', icon: Star, color: 'text-brand-sage bg-brand-soft' },
+  { id: 'practice', title: 'Ты и практика', icon: User, color: 'text-brand-accent bg-brand-soft' },
+  { id: 'client', title: 'Твой клиент', icon: Heart, color: 'text-brand-accent bg-brand-soft' },
+  { id: 'outward', title: 'Как ты в блоге', icon: MapPin, color: 'text-brand-sage bg-brand-soft' },
 ]
 
 const questions = [
-  // --- БЛОК 1: КТО ВЫ ---
+  // --- БЛОК 1: ТЫ И ПРАКТИКА ---
   {
     block: 0, key: 'full_name',
-    title: 'Как вас зовут? И как клиенты к вам обращаются?',
-    subtitle: 'Это влияет на тон ваших постов, будут они на "вы" или на "ты", формальные или дружеские.',
+    title: 'Как тебя зовут и как к тебе обращаться?',
+    subtitle: 'Отсюда возьмем тон постов: обращение на «ты» или на «вы», манера дружеская или строже.',
     type: 'text_and_single',
     placeholder: 'Например: Анна Петрова',
     options: ['По имени (Анна)', 'По имени-отчеству (Анна Сергеевна)', 'На «ты» по имени'],
@@ -32,8 +34,8 @@ const questions = [
   },
   {
     block: 0, key: 'approaches',
-    title: 'В каком подходе вы работаете?',
-    subtitle: 'Какой подход ОСНОВНОЙ, тот, через который вы смотрите на мир?',
+    title: 'В каком подходе работаешь?',
+    subtitle: 'Какой подход основной, тот, через который смотришь на мир?',
     type: 'multi',
     options: [
       'КПТ (когнитивно-поведенческая)', 'Гештальт-терапия', 'Психоанализ',
@@ -44,8 +46,8 @@ const questions = [
   },
   {
     block: 0, key: 'niches',
-    title: 'С чем вы работаете чаще всего?',
-    subtitle: 'А если бы вы могли работать ТОЛЬКО с одной проблемой до конца жизни, какая бы это была?',
+    title: 'С чем работаешь чаще всего?',
+    subtitle: 'А если бы можно было выбрать только одну тему на всю жизнь, какую?',
     type: 'multi_and_text',
     options: [
       'Тревожные расстройства (ГТР, паника, ОКР)', 'Депрессия и апатия', 'Отношения и привязанность',
@@ -54,20 +56,17 @@ const questions = [
       'Детская/подростковая психология', 'Психосоматика'
     ],
     textKey: 'one_niche',
-    textPlaceholder: 'Моя единственная проблема для работы, это... потому что...'
+    textPlaceholder: 'С этим я работаю глубже всего, потому что...'
   },
   {
     block: 0, key: 'experience',
-    title: 'Ваш опыт и путь в профессию',
-    subtitle: 'Как вы пришли в психологию? Не биография, а момент.',
-    type: 'single_and_text',
+    title: 'Сколько лет в практике?',
+    type: 'single',
     options: ['Меньше года (только начинаю)', '1-3 года', '3-5 лет', '5-10 лет', '10+ лет'],
-    textKey: 'path_to_profession',
-    textPlaceholder: 'Например: Мне было 28, я сидела в офисе и поняла что ненавижу каждый понедельник...'
   },
   {
     block: 0, key: 'formats',
-    title: 'Как вы работаете и стоимость сессии?',
+    title: 'Как работаешь и сколько стоит сессия?',
     subtitle: 'Форматы работы и примерная цена.',
     type: 'multi_and_single',
     options: ['Индивидуально (взрослые)', 'Индивидуально (подростки)', 'Детская', 'Семейная/парная', 'Групповая', 'Онлайн', 'Очно', 'Супервизия'],
@@ -75,116 +74,35 @@ const questions = [
     singleOptions: ['до 3000₽', '3000-5000₽', '5000-7000₽', '7000-10000₽', '10000₽+']
   },
 
-  // --- БЛОК 2: ВАШ ГОЛОС ---
+  // --- БЛОК 2: ТВОЙ КЛИЕНТ ---
   {
-    block: 1, key: 'tone_sliders',
-    title: 'Какой у вас тон общения?',
-    subtitle: 'Представьте что вы пишете пост.',
-    type: 'sliders',
-    sliders: [
-      { key: 'tone_formal', left: 'Разговорный', right: 'Формальный' },
-      { key: 'tone_serious', left: 'С юмором', right: 'Серьезный' },
-      { key: 'tone_cautious', left: 'Прямой', right: 'Осторожный' },
-    ]
-  },
-  {
-    block: 1, key: 'tone_verbal',
-    title: 'Как вы обычно разговариваете с клиентами?',
-    subtitle: 'Выберите самый близкий стиль',
-    type: 'single',
-    options: [
-      'Как мудрый старший друг, тепло и с заботой',
-      'Как ученый, четко и с опорой на факты',
-      'Как честный собеседник, прямо, без оберток',
-      'Как бережный проводник, мягко, без давления',
-      'Как провокатор, через вопросы которые «щелкают»'
-    ],
-  },
-  {
-    block: 1, key: 'values',
-    title: 'Что для вас САМОЕ важное в работе?',
-    subtitle: 'И что делаете не так, как другие? (допишите текстом)',
-    type: 'multi_and_text',
-    maxChoice: 3,
-    options: [
-      'Честность, говорить правду', 'Безоценочность', 'Научность, опора на факты',
-      'Глубина, докопаться до сути', 'Бережность, не торопить', 'Практичность, дать инструменты',
-      'Человечность, быть живым', 'Свобода выбора', 'Этичность'
-    ],
-    textKey: 'values_custom',
-    textPlaceholder: 'Я делаю не так как другие вот что...'
-  },
-  {
-    block: 1, key: 'anti_values',
-    title: 'Что вас раздражает в индустрии?',
-    subtitle: 'Ваши антиценности, золото для контента.',
-    type: 'multi_and_text',
-    options: [
-      'Инфоцыганство («вылечу за 1 сессию»)', 'Попсовая психология («мысли позитивно»)',
-      'Обесценивание («поговори с подругой»)', 'Гонка за подписчиками',
-      'Нарушение этики', 'Диагнозы через экран', 'Шаблонные советы («подыши»)'
-    ],
-    textKey: 'anti_values_custom',
-    textPlaceholder: 'Если бы я мог(ла) сказать ОДНУ вещь всем коллегам, я бы сказал(а)...'
-  },
-  {
-    block: 1, key: 'superpowers',
-    title: 'Что вам говорят клиенты? За что ценят?',
-    subtitle: 'Ваши суперсилы в глазах клиентов',
-    type: 'multi',
-    options: [
-      '«Вы объясняете сложное просто»', '«С вами я чувствую что меня слышат»',
-      '«Вы даете конкретные инструменты»', '«Вы задаете вопросы от которых мурашки»',
-      '«Вы не боитесь говорить прямо»', '«После вас я вижу все по-другому»'
-    ]
-  },
-  {
-    block: 1, key: 'content_struggles',
-    title: 'Что СЛОЖНО в ведении блога?',
-    subtitle: 'Честно, это поможет подобрать инструменты.',
-    type: 'multi',
-    options: [
-      'Не знаю о чем писать (ступор)', 'Пишу слишком сложно', 'Стыдно продвигаться',
-      'Нет регулярности', 'Лайки есть, клиентов нет', 'Камера пугает', 'Не знаю позиционирования'
-    ]
-  },
-  {
-    block: 1, key: 'live_voice',
-    title: 'Самый важный вопрос, ваш живой голос',
-    subtitle: 'Представьте: вы на вечеринке. Друг: «А чем вы занимаетесь? И чем отличаетесь от других?»',
-    type: 'textarea',
-    placeholder: 'Говорите как есть. Без "оказание психологической помощи". Просто, кто вы и почему вам не все равно.'
-  },
-
-  // --- БЛОК 3: ИДЕАЛЬНЫЙ КЛИЕНТ ---
-  {
-    block: 2, key: 'client_avatar',
-    title: 'Кто ваш идеальный клиент?',
-    subtitle: 'После сессии с которым вы думаете "вот ради этого я в профессии".',
+    block: 1, key: 'client_avatar',
+    title: 'Кто твой клиент?',
+    subtitle: 'После сессии с которым думаешь «вот ради этого я в профессии».',
     type: 'single_and_text',
     options: ['Женщина 25-35 лет', 'Женщина 35-45 лет', 'Мужчина 25-35 лет', 'Мужчина 35-45 лет', 'Подросток 14-18 лет', 'Пара', 'Семья'],
     textKey: 'client_job',
-    textPlaceholder: 'Чем этот человек занимается? (Например: IT-менеджер, мама в декрете, предприниматель)'
+    textPlaceholder: 'Например: айти менеджер, мама в декрете, предприниматель'
   },
   {
-    block: 2, key: 'client_pain_phrases',
-    title: 'Как ОН описывает свою боль?',
-    subtitle: 'Не диагноз, а 2-3 прямые фразы, которые вы слышите на первых сессиях.',
+    block: 1, key: 'client_pain_phrases',
+    title: 'Какими словами клиент описывает свою боль?',
+    subtitle: 'Одна две живые фразы, которые слышишь на первых сессиях. Можно наговорить голосом.',
     type: 'textarea',
-    placeholder: 'Например: "Я устала быть сильной", "Мозг не выключается", "Мы с мужем живем как соседи"...'
+    placeholder: 'Например: «устала быть сильной», «мозг не выключается», «живем как соседи»'
   },
   {
-    block: 2, key: 'client_tried',
-    title: 'Что клиент уже пробовал ДО вас?',
-    subtitle: 'И что ему мешает прийти (главный страх)?',
+    block: 1, key: 'client_tried',
+    title: 'Что он пробовал до тебя?',
+    subtitle: 'С чем приходит за спиной.',
     type: 'multi',
     options: [
-      'Читал книги', 'Смотрел YouTube', 'Другой психолог', 'Таблетки', 'Пытался "не думать"', 'Медитации/Йога', 'Обращается впервые'
+      'Читал книги', 'Смотрел YouTube', 'Другой психолог', 'Таблетки', 'Пытался «не думать»', 'Медитации/Йога', 'Обращается впервые'
     ]
   },
   {
-    block: 2, key: 'client_fear',
-    title: 'Какой у него главный страх перед терапией?',
+    block: 1, key: 'client_fear',
+    title: 'Чего он боится перед терапией?',
     subtitle: 'Что мешает записаться?',
     type: 'multi',
     options: [
@@ -192,122 +110,56 @@ const questions = [
     ]
   },
   {
-    block: 2, key: 'client_result',
-    title: 'Результат работы. Что он ДЕЛАЕТ по-другому?',
-    subtitle: 'Не «становится лучше», а конкретика.',
+    block: 1, key: 'client_result',
+    title: 'Что меняется после работы с тобой?',
+    subtitle: 'Конкретное действие, которое человек начинает делать по другому. Можно голосом.',
     type: 'textarea',
-    placeholder: 'Например: "Перестала звонить бывшему в 3 часа ночи", "Впервые взял отпуск и не проверял почту"...'
+    placeholder: 'Например: «перестала звонить бывшему ночью», «впервые взяла отпуск и не проверяла почту»'
   },
 
-  // --- БЛОК 4: ГДЕ ВЫ СЕЙЧАС ---
+  // --- БЛОК 3: КАК ТЫ ВЕДЕШЬСЯ НАРУЖУ ---
   {
-    block: 3, key: 'platforms',
-    title: 'Где ведете (или хотите) блог?',
-    subtitle: 'И сколько у вас подписчиков сегодня?',
+    block: 2, key: 'platforms',
+    title: 'Где ведешь блог?',
+    subtitle: 'И сколько сейчас подписчиков?',
     type: 'multi_and_single',
     options: ['Instagram', 'Telegram', 'Пока нигде'],
     singleKey: 'current_followers',
-    singleOptions: ['0', 'до 500', '500-2000', '2000-5000', '5000+']
+    singleOptions: ['0', 'до 500', '500-2000', '2000-5000', '5000+'],
+    videoToggle: true
   },
   {
-    block: 3, key: 'client_source',
-    title: 'Откуда сейчас приходят клиенты?',
-    subtitle: 'И сколько их в месяц?',
-    type: 'multi_and_single',
-    options: ['Сарафан', 'Соцсети', 'Агрегаторы', 'Реклама', 'Рекомендации', 'Пока нет'],
-    singleKey: 'current_clients',
-    singleOptions: ['0-3', '3-8', '8-15', '15-25', '25+']
-  },
-  {
-    block: 3, key: 'content_pain',
-    title: 'ОДНА главная проблема с контентом прямо сейчас',
-    subtitle: 'Опишите подробнее как это проявляется в жизни.',
-    type: 'single_and_text',
+    block: 2, key: 'anti_values',
+    title: 'Что бесит тебя в индустрии?',
+    subtitle: 'Это твоя отстройка. Против чего ты.',
+    type: 'multi',
     options: [
-      'Не знаю о чем писать', 'Никто не читает', 'Забрасываю', 'Пишу как учебник', 'Стыдно', 'Нет времени'
-    ],
-    textKey: 'content_pain_detail',
-    textPlaceholder: 'Например: Я могу сидеть перед пустым листом 3 часа, потом пишу сухой текст, выкладываю, и 2 лайка...'
-  },
-
-  // --- БЛОК 5: КУДА ХОТИТЕ ---
-  {
-    block: 4, key: 'desired_clients',
-    title: 'Сколько клиентов вы ХОТИТЕ?',
-    subtitle: 'Ваша цель',
-    type: 'single',
-    options: ['5-10/мес (начать поток)', '10-20 (стабильно)', '20-30 (полная запись)', 'Повысить чек (запись полная)']
-  },
-  {
-    block: 4, key: 'goal_3_months',
-    title: 'Цель на 3 месяца и время на контент',
-    subtitle: 'Выберите главную цель и сколько ресурса есть.',
-    type: 'single_and_single',
-    options1: [
-      'Первые клиенты из соцсетей', 'Увеличить поток в 2 раза', 'Выйти на полную запись',
-      'Запустить курс/марафон', 'Узнаваемость', 'Супервизия'
-    ],
-    options2: ['15-30 минут в день', '30-60 минут в день', '1-2 часа', 'Один день в неделю (3+ ч)'],
-    single2Key: 'time_available'
-  },
-  {
-    block: 4, key: 'video_attitude',
-    title: 'Как относитесь к видео (Reels / Shorts)?',
-    subtitle: 'Мы не будем заставлять.',
-    type: 'single',
-    options: [
-      'Нормально, нужны скрипты', 'Готов(а), но нужен телесуфлер', 'Пугает, но попробую', 'Категорически нет (только текст)'
+      'Инфоцыганство («вылечу за 1 сессию»)', 'Попсовая психология («мысли позитивно»)',
+      'Обесценивание («поговори с подругой»)', 'Гонка за подписчиками',
+      'Нарушение этики', 'Диагнозы через экран', 'Шаблонные советы («подыши»)'
     ]
-  },
-  {
-    block: 4, key: 'dream_blog',
-    title: 'Представьте идеальную картину через год.',
-    subtitle: 'Что вы чувствуете открывая директ утром?',
-    type: 'textarea',
-    placeholder: 'Мечтайте конкретно: "открываю директ, 3 заявки, все по моей специализации, я выбираю с кем работать..."'
-  },
-
-  // --- БЛОК 6: ФИНАЛЬНЫЙ ШТРИХ ---
-  {
-    block: 5, key: 'idols',
-    title: 'Чей контент вам нравится?',
-    subtitle: 'Есть психологи, которыми восхищаетесь?',
-    type: 'text_and_multi',
-    placeholder: 'Имена или ссылки (необязательно)',
-    options: ['Пишут просто о сложном', 'Быть собой', 'Красивое оформление', 'Глубокие тексты', 'Комьюнити', 'Мягкие продажи'],
-    optionsKey: 'idols_why'
-  },
-  {
-    block: 5, key: 'something_else',
-    title: 'Что-то еще?',
-    subtitle: 'Необычный опыт, хобби, нестандартный путь?',
-    type: 'textarea',
-    placeholder: 'Это может стать вашей отстройкой. Психолог-скалолаз. Психолог-бывший-бизнесмен...'
   }
 ]
 
-// Режим углубления (?deepen=1, вход через предложение «копнуть глубже»): пропускаем
-// вопросы, уже отвеченные в экспрессе, чтобы не переспрашивать. Данные не теряются
-// (форма префилит ответы из профиля и пишет весь объект через .update).
-const DEEPEN_SKIP = new Set(['approaches', 'niches', 'tone_verbal', 'tone_sliders', 'client_pain_phrases'])
+// Значения тумблера видео. Храним строкой в существующем поле video_attitude,
+// чтобы generate-passport читал осмысленную фразу (схему БД не трогаем).
+const VIDEO_YES = 'Снимаю видео'
+const VIDEO_NO = 'Пока без видео'
 
 export default function EditProfile() {
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState(false)
   const [completed, setCompleted] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
-  const [deepen, setDeepen] = useState(false)
   const router = useRouter()
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setDeepen(new URLSearchParams(window.location.search).get('deepen') === '1')
-    }
-  }, [])
-
-  // Загрузка существующего профиля
+  // Загрузка существующего профиля. Префилим только поля, которые форма спрашивает.
+  // Стилевые и целевые колонки (live_voice, values, superpowers, tone_*, цели) НЕ
+  // трогаем: их нет ни в prefill, ни в handleSubmit, значит .update их не перезапишет
+  // и данные архетипа/старой анкеты сохранятся.
   useEffect(() => {
     const loadProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -325,7 +177,6 @@ export default function EditProfile() {
         return
       }
 
-      // Заполняем answers из профиля
       setAnswers({
         full_name: profile.full_name || '',
         appeal: profile.appeal || '',
@@ -333,20 +184,8 @@ export default function EditProfile() {
         niches: profile.niches || [],
         one_niche: profile.one_niche || '',
         experience: profile.experience || '',
-        path_to_profession: profile.path_to_profession || '',
         formats: profile.formats || [],
         price: profile.price || '',
-        tone_formal: profile.tone_formal ?? 50,
-        tone_serious: profile.tone_serious ?? 50,
-        tone_cautious: profile.tone_cautious ?? 50,
-        tone_verbal: profile.tone_verbal || '',
-        values: profile.values || [],
-        values_custom: profile.values_custom || '',
-        anti_values: profile.anti_values || [],
-        anti_values_custom: profile.anti_values_custom || '',
-        superpowers: profile.superpowers || [],
-        content_struggles: profile.content_struggles || [],
-        live_voice: profile.live_voice || '',
         client_avatar: profile.client_avatar || '',
         client_job: profile.client_job || '',
         client_pain_phrases: profile.client_pain_phrases || '',
@@ -355,28 +194,17 @@ export default function EditProfile() {
         client_result: profile.client_result || '',
         platforms: profile.platforms || [],
         current_followers: profile.current_followers || '',
-        current_clients: profile.current_clients || '',
-        client_source: profile.client_source || [],
-        content_pain: profile.content_pain || '',
-        content_pain_detail: profile.content_pain_detail || '',
-        desired_clients: profile.desired_clients || '',
-        goal_3_months: profile.goal_3_months || '',
-        time_available: profile.time_available || '',
+        anti_values: profile.anti_values || [],
         video_attitude: profile.video_attitude || '',
-        dream_blog: profile.dream_blog || '',
-        idols: profile.idols || '',
-        idols_why: profile.idols_why || [],
-        something_else: profile.something_else || '',
       })
       setLoading(false)
     }
     loadProfile()
   }, [router])
 
-  const visibleQuestions = deepen ? questions.filter((qq) => !DEEPEN_SKIP.has(qq.key)) : questions
-  const currentQuestion = visibleQuestions[Math.min(step, visibleQuestions.length - 1)]
+  const currentQuestion = questions[Math.min(step, questions.length - 1)]
   const currentBlock = blocks[currentQuestion.block]
-  const progress = ((step + 1) / visibleQuestions.length) * 100
+  const progress = ((step + 1) / questions.length) * 100
 
   const toggleArrayItem = (key: string, item: string, max?: number) => {
     const arr = answers[key] || []
@@ -393,7 +221,6 @@ export default function EditProfile() {
     const textKey = (currentQuestion as any).textKey
     const singleKey = (currentQuestion as any).singleKey
     const optionsKey = (currentQuestion as any).optionsKey
-    const single2Key = (currentQuestion as any).single2Key
 
     if (type === 'text' || type === 'textarea') return (answers[key]?.length > 2)
     if (type === 'single') return !!answers[key]
@@ -401,15 +228,17 @@ export default function EditProfile() {
     if (type === 'text_and_single') return (answers[key]?.length > 2 && !!answers[optionsKey])
     if (type === 'multi_and_text') return (answers[key]?.length > 0 && answers[textKey]?.length > 2)
     if (type === 'single_and_text') return (answers[key] && answers[textKey]?.length > 2)
-    if (type === 'multi_and_single') return (answers[key]?.length > 0 && !!answers[singleKey])
-    if (type === 'single_and_single') return (answers[key] && !!answers[single2Key])
-    if (type === 'text_and_multi') return true
-    if (type === 'sliders') return true
+    if (type === 'multi_and_single') {
+      if (!(answers[key]?.length > 0)) return false
+      // «Пока нигде» на площадках снимает требование указать число подписчиков
+      if (key === 'platforms' && answers.platforms.every((p: string) => p === 'Пока нигде')) return true
+      return !!answers[singleKey]
+    }
     return true
   }
 
   const handleNext = () => {
-    if (step < visibleQuestions.length - 1) {
+    if (step < questions.length - 1) {
       setStep(step + 1)
       window.scrollTo(0, 0)
     } else {
@@ -420,7 +249,10 @@ export default function EditProfile() {
   const handleSubmit = async () => {
     if (!userId) return
     setSaving(true)
+    setSaveError(false)
 
+    // Пишем только факты профиля практики. Остальных колонок тут нет намеренно, чтобы
+    // .update не затер стиль (live_voice/values) и результат теста-архетипа.
     const profileData = {
       full_name: answers.full_name || '',
       appeal: answers.appeal || '',
@@ -428,20 +260,8 @@ export default function EditProfile() {
       niches: answers.niches || [],
       one_niche: answers.one_niche || '',
       experience: answers.experience || '',
-      path_to_profession: answers.path_to_profession || '',
       formats: answers.formats || [],
       price: answers.price || '',
-      tone_formal: answers.tone_formal ?? 50,
-      tone_serious: answers.tone_serious ?? 50,
-      tone_cautious: answers.tone_cautious ?? 50,
-      tone_verbal: answers.tone_verbal || '',
-      values: answers.values || [],
-      values_custom: answers.values_custom || '',
-      anti_values: answers.anti_values || [],
-      anti_values_custom: answers.anti_values_custom || '',
-      superpowers: answers.superpowers || [],
-      content_struggles: answers.content_struggles || [],
-      live_voice: answers.live_voice || '',
       client_avatar: answers.client_avatar || '',
       client_job: answers.client_job || '',
       client_pain_phrases: answers.client_pain_phrases || '',
@@ -450,18 +270,8 @@ export default function EditProfile() {
       client_result: answers.client_result || '',
       platforms: answers.platforms || [],
       current_followers: answers.current_followers || '',
-      current_clients: answers.current_clients || '',
-      client_source: answers.client_source || [],
-      content_pain: answers.content_pain || '',
-      content_pain_detail: answers.content_pain_detail || '',
-      desired_clients: answers.desired_clients || '',
-      goal_3_months: answers.goal_3_months || '',
-      time_available: answers.time_available || '',
+      anti_values: answers.anti_values || [],
       video_attitude: answers.video_attitude || '',
-      dream_blog: answers.dream_blog || '',
-      idols: answers.idols || '',
-      idols_why: answers.idols_why || [],
-      something_else: answers.something_else || '',
     }
 
     const { error } = await supabase
@@ -471,7 +281,7 @@ export default function EditProfile() {
 
     if (error) {
       console.error('Update error:', error)
-      alert('Ошибка при сохранении')
+      setSaveError(true)
       setSaving(false)
       return
     }
@@ -492,39 +302,38 @@ export default function EditProfile() {
   if (completed) {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center p-6">
-        <motion.div 
-          initial={{ scale: 0.9, opacity: 0 }} 
-          animate={{ scale: 1, opacity: 1 }} 
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
           className="bg-white max-w-lg w-full rounded-2xl p-8 border border-brand-border text-center shadow-xl"
         >
           <div className="w-20 h-20 bg-brand-soft rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-brand-sage" />
           </div>
-          <h1 className="text-3xl font-bold text-brand-text mb-4">Профиль обновлен</h1>
+          <h1 className="text-3xl font-bold text-brand-text mb-4">Готово, профиль обновила</h1>
           <p className="text-brand-text-secondary mb-6 leading-relaxed">
-            Изменения сохранены. Рекомендуем перегенерировать паспорт бренда, чтобы он отражал новые данные.
+            Данные сохранила. Паспорт бренда собирался по старым ответам, стоит пересобрать, чтобы он звучал по новому.
           </p>
-          
+
           <div className="bg-brand-soft border border-brand-border-soft rounded-xl p-4 mb-6 flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-brand-sage shrink-0 mt-0.5" />
             <p className="text-sm text-brand-text text-left">
-              Старый паспорт бренда был создан на основе предыдущих данных. 
-              Нажмите «Перегенерировать» на странице паспорта.
+              Загляни в паспорт и нажми «Пересобрать», он подтянет свежие данные.
             </p>
           </div>
 
           <div className="flex flex-col gap-3">
-            <button 
-              onClick={() => router.push('/dashboard/brand-passport')} 
+            <button
+              onClick={() => router.push('/dashboard/brand-passport')}
               className="w-full py-4 bg-brand-accent hover:bg-brand-accent-hover text-white rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-lg cursor-pointer"
             >
-              Перегенерировать паспорт <ArrowRight className="w-5 h-5" />
+              Пересобрать паспорт <ArrowRight className="w-5 h-5" />
             </button>
-                       <button 
-              onClick={() => router.push('/dashboard')} 
+            <button
+              onClick={() => router.push('/dashboard')}
               className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-brand-text rounded-xl font-medium transition cursor-pointer"
             >
-              Вернуться в дашборд
+              Вернуться в кабинет
             </button>
           </div>
         </motion.div>
@@ -548,8 +357,8 @@ export default function EditProfile() {
               {currentBlock.title}
             </span>
             <div className="flex items-center gap-4">
-              <span className="text-brand-text-secondary">{step + 1} / {visibleQuestions.length}</span>
-              <button 
+              <span className="text-brand-text-secondary">{step + 1} / {questions.length}</span>
+              <button
                 onClick={() => router.push('/dashboard')}
                 className="text-gray-400 hover:text-gray-600 text-sm"
               >
@@ -558,11 +367,11 @@ export default function EditProfile() {
             </div>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-            <motion.div 
-              className="bg-brand-accent h-full" 
-              initial={{ width: 0 }} 
-              animate={{ width: `${progress}%` }} 
-              transition={{ duration: 0.4 }} 
+            <motion.div
+              className="bg-brand-accent h-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.4 }}
             />
           </div>
         </div>
@@ -571,11 +380,11 @@ export default function EditProfile() {
       {/* ВОПРОС */}
       <div className="max-w-3xl mx-auto px-6 pt-12">
         <AnimatePresence mode="wait">
-          <motion.div 
-            key={step} 
-            initial={{ opacity: 0, y: 15 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: -15 }} 
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.3 }}
           >
             <h2 className="text-2xl md:text-4xl font-extrabold text-brand-text mb-4 leading-tight">
@@ -585,21 +394,19 @@ export default function EditProfile() {
 
             <div className="space-y-6">
 
-              {/* 1. Текстовый ввод */}
-              {(q.type === 'text' || q.type === 'textarea' || q.type === 'text_and_single' || q.type === 'text_and_multi') && (
+              {/* 1. Текстовый ввод (input для имени, VoiceTextarea для развернутых) */}
+              {(q.type === 'text' || q.type === 'textarea' || q.type === 'text_and_single') && (
                 <div>
-                  {q.type.includes('textarea') ? (
-                    <textarea
-                      value={answers[q.key] || ''} 
-                      onChange={e => setAnswers({ ...answers, [q.key]: e.target.value })}
-                      placeholder={q.placeholder} 
-                      rows={3}
-                      className="w-full p-5 rounded-2xl border-2 border-gray-200 focus:border-brand-accent outline-none text-lg resize-none"
+                  {q.type === 'textarea' ? (
+                    <VoiceTextarea
+                      value={answers[q.key] || ''}
+                      onChange={(v) => setAnswers({ ...answers, [q.key]: v })}
+                      placeholder={q.placeholder}
                     />
                   ) : (
                     <input
-                      type="text" 
-                      value={answers[q.key] || ''} 
+                      type="text"
+                      value={answers[q.key] || ''}
                       onChange={e => setAnswers({ ...answers, [q.key]: e.target.value })}
                       placeholder={q.placeholder}
                       className="w-full p-5 rounded-2xl border-2 border-gray-200 focus:border-brand-accent outline-none text-lg"
@@ -609,9 +416,9 @@ export default function EditProfile() {
               )}
 
               {/* 2. Основная сетка опций */}
-              {(q.type === 'single' || q.type === 'multi' || q.type === 'multi_and_text' || q.type === 'single_and_text' || q.type === 'multi_and_single' || q.type === 'single_and_single') && ((q as any).options || (q as any).options1) && (
+              {(q.type === 'single' || q.type === 'multi' || q.type === 'multi_and_text' || q.type === 'single_and_text' || q.type === 'multi_and_single') && (q as any).options && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-                  {((q as any).options1 || (q as any).options || []).map((opt: string) => {
+                  {((q as any).options || []).map((opt: string) => {
                     const isMulti = q.type.includes('multi')
                     const isSelected = isMulti ? (answers[q.key] || []).includes(opt) : answers[q.key] === opt
 
@@ -631,49 +438,41 @@ export default function EditProfile() {
                 </div>
               )}
 
-              {/* 3. Дополнительный textarea */}
+              {/* 3. Дополнительный развернутый ответ (голосом) */}
               {((q as any).textKey) && (
                 <div className="pt-6 mt-6 border-t border-gray-100">
                   <p className="font-bold text-brand-text mb-3 text-lg">
-                    {q.key === 'niches' && 'А если бы можно было выбрать только одну проблему, с чем бы вы работали и почему именно с этим?'}
-                    {q.key === 'experience' && 'Расскажите, как все началось. Что в какой-то момент щелкнуло и вы поняли, хочу в психологию?'}
-                    {q.key === 'values' && 'А вот что интересно, чем вы отличаетесь от коллег? Что делаете по-своему?'}
-                    {q.key === 'anti_values' && 'Представьте, что вас слышат все коллеги разом. Что бы вы им сказали? Без цензуры'}
-                    {q.key === 'client_avatar' && 'Расскажите про этого человека, кто он, чем занимается, как живет?'}
-                    {q.key === 'content_pain' && 'Опишите как это обычно происходит. Вот вы садитесь писать пост, и что дальше?'}
-                    {!['niches', 'experience', 'values', 'anti_values', 'client_avatar', 'content_pain'].includes(q.key) && 'Расскажите подробнее'}
+                    {q.key === 'niches' && 'Если бы можно было выбрать только одну тему на всю жизнь, какую?'}
+                    {q.key === 'client_avatar' && 'Чем он занимается?'}
+                    {!['niches', 'client_avatar'].includes(q.key) && 'Расскажи подробнее'}
                   </p>
-                  <textarea
-                    value={answers[(q as any).textKey] || ''} 
-                    onChange={e => setAnswers({ ...answers, [(q as any).textKey]: e.target.value })}
-                    placeholder={(q as any).textPlaceholder} 
-                    rows={3}
-                    className="w-full p-5 rounded-2xl border-2 border-gray-200 focus:border-brand-accent outline-none text-lg resize-none"
+                  <VoiceTextarea
+                    value={answers[(q as any).textKey] || ''}
+                    onChange={(v) => setAnswers({ ...answers, [(q as any).textKey]: v })}
+                    placeholder={(q as any).textPlaceholder}
+                    minHeight={100}
                   />
                 </div>
               )}
 
-              {/* 4. Дополнительная сетка опций */}
-              {((q as any).optionsKey || (q as any).singleKey || (q as any).single2Key) && (
+              {/* 4. Дополнительная сетка опций (уточнение) */}
+              {((q as any).optionsKey || (q as any).singleKey) && (
                 <div className="pt-6 mt-6 border-t border-gray-100">
                   <p className="font-bold text-brand-text mb-4 text-lg">
-                    {q.type === 'text_and_single' ? 'И как нам к вам обращаться?' :
-                      q.type === 'multi_and_single' && (q as any).singleKey === 'price' ? 'А примерная стоимость вашей сессии?' :
-                      q.type === 'multi_and_single' && (q as any).singleKey === 'current_followers' ? 'И сколько сейчас подписчиков?' :
-                      q.type === 'multi_and_single' && (q as any).singleKey === 'current_clients' ? 'И сколько клиентов в месяц?' :
-                      (q as any).single2Key === 'time_available' ? 'Сколько времени готовы уделять блогу?' :
-                      'Уточните:'}
+                    {q.type === 'text_and_single' ? 'И как к тебе обращаться?' :
+                      (q as any).singleKey === 'price' ? 'А сколько стоит сессия?' :
+                      (q as any).singleKey === 'current_followers' ? 'И сколько сейчас подписчиков?' :
+                      'Уточни:'}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {((q as any).singleOptions || (q as any).options2 || (q as any).options || []).map((opt: string) => {
-                      const tgtKey = (q as any).optionsKey || (q as any).singleKey || (q as any).single2Key!
-                      const isMulti = q.type.includes('multi') && !!(q as any).optionsKey
-                      const isSelected = isMulti ? (answers[tgtKey] || []).includes(opt) : answers[tgtKey] === opt
+                    {((q as any).singleOptions || (q as any).options || []).map((opt: string) => {
+                      const tgtKey = (q as any).optionsKey || (q as any).singleKey!
+                      const isSelected = answers[tgtKey] === opt
 
                       return (
                         <button
                           key={opt}
-                          onClick={() => isMulti ? toggleArrayItem(tgtKey, opt) : setAnswers({ ...answers, [tgtKey]: opt })}
+                          onClick={() => setAnswers({ ...answers, [tgtKey]: opt })}
                           className={`p-4 rounded-xl border-2 font-medium transition cursor-pointer text-left flex items-start gap-3 ${isSelected ? 'border-brand-accent bg-brand-soft text-brand-text' : 'border-gray-200 hover:bg-brand-bg'}`}
                         >
                           <div className={`w-5 h-5 mt-0.5 rounded-full flex items-center justify-center shrink-0 border ${isSelected ? 'bg-brand-accent border-brand-accent' : 'border-gray-200'}`}>
@@ -687,23 +486,26 @@ export default function EditProfile() {
                 </div>
               )}
 
-              {/* 5. Слайдеры */}
-              {q.type === 'sliders' && (q as any).sliders && (
-                <div className="space-y-10 bg-white p-8 rounded-3xl border border-gray-100 mt-6 shadow-sm">
-                  {(q as any).sliders.map((slider: any) => (
-                    <div key={slider.key}>
-                      <div className="flex justify-between text-sm font-bold text-gray-400 mb-4 px-2 uppercase tracking-wide">
-                        <span className={answers[slider.key] < 50 ? 'text-brand-accent' : ''}>{slider.left}</span>
-                        <span className={answers[slider.key] > 50 ? 'text-brand-accent' : ''}>{slider.right}</span>
-                      </div>
-                      <input
-                        type="range" min="0" max="100"
-                        value={answers[slider.key] || 50}
-                        onChange={e => setAnswers({ ...answers, [slider.key]: Number(e.target.value) })}
-                        className="w-full accent-brand-accent h-2 bg-brand-border rounded-lg appearance-none cursor-pointer"
-                      />
-                    </div>
-                  ))}
+              {/* 5. Тумблер видео (подэлемент экрана площадок, необязателен) */}
+              {(q as any).videoToggle && (
+                <div className="pt-6 mt-6 border-t border-gray-100">
+                  <p className="font-bold text-brand-text mb-1 text-lg">Снимаешь видео?</p>
+                  <p className="text-brand-text-secondary mb-4">Рилс, шортс, кружочки. Если да, будем предлагать сценарии под камеру.</p>
+                  <div className="grid grid-cols-2 gap-3 max-w-sm">
+                    {[{ v: VIDEO_YES, label: 'Да' }, { v: VIDEO_NO, label: 'Нет' }].map((opt) => {
+                      const isSelected = answers.video_attitude === opt.v
+                      return (
+                        <button
+                          key={opt.v}
+                          type="button"
+                          onClick={() => setAnswers({ ...answers, video_attitude: isSelected ? '' : opt.v })}
+                          className={`p-4 rounded-xl border-2 font-medium transition cursor-pointer text-center ${isSelected ? 'border-brand-accent bg-brand-soft text-brand-text' : 'border-gray-200 bg-white hover:border-brand-border'}`}
+                        >
+                          {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
 
@@ -714,9 +516,14 @@ export default function EditProfile() {
 
       {/* FOOTER НАВИГАЦИЯ */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-brand-border py-4 px-6 z-50">
+        {saveError && (
+          <div className="max-w-3xl mx-auto mb-3 rounded-xl bg-brand-soft border border-brand-border-soft px-4 py-2.5 text-sm text-brand-text">
+            Не сохранилось, связь подвела. Ответы на месте, попробуй еще раз.
+          </div>
+        )}
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <button
-            onClick={() => setStep(step - 1)} 
+            onClick={() => setStep(step - 1)}
             disabled={step === 0}
             className={`flex items-center gap-2 font-semibold transition cursor-pointer px-4 py-2 rounded-xl border-2 ${step === 0 ? 'text-gray-300 border-transparent' : 'text-gray-500 border-gray-200 hover:text-black hover:bg-gray-50'}`}
           >
@@ -724,16 +531,16 @@ export default function EditProfile() {
           </button>
 
           <button
-            onClick={handleNext} 
+            onClick={handleNext}
             disabled={!canProceed() || saving}
             className={`px-8 py-3 rounded-full font-bold flex items-center gap-2 transition shadow-lg cursor-pointer
               ${canProceed() && !saving ? 'bg-brand-accent hover:bg-brand-accent-hover text-white shadow-brand-accent/20' : 'bg-gray-100 text-gray-400 shadow-none'}`}
           >
             {saving ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" /> Сохраняем...
+                <Loader2 className="w-5 h-5 animate-spin" /> Сохраняю...
               </>
-            ) : step === visibleQuestions.length - 1 ? (
+            ) : step === questions.length - 1 ? (
               'Сохранить изменения'
             ) : (
               <>Далее <ArrowRight className="w-5 h-5" /></>

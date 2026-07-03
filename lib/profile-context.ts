@@ -55,10 +55,5 @@ ${profile.anti_values_custom ? `- Подробнее: ${profile.anti_values_cust
 КОНТЕКСТ:
 - Площадки: ${arr(profile.platforms) || 'Instagram'}
 - Подписчики: ${profile.current_followers || ''}
-- Сложности с контентом: ${arr(profile.content_struggles) || ''}
-- Боль с контентом: ${profile.content_pain || ''}
-- Цель на 3 месяца: ${profile.goal_3_months || ''}
-- Блог мечты: ${profile.dream_blog || ''}
-- Кумиры: ${profile.idols || ''}
 `.trim()
 }
