@@ -48,6 +48,62 @@ function getPillarMeta(pillar: string) {
   return PILLAR_META[pillar] || { color: 'text-gray-600 bg-gray-50 border-gray-200', dot: 'bg-gray-400' }
 }
 
+// ============ ТРЕКЕР РИТМА (North Star: 4+ материала в месяц) ============
+// Считаем созданные материалы (посты/карусели/рилс) за текущий календарный месяц.
+// Спокойный трекер, не геймификация: сегменты к цели 4 + живой рост числа.
+const RHYTHM_GOAL = 4
+
+function pluralMaterial(n: number): string {
+  const mod10 = n % 10
+  const mod100 = n % 100
+  if (mod10 === 1 && mod100 !== 11) return 'материал'
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'материала'
+  return 'материалов'
+}
+
+function rhythmCaption(n: number): string {
+  if (n === 0) return 'Месяц только начался, тут пока пусто. Дальше появится твой ритм.'
+  if (n < RHYTHM_GOAL) return 'Ты в процессе. Держи ритм, и блог понемногу набирает вес.'
+  return 'Четыре в месяц, ты в том ритме, с которого блог начинает приводить людей.'
+}
+
+function RhythmTracker({ count }: { count: number }) {
+  const reached = count >= RHYTHM_GOAL
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-brand-soft border border-brand-border-soft rounded-2xl px-4 py-3.5 md:px-5 md:py-4 mb-6 md:mb-8"
+    >
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-muted mb-2">Твой ритм · этот месяц</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+        {/* Число за месяц */}
+        <div className="shrink-0 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <span className={`text-[28px] md:text-[32px] leading-none font-bold ${count === 0 ? 'text-brand-muted' : 'text-brand-accent'}`}>{count}</span>
+          <span className="text-sm text-brand-text-secondary">{pluralMaterial(count)} собрано</span>
+          {reached && (
+            <span className="inline-flex items-center gap-1 text-brand-sage text-xs font-semibold ml-1">
+              <Check className="w-3.5 h-3.5" /> в ритме
+            </span>
+          )}
+        </div>
+        {/* Движение к цели + подпись */}
+        <div className="sm:flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-3 mb-1.5">
+            <div className="flex items-center gap-1.5">
+              {Array.from({ length: RHYTHM_GOAL }).map((_, i) => (
+                <span key={i} className={`h-1.5 w-8 rounded-full ${i < Math.min(count, RHYTHM_GOAL) ? 'bg-brand-accent' : 'bg-brand-border-soft'}`} />
+              ))}
+            </div>
+            <span className="text-[11px] text-brand-muted shrink-0">цель: 4+</span>
+          </div>
+          <p className="text-[13px] md:text-sm text-brand-text-secondary leading-snug">{rhythmCaption(count)}</p>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
 // ============ EXPORT COMPONENT ============
 function ExportMenu({ plan }: { plan: DayItem[] }) {
   const [copied, setCopied] = useState(false)
@@ -325,6 +381,7 @@ export default function ContentPlan() {
   const [serverError, setServerError] = useState(false)
   const [selected, setSelected] = useState<DayItem | null>(null)
   const [filter, setFilter] = useState<string>('all')
+  const [postsThisMonth, setPostsThisMonth] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
@@ -333,13 +390,23 @@ export default function ContentPlan() {
       if (!user) { router.push('/'); return }
       setUser(user)
 
-      const { data } = await supabase
-        .from('content_plans')
-        .select('plan')
-        .eq('user_id', user.id)
-        .single()
+      // Начало текущего календарного месяца (локально), для счетчика ритма.
+      const now = new Date()
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
-      if (data?.plan) setPlan(data.plan)
+      const [planRes, countRes] = await Promise.all([
+        supabase.from('content_plans').select('plan').eq('user_id', user.id).single(),
+        // Считаем материалы контента (посты/сторис/карусели/рилс). Исключаем служебное:
+        // хуки (format:'hooks') и рерайты (format:'rewrite_*'), это не самостоятельный материал.
+        supabase.from('generated_posts').select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .gte('created_at', monthStart)
+          .not('format', 'eq', 'hooks')
+          .not('format', 'like', 'rewrite%'),
+      ])
+
+      if (planRes.data?.plan) setPlan(planRes.data.plan)
+      setPostsThisMonth(countRes.count || 0)
       setLoading(false)
     }
     init()
@@ -465,6 +532,9 @@ export default function ContentPlan() {
             Персональный план на основе вашего паспорта бренда. Нажмите на карточку, получите готовый пост.
           </p>
         </motion.div>
+
+        {/* ===== ТРЕКЕР РИТМА (виден всегда, кроме генерации) ===== */}
+        {!generating && <RhythmTracker count={postsThisMonth} />}
 
         {/* ===== ПУСТОЕ СОСТОЯНИЕ ===== */}
         {!plan.length && !generating && (
