@@ -451,7 +451,7 @@ function PostGeneratorContent() {
                   className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-brand-soft border border-brand-border-soft text-brand-text hover:bg-brand-soft/80 transition cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">🎠 Нужна карусель?</span>
+                    <span className="text-sm font-medium">Нужна карусель?</span>
                   </div>
                   <ChevronRight className="w-4 h-4" />
                 </button>

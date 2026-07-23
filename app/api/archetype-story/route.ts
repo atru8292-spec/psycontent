@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
 import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { getSessionUser } from '@/lib/auth'
-import { ARCHETYPES, archetypeLabel, type ArchetypeSelection } from '@/lib/archetypes'
+import { ARCHETYPES, archetypeLabel, getArchetypeSelectionFromProfile, type ArchetypeSelection } from '@/lib/archetypes'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -31,9 +31,7 @@ export async function POST() {
 
     if (error) return NextResponse.json({ error: 'server_error' }, { status: 500 })
 
-    const sel: ArchetypeSelection | null =
-      profile?.archetype_scores?.selection ||
-      (profile?.archetype_primary ? { primary: profile.archetype_primary } : null)
+    const sel: ArchetypeSelection | null = getArchetypeSelectionFromProfile(profile)
 
     if (!sel || !sel.primary) {
       return NextResponse.json({ error: 'no_archetype' }, { status: 400 })

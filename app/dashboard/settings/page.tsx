@@ -7,7 +7,7 @@ import { ArrowLeft, Settings as SettingsIcon, ArrowRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { EnergyTariffPanel } from '@/components/EnergyTariff'
 import TariffSection from '@/components/TariffSection'
-import { ARCHETYPES, ARCHETYPE_ACCENT, archetypeLabel, flexibleLine, type ArchetypeSelection } from '@/lib/archetypes'
+import { ARCHETYPES, ARCHETYPE_ACCENT, archetypeLabel, flexibleLine, getArchetypeSelectionFromProfile, type ArchetypeSelection } from '@/lib/archetypes'
 import { ArchetypeGlyph, FlexibleGlyph } from '@/lib/archetype-glyphs'
 
 const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
@@ -118,7 +118,7 @@ export default function SettingsPage() {
             <section id="archetype" className="scroll-mt-20">
               <SectionTitle>Твой архетип</SectionTitle>
               {(() => {
-                const sel: ArchetypeSelection | null = profile?.archetype_scores?.selection || (profile?.archetype_primary ? { primary: profile.archetype_primary } : null)
+                const sel: ArchetypeSelection | null = getArchetypeSelectionFromProfile(profile)
                 if (!sel || !sel.primary) {
                   return (
                     <div className="rounded-3xl bg-brand-card border border-brand-border p-5 sm:p-6">

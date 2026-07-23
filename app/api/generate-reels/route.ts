@@ -128,7 +128,13 @@ export async function POST(req: NextRequest) {
     const passport = typeof passportRes.data?.content === 'string' ? passportRes.data.content : (passportRes.data?.content ? JSON.stringify(passportRes.data.content) : '')
     const approaches = Array.isArray(profile.approaches) ? profile.approaches : []
 
-    const profileContext = buildProfileContext(profile)
+    let profileContext = ''
+    try {
+      profileContext = buildProfileContext(profile)
+    } catch (e: any) {
+      console.error('buildProfileContext error:', e)
+      profileContext = 'Профиль психолога не заполнен.'
+    }
     const approachStyle = getApproachReelsStyle(approaches)
     // Архетип автора (тест-распаковка) кормит почерк. Единый хелпер на все генераторы.
     const archetypeContext = getArchetypeContextFromProfile(profile)

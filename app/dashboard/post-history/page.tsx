@@ -202,7 +202,7 @@ export default function PostHistory() {
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
             {[
               { id: 'all', label: 'Все' },
-              { id: 'favorites', label: '⭐ Избранное' },
+              { id: 'favorites', label: 'Избранное' },
               { id: 'post', label: 'Посты' },
               { id: 'carousel', label: 'Карусели' },
               { id: 'stories', label: 'Stories' },

@@ -249,10 +249,14 @@ export function getArchetypeContext(sel: ArchetypeSelection): string {
 // Достает готовый блок «АВТОРСКИЙ ПОЧЕРК» прямо из профиля. selection лежит в
 // archetype_scores, денормализованный ведущий в archetype_primary. Нет архетипа -> ''.
 // Единая точка для всех генераторов (post/carousel/reels/hooks), чтобы не плодить логику.
-export function getArchetypeContextFromProfile(profile: any): string {
-  const sel = profile?.archetype_scores?.selection
+export function getArchetypeSelectionFromProfile(profile: any): ArchetypeSelection | null {
+  return profile?.archetype_scores?.selection
     ? (profile.archetype_scores.selection as ArchetypeSelection)
     : (profile?.archetype_primary ? { primary: profile.archetype_primary } as ArchetypeSelection : null)
+}
+
+export function getArchetypeContextFromProfile(profile: any): string {
+  const sel = getArchetypeSelectionFromProfile(profile)
   return sel ? getArchetypeContext(sel) : ''
 }
 
