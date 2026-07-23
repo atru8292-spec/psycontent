@@ -16,6 +16,9 @@ import { SITUATIONS, OPEN_QUESTIONS } from '@/lib/archetype-quiz'
 import { computeArchetypes, type ArchetypeWeights } from '@/lib/archetype-score'
 import { ARCHETYPES, ARCHETYPE_ACCENT, ARCHETYPE_CHANGES, archetypeLabel, flexibleLine } from '@/lib/archetypes'
 import { ArchetypeGlyph, FlexibleGlyph } from '@/lib/archetype-glyphs'
+import { VoiceButton, VoiceStatus } from '@/components/VoiceButton'
+import { appendVoiceText } from '@/components/VoiceTextarea'
+import { useVoiceRecorder } from '@/lib/use-voice-recorder'
 
 const EASE = [0.22, 1, 0.36, 1] as const
 const SHADOW_REST = 'shadow-[0_1px_2px_rgba(46,42,69,0.04),0_8px_24px_rgba(46,42,69,0.05)]'
@@ -31,12 +34,11 @@ const T = {
   breakTitle: 'Почти собрали. Осталось услышать тебя живьем',
   breakBody: 'Дальше три вопроса своими словами, выбирать ничего не надо. Отвечай как думаешь, ошибиться тут нельзя.',
   breakTeaser: 'Почерк уже почти сложился, осталось чуть-чуть',
-  voicePlate: 'Можно наговорить голосом, печатать не обязательно',
+  voicePlate: 'Можно наговорить голосом, нажми на микрофон',
   next: 'Дальше',
   skipPart: 'Пропустить эту часть',
   skipOne: 'Пропустить этот',
   toResult: 'К результату',
-  micSoon: 'Наговорить голосом можно будет скоро. А пока просто напиши, как сказал бы вслух.',
   finishing: ['Собираем твой почерк', 'Смотрим, как ты думаешь и говоришь', 'Еще пара секунд, уже почти'],
   errorTitle: 'Тут запнулось на сборке. Твои ответы никуда не делись, попробуем собрать еще раз.',
   errorBtn: 'Собрать еще раз',
@@ -72,7 +74,13 @@ export default function ArchetypeTest() {
   const [openAnswers, setOpenAnswers] = useState<Record<string, string>>({})
   const [selecting, setSelecting] = useState<number | null>(null) // индекс варианта в момент микрореакции
   const [dir, setDir] = useState(1)
-  const [micOpen, setMicOpen] = useState(false)
+  // Запись голоса для открытых вопросов: расшифровка добавляется в конец текущего ответа.
+  const voice = useVoiceRecorder((text) => {
+    const q = OPEN_QUESTIONS[oIdx]
+    const o = { ...openAnswers, [q.id]: appendVoiceText(openAnswers[q.id] || '', text) }
+    setOpenAnswers(o)
+    persist(answers, o)
+  })
   const [finishLine, setFinishLine] = useState(0)
   const [saveError, setSaveError] = useState(false)
   const [finalResult, setFinalResult] = useState<ReturnType<typeof computeArchetypes> | null>(null)
@@ -150,13 +158,13 @@ export default function ArchetypeTest() {
   }
 
   const nextOpen = () => {
-    setMicOpen(false)
+    voice.cancel(); voice.reset() // сброс записи при переходе к другому вопросу
     if (oIdx < OPEN_COUNT - 1) { setDir(1); setOIdx(oIdx + 1) }
     else finish()
   }
 
   const backOpen = () => {
-    setMicOpen(false)
+    voice.cancel(); voice.reset()
     if (oIdx > 0) { setDir(-1); setOIdx(oIdx - 1) }
     else setPhase('break')
   }
@@ -367,18 +375,10 @@ export default function ArchetypeTest() {
                         className="w-full min-h-[140px] rounded-2xl bg-[#FDFBF7] border border-brand-border-soft p-4 pb-12 text-base text-brand-text leading-relaxed resize-none placeholder:text-brand-muted/50 focus:outline-none focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/20 transition"
                       />
                       <div className="absolute right-3 bottom-3">
-                        <button onClick={() => setMicOpen((v) => !v)} aria-label="Голосовой ввод" className="w-9 h-9 rounded-full border border-brand-border-soft bg-white flex items-center justify-center text-brand-accent hover:bg-brand-soft transition cursor-pointer">
-                          <Mic className="w-4 h-4" />
-                        </button>
-                        <AnimatePresence>
-                          {micOpen && (
-                            <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }} transition={{ duration: 0.18 }} className="absolute right-0 bottom-11 w-56 rounded-xl bg-brand-soft border border-brand-border-soft p-3 text-xs text-brand-text/80 leading-relaxed shadow-[0_10px_30px_-12px_rgba(91,79,160,0.35)]">
-                              {T.micSoon}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
+                        <VoiceButton rec={voice} />
                       </div>
                     </div>
+                    <VoiceStatus rec={voice} />
                   </div>
                 )
               })()}
