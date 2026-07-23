@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'server_error', message: 'Что-то пошло не так на нашей стороне. Попробуйте через минуту.' }, { status: 500 })
     }
     const profile = profileRes.data
-    if (!profile) return NextResponse.json({ error: 'need_onboarding', message: 'Сначала заполните профиль', redirect: '/onboarding' }, { status: 404 })
+    if (!profile) return NextResponse.json({ error: 'need_onboarding', message: 'Сначала заполни профиль', redirect: '/onboarding' }, { status: 404 })
 
     const passport = passportRes.data?.content || ''
     const approaches = Array.isArray(profile.approaches) ? profile.approaches : []

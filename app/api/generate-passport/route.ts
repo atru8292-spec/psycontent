@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'server_error', message: 'Что-то пошло не так на нашей стороне. Попробуйте через минуту.' }, { status: 500 })
     }
     if (!profile) {
-      return NextResponse.json({ error: 'need_onboarding', message: 'Сначала заполните профиль', redirect: '/onboarding' }, { status: 404 })
+      return NextResponse.json({ error: 'need_onboarding', message: 'Сначала заполни профиль', redirect: '/onboarding' }, { status: 404 })
     }
 
     const arr = (val: any) => {
