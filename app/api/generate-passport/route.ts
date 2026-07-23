@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/auth'
 import { anonymize, deanonymize, safeRestoredPrefix } from '@/lib/anonymize'
+import { getArchetypeContextFromProfile } from '@/lib/archetypes'
 import { iterateSSEData } from '@/lib/sse-stream'
 import { logAiUsage } from '@/lib/energy'
 
@@ -223,6 +224,8 @@ export async function POST(request: NextRequest) {
 
     const approaches = Array.isArray(profile.approaches) ? profile.approaches : []
     const approachGuidance = getApproachBrandGuidance(approaches)
+    // Архетип автора (тест-распаковка) кормит голос паспорта, как и все генераторы контента.
+    const archetypeContext = getArchetypeContextFromProfile(profile)
 
     const basePrompt = `КОНТЕКСТ ПОДХОДА ДЛЯ БРЕНДА:
 ${approachGuidance}
@@ -238,23 +241,19 @@ ${approachGuidance}
 Ниши: ${arr(profile.niches)}
 Главная ниша: ${profile.one_niche || 'не указано'}
 Опыт: ${profile.experience || 'не указано'}
-Как пришёл в профессию: ${profile.path_to_profession || 'не указано'}
 Форматы работы: ${arr(profile.formats)}
 Цена сессии: ${profile.price || 'не указано'}
 
 === ГОЛОС И ХАРАКТЕР ===
 Тональность (0=левый полюс, 100=правый):
 - Формальный ↔ Разговорный: ${profile.tone_formal ?? 50}/100
-- Серьёзный ↔ С юмором: ${profile.tone_serious ?? 50}/100
+- Серьезный ↔ С юмором: ${profile.tone_serious ?? 50}/100
 - Осторожный ↔ Прямой: ${profile.tone_cautious ?? 50}/100
 Как разговаривает с клиентами: ${profile.tone_verbal || 'не указано'}
 Ценности: ${arr(profile.values)}
-Что делает не так как другие: ${profile.values_custom || 'не указано'}
 Антиценности (что бесит): ${arr(profile.anti_values)}
-Что сказал бы коллегам: ${profile.anti_values_custom || 'не указано'}
 Суперсилы: ${arr(profile.superpowers)}
-Сложности с контентом: ${arr(profile.content_struggles)}
-
+${archetypeContext ? `\n${archetypeContext}\n` : ''}
 ЖИВОЙ ГОЛОС (дословная цитата):
 "${profile.live_voice || 'не указано'}"
 
@@ -269,22 +268,7 @@ ${approachGuidance}
 === ГДЕ СЕЙЧАС ===
 Платформы: ${arr(profile.platforms)}
 Подписчики: ${profile.current_followers || '0'}
-Клиентов в месяц: ${profile.current_clients || '0'}
-Откуда приходят: ${arr(profile.client_source)}
-Боль с контентом: ${profile.content_pain || 'не указано'}
-Подробнее: ${profile.content_pain_detail || 'не указано'}
-
-=== ЦЕЛИ ===
-Цель на 3 месяца: ${profile.goal_3_months || 'не указано'}
-Хочет клиентов: ${profile.desired_clients || 'не указано'}
-Время на контент: ${profile.time_available || 'не указано'}
-Отношение к видео: ${profile.video_attitude || 'не указано'}
-Мечта о блоге: ${profile.dream_blog || 'не указано'}
-
-=== РЕФЕРЕНСЫ ===
-Нравятся: ${profile.idols || 'не указано'}
-Почему: ${arr(profile.idols_why)}
-Дополнительно: ${profile.something_else || 'не указано'}`
+Отношение к видео: ${profile.video_attitude || 'не указано'}`
 
     const encoder = new TextEncoder()
 
