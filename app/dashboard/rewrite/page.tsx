@@ -213,7 +213,7 @@ export default function RewriteGenerator() {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex-1 flex flex-col bg-white rounded-2xl border border-brand-border overflow-hidden">
               <div className="bg-gray-50 border-b border-brand-border px-4 py-3 font-semibold text-brand-text flex items-center gap-2">
                 <span className="w-6 h-6 rounded bg-brand-highlight flex items-center justify-center text-xs">1</span>
-                Ваш исходный текст
+                Твой исходный текст
               </div>
               <textarea
                 value={sourceText}
@@ -294,7 +294,7 @@ export default function RewriteGenerator() {
                 >
                   <RefreshCcw className="w-16 h-16 text-gray-100 mb-4" />
                   <p className="text-brand-text-secondary font-medium text-lg">Готовый результат</p>
-                  <p className="text-sm text-brand-text-secondary mt-2 max-w-sm">Мы не придумываем новые факты, но делаем так, чтобы текст цеплял внимание и продавал вашу экспертность.</p>
+                  <p className="text-sm text-brand-text-secondary mt-2 max-w-sm">Новых фактов не придумываем, делаем так, чтобы текст цеплял и показывал твою экспертность.</p>
                 </motion.div>
               )}
 
@@ -309,13 +309,13 @@ export default function RewriteGenerator() {
                     <Zap className="w-4 h-4 text-brand-sage absolute top-0 -right-2 animate-pulse" />
                   </div>
                   <p className="font-semibold text-brand-text text-lg mb-2">Улучшаем текст...</p>
-                  <p className="text-sm text-brand-text-secondary mb-6">Добавляем хуки, убираем воду, настраиваем ваш Tone of Voice.</p>
+                  <p className="text-sm text-brand-text-secondary mb-6">Добавляем хуки, убираем воду, настраиваем под твой тон.</p>
                   <div className="flex flex-col items-center gap-2 text-sm text-brand-text-secondary">
                     {[
                       'Анализируем структуру текста...',
                       'Усиливаем хук и первую строку...',
                       'Убираем воду и канцелярит...',
-                      'Настраиваем под ваш тон...',
+                      'Настраиваем под твой тон...',
                     ].map((s, i) => (
                       <div key={i} className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse" style={{ animationDelay: `${i * 0.4}s` }} />

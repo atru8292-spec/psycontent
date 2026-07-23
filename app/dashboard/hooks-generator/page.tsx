@@ -89,7 +89,7 @@ const QUICK_TOPICS = [
 const HOOK_EDUCATION = {
   title: 'Что такое хук и зачем он нужен?',
   intro:
-    'Хук, это первая фраза поста, Reels или карусели, которая ОСТАНАВЛИВАЕТ скролл. У вас есть 1.5 секунды, чтобы зацепить внимание. Без хука даже гениальный текст пролистают.',
+    'Хук, это первая фраза поста, Reels или карусели, которая ОСТАНАВЛИВАЕТ скролл. У тебя есть 1.5 секунды, чтобы зацепить внимание. Без хука даже гениальный текст пролистают.',
   science:
     'Психолог Даниэль Канеман описал две системы мышления: Система 1, быстрая, эмоциональная (реагирует на хуки). Система 2, медленная, логическая. Хук бьет в Систему 1 через три триггера:',
   triggers: [
@@ -368,9 +368,9 @@ export default function HooksGeneratorPage() {
 
                 <div className="mt-6 p-4 bg-brand-soft border border-brand-border-soft rounded-xl">
                   <p className="text-sm text-brand-text">
-                    💡 <strong>Совет:</strong> Один хук можно использовать в разных форматах.
-                    Написали хук для Reels, используйте его же как первый слайд карусели
-                    или первую строку поста. Так вы экономите время и тестируете, какой формат
+                    <strong>Совет:</strong> один хук можно использовать в разных форматах.
+                    Написал хук для Reels, поставь его же первым слайдом карусели
+                    или первой строкой поста. Так экономишь время и проверяешь, какой формат
                     дает больше охватов.
                   </p>
                 </div>
@@ -660,10 +660,10 @@ export default function HooksGeneratorPage() {
             <div className="w-16 h-16 rounded-2xl bg-brand-soft flex items-center justify-center mx-auto mb-4">
               <Zap className="w-8 h-8 text-brand-accent" />
             </div>
-            <h3 className="font-semibold text-brand-text mb-2">Введите тему и нажмите «Сгенерировать»</h3>
+            <h3 className="font-semibold text-brand-text mb-2">Введи тему и нажми «Сгенерировать»</h3>
             <p className="text-sm text-brand-text-secondary max-w-md mx-auto">
               AI создаст 12 хуков разных типов, для Reels, постов, каруселей и Stories.
-              Каждый хук персонализирован под ваш стиль и подход.
+              Каждый хук под твой стиль и подход.
             </p>
           </motion.div>
         )}

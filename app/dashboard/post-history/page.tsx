@@ -171,7 +171,7 @@ export default function PostHistory() {
             История постов
           </div>
           <h1 className="text-3xl font-bold text-brand-text mb-2">
-            Ваши сгенерированные посты
+            Твои готовые посты
           </h1>
           <Squiggle variant={2} width="55%" />
           <p className="text-brand-text-secondary mt-3">
@@ -229,8 +229,8 @@ export default function PostHistory() {
               variant={1}
               title={posts.length === 0 ? 'Пока пусто' : 'Ничего не найдено'}
               subtitle={posts.length === 0
-                ? 'Создайте первый пост, и он сохранится здесь автоматически. Вы сможете вернуться, скопировать или отметить в избранном.'
-                : 'По вашему запросу ничего нет. Попробуйте изменить фильтр или поиск.'}
+                ? 'Собери первый пост, и он сам сохранится здесь. Сможешь вернуться, скопировать или отметить любимое.'
+                : 'По твоему запросу ничего нет. Попробуй поменять фильтр или поиск.'}
               actionLabel={posts.length === 0 ? 'Написать первый пост' : undefined}
               onAction={posts.length === 0 ? () => router.push('/dashboard/post-generator') : undefined}
             />

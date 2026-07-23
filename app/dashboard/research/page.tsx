@@ -256,7 +256,7 @@ export default function ResearchTopics() {
           <Squiggle variant={0} width="55%" />
           <p className="text-brand-text-secondary max-w-xl mt-3">
             Три блока контента: тренды Instagram/Telegram, актуальные научные исследования (2023-2026) и редкие цитаты. 
-            Все адаптировано под вашу нишу.
+            Все под твою нишу.
           </p>
         </motion.div>
 
@@ -266,13 +266,13 @@ export default function ResearchTopics() {
             <EmptyState
               variant={1}
               title="Темы из трендов и науки"
-              subtitle="Нажмите кнопку, и AI проанализирует тренды Telegram и Яндекса, свежие исследования за 2024-2026 год и цитаты классиков. Все адаптируется под вашу нишу. Займет около минуты."
+              subtitle="Нажми кнопку, и AI пройдется по трендам Telegram и Яндекса, свежим исследованиям за 2024-2026 год и цитатам классиков. Все под твою нишу. Займет около минуты."
               actionLabel="Провести исследование"
               onAction={handleSearch}
             />
             {needOnboarding && (
               <div className="mt-4">
-                <LimitNotice title="Сначала заполните профиль" message="Темы подбираются под вашу нишу из профиля. Пройдите короткую распаковку, и мы подберем идеи для вас." actionLabel="Заполнить профиль" actionHref="/onboarding" />
+                <LimitNotice title="Сначала заполни профиль" message="Темы подбираем под твою нишу из профиля. Пройди короткую распаковку, и подберем идеи для тебя." actionLabel="Заполнить профиль" actionHref="/onboarding" />
               </div>
             )}
             {serverError && (
@@ -294,7 +294,7 @@ export default function ResearchTopics() {
               <Globe className="w-6 h-6 text-brand-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
             </div>
             <h2 className="text-xl font-bold text-brand-text mb-2">Глубокий ресерч запущен...</h2>
-            <p className="text-brand-text-secondary mb-6">Ищем свежие тренды, исследования и цитаты в вашей нише</p>
+            <p className="text-brand-text-secondary mb-6">Ищем свежие тренды, исследования и цитаты в твоей нише</p>
             <div className="flex flex-col items-center gap-2 text-sm text-brand-text-secondary">
               {[
                 'Анализ трендов Telegram и Яндекс Wordstat...',

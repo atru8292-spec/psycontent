@@ -525,11 +525,11 @@ export default function ContentPlan() {
             Контент-план
           </div>
           <h1 className="text-[26px] md:text-4xl font-bold text-brand-text mb-2 leading-tight">
-            30 дней контента для&nbsp;вашего блога
+            30 дней контента для&nbsp;твоего блога
           </h1>
           <Squiggle variant={1} width="55%" />
           <p className="text-[16px] md:text-base text-brand-text-secondary leading-relaxed mt-3">
-            Персональный план на основе вашего паспорта бренда. Нажмите на карточку, получите готовый пост.
+            Личный план на основе твоего паспорта бренда. Нажми на карточку, получишь готовый пост.
           </p>
         </motion.div>
 
@@ -541,12 +541,12 @@ export default function ContentPlan() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-2">
             <EmptyState
               variant={2}
-              title="Ваш план на 30 дней"
+              title="Твой план на 30 дней"
               subtitle="AI составит персональный контент-план с темами, форматами и хуками для каждого дня. Займет около 30-40 секунд."
               actionLabel="Составить план"
               onAction={handleGenerate}
             />
-            {needOnboarding && <div className="mt-4"><LimitNotice title="Сначала заполните профиль" message="Чтобы собрать контент-план в вашем голосе, нужно пройти короткую распаковку профиля." actionLabel="Заполнить профиль" actionHref="/onboarding" /></div>}
+            {needOnboarding && <div className="mt-4"><LimitNotice title="Сначала заполни профиль" message="Чтобы собрать контент-план в твоем голосе, пройди короткую распаковку профиля." actionLabel="Заполнить профиль" actionHref="/onboarding" /></div>}
             {serverError && <div className="mt-4"><ServerErrorNotice onRetry={handleGenerate} /></div>}
             {error && !needOnboarding && !serverError && <div className="mt-4 p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-[15px] md:text-sm">{error}</div>}
           </motion.div>
@@ -562,7 +562,7 @@ export default function ContentPlan() {
             <h2 className="text-[22px] md:text-xl font-bold text-brand-text mb-3">
               Генерирую дни {currentDayStart}-{currentDayEnd}...
             </h2>
-            <p className="text-[17px] md:text-base text-brand-text-secondary mb-6">AI подбирает темы под ваш голос и нишу</p>
+            <p className="text-[17px] md:text-base text-brand-text-secondary mb-6">AI подбирает темы под твой голос и нишу</p>
 
                        <div className="max-w-md mx-auto px-4">
               <div className="flex justify-between text-[13px] md:text-xs text-brand-text-secondary mb-2">

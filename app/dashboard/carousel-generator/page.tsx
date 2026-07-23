@@ -241,12 +241,12 @@ function CarouselGeneratorContent() {
             </button>
           </div>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-2">
-            {step === 'topics' ? 'Выберите тему для карусели' : 'Ваша карусель'}
+            {step === 'topics' ? 'Выбери тему для карусели' : 'Твоя карусель'}
           </h1>
           <Squiggle variant={0} width="52%" />
           <p className="text-brand-text-secondary mt-3">
             {step === 'topics'
-              ? 'AI подобрал 5 тем на основе вашей ниши, выберите одну или напишите свою'
+              ? 'AI подобрал 5 тем под твою нишу, выбери одну или напиши свою'
               : `Тема: ${selectedTopic?.title}`
             }
           </p>
@@ -346,8 +346,8 @@ function CarouselGeneratorContent() {
                 className="text-center py-16"
               >
                 <Loader2 className="w-10 h-10 text-brand-accent animate-spin mx-auto mb-4" />
-                <p className="font-semibold text-brand-text">AI подбирает темы для вас...</p>
-                <p className="text-sm text-brand-text-secondary mt-1">На основе вашей ниши и целевой аудитории</p>
+                <p className="font-semibold text-brand-text">AI подбирает темы для тебя...</p>
+                <p className="text-sm text-brand-text-secondary mt-1">Под твою нишу и твоего клиента</p>
               </motion.div>
             )}
 
@@ -359,7 +359,7 @@ function CarouselGeneratorContent() {
               >
                 <div className="flex items-center gap-2 mb-6">
                   <ListChecks className="w-5 h-5 text-brand-accent" />
-                  <span className="font-medium text-brand-text">Выберите тему:</span>
+                  <span className="font-medium text-brand-text">Выбери тему:</span>
                 </div>
 
                 {suggestedTopics.map((topic, index) => (
@@ -649,7 +649,7 @@ function CarouselGeneratorContent() {
                       <Layers className="w-8 h-8 text-brand-accent" />
                     </div>
                                       <p className="font-semibold text-brand-text mb-1">Готово к генерации</p>
-                    <p className="text-sm text-brand-text-secondary">Нажмите кнопку слева чтобы создать карусель</p>
+                    <p className="text-sm text-brand-text-secondary">Нажми кнопку слева, и соберем карусель</p>
                   </motion.div>
                 )}
 
@@ -663,7 +663,7 @@ function CarouselGeneratorContent() {
                   >
                     <div className="bg-brand-soft border border-brand-border-soft rounded-xl p-3">
                       <p className="text-xs text-brand-text">
-                        ✨ <strong>Готово!</strong> Скопируйте тексты и создайте картинки в Canva
+                        <strong>Готово.</strong> Скопируй тексты и собери картинки в Canva
                       </p>
                     </div>
 

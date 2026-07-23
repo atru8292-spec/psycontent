@@ -176,7 +176,7 @@ export default function ReelsGenerator() {
           </h1>
           <Squiggle variant={1} width="50%" />
           <p className="text-brand-text-secondary mt-3">
-            AI пишет скрипты с таймкодами под ваш стиль ведения (даже если вы не хотите снимать себя).
+            AI пишет сценарии с таймкодами под твой стиль (даже если снимать себя не хочешь).
           </p>
         </motion.div>
 
@@ -347,7 +347,7 @@ export default function ReelsGenerator() {
                   className="h-full flex flex-col items-center justify-center text-center py-20 bg-white rounded-2xl border border-brand-border"
                 >
                   <Loader2 className="w-10 h-10 text-brand-accent animate-spin mb-4" />
-                  <p className="font-semibold text-brand-text">ИИ режиссирует ваш Рилс...</p>
+                  <p className="font-semibold text-brand-text">ИИ режиссирует твой Рилс...</p>
                   <p className="text-sm text-brand-text-secondary mt-1">Обычно занимает 20 секунд</p>
                 </motion.div>
               )}

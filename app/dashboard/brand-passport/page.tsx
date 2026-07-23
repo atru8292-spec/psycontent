@@ -513,7 +513,7 @@ export default function BrandPassport() {
                 </div>
                 <div className="h-6 sm:h-8 w-px bg-brand-border" />
                 <p className="text-xs sm:text-sm text-brand-text-secondary">
-                  Персональный документ                  на основе вашей распаковки
+                  Личный документ на основе твоей распаковки
                 </p>
               </div>
               <div className="flex items-center gap-1 flex-wrap">
