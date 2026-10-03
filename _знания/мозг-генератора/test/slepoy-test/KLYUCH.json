@@ -1,0 +1,92 @@
+{
+ "T01": {
+  "src": "B5_v3",
+  "persona": "B",
+  "kind": "gen_v3"
+ },
+ "T02": {
+  "src": "A3_v3",
+  "persona": "A",
+  "kind": "gen_v3"
+ },
+ "T03": {
+  "src": "A1_v3",
+  "persona": "A",
+  "kind": "gen_v3"
+ },
+ "T04": {
+  "src": "A2_v3",
+  "persona": "A",
+  "kind": "gen_v3"
+ },
+ "T05": {
+  "src": "C12_v3",
+  "persona": "C",
+  "kind": "gen_v3"
+ },
+ "T06": {
+  "src": "A_real",
+  "persona": "A",
+  "kind": "real"
+ },
+ "T07": {
+  "src": "C10_v3",
+  "persona": "C",
+  "kind": "gen_v3"
+ },
+ "T08": {
+  "src": "B7_v3",
+  "persona": "B",
+  "kind": "gen_v3"
+ },
+ "T09": {
+  "src": "B7_baseline",
+  "persona": "B",
+  "kind": "baseline"
+ },
+ "T10": {
+  "src": "B6_v3",
+  "persona": "B",
+  "kind": "gen_v3"
+ },
+ "T11": {
+  "src": "B8_v3",
+  "persona": "B",
+  "kind": "gen_v3"
+ },
+ "T12": {
+  "src": "C11_v3",
+  "persona": "C",
+  "kind": "gen_v3"
+ },
+ "T13": {
+  "src": "B_real",
+  "persona": "B",
+  "kind": "real"
+ },
+ "T14": {
+  "src": "A3_baseline",
+  "persona": "A",
+  "kind": "baseline"
+ },
+ "T15": {
+  "src": "C_real",
+  "persona": "C",
+  "kind": "real"
+ },
+ "T16": {
+  "src": "C10_baseline",
+  "persona": "C",
+  "kind": "baseline"
+ },
+ "T17": {
+  "src": "C9_v3",
+  "persona": "C",
+  "kind": "gen_v3"
+ },
+ "T18": {
+  "src": "A4_v3",
+  "persona": "A",
+  "kind": "gen_v3"
+ }
+}

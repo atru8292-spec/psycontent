@@ -29,3 +29,17 @@ yarn-error.log*
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# образцы каруселей в PNG (scripts/render-carousel-samples.tsx), тяжелые
+_знания/мозг-генератора/test/karuseli/png/
+
+# личные скрины Арины (образцы для стиля Заметки): не коммитить
+_знания/мозг-генератора/test/karuseli/zametki-ref/
+# сводные картинки каруселей, тяжелые (пересобираются scripts/carousel-sheet.ts и render-carousel-samples.tsx)
+_знания/мозг-генератора/test/karuseli/*.jpg
+_знания/мозг-генератора/test/karuseli/do/
+# локальные настройки Claude Code и скиллы для Claude (инструкции дизайнеру), не код продукта
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/skills/
+sk/
