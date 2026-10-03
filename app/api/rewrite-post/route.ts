@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
 import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { buildProfileContext } from '@/lib/profile-context'
 import { getSessionUser } from '@/lib/auth'
+import { recordEvent, maybeRebuildVoice } from '@/lib/generation/learning'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -161,6 +162,15 @@ export async function POST(req: NextRequest) {
 
     const supabase = getSupabaseAdmin()
 
+    // В рерайт психолог вставляет СВОЙ текст: это образец ее голоса до нашей правки.
+    if (typeof sourceText === 'string' && sourceText.trim().length >= 150) {
+      after(async () => {
+        try {
+          if (await recordEvent(supabase, userId, { kind: 'rewrite_input', after: sourceText.trim() })) await maybeRebuildVoice(supabase, userId)
+        } catch (e: any) { console.warn('rewrite sample:', e?.message) }
+      })
+    }
+
     const [profileRes, passportRes] = await Promise.all([
       supabase.from('onboarding_profiles').select('*').eq('user_id', userId).single(),
       supabase.from('brand_passports').select('content').eq('user_id', userId).single()
@@ -208,17 +218,20 @@ ${sourceText}
 
     const post = await generateWithAI(`${SYSTEM_PROMPT}\n\n${ANTI_SLOP_RULES}`, prompt, { userId, operation: 'rewrite_post', knownNames: profile?.full_name ? [profile.full_name] : undefined })
 
+    // id нужен экрану «Сделать»: правка, реакции и «Опубликовала» работают и для черновика
+    let postId: string | null = null
     try {
-      await supabase.from('generated_posts').insert({
+      const ins = await supabase.from('generated_posts').insert({
         user_id: userId,
         topic: 'Переписанный текст',
         format: `rewrite_${format}`,
         content: post,
         category: 'Rewrite'
-      })
+      }).select('id').single()
+      postId = ins.data?.id ?? null
     } catch (_) {}
 
-    return NextResponse.json({ post })
+    return NextResponse.json({ post, postId })
   } catch (error: any) {
     console.error('Rewrite API error:', error)
     return NextResponse.json({ error: `Не удалось переписать текст: ${error?.message || String(error)}` }, { status: 500 })

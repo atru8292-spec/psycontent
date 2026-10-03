@@ -15,7 +15,7 @@ import { EnergyBadge, EnergyInfo } from '@/components/EnergyTariff'
 const navItems = [
   { icon: LayoutDashboard, label: 'Главная', href: '/dashboard', exact: true },
   { icon: Target, label: 'Паспорт бренда', href: '/dashboard/brand-passport' },
-  { icon: PenTool, label: 'Генератор постов', href: '/dashboard/post-generator' },
+  { icon: PenTool, label: 'Сделать', href: '/dashboard/make' },
   { icon: Layers, label: 'Карусели', href: '/dashboard/carousel-generator' },
   { icon: Zap, label: 'Хуки', href: '/dashboard/hooks-generator' },
   { icon: Film, label: 'Рилс-скрипты', href: '/dashboard/reels' },
@@ -28,7 +28,7 @@ const navItems = [
 
 const bottomNavItems = [
   { icon: LayoutDashboard, label: 'Главная', href: '/dashboard', exact: true },
-  { icon: PenTool, label: 'Посты', href: '/dashboard/post-generator' },
+  { icon: PenTool, label: 'Сделать', href: '/dashboard/make' },
   { icon: Zap, label: 'Хуки', href: '/dashboard/hooks-generator' },
   { icon: FileText, label: 'План', href: '/dashboard/content-plan' },
   { icon: History, label: 'История', href: '/dashboard/post-history' },

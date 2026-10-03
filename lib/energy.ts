@@ -21,13 +21,21 @@ function admin(): SupabaseClient {
 //   (Free получает пробу, у остальных без доступа — апгрейд).
 // freeTrial — сколько раз «за всё время» бесплатно для тарифа Free.
 // ───────────────────────────────────────────────────────────────────────────
-const USD_TO_RUB_DRAFT = 95
+export const USD_TO_RUB_DRAFT = 95
 
 // ⚠️ ЦЕНЫ GPT-5.4 — СТАРТОВЫЕ из обзоров, СВЕРИТЬ ПО ЛИЧНОМУ КАБИНЕТУ OpenAI.
 // $ за 1 миллион токенов. Кешированный вход дешевле (точное число уточнить).
 const PRICE_INPUT_PER_M = 2.5
 const PRICE_OUTPUT_PER_M = 15
 const PRICE_CACHED_INPUT_PER_M = 0.25
+// Цены по моделям ($ за 1 млн токенов: вход, кешированный вход, выход), с официальных страниц
+// developers.openai.com на 30.09.2026. Нет в списке: считаем по ценам gpt-5.4 выше.
+export const MODEL_PRICES: Record<string, [number, number, number]> = {
+  'gpt-5.4': [2.5, 0.25, 15],
+  'gpt-6.1-sol': [2, 0.1, 10],
+  'gpt-6-astra': [10, 1, 50],
+  'gpt-6-luna': [0.1, 0.01, 0.5],
+}
 
 type OpKind = 'text' | 'energy'
 interface OpSpec {
@@ -167,10 +175,11 @@ export async function logAiUsage(userId: string, operation: string, model: strin
   const completion = usage.completion_tokens ?? 0
   const cached = usage.prompt_tokens_details?.cached_tokens ?? 0
   const nonCached = Math.max(0, prompt - cached)
+  const [pIn, pCached, pOut] = MODEL_PRICES[model] || [PRICE_INPUT_PER_M, PRICE_CACHED_INPUT_PER_M, PRICE_OUTPUT_PER_M]
   const usd =
-    (nonCached / 1e6) * PRICE_INPUT_PER_M +
-    (cached / 1e6) * PRICE_CACHED_INPUT_PER_M +
-    (completion / 1e6) * PRICE_OUTPUT_PER_M
+    (nonCached / 1e6) * pIn +
+    (cached / 1e6) * pCached +
+    (completion / 1e6) * pOut
   await admin().from('usage_log').insert({
     user_id: userId,
     operation,

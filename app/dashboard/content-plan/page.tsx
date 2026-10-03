@@ -464,12 +464,9 @@ export default function ContentPlan() {
       pillar: item.pillar
     })
 
-    if (item.format === 'carousel') {
-      router.push(`/dashboard/carousel-generator?${params}`)
-    } else {
-      params.append('format', item.format)
-      router.push(`/dashboard/post-generator?${params}`)
-    }
+    // Все форматы открываются в «Сделать»: без нового движка оно само отправит карусель на старую страницу
+    params.append('format', item.format)
+    router.push(`/dashboard/make?${params}`)
   }
 
   const pillars = ['all', 'Психообразование', 'Личное', 'Практика', 'Истории', 'Позиционирование']

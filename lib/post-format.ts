@@ -17,7 +17,7 @@ export function splitPostTitle(content: string, format?: string): SplitPost {
   const normalized = raw.replace(/\r\n/g, '\n').trim()
 
   // Заголовок-вывеску выделяем только для текстового поста.
-  if (format !== 'post') {
+  if (format !== 'post' && format !== 'post_tg') {
     return { title: null, body: normalized }
   }
 

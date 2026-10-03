@@ -581,7 +581,7 @@ export default function BrandPassport() {
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3">
                 <button
-                  onClick={() => router.push('/dashboard/post-generator')}
+                  onClick={() => router.push('/dashboard/make')}
                   className="w-full sm:w-auto bg-white text-brand-accent px-6 py-2.5 sm:py-2 rounded-full font-semibold text-sm hover:bg-white/90 transition cursor-pointer"
                 >
                   Написать пост

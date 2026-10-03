@@ -35,14 +35,26 @@ interface Post {
 
 const formatIcons: Record<string, any> = {
   post: AlignLeft,
+  post_tg: AlignLeft,
   carousel: Image,
   stories: FileText,
 }
 
 const formatLabels: Record<string, string> = {
   post: 'Пост',
+  post_tg: 'Пост в Telegram',
   carousel: 'Карусель',
   stories: 'Stories',
+  reels_monolog: 'Reels, в камеру',
+  reels_otvet: 'Reels, в камеру',
+  reels_istoriya: 'Reels, в камеру',
+  reels_poslanie: 'Reels, в камеру',
+  reels_spisok: 'Reels, список',
+  reels_scenka: 'Reels, два голоса',
+  reels_rol: 'Reels, роль',
+  reels_doska: 'Reels, с рисунком',
+  reels_bez_slov: 'Reels без слов',
+  reels_malysh: 'Reels, как маленькому',
 }
 
 export default function PostHistory() {
@@ -117,7 +129,7 @@ export default function PostHistory() {
   const filteredPosts = posts.filter(post => {
     const matchesFilter = filter === 'all' || 
       (filter === 'favorites' && post.is_favorite) ||
-      post.format === filter
+      (post.format === filter || (filter === 'post' && post.format === 'post_tg'))
     const matchesSearch = !search || 
       post.topic?.toLowerCase().includes(search.toLowerCase()) ||
       post.content.toLowerCase().includes(search.toLowerCase())
@@ -232,7 +244,7 @@ export default function PostHistory() {
                 ? 'Собери первый пост, и он сам сохранится здесь. Сможешь вернуться, скопировать или отметить любимое.'
                 : 'По твоему запросу ничего нет. Попробуй поменять фильтр или поиск.'}
               actionLabel={posts.length === 0 ? 'Написать первый пост' : undefined}
-              onAction={posts.length === 0 ? () => router.push('/dashboard/post-generator') : undefined}
+              onAction={posts.length === 0 ? () => router.push('/dashboard/make') : undefined}
             />
           </motion.div>
         ) : (

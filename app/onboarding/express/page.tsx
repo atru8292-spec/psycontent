@@ -100,7 +100,7 @@ export default function ExpressOnboarding() {
       return
     }
     // мостик-оверлей держим коротко, затем к первому посту с авто-генерацией
-    setTimeout(() => router.push('/dashboard/post-generator?first=1&auto=1'), 800)
+    setTimeout(() => router.push('/dashboard/make?first=1&auto=1'), 800)
   }
 
   if (!ready) {

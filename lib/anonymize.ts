@@ -66,6 +66,9 @@ function nameStem(n: string): string {
   const s = n.replace(/[аяйь]$/i, '')
   return s.length >= 3 ? s : n
 }
+// Имена-омонимы обычных слов: одиночным словом не маскируются (см. слой 3).
+const AMBIGUOUS_NAMES = ['Любовь', 'Надежда', 'Вера', 'Роман', 'Лев', 'Марк', 'Ева', 'Гор', 'Ани', 'Эка', 'Мака', 'Адам', 'Ислам', 'Иса', 'Муса', 'Лука']
+const AMBIGUOUS_STEMS = new Set(AMBIGUOUS_NAMES.map(n => nameStem(n)))
 const NAME_STEMS = Array.from(new Set(RU_NAMES.map(nameStem)))
   .filter(s => s.length >= 3)
   .sort((a, b) => b.length - a.length)
@@ -158,7 +161,15 @@ export function anonymize(text: string, opts?: { extraNames?: string[] }): { mas
   s = s.replace(MARKER_RE, (_m, pre, nm) => pre + put('name', nm))
 
   // 3) Имена по словарю (+ отчество/фамилия следом).
-  s = s.replace(NAME_RE, m => (/^[А-ЯЁ]/.test(m) ? put('name', m) : m))
+  // Имена, которые совпадают с обычными словами («Любовь», «Надежда», «Вера», «Роман», «Горе»),
+  // маскируем, только если следом идет фамилия или отчество (два слова и больше).
+  // Одиночное слово с заглавной у них почти всегда начало предложения, а не имя.
+  // Маркеры «клиентка Вера» ловит слой 2 выше, там это работает как раньше.
+  s = s.replace(NAME_RE, (m, stem: string) => {
+    if (!/^[А-ЯЁ]/.test(m)) return m
+    if (AMBIGUOUS_STEMS.has(stem) && m.trim().split(/[ \t]+/).length === 1) return m
+    return put('name', m)
+  })
 
   // 4) Отчества (по суффиксам).
   s = s.replace(PATRONYMIC_RE, m => put('patronymic', m))

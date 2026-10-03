@@ -5,6 +5,8 @@ import { buildProfileContext } from '@/lib/profile-context'
 import { getArchetypeContextFromProfile } from '@/lib/archetypes'
 import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { getSessionUser } from '@/lib/auth'
+import { isNewPipeline } from '@/lib/generation/context'
+import { handleNewPipeline } from './new-pipeline'
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -235,14 +237,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Тема не указана' }, { status: 400 })
     }
 
-    // Если пришёл запрос на карусель — редиректим на правильный endpoint
-    if (format === 'carousel') {
-      return NextResponse.json(
-        { error: 'Для каруселей используйте /api/generate-carousel' }, 
-        { status: 400 }
-      )
-    }
-
     const supabase = getSupabaseAdmin()
 
     const [profileRes, passportRes] = await Promise.all([
@@ -254,6 +248,18 @@ export async function POST(req: NextRequest) {
     console.log('Passport fetch:', passportRes.error ? passportRes.error.message : 'OK')
 
     const profile = profileRes.data || {}
+
+    // Новая цепочка генерации (мозг 3.4): включается переменной NEW_GENERATION_PIPELINE,
+    // по умолчанию выключена. Старый путь ниже остается рабочим.
+    if (isNewPipeline(profile)) {
+      return await handleNewPipeline({ db: supabase, userId, profile, body, topic: finalTopic, pillar })
+    }
+
+    // Старый путь пишет только пост и сторис. Карусель и Reels без нового движка живут на своих страницах.
+    if (format !== 'post' && format !== 'stories') {
+      return NextResponse.json({ error: 'Этот формат пока собирается на отдельной странице' }, { status: 400 })
+    }
+
     const passport = typeof passportRes.data?.content === 'string' ? passportRes.data.content : (passportRes.data?.content ? JSON.stringify(passportRes.data.content) : '')
     const approaches = Array.isArray(profile.approaches) ? profile.approaches : []
 

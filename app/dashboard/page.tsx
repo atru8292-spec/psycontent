@@ -17,7 +17,7 @@ const toolGroups = [
   {
     label: 'Создать контент',
     items: [
-      { icon: PenTool,    title: 'Генератор постов',   desc: 'Пост за 30 секунд под твой голос',    href: '/dashboard/post-generator',      badge: null,    soft: false },
+      { icon: PenTool,    title: 'Генератор постов',   desc: 'Пост за 30 секунд под твой голос',    href: '/dashboard/make',      badge: null,    soft: false },
       { icon: Layers,     title: 'Карусели',            desc: '8,10 слайдов с хуком и структурой',  href: '/dashboard/carousel-generator',  badge: null,    soft: false },
       { icon: Film,       title: 'Рилс-скрипты',        desc: 'Сценарии 30 и 60 сек',               href: '/dashboard/reels',               badge: null,    soft: false },
       { icon: Zap,        title: 'Генератор хуков',     desc: '12 хуков для любого формата',        href: '/dashboard/hooks-generator',     badge: 'NEW',   soft: false },
@@ -43,14 +43,14 @@ const toolGroups = [
 ]
 
 const quickActions = [
-  { icon: PenTool, label: 'Написать пост', href: '/dashboard/post-generator', primary: true },
+  { icon: PenTool, label: 'Написать пост', href: '/dashboard/make', primary: true },
   { icon: Zap,     label: 'Придумать хук', href: '/dashboard/hooks-generator', primary: false },
   { icon: Film,    label: 'Скрипт Reels',  href: '/dashboard/reels',           primary: false },
 ]
 
 const checklistSteps = [
   { key: 'onboarding', label: 'Профиль заполнен',          href: '/dashboard/edit-profile' },
-  { key: 'post',       label: 'Написать первый пост',      href: '/dashboard/post-generator?first=1' },
+  { key: 'post',       label: 'Написать первый пост',      href: '/dashboard/make?first=1' },
   { key: 'plan',       label: 'Составить контент-план',    href: '/dashboard/content-plan' },
 ]
 
