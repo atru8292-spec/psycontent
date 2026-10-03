@@ -8,8 +8,10 @@
 // контента, брать за него энергию оттолкнет. Финальное решение по учету примем в 6.2,
 // когда фича доходит до пользователя.
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { getSessionUser } from '@/lib/auth'
+import { getSupabaseAdmin } from '@/lib/generation/db'
+import { recordEvent, maybeRebuildVoice } from '@/lib/generation/learning'
 
 export const runtime = 'nodejs'
 // Верхний порог ожидания. Длинный монолог (6.3) на small/CPU идет дольше короткой
@@ -93,6 +95,17 @@ export async function POST(request: NextRequest) {
 
     const data = await res.json().catch(() => null)
     const text = typeof data?.text === 'string' ? data.text.trim() : ''
+    // Все, что психолог надиктовала, это ее живая речь: копим как образец голоса (08-GOLOS-I-OBUCHENIE.md).
+    // Короткие обрывки не берем. Ошибка записи не мешает вернуть текст.
+    if (text.length >= 80) {
+      const uid = user.id
+      after(async () => {
+        try {
+          const db = getSupabaseAdmin()
+          if (await recordEvent(db, uid, { kind: 'speech', after: text })) await maybeRebuildVoice(db, uid)
+        } catch (e: any) { console.warn('speech sample:', e?.message) }
+      })
+    }
     // Пустой текст при 200 = речь не распозналась (контракт сервиса). Отдаем как есть,
     // клиент покажет мягкое «не расслышал, повтори». Текст не логируем (перс. данные).
     return NextResponse.json({ text })
