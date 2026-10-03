@@ -799,7 +799,7 @@ function MakeContent() {
               )}
               {selectedFormat === 'reels' && newGen && (
                 <div className="space-y-1.5">
-                  <p className="text-xs text-brand-muted">Сама подберу, как подать тему: говоришь в камеру, сценка на два голоса, список по пунктам, роль или объясняешь как маленькому. Ты получишь готовый текст, надпись на экран и описание под рилсом.</p>
+                  <p className="text-xs text-brand-muted">Формат подберу сама, а как снимать, подскажу вместе с текстом.</p>
                 </div>
               )}
               {!newGen && (selectedFormat === 'carousel' || selectedFormat === 'reels') && (
