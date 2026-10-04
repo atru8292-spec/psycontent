@@ -293,7 +293,8 @@ export default function ExpressOnboarding() {
   const outline = 'w-full h-[52px] rounded-2xl text-[16px] font-semibold border-[1.5px] border-brand-accent text-brand-accent bg-brand-card cursor-pointer transition'
   // вопросы 2-4 (контента много, стоят сверху): крупнее, чтобы не было пустоты
   const big = step >= 2 && step <= 4
-  const chip = (on: boolean, dim = false) => `${big ? 'min-h-[52px] px-5 text-[17px]' : 'h-11 px-4 text-[15px]'} inline-flex items-center gap-1.5 rounded-full cursor-pointer transition ${on ? 'bg-brand-soft border-[1.5px] border-brand-accent text-brand-text font-semibold' : 'border border-brand-border text-brand-text'} ${dim ? 'opacity-50' : ''}`
+  // 3-й вопрос: девять чипов ниш вместе со «Свое» должны влезть на 375×667, поэтому там чипы 48 px и 16 px
+  const chip = (on: boolean, dim = false) => `${step === 3 ? 'min-h-[48px] px-4 text-[16px]' : big ? 'min-h-[52px] px-5 text-[17px]' : 'h-11 px-4 text-[15px]'} inline-flex items-center gap-1.5 rounded-full cursor-pointer transition ${on ? 'bg-brand-soft border-[1.5px] border-brand-accent text-brand-text font-semibold' : 'border border-brand-border text-brand-text'} ${dim ? 'opacity-50' : ''}`
   const inputCls = 'h-14 w-full rounded-[20px] bg-brand-card border-[1.5px] border-brand-border px-4 text-[16px] text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-accent focus:ring-[3px] focus:ring-brand-soft'
 
   const missing: Record<number, string> = {
@@ -315,8 +316,9 @@ export default function ExpressOnboarding() {
   )
   const title = (t: string, hint?: string) => (
     <>
-      <h1 ref={titleRef} tabIndex={-1} className={`${big ? 'text-[29px] leading-[34px]' : 'text-[22px] leading-7'} font-semibold text-brand-text outline-none`}>{t}</h1>
-      {hint && <p className={`mt-1.5 ${big ? 'text-[16px] leading-[22px]' : 'text-[15px] leading-5'} text-brand-muted`}>{hint}</p>}
+      {/* заголовок и подсказка одного размера на всех пяти вопросах */}
+      <h1 ref={titleRef} tabIndex={-1} className="text-[29px] leading-[34px] font-semibold text-brand-text outline-none">{t}</h1>
+      {hint && <p className="mt-1.5 text-[16px] leading-[22px] text-brand-muted">{hint}</p>}
     </>
   )
 
@@ -388,7 +390,7 @@ export default function ExpressOnboarding() {
     body = (
       <div>
         {title('С чем работаешь чаще всего?', 'Отсюда возьму первые темы')}
-        <div className="mt-6 flex flex-wrap gap-2.5">
+        <div className="mt-4 flex flex-wrap gap-2">
           {NICHES.map(x => {
             const on = a.nicheChip === x && !ownNiche
             return (
