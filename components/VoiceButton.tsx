@@ -64,7 +64,7 @@ export function VoiceButton({ rec }: { rec: VoiceRecorder }) {
           <motion.div
             initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }}
             transition={{ duration: 0.18 }}
-            className="absolute right-0 bottom-11 w-60 rounded-xl bg-brand-soft border border-brand-border-soft p-3 text-xs text-brand-text/80 leading-relaxed shadow-[0_10px_30px_-12px_rgba(91,79,160,0.35)] z-10"
+            className="absolute right-0 bottom-11 w-60 rounded-xl bg-brand-soft border border-brand-border-soft p-3 text-xs text-brand-text/80 leading-relaxed shadow-[0_10px_30px_-12px_rgba(51,71,43,0.35)] z-10"
           >
             <p>Браузер не пускает к микрофону. Разреши доступ в настройках сайта, и продиктуешь.</p>
             <button type="button" onClick={rec.reset} className="mt-2 text-brand-accent font-medium cursor-pointer">Понятно</button>

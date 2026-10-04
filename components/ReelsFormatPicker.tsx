@@ -33,7 +33,8 @@ export const REELS_GROUPS: { title: string; note: string; ids: string[] }[] = [
 ]
 
 // ---------- картинки: что будет в кадре ----------
-const C = { bg: '#F7F3EC', ink: '#2E2A45', acc: '#5B4FA0', soft: '#E7E2F2', sage: '#8F9D68', line: '#D8D0E4' }
+// цвета новой палитры (app/globals.css): крем, шоколад, глубокий зеленый, бледная сирень, шалфей, рамка
+const C = { bg: '#F5EFE4', ink: '#3B2A22', acc: '#33472B', soft: '#EDE4F7', sage: '#8F9D68', line: '#DCCBF2' }
 
 function Person({ x = 30, y = 58, r = 9, glasses = false }: { x?: number; y?: number; r?: number; glasses?: boolean }) {
   return (

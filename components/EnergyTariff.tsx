@@ -93,7 +93,7 @@ export function EnergyBadge({ data, compact }: { data?: Summary | null; compact?
   )
 }
 
-// Мини-полоска остатка энергии внутри бейджа (трек белый, заливка аметист на лаванде)
+// Мини-полоска остатка энергии внутри бейджа (трек белый, заливка акцентом на бледной сирени)
 function MiniBar({ val, max, className = '' }: { val: number; max: number; className?: string }) {
   const pct = max > 0 ? Math.max(0, Math.min(100, (val / max) * 100)) : 0
   return (
@@ -149,7 +149,7 @@ export function EnergyInfo({ placement = 'header' }: { placement?: 'header' | 's
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: yFrom }}
             transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className={`${popClass} w-[280px] max-w-[calc(100vw-32px)] z-50 rounded-3xl bg-brand-soft border border-brand-border-soft shadow-[0_18px_40px_-16px_rgba(46,42,69,0.35)] p-4`}
+            className={`${popClass} w-[280px] max-w-[calc(100vw-32px)] z-50 rounded-3xl bg-brand-soft border border-brand-border-soft shadow-[0_18px_40px_-16px_rgba(59,42,34,0.35)] p-4`}
           >
             <p className="font-bold text-brand-text text-sm mb-1.5">Что такое энергия</p>
             <p className="text-[13px] text-brand-muted leading-relaxed">

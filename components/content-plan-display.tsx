@@ -40,7 +40,7 @@ const formatLabels = {
 
 const pillarColors: Record<string, string> = {
   'Экспертность': 'bg-blue-100 text-blue-800 border-blue-200',
-  'Личность': 'bg-purple-100 text-purple-800 border-purple-200',
+  'Личность': 'bg-brand-soft text-brand-text border-brand-border-soft',
   'Польза': 'bg-green-100 text-green-800 border-green-200',
   'Вовлечение': 'bg-orange-100 text-orange-800 border-orange-200',
   'Продажа': 'bg-pink-100 text-pink-800 border-pink-200',

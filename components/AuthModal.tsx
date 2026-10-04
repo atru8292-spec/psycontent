@@ -86,7 +86,7 @@ export default function AuthModal({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center backdrop-blur-sm"
-        style={{ backgroundColor: 'rgba(46,42,69,0.45)' }}
+        style={{ backgroundColor: 'rgba(59,42,34,0.45)' }}
         onClick={onClose}
       >
         <motion.div
@@ -114,7 +114,7 @@ export default function AuthModal({
               <Image
                 src="/logo/out_wordmark.svg"
                 alt="PsyCont"
-                width={120}
+                width={119}
                 height={32}
                 className="h-8 w-auto"
               />

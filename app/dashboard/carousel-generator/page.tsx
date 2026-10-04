@@ -216,7 +216,7 @@ function CarouselGeneratorContent() {
             {isFromPlan ? 'К контент-плану' : step === 'carousel' ? 'К выбору темы' : 'Назад в кабинет'}
           </button>
           <div className="flex items-center gap-2">
-            <Image src="/logo/out_wordmark.svg" alt="PsyCont" width={110} height={28} className="h-6 w-auto" />
+            <Image src="/logo/out_wordmark.svg" alt="PsyCont" width={104} height={28} className="h-6 w-auto" />
           </div>
         </div>
       </nav>

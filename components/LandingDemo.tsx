@@ -304,7 +304,7 @@ export default function LandingDemo() {
                     onChange={(e) => setLiveText(e.target.value.slice(0, 600))}
                     placeholder={THOUGHT}
                     rows={3}
-                    className="w-full px-4 py-3.5 rounded-3xl bg-white/[0.04] border border-white/10 text-brand-bg text-base leading-relaxed focus:outline-none focus:ring-2 focus:ring-brand-accent resize-none placeholder:text-brand-bg/40"
+                    className="w-full px-4 py-3.5 rounded-3xl bg-white/[0.04] border border-white/10 text-brand-bg text-base leading-relaxed focus:outline-none focus:ring-2 focus:ring-brand-lilac resize-none placeholder:text-brand-bg/40"
                   />
                   <button type="button" title="голосовой ввод скоро" className="absolute bottom-3 right-3 p-1.5 rounded-full text-brand-bg/50 hover:text-brand-sage hover:bg-white/5 transition cursor-pointer">
                     <Mic className="w-4 h-4" />
@@ -336,7 +336,8 @@ export default function LandingDemo() {
                 className={`mt-4 w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-semibold text-sm transition ${
                   mode === 'live' && !liveText.trim()
                     ? 'bg-white/[0.06] text-brand-bg/40 cursor-not-allowed'
-                    : 'bg-brand-accent text-white hover:bg-brand-accent-hover ring-1 ring-white/12 shadow-[0_10px_30px_-8px_rgba(91,79,160,0.6)] cursor-pointer'
+                    // на шоколадном фоне кнопка кремовая: зеленый на шоколаде запрещенная пара и почти сливается
+                    : 'bg-brand-bg text-brand-text hover:bg-white ring-1 ring-white/12 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.45)] cursor-pointer'
                 }`}
               >
                 {thinking ? (
@@ -465,13 +466,13 @@ export default function LandingDemo() {
                     <svg width="22" height="22" viewBox="0 0 24 24" className="drop-shadow-[0_4px_10px_rgba(0,0,0,0.45)]">
                       <path
                         d="M4 3 L4 18 L8.2 14.2 L11 20.4 L13.7 19.1 L10.9 13.1 L16.6 12.9 Z"
-                        fill="#F7F3EC"
-                        stroke="#2E2A45"
+                        fill="#F5EFE4"
+                        stroke="#3B2A22"
                         strokeWidth="1.4"
                         strokeLinejoin="round"
                       />
                     </svg>
-                    {/* Аметистовая фокус-точка на острие */}
+                    {/* Фокус-точка на острие */}
                     <span className="absolute top-[2px] left-[3px] w-1.5 h-1.5 rounded-full bg-brand-accent blur-[1px] opacity-70" />
                     {clicking && (
                       <motion.span

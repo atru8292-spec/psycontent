@@ -80,7 +80,7 @@ function Navbar() {
           <Image
             src="/logo/out_wordmark.svg"
             alt="PsyCont"
-            width={110}
+            width={104}
             height={28}
             className="h-7 w-auto"
           />
@@ -552,7 +552,7 @@ function Footer() {
         <Image
           src="/logo/out_wordmark_dark.svg"
           alt="PsyCont"
-          width={100}
+          width={85}
           height={26}
           className="h-6 w-auto"
         />

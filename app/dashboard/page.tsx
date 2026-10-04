@@ -239,7 +239,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {group.items.map((tool) => {
               const disabled = tool.href === '#'
-              /* soft=true, бумажный фон + иконка шалфей; false, лавандовый + иконка аметист */
+              /* soft=true, бумажный фон + иконка шалфей; false, бледная сирень + иконка акцента */
               const iconBg   = tool.soft ? 'bg-brand-bg' : 'bg-brand-soft'
               const iconColor = tool.soft ? 'text-brand-sage' : 'text-brand-accent'
 

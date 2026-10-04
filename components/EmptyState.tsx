@@ -23,12 +23,14 @@ export default function EmptyState({
     <div className="relative soft-panel flex flex-col items-start overflow-hidden min-h-[220px] sm:min-h-[260px]">
       {/* Тихий логотип в углу */}
       <div className="absolute bottom-5 right-5 pointer-events-none select-none" aria-hidden="true">
-        <Image
-          src="/logo/out_icon_mono.svg"
-          alt=""
-          width={72}
-          height={72}
-          className="w-16 h-16 sm:w-20 sm:h-20 opacity-[0.10]"
+        {/* одноцветный силуэт знака маской: цветной знак в круге бледным дает грязное пятно */}
+        <span
+          className="block w-16 h-16 sm:w-20 sm:h-20 opacity-[0.10]"
+          style={{
+            maskImage: "url('/logo/out_icon_mono.svg')", WebkitMaskImage: "url('/logo/out_icon_mono.svg')",
+            maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat',
+            backgroundColor: 'var(--color-brand-text)',
+          }}
         />
       </div>
 

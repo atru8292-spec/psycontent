@@ -1,25 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  /* ── Бренд-палитра PsyCont ── */
-  --color-brand-bg: #F7F3EC;
+  /* ── Бренд-палитра PsyCont (знак-цветок, октябрь 2026). Имена токенов прежние, значения новые ── */
+  --color-brand-bg: #F5EFE4;      /* крем */
   --color-brand-card: #FFFFFF;
-  --color-brand-soft: #E7E2F2;
-  --color-brand-soft-2: #EFEBF7;
+  --color-brand-soft: #EDE4F7;    /* бледная сирень */
+  --color-brand-soft-2: #F4EEFA;
 
-  --color-brand-text: #2E2A45;
-  --color-brand-muted: #4F4A63;
+  --color-brand-text: #3B2A22;    /* темный шоколад */
+  --color-brand-muted: #6B6458;
 
-  /* Аметист — главный акцент */
-  --color-brand-accent: #5B4FA0;
-  --color-brand-accent-hover: #4C4189;
+  /* Глубокий зеленый: кнопки и активное */
+  --color-brand-accent: #33472B;
+  --color-brand-accent-hover: #283A21;
 
-  /* Шалфей — детали, иконки */
+  /* Шалфей: только фоны и иллюстрации, не текст */
   --color-brand-sage: #8F9D68;
 
+  /* Сирень знака: лепестки, акцентные плашки, выбранные чипы на светлом без текста поверх.
+     Сирень на креме без темного контура для смысловых элементов не ставить; текст на сирени только темный.
+     Зеленый и шоколад рядом как фон и фигура не ставить */
+  --color-brand-lilac: #C3A6E6;
+
   /* Рамки */
-  --color-brand-border: #E4DED2;
-  --color-brand-border-soft: #D8D0E4;
+  --color-brand-border: #E3DACB;
+  --color-brand-border-soft: #DCCBF2;
 
   /* Алиасы для обратной совместимости (используются в разметке) */
   --color-brand-text-secondary: var(--color-brand-muted);
@@ -39,7 +44,7 @@ body {
 /* ── Система компонентов ── */
 @layer components {
 
-  /* Главная кнопка: аметист */
+  /* Главная кнопка: глубокий зеленый */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2
            bg-brand-accent text-white font-semibold
@@ -50,7 +55,7 @@ body {
            transition-all cursor-pointer;
   }
 
-  /* Второстепенная кнопка: контур аметиста */
+  /* Второстепенная кнопка: контур акцента */
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2
            bg-transparent text-brand-accent font-semibold

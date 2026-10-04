@@ -3,7 +3,7 @@ import { BrandPdf, C, ptmm, inlineRuns, setupBrandFonts, loadWordmark } from './
 
 // ════════════════════════════════════════════════════════════════
 // Фирменный ВЕКТОРНЫЙ PDF контент-плана PsyCont (jsPDF, без растра).
-// Единый стиль с паспортом: бумага, Onest, аметист, зелёное
+// Единый стиль с паспортом: бумага, Onest, глубокий зеленый, сиреневые плашки
 // подчёркивание, лавандовые плашки хуков, карточки дней.
 // ════════════════════════════════════════════════════════════════
 
@@ -99,7 +99,7 @@ function renderDay(bp: BrandPdf, item: DayItem) {
   p.setTextColor(C.amethyst)
   p.text(item.pillar, m + bw + 5, bp.y + 3.3, { baseline: 'middle' })
   p.setFont('Onest', 'normal')
-  p.setTextColor(C.sage)
+  p.setTextColor(C.muted)
   p.text(FMT[item.format] || item.format, bp.pageW - m, bp.y + 3.3, { align: 'right', baseline: 'middle' })
   bp.y += 6.6 + 4
 

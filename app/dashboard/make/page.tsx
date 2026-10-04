@@ -663,7 +663,7 @@ function MakeContent() {
           </button>
           )}
           <div className="flex items-center gap-2">
-            <Image src="/logo/out_wordmark.svg" alt="PsyCont" width={110} height={28} className="h-6 w-auto" />
+            <Image src="/logo/out_wordmark.svg" alt="PsyCont" width={104} height={28} className="h-6 w-auto" />
           </div>
         </div>
       </nav>
@@ -1294,7 +1294,7 @@ function MakeContent() {
             className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] lg:bottom-0 z-50 lg:pb-[env(safe-area-inset-bottom)] pointer-events-none"
           >
             <div className="max-w-6xl mx-auto px-0 sm:px-6 pointer-events-auto">
-              <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-6 bg-brand-soft border-t border-brand-border-soft sm:rounded-t-3xl sm:border sm:border-b-0 shadow-[0_-10px_30px_-12px_rgba(91,79,160,0.30)] px-4 sm:px-6 py-3 sm:py-4">
+              <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-6 bg-brand-soft border-t border-brand-border-soft sm:rounded-t-3xl sm:border sm:border-b-0 shadow-[0_-10px_30px_-12px_rgba(51,71,43,0.30)] px-4 sm:px-6 py-3 sm:py-4">
                 <div className="min-w-0">
                   <p className="text-sm sm:text-[15px] font-semibold text-brand-text leading-snug">Хочешь, чтобы твои посты звучали еще ближе к тебе?</p>
                   <p className="hidden sm:block text-xs text-brand-muted mt-0.5">Короткий тест на семь минут покажет, какой ты автор. После него посты попадают прямо в твою манеру</p>

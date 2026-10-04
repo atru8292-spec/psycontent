@@ -6,14 +6,16 @@ import { jsPDF } from 'jspdf'
 // перенос строк и разрывы страниц. Шрифт Onest вшит (кириллица).
 // ════════════════════════════════════════════════════════════════
 
+// Палитра PDF как в интерфейсе (октябрь 2026): имена ролей прежние, значения новые.
+// indigo это основной текст (шоколад), amethyst заголовки и акцент (глубокий зеленый), lavender плашки (бледная сирень)
 export const C = {
-  paper: '#F7F3EC',
-  indigo: '#2E2A45',
-  amethyst: '#5B4FA0',
+  paper: '#F5EFE4',
+  indigo: '#3B2A22',
+  amethyst: '#33472B',
   sage: '#8F9D68',
-  lavender: '#E7E2F2',
-  muted: '#6E6A7A',
-  hair: '#D8D0E4',
+  lavender: '#EDE4F7',
+  muted: '#6B6458',
+  hair: '#DCCBF2',
 }
 
 const PT_TO_MM = 0.352777
@@ -276,15 +278,14 @@ export async function setupBrandFonts(pdf: jsPDF) {
   pdf.setFont('Onest', 'normal')
 }
 
-// ЧИСТЫЙ вордмарк берём из out_wordmark.svg (viewBox 560 130 945 320, полный
-// PsyCont с буквой P). out_wordmark.PNG — грязный автотрейс («syCont» + подпись),
-// его НЕ использовать. Рендерим SVG в НЕБОЛЬШОЙ непрозрачный canvas (бумажный
+// Вордмарк берем из out_wordmark.svg (знак-цветок и надпись psycont в кривых, viewBox 780×210). Рендерим SVG в НЕБОЛЬШОЙ непрозрачный canvas (бумажный
 // фон, без альфы) — чисто и легко (без гигантского битмапа).
 export async function loadWordmark(): Promise<{ dataUrl: string; aspect: number }> {
   const img = new Image()
   img.src = '/logo/out_wordmark.svg'
   await img.decode()
-  const aspect = (img.naturalWidth || 945) / (img.naturalHeight || 320)
+  // у вордмарка в корне SVG стоят width/height (780x210), поэтому естественный размер верный
+  const aspect = (img.naturalWidth || 780) / (img.naturalHeight || 210)
   const h = 220 // px — достаточно для чёткости лого ~11мм при печати, файл лёгкий
   const w = Math.round(h * aspect)
   const canvas = document.createElement('canvas')

@@ -21,8 +21,8 @@ import { appendVoiceText } from '@/components/VoiceTextarea'
 import { useVoiceRecorder } from '@/lib/use-voice-recorder'
 
 const EASE = [0.22, 1, 0.36, 1] as const
-const SHADOW_REST = 'shadow-[0_1px_2px_rgba(46,42,69,0.04),0_8px_24px_rgba(46,42,69,0.05)]'
-const SHADOW_HOVER = 'shadow-[0_4px_10px_-4px_rgba(46,42,69,0.12),0_20px_44px_-18px_rgba(46,42,69,0.22)]'
+const SHADOW_REST = 'shadow-[0_1px_2px_rgba(59,42,34,0.04),0_8px_24px_rgba(59,42,34,0.05)]'
+const SHADOW_HOVER = 'shadow-[0_4px_10px_-4px_rgba(59,42,34,0.12),0_20px_44px_-18px_rgba(59,42,34,0.22)]'
 
 // Тексты около-экранные (микрокопи через copywriter-psycont). Вопросы в lib/archetype-quiz.
 const T = {
@@ -296,7 +296,7 @@ export default function ArchetypeTest() {
       {/* ТЕЛО */}
       <main className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
         <div className={`w-full max-w-[560px] mx-auto px-6 my-auto py-6 ${phase === 'result' ? 'lg:max-w-[920px]' : 'lg:max-w-[660px]'}`}>
-          <div className={`lg:bg-[#FDFBF7] lg:rounded-[32px] lg:border lg:border-brand-border-soft/70 lg:py-11 lg:shadow-[0_2px_4px_rgba(46,42,69,0.03),0_24px_60px_-24px_rgba(46,42,69,0.16),0_8px_20px_-12px_rgba(91,79,160,0.10)] ${phase === 'result' ? 'lg:px-14' : 'lg:px-12'}`}>
+          <div className={`lg:bg-[#FDFBF7] lg:rounded-[32px] lg:border lg:border-brand-border-soft/70 lg:py-11 lg:shadow-[0_2px_4px_rgba(59,42,34,0.03),0_24px_60px_-24px_rgba(59,42,34,0.16),0_8px_20px_-12px_rgba(51,71,43,0.10)] ${phase === 'result' ? 'lg:px-14' : 'lg:px-12'}`}>
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div key={stepKey} custom={dir} variants={stepVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.26, ease: EASE }}>
 
@@ -317,7 +317,7 @@ export default function ArchetypeTest() {
                 const chosen = answers[sit.id]
                 return (
                   <div>
-                    <p className="text-xs lg:text-[13px] font-semibold uppercase tracking-[0.16em] text-brand-sage mb-3">Ситуация</p>
+                    <p className="text-xs lg:text-[13px] font-semibold uppercase tracking-[0.16em] text-brand-muted mb-3">Ситуация</p>
                     <h2 className="text-xl sm:text-2xl lg:text-[28px] lg:leading-[1.25] font-semibold text-brand-text leading-snug mb-6 lg:mb-8">{sit.scene}</h2>
                     <div className="flex flex-col gap-3">
                       {sit.options.map((opt, i) => {
@@ -365,7 +365,7 @@ export default function ArchetypeTest() {
                 const q = OPEN_QUESTIONS[oIdx]
                 return (
                   <div>
-                    <p className="text-xs lg:text-[13px] font-semibold uppercase tracking-[0.16em] text-brand-sage mb-3">Своими словами</p>
+                    <p className="text-xs lg:text-[13px] font-semibold uppercase tracking-[0.16em] text-brand-muted mb-3">Своими словами</p>
                     <h2 className="text-xl sm:text-2xl lg:text-[28px] lg:leading-[1.25] font-semibold text-brand-text leading-snug mb-5">{q.prompt}</h2>
                     <div className="relative">
                       <textarea
@@ -413,7 +413,7 @@ export default function ArchetypeTest() {
               {phase === 'result' && finalResult && finalResult.selection.primary && (() => {
                 const sel = finalResult.selection
                 const pk = sel.primary as keyof typeof ARCHETYPES
-                const accent = sel.flexible ? '#5B4FA0' : ARCHETYPE_ACCENT[pk]
+                const accent = sel.flexible ? '#3B2A22' : ARCHETYPE_ACCENT[pk]
                 const changes = ARCHETYPE_CHANGES[pk]
                 // Абзац истории: выделяем ОДНУ ключевую фразу **...** аметистом
                 const renderPara = (text: string) =>
@@ -435,7 +435,7 @@ export default function ArchetypeTest() {
                 )
                 return (
                   <div className="text-center">
-                    <p className="text-xs lg:text-[13px] font-semibold uppercase tracking-[0.16em] text-brand-sage mb-5">Твой авторский почерк</p>
+                    <p className="text-xs lg:text-[13px] font-semibold uppercase tracking-[0.16em] text-brand-muted mb-5">Твой авторский почерк</p>
                     <div className="lg:grid lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] lg:gap-x-12 lg:items-start">
                       {/* ЛЕВАЯ КОЛОНКА: паспорт архетипа */}
                       <div className="lg:text-center">

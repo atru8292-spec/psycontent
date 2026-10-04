@@ -130,29 +130,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Лого */}
         <div className={`flex items-center gap-2.5 px-4 h-16 border-b border-brand-border shrink-0 ${collapsed ? 'justify-center px-0' : ''}`}>
           {collapsed ? (
-            /* Только знак, на лавандовой плитке */
-            <div className="w-8 h-8 rounded-xl bg-brand-soft flex items-center justify-center shrink-0">
-              <span
-                className="block w-[18px] h-[18px]"
-                style={{
-                  maskImage: "url('/logo/out_icon_mono.svg')",
-                  WebkitMaskImage: "url('/logo/out_icon_mono.svg')",
-                  maskSize: 'contain',
-                  WebkitMaskSize: 'contain',
-                  maskRepeat: 'no-repeat',
-                  WebkitMaskRepeat: 'no-repeat',
-                  maskPosition: 'center',
-                  WebkitMaskPosition: 'center',
-                  backgroundColor: 'var(--color-brand-accent)',
-                  display: 'block',
-                }}
-              />
-            </div>
+            /* Только знак: на светлом фоне он всегда в темно-зеленом круге (out_icon.svg) */
+            <Image src="/logo/out_icon.svg" alt="PsyCont" width={36} height={36} className="w-9 h-9 shrink-0" />
           ) : (
             <Image
               src="/logo/out_wordmark.svg"
               alt="PsyCont"
-              width={110}
+              width={104}
               height={28}
               className="h-7 w-auto shrink-0"
             />
@@ -229,7 +213,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Image
             src="/logo/out_wordmark.svg"
             alt="PsyCont"
-            width={90}
+            width={89}
             height={24}
             className="h-6 w-auto"
           />

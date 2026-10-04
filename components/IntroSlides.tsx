@@ -13,10 +13,10 @@ import Squiggle from '@/components/Squiggle'
 const EASE = [0.22, 1, 0.36, 1] as const
 
 // Система глубины: тонированные индиго/аметист тени, два слоя в каждой (контактная + мягкая).
-const SHADOW_L1 = 'shadow-[0_2px_6px_-2px_rgba(46,42,69,0.10),0_16px_36px_-16px_rgba(46,42,69,0.22)]'
-const SHADOW_L2 = 'shadow-[0_4px_10px_-4px_rgba(46,42,69,0.14),0_26px_54px_-20px_rgba(46,42,69,0.30)]'
-const SHADOW_L3 = 'shadow-[0_8px_18px_-8px_rgba(46,42,69,0.18),0_36px_72px_-28px_rgba(46,42,69,0.38)]'
-const SHADOW_ACC = 'shadow-[0_6px_14px_-6px_rgba(91,79,160,0.30),0_28px_56px_-22px_rgba(91,79,160,0.45)]'
+const SHADOW_L1 = 'shadow-[0_2px_6px_-2px_rgba(59,42,34,0.10),0_16px_36px_-16px_rgba(59,42,34,0.22)]'
+const SHADOW_L2 = 'shadow-[0_4px_10px_-4px_rgba(59,42,34,0.14),0_26px_54px_-20px_rgba(59,42,34,0.30)]'
+const SHADOW_L3 = 'shadow-[0_8px_18px_-8px_rgba(59,42,34,0.18),0_36px_72px_-28px_rgba(59,42,34,0.38)]'
+const SHADOW_ACC = 'shadow-[0_6px_14px_-6px_rgba(51,71,43,0.30),0_28px_56px_-22px_rgba(51,71,43,0.45)]'
 
 // Листалка-знакомство после регистрации, перед экспрессом. Показываем только
 // холодному входу (без мысли из демо). Ручное листание, без авто-таймера.
@@ -162,7 +162,7 @@ export default function IntroSlides() {
                 type="button"
                 onClick={() => goto(i)}
                 aria-label={`Слайд ${i + 1}`}
-                className={`h-2 rounded-full transition-[width,background-color] duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-text focus-visible:ring-offset-2 focus-visible:ring-offset-[#F7F3EC] ${i === index ? 'w-7 bg-brand-accent' : 'w-2 bg-brand-border-soft hover:bg-brand-border'}`}
+                className={`h-2 rounded-full transition-[width,background-color] duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-text focus-visible:ring-offset-2 focus-visible:ring-offset-[#F5EFE4] ${i === index ? 'w-7 bg-brand-accent' : 'w-2 bg-brand-border-soft hover:bg-brand-border'}`}
               />
             ))}
           </div>
@@ -219,7 +219,7 @@ export default function IntroSlides() {
             <button
               type="button"
               onClick={next}
-              className="w-full lg:w-auto inline-flex items-center justify-center gap-2 bg-brand-accent text-white font-semibold text-sm rounded-2xl px-7 py-3.5 hover:bg-brand-accent-hover transition-colors cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#F7F3EC]"
+              className="w-full lg:w-auto inline-flex items-center justify-center gap-2 bg-brand-accent text-white font-semibold text-sm rounded-2xl px-7 py-3.5 hover:bg-brand-accent-hover transition-colors cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#F5EFE4]"
             >
               {index === last
                 ? <><Sparkles className="w-4 h-4" /> Начнем</>

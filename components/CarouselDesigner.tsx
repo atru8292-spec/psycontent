@@ -471,7 +471,7 @@ export default function CarouselDesigner({ postId, text, onTextChange }: { postI
                   className="relative snap-center shrink-0 w-full aspect-[4/5] flex items-center justify-center cursor-pointer focus-visible:outline-2 focus-visible:outline-brand-accent focus-visible:-outline-offset-2">
                   <img src={slideUrl(s.n)} alt={`Слайд ${s.n}`} loading={s.n <= 2 ? 'eager' : 'lazy'}
                     onLoad={() => setLoading(l => ({ ...l, [s.n]: false }))} onError={() => { setLoading(l => ({ ...l, [s.n]: false })); setBroken(b => ({ ...b, [s.n]: true })) }}
-                    className="h-full w-auto max-w-full object-contain shadow-[0_2px_10px_rgba(46,42,69,0.12)]" />
+                    className="h-full w-auto max-w-full object-contain shadow-[0_2px_10px_rgba(59,42,34,0.12)]" />
                   {loading[s.n] && <span className="absolute inset-0 flex items-center justify-center bg-brand-bg/60"><Loader2 className="w-6 h-6 animate-spin text-brand-accent" /></span>}
                   {broken[s.n] && (
                     <span className="absolute inset-x-6 bottom-6 rounded-xl bg-white/95 px-3 py-2 text-sm text-brand-text">
@@ -545,12 +545,12 @@ export default function CarouselDesigner({ postId, text, onTextChange }: { postI
           <div className={`sticky bottom-3 z-30 sm:static space-y-2 ${editN != null ? 'hidden' : ''}`}>
             {share && !listMode ? (
               <button type="button" onClick={saveToPhotos} disabled={!files}
-                className="w-full inline-flex items-center justify-center gap-2 h-12 rounded-2xl bg-brand-accent text-white font-semibold text-base hover:bg-brand-accent-hover transition shadow-[0_6px_20px_rgba(91,79,160,0.3)] sm:shadow-none disabled:opacity-70 cursor-pointer">
+                className="w-full inline-flex items-center justify-center gap-2 h-12 rounded-2xl bg-brand-accent text-white font-semibold text-base hover:bg-brand-accent-hover transition shadow-[0_6px_20px_rgba(51,71,43,0.3)] sm:shadow-none disabled:opacity-70 cursor-pointer">
                 {files ? <ImageDown className="w-5 h-5" /> : <Loader2 className="w-5 h-5 animate-spin" />} {files ? 'Сохранить в Фото' : 'Готовлю слайды'}
               </button>
             ) : isTouch() && !listMode ? (
               <button type="button" onClick={() => { setListMode(true); exported('list') }}
-                className="w-full inline-flex items-center justify-center gap-2 h-12 rounded-2xl bg-brand-accent text-white font-semibold text-base hover:bg-brand-accent-hover transition shadow-[0_6px_20px_rgba(91,79,160,0.3)] cursor-pointer">
+                className="w-full inline-flex items-center justify-center gap-2 h-12 rounded-2xl bg-brand-accent text-white font-semibold text-base hover:bg-brand-accent-hover transition shadow-[0_6px_20px_rgba(51,71,43,0.3)] cursor-pointer">
                 <ImageDown className="w-5 h-5" /> Сохранить в Фото
               </button>
             ) : !listMode && (

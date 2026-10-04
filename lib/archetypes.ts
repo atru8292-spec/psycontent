@@ -97,9 +97,9 @@ export const ARCHETYPES: Record<ArchetypeKey, ArchetypeMeta> = {
 
 // Акцент-оттенок архетипа для карточки-результата. Одна теплая палитра оттенками, не радуга.
 export const ARCHETYPE_ACCENT: Record<ArchetypeKey, string> = {
-  sage: '#5B4FA0', caregiver: '#8F9D68', everyman: '#9C8C6E', jester: '#7C6FB5',
-  magician: '#6B5CA5', hero: '#7A6A9C', lover: '#A07C93', creator: '#6E8C7A',
-  rebel: '#4C4189', explorer: '#8A7FB0',
+  sage: '#33472B', caregiver: '#8F9D68', everyman: '#9C8C6E', jester: '#8E6FBF',
+  magician: '#7A5FA8', hero: '#5C6B3A', lover: '#A07C93', creator: '#6E8C7A',
+  rebel: '#3B2A22', explorer: '#8A7FB0',
 }
 
 // «Что изменится в постах» для карточки-результата: детерминированно из стиля архетипа

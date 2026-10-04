@@ -130,7 +130,7 @@ export default function SettingsPage() {
                   )
                 }
                 const pk = sel.primary
-                const accent = sel.flexible ? '#5B4FA0' : ARCHETYPE_ACCENT[pk]
+                const accent = sel.flexible ? '#3B2A22' : ARCHETYPE_ACCENT[pk]
                 const top3 = (profile?.archetype_scores?.top3 || []) as { key: keyof typeof ARCHETYPES; percent: number }[]
                 return (
                   <div className="rounded-3xl bg-brand-card border border-brand-border p-5 sm:p-6">
