@@ -21,6 +21,8 @@ import {
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
 import EmptyState from '@/components/EmptyState'
+import MyTexts from '@/components/texts/MyTexts'
+import { useDashboardMe } from '@/lib/dashboard-me'
 import { splitPostTitle } from '@/lib/post-format'
 
 interface Post {
@@ -67,8 +69,12 @@ export default function PostHistory() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const router = useRouter()
+  // Новый мозг: «Мои тексты» (одна мысль = одна карточка). Старый список без флага как был
+  const { me, loaded } = useDashboardMe()
+  const newMenu = me?.newPipeline === true
 
   useEffect(() => {
+    if (!loaded || newMenu) return
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
@@ -76,7 +82,7 @@ export default function PostHistory() {
       await loadPosts(user.id)
     }
     init()
-  }, [router])
+  }, [router, loaded, newMenu])
 
   const loadPosts = async (userId: string) => {
     setLoading(true)
@@ -145,6 +151,8 @@ export default function PostHistory() {
       minute: '2-digit',
     })
   }
+
+  if (loaded && newMenu) return <MyTexts />
 
   if (loading) {
     return (
