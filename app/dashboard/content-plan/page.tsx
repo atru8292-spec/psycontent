@@ -15,6 +15,8 @@ import {
   Layers,
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
+import TopicIdeas from '@/components/TopicIdeas'
+import { useDashboardMe } from '@/lib/dashboard-me'
 import EmptyState from '@/components/EmptyState'
 import { LimitNotice } from '@/components/LimitNotice'
 import { ServerErrorNotice } from '@/components/ServerErrorNotice'
@@ -382,7 +384,25 @@ export default function ContentPlan() {
   const [selected, setSelected] = useState<DayItem | null>(null)
   const [filter, setFilter] = useState<string>('all')
   const [postsThisMonth, setPostsThisMonth] = useState(0)
+  // Новое меню (newPipeline): экран «Темы» с вкладками «Идеи · План», вкладка в адресе ?tab=ideas|plan
+  // Флаг берем из layout (там /api/me уже запрошен), загрузку плана он не держит
+  const { me } = useDashboardMe()
+  const newMenu = me?.newPipeline === true
+  const [tab, setTab] = useState<'ideas' | 'plan' | null>(null)
   const router = useRouter()
+
+  // Вкладка из адреса; без параметра «План», если он уже есть, иначе «Идеи». Назад/вперед по истории тоже
+  useEffect(() => {
+    if (!newMenu || loading) return
+    const read = () => {
+      const t = new URLSearchParams(window.location.search).get('tab')
+      setTab(t === 'ideas' || t === 'plan' ? t : plan.length ? 'plan' : 'ideas')
+    }
+    read()
+    window.addEventListener('popstate', read)
+    return () => window.removeEventListener('popstate', read)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newMenu, loading])
 
   useEffect(() => {
     const init = async () => {
@@ -488,7 +508,8 @@ export default function ContentPlan() {
 
   return (
     <div className="min-h-screen bg-brand-bg">
-      {/* ===== NAV ===== */}
+      {/* ===== NAV ===== (в новом меню своей шапки нет: шапка и таб-бар у layout) */}
+      {!newMenu && (
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-brand-border">
         <div className="max-w-7xl mx-auto px-4 md:px-6">
           <div className="h-14 md:h-16 flex items-center justify-between gap-2">
@@ -512,10 +533,14 @@ export default function ContentPlan() {
           </div>
         </div>
       </nav>
+      )}
 
       {/* ===== CONTENT ===== */}
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-10">
-        {/* Заголовок */}
+        {/* Заголовок: при новом меню это экран «Темы» (вкладки ниже) */}
+        {newMenu ? (
+          <h1 className="text-[26px] md:text-4xl font-bold text-brand-text mb-4 leading-tight">Темы</h1>
+        ) : (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 md:mb-8">
           <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-4 py-2 rounded-full text-[15px] md:text-sm font-medium mb-4">
             <CalendarDays className="w-5 h-5 md:w-4 md:h-4" />
@@ -529,7 +554,37 @@ export default function ContentPlan() {
             Личный план на основе твоего паспорта бренда. Нажми на карточку, получишь готовый пост.
           </p>
         </motion.div>
+        )}
 
+        {/* ===== ВКЛАДКИ «Идеи · План» (новое меню) ===== */}
+        {newMenu && (
+          <div role="tablist" aria-label="Темы" className="mb-6 flex w-full md:max-w-[320px] h-[52px] p-1 rounded-full bg-brand-soft">
+            {([['ideas', 'Идеи'], ['plan', 'План']] as const).map(([k, label]) => (
+              <button key={k} type="button" role="tab" id={`tab-${k}`} aria-controls={`panel-${k}`} aria-selected={tab === k}
+                onClick={() => { setTab(k); const q = new URLSearchParams(window.location.search); q.set('tab', k); window.history.replaceState(null, '', `?${q.toString()}`) }}
+                className={`flex-1 rounded-full text-[15px] transition cursor-pointer focus-visible:outline-2 focus-visible:outline-brand-accent ${tab === k ? 'bg-white shadow-sm font-semibold text-brand-text' : 'text-brand-muted'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+        {/* «Идеи» не размонтируем при переключении: подбор идет около минуты, результат не должен теряться */}
+        {newMenu && (
+          <div role="tabpanel" id="panel-ideas" aria-labelledby="tab-ideas" hidden={tab !== 'ideas'}>
+            <TopicIdeas embedded />
+          </div>
+        )}
+
+        {(!newMenu || tab === 'plan') && (<div {...(newMenu ? { role: 'tabpanel', id: 'panel-plan', 'aria-labelledby': 'tab-plan' } : {})}>
+        {newMenu && plan.length > 0 && !generating && (
+          <div className="mb-4 flex items-center justify-end gap-2">
+            <ExportMenu plan={plan} />
+            <button onClick={handleGenerate} disabled={generating} className="flex items-center gap-1.5 h-11 px-4 text-[15px] font-medium text-brand-text-secondary hover:text-brand-text bg-white border border-brand-border rounded-xl transition cursor-pointer">
+              <RefreshCw className="w-4 h-4 shrink-0" />
+              Обновить план
+            </button>
+          </div>
+        )}
         {/* ===== ТРЕКЕР РИТМА (виден всегда, кроме генерации) ===== */}
         {!generating && <RhythmTracker count={postsThisMonth} />}
 
@@ -706,6 +761,7 @@ export default function ContentPlan() {
             </button>
           </div>
         )}
+        </div>)}
       </div>
     </div>
   )

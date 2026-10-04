@@ -8,6 +8,7 @@ import { ArrowLeft, Search, Clipboard, RotateCcw, Trash2, ChevronDown, ChevronUp
 import Squiggle from '@/components/Squiggle'
 import EmptyState from '@/components/EmptyState'
 import { LimitNotice } from '@/components/LimitNotice'
+import { useDashboardMe } from '@/lib/dashboard-me'
 
 interface Analysis {
   id: string
@@ -41,7 +42,15 @@ export default function CompetitorAnalysisPage() {
   const [expandedHistory, setExpandedHistory] = useState<string | null>(null)
   const [currentAnalysisStep, setCurrentAnalysisStep] = useState(0) // 1-4 во время анализа
 
-  useEffect(() => { loadHistory() }, [])
+  // С новым мозгом разбор конкурента заменен на «Сделать так же» на экране «Сделать» (API остается).
+  // Флаг из layout: пока он не пришел, старую страницу не показываем и в базу не ходим
+  const { me, loaded } = useDashboardMe()
+  const newMenu = me?.newPipeline === true
+  useEffect(() => {
+    if (!loaded) return
+    if (newMenu) router.replace('/dashboard/make')
+    else loadHistory()
+  }, [loaded, newMenu, router])
 
   const loadHistory = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -192,6 +201,8 @@ export default function CompetitorAnalysisPage() {
 
   const copyText = (text: string) => navigator.clipboard.writeText(text)
   const isLoading = step === 'transcribing' || step === 'analyzing'
+
+  if (!loaded || newMenu) return <div className="min-h-dvh" />
 
   return (
     <div className="min-h-screen bg-brand-bg">
