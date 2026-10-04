@@ -173,7 +173,7 @@ export default function EditProfile() {
         .single()
 
       if (!profile) {
-        router.push('/onboarding')
+        router.push('/onboarding/express')
         return
       }
 

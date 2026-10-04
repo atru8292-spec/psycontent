@@ -443,7 +443,7 @@ export default function BrandPassport() {
             />
             {needOnboarding && (
               <div className="mt-4">
-                <LimitNotice title="Сначала заполни профиль" message="Карта бренда строится на твоей распаковке. Пройди короткий онбординг, и мы соберем документ о тебе." actionLabel="Заполнить профиль" actionHref="/onboarding" />
+                <LimitNotice title="Сначала заполни профиль" message="Карта бренда строится на твоей распаковке. Пройди короткий онбординг, и мы соберем документ о тебе." actionLabel="Заполнить профиль" actionHref="/onboarding/express" />
               </div>
             )}
             {serverError && (

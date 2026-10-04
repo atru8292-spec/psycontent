@@ -56,6 +56,14 @@ export default function ReelsGenerator() {
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
+  // Тема с экрана «Сделать» (?topic=): подставляем своей темой, чтобы не потерялась
+  useEffect(() => {
+    try {
+      const t = new URLSearchParams(window.location.search).get('topic')
+      if (t) { setCustomTopic(t); setUseCustom(true) }
+    } catch {}
+  }, [])
+
   const router = useRouter()
 
   useEffect(() => {

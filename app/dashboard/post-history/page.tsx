@@ -84,6 +84,7 @@ export default function PostHistory() {
       .from('generated_posts')
       .select('*')
       .eq('user_id', userId)
+      .neq('format', 'hooks')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -129,7 +130,7 @@ export default function PostHistory() {
   const filteredPosts = posts.filter(post => {
     const matchesFilter = filter === 'all' || 
       (filter === 'favorites' && post.is_favorite) ||
-      (post.format === filter || (filter === 'post' && post.format === 'post_tg'))
+      (post.format === filter || (filter === 'post' && post.format === 'post_tg') || (filter === 'reels' && String(post.format || '').startsWith('reels')))
     const matchesSearch = !search || 
       post.topic?.toLowerCase().includes(search.toLowerCase()) ||
       post.content.toLowerCase().includes(search.toLowerCase())
@@ -217,6 +218,7 @@ export default function PostHistory() {
               { id: 'favorites', label: 'Избранное' },
               { id: 'post', label: 'Посты' },
               { id: 'carousel', label: 'Карусели' },
+              { id: 'reels', label: 'Reels' },
               { id: 'stories', label: 'Stories' },
             ].map(f => (
               <button

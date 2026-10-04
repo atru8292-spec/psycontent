@@ -272,7 +272,7 @@ export default function ResearchTopics() {
             />
             {needOnboarding && (
               <div className="mt-4">
-                <LimitNotice title="Сначала заполни профиль" message="Темы подбираем под твою нишу из профиля. Пройди короткую распаковку, и подберем идеи для тебя." actionLabel="Заполнить профиль" actionHref="/onboarding" />
+                <LimitNotice title="Сначала заполни профиль" message="Темы подбираем под твою нишу из профиля. Пройди короткую распаковку, и подберем идеи для тебя." actionLabel="Заполнить профиль" actionHref="/onboarding/express" />
               </div>
             )}
             {serverError && (

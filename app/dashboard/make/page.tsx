@@ -48,6 +48,15 @@ const FORMAT_WORD: Record<string, string> = {
   reels_rol: 'сценарий Reels', reels_doska: 'сценарий Reels', reels_bez_slov: 'сценарий Reels', reels_malysh: 'сценарий Reels',
   reels_otvet: 'сценарий Reels', reels_istoriya: 'сценарий Reels', reels_poslanie: 'сценарий Reels',
 }
+// Ошибки модели и сервера показываем человеческим текстом: что случилось и что сохранилось
+function friendlyError(msg?: string): string {
+  const m = String(msg || '')
+  if (/^Достигнут предел генераций/.test(m)) return 'Пробные тексты закончились. Твой голос и темы я запомнила, они никуда не денутся. Скоро здесь можно будет выбрать тариф.'
+  if (/^(Тема не указана|Не авторизован|Этот формат)/.test(m)) return m
+  if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return 'Пропала связь. Проверь интернет и нажми еще раз: тема и детали на месте.'
+  return 'Текст не дописался. Сбой у нас, не у тебя: тема и детали на месте. Попробуй еще раз через минуту.'
+}
+
 const OLD_PAGES: Record<string, string> = { carousel: '/dashboard/carousel-generator', reels: '/dashboard/reels' }
 // Подсказка к «твоей детали» под выбранное «что дать читателю»
 const DETAIL_HINTS: Record<string, string> = {
@@ -134,6 +143,17 @@ function deriveFirstTopic(profile: any, seed: string): string {
 function MakeContent() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
+  // Новый мозг включен или нет, решает сервер (тот же isNewPipeline, что в генерации)
+  const [serverNewGen, setServerNewGen] = useState<boolean | null>(null)
+  const [meDone, setMeDone] = useState(false)
+  useEffect(() => {
+    let on = true
+    fetch('/api/me').then(r => (r.ok ? r.json() : null))
+      .then(j => { if (on && j && typeof j.newPipeline === 'boolean') setServerNewGen(j.newPipeline) })
+      .catch(() => {})
+      .finally(() => { if (on) setMeDone(true) })
+    return () => { on = false }
+  }, [])
   const [loading, setLoading] = useState(true)
   const [selectedFormat, setSelectedFormat] = useState('post')
   // Reels: «Подберу сама» по умолчанию. Юмор и «как на консультации» лучше заходят сценкой, остальное рассказом в камеру
@@ -297,7 +317,7 @@ function MakeContent() {
   // Заголовок-вывеска отделяется от тела (как в демо). Для сторис и старых постов
   // без структуры title будет null, рендерим тело целиком.
   const parsedPost = result ? splitPostTitle(result, generatedFormat) : null
-  const newGen = profile?.new_pipeline === true || process.env.NEXT_PUBLIC_NEW_GENERATION_PIPELINE === 'all'
+  const newGen = serverNewGen ?? (profile?.new_pipeline === true || process.env.NEXT_PUBLIC_NEW_GENERATION_PIPELINE === 'all')
   const reelsFormat = reelsMode
   const formatCode = selectedFormat === 'reels' ? reelsFormat : selectedFormat === 'post' && postPlace === 'telegram' && newGen ? 'post_tg' : selectedFormat
   const placeholders = result ? (result.match(PLACEHOLDER_RE) || []) : []
@@ -375,7 +395,7 @@ function MakeContent() {
       setSaved(true)
       countPost()
     } catch (err: any) {
-      setError(err.message)
+      setError(friendlyError(err.message))
     } finally {
       setGenerating(false)
     }
@@ -391,7 +411,7 @@ function MakeContent() {
     const fmt = extra?.format || formatCode
     // Без нового движка карусель и Reels пишут старые страницы
     if (!newGen && (fmt === 'carousel' || fmt.startsWith('reels'))) {
-      router.push(OLD_PAGES[fmt === 'carousel' ? 'carousel' : 'reels'])
+      router.push(`${OLD_PAGES[fmt === 'carousel' ? 'carousel' : 'reels']}?topic=${encodeURIComponent(String(topicVal).trim())}&from=make`)
       return
     }
     setGenerating(true)
@@ -455,7 +475,7 @@ function MakeContent() {
       }
 
     } catch (err: any) {
-      setError(err.message)
+      setError(friendlyError(err.message))
     } finally {
       setGenerating(false)
     }
@@ -495,7 +515,7 @@ function MakeContent() {
       if (!r.ok) throw new Error(d.error || 'Не получилось поправить')
       if (typeof d.post === 'string') { setResult(d.post); setBaseline(d.post); setImproved(null); setHighlight(new Set()) }
     } catch (e: any) {
-      setError(e.message)
+      setError(friendlyError(e.message))
     } finally {
       setAdjusting(null)
     }
@@ -580,6 +600,7 @@ function MakeContent() {
     if (!lastTopic) return
     if (target === 'reels') setSelectedFormat('reels')
     else setSelectedFormat(target)
+    if (target === 'post') setPostPlace('instagram')
     const fmt = target === 'reels' ? reelsFormat : target
     setCustomTopic(lastTopic); setUseCustom(true)
     handleGenerate(lastTopic, { format: fmt, intent: lastIntent })
@@ -620,7 +641,7 @@ function MakeContent() {
     router.replace('/dashboard/make')
   }
 
-  if (loading) {
+  if (loading || !meDone) {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full" />
@@ -632,6 +653,7 @@ function MakeContent() {
     <div className="min-h-screen bg-brand-bg">
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-brand-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
+          {newGen ? <span /> : (
           <button
             onClick={() => router.push('/dashboard')}
             className="flex items-center gap-2 text-brand-text-secondary hover:text-brand-text transition cursor-pointer"
@@ -639,6 +661,7 @@ function MakeContent() {
             <ArrowLeft className="w-5 h-5" />
             Назад в кабинет
           </button>
+          )}
           <div className="flex items-center gap-2">
             <Image src="/logo/out_wordmark.svg" alt="PsyCont" width={110} height={28} className="h-6 w-auto" />
           </div>
@@ -1125,7 +1148,7 @@ function MakeContent() {
                         <p className="text-xs text-brand-muted">Запомнила. Дальше буду писать ближе к этому.</p>
                       )}
 
-                      {postId && !checking && !draftResult && (
+                      {newGen && postId && !checking && !draftResult && (
                         <div className="flex flex-wrap gap-2 pt-1">
                           {ADJUST_BUTTONS.map(b => (
                             <button
@@ -1239,7 +1262,7 @@ function MakeContent() {
                         Готово. Дальше можно{' '}
                         <button onClick={() => router.push('/dashboard/content-plan')} className="text-brand-accent hover:underline cursor-pointer">собрать контент-план</button>
                         {' '}или{' '}
-                        <button onClick={() => { setResult(null); setError(null); setSaved(false); setCustomTopic('') }} className="text-brand-accent hover:underline cursor-pointer">написать еще пост</button>.
+                        <button onClick={() => { resetResult(); setResult(null); setError(null); setSaved(false); setCustomTopic('') }} className="text-brand-accent hover:underline cursor-pointer">написать еще пост</button>.
                       </p>
                     </div>
                   )}
@@ -1268,9 +1291,9 @@ function MakeContent() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0, transition: { delay: 0, duration: 0.28, ease: [0.22, 1, 0.36, 1] } }}
             transition={{ delay: 0.6, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)]"
+            className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] lg:bottom-0 z-50 lg:pb-[env(safe-area-inset-bottom)] pointer-events-none"
           >
-            <div className="max-w-6xl mx-auto px-0 sm:px-6">
+            <div className="max-w-6xl mx-auto px-0 sm:px-6 pointer-events-auto">
               <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-6 bg-brand-soft border-t border-brand-border-soft sm:rounded-t-3xl sm:border sm:border-b-0 shadow-[0_-10px_30px_-12px_rgba(91,79,160,0.30)] px-4 sm:px-6 py-3 sm:py-4">
                 <div className="min-w-0">
                   <p className="text-sm sm:text-[15px] font-semibold text-brand-text leading-snug">Хочешь, чтобы твои посты звучали еще ближе к тебе?</p>

@@ -81,7 +81,7 @@ export default function SettingsPage() {
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="text-2xl font-bold text-brand-text mb-1">Настройки</h1>
+          <h1 className="text-2xl font-bold text-brand-text mb-1">Профиль</h1>
           <p className="text-brand-muted">Твой голос, тариф и энергия в одном месте.</p>
 
           {/* Якорные чипы (десктоп) */}
@@ -163,7 +163,7 @@ export default function SettingsPage() {
 
             {/* ── Профиль практики ── */}
             <section id="voice" className="scroll-mt-20">
-              <SectionTitle>Профиль</SectionTitle>
+              <SectionTitle>Профиль практики</SectionTitle>
               <div className="rounded-3xl bg-brand-card border border-brand-border p-5 sm:p-6">
                 <h3 className="text-lg font-bold text-brand-text mb-1">Профиль практики</h3>
                 <p className="text-sm text-brand-muted leading-relaxed mb-4">
@@ -215,5 +215,5 @@ export default function SettingsPage() {
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-xs font-bold text-brand-muted uppercase tracking-widest mb-4">{children}</h2>
+  return <h2 className="text-base font-semibold text-brand-text mb-3">{children}</h2>
 }

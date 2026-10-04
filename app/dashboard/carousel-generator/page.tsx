@@ -58,7 +58,8 @@ function CarouselGeneratorContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const isFromPlan = !!searchParams.get('topic')
+  // С экрана «Сделать» тема тоже приходит в ?topic, но это не план
+  const isFromPlan = !!searchParams.get('topic') && searchParams.get('from') !== 'make'
 
   // Загружаем user
   useEffect(() => {

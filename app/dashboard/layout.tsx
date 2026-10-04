@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase'
 import {
   Target, PenTool, Layers, Zap, FileText,
   Wrench, Film, RefreshCcw, Search, History, Settings,
-  LogOut, User, ChevronRight, LayoutDashboard,
+  LogOut, User, ChevronRight, LayoutDashboard, PlusCircle, CalendarDays,
 } from 'lucide-react'
 import { EnergyBadge, EnergyInfo } from '@/components/EnergyTariff'
 
@@ -34,6 +34,15 @@ const bottomNavItems = [
   { icon: History, label: 'История', href: '/dashboard/post-history' },
 ]
 
+// Новое меню из 4 пунктов (решение 03.10, макет «PsyCont: новое меню»). Видят только те,
+// у кого включен новый мозг (newPipeline из /api/me), остальным пока старое меню.
+const newNavItems = [
+  { icon: PlusCircle, label: 'Создать', href: '/dashboard/make', also: [] as string[] },
+  { icon: CalendarDays, label: 'План', href: '/dashboard/content-plan', also: ['/dashboard/research'] },
+  { icon: History, label: 'История', href: '/dashboard/post-history', also: [] as string[] },
+  { icon: User, label: 'Профиль', href: '/dashboard/settings', also: ['/dashboard/voice', '/dashboard/edit-profile', '/dashboard/brand-passport'] },
+]
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<any>(null)
   // 'loading' пока проверяем; 'ready' — профиль есть, рендерим кабинет;
@@ -42,14 +51,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [collapsed, setCollapsed] = useState(false)
   // Сводка энергии тянется один раз в layout и отдается обоим бейджам (десктоп + мобилка)
   const [energy, setEnergy] = useState<any>(null)
+  // Ждем /api/me, чтобы человек с новым мозгом не видел, как мелькает старое меню
+  const [meLoaded, setMeLoaded] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
     let on = true
-    fetch('/api/me').then((r) => (r.ok ? r.json() : null)).then((j) => { if (on) setEnergy(j) }).catch(() => {})
+    fetch('/api/me').then((r) => (r.ok ? r.json() : null)).then((j) => { if (on) setEnergy(j) }).catch(() => {}).finally(() => { if (on) setMeLoaded(true) })
     return () => { on = false }
   }, [])
+
+  const newMenu = energy?.newPipeline === true
+  // В новом меню нет «Главной»: кабинет открывается на «Создать»
+  useEffect(() => {
+    if (newMenu && pathname === '/dashboard') router.replace('/dashboard/make')
+  }, [newMenu, pathname, router])
 
   // Guard: в кабинет пускаем только юзера с заполненным профилем.
   // Используем тот же запрос профиля, что и для имени в сайдбаре.
@@ -86,7 +103,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   // Пока идет проверка или уже уводим — не мигаем кабинетом.
-  if (status !== 'ready') {
+  if (status !== 'ready' || !meLoaded || (newMenu && pathname === '/dashboard')) {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full" />
@@ -99,10 +116,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.push('/')
   }
 
-  const isActive = (href: string, exact?: boolean) => {
+  const isActive = (href: string, exact?: boolean, also?: string[]) => {
     if (exact) return pathname === href
-    return pathname.startsWith(href)
+    return pathname.startsWith(href) || !!also?.some(a => pathname.startsWith(a))
   }
+  const sideItems: { icon: any; label: string; href: string; exact?: boolean; also?: string[] }[] = newMenu ? newNavItems : navItems
+  const bottomItems: { icon: any; label: string; href: string; exact?: boolean; also?: string[] }[] = newMenu ? newNavItems : bottomNavItems
 
   return (
     <div className="min-h-screen bg-brand-bg flex">
@@ -142,8 +161,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Навигация */}
         <nav className="flex-1 overflow-y-auto py-3 px-2">
-          {navItems.map((item) => {
-            const active = isActive(item.href, item.exact)
+          {sideItems.map((item) => {
+            const active = isActive(item.href, item.exact, item.also)
             return (
               <Link key={item.href} href={item.href} title={collapsed ? item.label : undefined}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl mb-0.5 transition-all group relative ${
@@ -177,11 +196,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           )}
 
-          <Link href="/dashboard/settings" className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-brand-muted hover:bg-brand-soft hover:text-brand-text transition group relative ${collapsed ? 'justify-center' : ''}`}>
+          {!newMenu && <Link href="/dashboard/settings" className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-brand-muted hover:bg-brand-soft hover:text-brand-text transition group relative ${collapsed ? 'justify-center' : ''}`}>
             <Settings className="w-[18px] h-[18px] shrink-0" />
             {!collapsed && <span className="text-[13px] font-medium">Настройки</span>}
             {collapsed && <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-brand-text text-white text-xs rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">Настройки</div>}
-          </Link>
+          </Link>}
 
           <div className={`flex items-center gap-3 px-3 py-2.5 mt-1 rounded-2xl bg-brand-soft ${collapsed ? 'justify-center' : ''}`}>
             <div className="w-7 h-7 rounded-full bg-brand-soft-2 flex items-center justify-center shrink-0">
@@ -217,9 +236,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-1.5">
             <EnergyBadge compact data={energy} />
             <EnergyInfo placement="header" />
-            <Link href="/dashboard/settings" className="p-2 text-brand-muted hover:text-brand-accent transition">
+            {!newMenu && <Link href="/dashboard/settings" className="p-2 text-brand-muted hover:text-brand-accent transition">
               <Settings className="w-5 h-5" />
-            </Link>
+            </Link>}
             <button onClick={handleLogout} aria-label="Выйти из аккаунта" className="p-2 text-brand-muted hover:text-brand-accent transition cursor-pointer">
               <LogOut className="w-5 h-5" />
             </button>
@@ -230,9 +249,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </main>
 
       {/* ─── Нижняя навигация (мобилка) ─── */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-brand-card border-t border-brand-border flex">
-        {bottomNavItems.map((item) => {
-          const active = isActive(item.href, item.exact)
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-brand-card border-t border-brand-border flex h-16 box-content pb-[env(safe-area-inset-bottom)]">
+        {bottomItems.map((item) => {
+          const active = isActive(item.href, item.exact, item.also)
           return (
             <Link key={item.href} href={item.href}
               className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 transition relative ${active ? 'text-brand-accent' : 'text-brand-muted'}`}>
