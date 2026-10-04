@@ -37,6 +37,8 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
 }) {
   const router = useRouter()
   const [text, setText] = useState(initialText || '')
+  // черновик пишем, только когда человек сам печатал: тема из адреса не должна затирать ее черновик
+  const typed = useRef(false)
   const [about, setAbout] = useState('')
   const [screens, setScreens] = useState<File[]>([])
   // текст чужого поста или расшифровка рилса, когда ссылка не открывается
@@ -61,13 +63,14 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
       else if (Array.isArray(f) && f.length) setFormats(f.filter((x: string) => MAKE_FORMATS.some(m => m.id === x)))
     } catch {}
     const d = readLS(DRAFT_KEY)
-    if (d && d.trim() && !initialText) setDraft(d)
+    // черновик помним и при теме из адреса: тема в поле, а «Продолжить черновик» появится, если поле очистить
+    if (d && d.trim() && d.trim() !== (initialText || '').trim()) setDraft(d)
   }, [initialText, initialFormats])
   useEffect(() => { if (initialText) setText(initialText) }, [initialText])
 
   // черновик пишется сам, пока человек печатает
   useEffect(() => {
-    const t = setTimeout(() => { if (text.trim().length >= 3 && !URL_RE.test(text)) writeLS(DRAFT_KEY, text) }, 600)
+    const t = setTimeout(() => { if (typed.current && text.trim().length >= 3 && !URL_RE.test(text)) writeLS(DRAFT_KEY, text) }, 600)
     return () => clearTimeout(t)
   }, [text])
 
@@ -79,7 +82,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
     el.style.height = `${Math.min(Math.max(el.scrollHeight, 72), 144)}px`
   }, [text])
 
-  const appendVoice = useCallback((t: string) => setText(prev => (prev.trim() ? `${prev.trim()} ${t}` : t)), [])
+  const appendVoice = useCallback((t: string) => { typed.current = true; setText(prev => (prev.trim() ? `${prev.trim()} ${t}` : t)) }, [])
   const rec = useVoiceRecorder(appendVoice, { maxSeconds: VOICE_MAX, nearSeconds: VOICE_NEAR })
   const transcribing = rec.state === 'transcribing'
   const transcribeFailed = rec.state === 'error' && rec.errorKind === 'network'
@@ -168,7 +171,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
         <textarea
           ref={area}
           value={text}
-          onChange={e => { setText(e.target.value); setHint(null) }}
+          onChange={e => { typed.current = true; setText(e.target.value); setHint(null) }}
           readOnly={transcribing}
           rows={3}
           aria-label="Мысль"
@@ -201,7 +204,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
       {!hasText && (
         <>
           {draft && (
-            <button type="button" onClick={() => { setText(draft); setDraft(null) }}
+            <button type="button" onClick={() => { typed.current = true; setText(draft); setDraft(null) }}
               className="mt-2 w-full h-11 flex items-center gap-2 px-1 text-left text-brand-text cursor-pointer">
               <FileText className="w-[18px] h-[18px] text-brand-muted shrink-0" />
               <span className="min-w-0 flex-1 truncate text-[15px]">Продолжить черновик: {draft}</span>

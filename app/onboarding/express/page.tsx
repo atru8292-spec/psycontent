@@ -22,6 +22,10 @@ const APPROACHES = [
   'КПТ', 'Гештальт', 'ACT', 'Психоанализ', 'Схема-терапия', 'ЭФТ',
   'EMDR', 'Нарративная терапия', 'Телесно-ориентированная', 'Экзистенциальный', 'Арт-терапия', 'Интегративный',
 ]
+// Сначала шесть самых частых, остальные под «Еще» (на 375×667 иначе «Дальше» уходит за край)
+const TOP_APPROACHES = ['КПТ', 'Гештальт', 'Психоанализ', 'Схема-терапия', 'ACT', 'Интегративный']
+// раскрытый список: частые на своих местах, остальные после них
+const ALL_APPROACHES = [...TOP_APPROACHES, ...APPROACHES.filter(x => !TOP_APPROACHES.includes(x))]
 const NICHES = [
   'Тревога и паника', 'Отношения и привязанность', 'Самооценка и самозванец', 'Выгорание и стресс',
   'Травма', 'Депрессия и апатия', 'Детско-родительское', 'Психосоматика',
@@ -30,6 +34,7 @@ const STORE = 'psycont_onb_express'
 const TOTAL = 5
 const VOICE_LIMIT = 60
 // 4-й вопрос: конкретная реплика клиентки вместо абстрактного «как ты говоришь». Реплики дала Арина, не менять.
+// Номера: 0 тревога, 1 «ленивая», 2 «зачем терапия» (любая другая ниша), 3 ребенок.
 // В профиль идет только ее ответ (tone_verbal), реплика в голос не попадает.
 const SITUATIONS = [
   'Я понимаю, что тревожиться глупо, но не могу перестать',
@@ -41,17 +46,31 @@ const SITUATIONS = [
 // В проде переменная NODE_ENV = production, режим не включается.
 const isPreview = () => process.env.NODE_ENV !== 'production' && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1'
 
-type Answers = { name: string; approaches: string[]; nicheChip: string | null; nicheText: string; tone: string; pain: string; situation: number }
+type Answers = { name: string; approaches: string[]; nicheChip: string | null; nicheText: string; tone: string; pain: string; situation: number; situationFor?: string }
+// Первая реплика 4-го вопроса по нише из 3-го: чипы и свой текст по корням. Не совпало, последняя реплика
+// (про подругу: она подходит любой нише). «Другая ситуация» дальше идет по кругу со следующей.
+function situationFor(niche: string): number {
+  const n = niche.toLowerCase()
+  if (/тревог|паник/u.test(n)) return 0
+  if (/выгоран|прокраст|самооцен|самозван|стресс/u.test(n)) return 1
+  if (/детск|ребен|ребён|родител|материн|мам/u.test(n)) return 3
+  return 2
+}
+
 const EMPTY: Answers = { name: '', approaches: [], nicheChip: null, nicheText: '', tone: '', pain: '', situation: 0 }
 // 0 вход, 1-5 вопросы, 6 финал
 type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6
 
 // Вера и ее реплика: стикер слева, пузырь с хвостиком к лицу
-function Vera({ src, h, w, tilt = '', children, delay }: { src: string; h: number; w: number; tilt?: string; children: React.ReactNode; delay: boolean }) {
+function Vera({ src, h, w, tilt = '', children, delay, caption }: { src: string; h: number; w: number; tilt?: string; children: React.ReactNode; delay: boolean; caption?: string }) {
   return (
     <div className="flex items-start gap-3">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt="" aria-hidden="true" width={w} height={h} style={{ height: h, width: w, filter: 'drop-shadow(0 2px 6px rgba(59,42,34,.12))' }} className={`shrink-0 ${tilt}`} />
+      <div className="shrink-0 flex flex-col items-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt="" aria-hidden="true" width={w} height={h} style={{ height: h, width: w, filter: 'drop-shadow(0 2px 6px rgba(59,42,34,.12))' }} className={tilt} />
+        {/* кто она: при первом знакомстве подпись под стикером */}
+        {caption && <p className="mt-1.5 text-[13px] leading-4 text-brand-muted text-center max-w-[110px]">{caption}</p>}
+      </div>
       <motion.div initial={delay ? { opacity: 0, y: 4 } : false} animate={{ opacity: 1, y: 0 }} transition={{ delay: delay ? 0.15 : 0, duration: 0.2 }}
         className="relative mt-3 flex-1 min-w-0 bg-brand-soft border border-brand-border-soft rounded-[20px] px-4 py-3 text-brand-text [overflow-wrap:anywhere]">
         <span aria-hidden="true" className="absolute -left-[7px] top-5 w-3 h-3 rotate-45 bg-brand-soft border-l border-b border-brand-border-soft" />
@@ -72,6 +91,9 @@ export default function ExpressOnboarding() {
   const [a, setA] = useState<Answers>(EMPTY)
   const [ownNiche, setOwnNiche] = useState(false)
   const [limitHint, setLimitHint] = useState(false)
+  // остальные подходы под «Еще»; раскрыт сразу, если выбран кто-то из скрытых (вернулась на шаг)
+  const [showAll, setShowAll] = useState(false)
+  useEffect(() => { if (a.approaches.some(x => !TOP_APPROACHES.includes(x))) setShowAll(true) }, [a.approaches])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [topic, setTopic] = useState('')
@@ -116,6 +138,14 @@ export default function ExpressOnboarding() {
     })
     return () => { active = false }
   }, [router])
+
+  // на 4-й шаг с новой нишей: первая реплика по нише; уже листала для этой ниши, не сбиваем
+  useEffect(() => {
+    if (step !== 4) return
+    const n = (a.nicheText.trim() || a.nicheChip || '')
+    if (a.situationFor !== n) setA(x => ({ ...x, situation: situationFor(n), situationFor: n }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step])
 
   // каждый шаг пишется в sessionStorage
   useEffect(() => {
@@ -280,8 +310,8 @@ export default function ExpressOnboarding() {
   if (step === 0) {
     body = (
       <div>
-        <Vera src="/vera/privet.webp" h={120} w={93} tilt="-rotate-2" delay={!reduce}>
-          <p className="text-[16px] leading-[22px]">Я Вера. Пять коротких вопросов, около минуты. Потом сделаем первый пост твоим голосом</p>
+        <Vera src="/vera/privet.webp" h={120} w={93} tilt="-rotate-2" delay={!reduce} caption="Вера · помогаю вести блог">
+          <p className="text-[16px] leading-[22px]">Привет, я Вера. Пишу посты и карусели твоим голосом. Сначала пять коротких вопросов, это около минуты</p>
         </Vera>
         <button type="button" onClick={() => { if (!moving) go(1) }} className={`mt-8 ${green}`}>Начнем</button>
       </div>
@@ -301,7 +331,7 @@ export default function ExpressOnboarding() {
       <div>
         {title('В каком подходе работаешь?', 'Чтобы не писать то, что противоречит твоему методу')}
         <div className="mt-5 flex flex-wrap gap-2">
-          {APPROACHES.map(x => {
+          {(showAll ? ALL_APPROACHES : TOP_APPROACHES).map(x => {
             const on = a.approaches.includes(x)
             const full = !on && a.approaches.length >= 3
             return (
@@ -316,6 +346,9 @@ export default function ExpressOnboarding() {
               </button>
             )
           })}
+          {!showAll && (
+            <button type="button" aria-expanded={false} onClick={() => setShowAll(true)} className={chip(false)}>Еще</button>
+          )}
         </div>
         {nextBlock()}
       </div>

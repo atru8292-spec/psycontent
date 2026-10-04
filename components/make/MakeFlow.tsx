@@ -331,7 +331,7 @@ export default function MakeFlow() {
           </div>
         )}
         <Composer key={composerKey} firstTime={firstTime} topics={topics} busy={busy} onSubmit={submit} askSampleText={askSampleText} onSampleCleared={() => setAskSampleText(false)}
-          initialText={restoreText || initialTopic || seed} initialFormats={initialFormats} />
+          initialText={initialTopic || restoreText || seed} initialFormats={initialFormats} />
       </div>
   )
 
