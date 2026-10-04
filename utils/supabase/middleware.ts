@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { publicOrigin } from '@/lib/origin'
 
 // Откуда пришла (задача analitika, этап 4): при первом заходе на сайт запоминаем utm и тип реферера
 // в своей cookie psy_src на 30 дней. Только короткие коды в нижнем регистре, никаких адресов.
@@ -82,9 +83,8 @@ export async function updateSession(request: NextRequest) {
 
   if (!user && isProtected) {
     // Незалогиненного на личных страницах отправляем на главную (там вход).
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
-    return NextResponse.redirect(url)
+    // адрес только через publicOrigin: request.nextUrl за nginx дает https://localhost:3001
+    return NextResponse.redirect(`${publicOrigin(request)}/`)
   }
 
   return withSource(request, supabaseResponse)

@@ -1,19 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient } from '@/utils/supabase/server'
-
-function getOrigin(req: Request) {
-  const host = req.headers.get('x-forwarded-host') || req.headers.get('host')
-  const proto = req.headers.get('x-forwarded-proto') || 'http'
-  if (host) return `${proto}://${host}`
-  return new URL(req.url).origin
-}
+import { publicOrigin } from '@/lib/origin'
 
 // Шаг 2 входа через Яндекс. Яндекс вернул сюда ?code=...
 // Мы: меняем код на токен → узнаём email/имя → находим или заводим пользователя
 // в Supabase → выдаём ему сессию в куки → отправляем в кабинет/онбординг.
 export async function GET(req: Request) {
-  const origin = getOrigin(req)
+  const origin = publicOrigin(req)
   const code = new URL(req.url).searchParams.get('code')
   if (!code) return NextResponse.redirect(`${origin}/?error=yandex_no_code`)
 

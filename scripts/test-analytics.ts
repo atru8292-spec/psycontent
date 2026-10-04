@@ -6,6 +6,7 @@ import { isNewSession, SESSION_GAP_MS } from '../lib/track'
 import { computeRisk, statusOf, rhythmDays, habitOf, levelOf, shareCol, type PersonFacts } from '../lib/analytics/definitions'
 import { toCsv, fmtDate } from '../lib/analytics/export'
 import { adminTz } from '../lib/admin'
+import { publicOrigin } from '../lib/origin'
 
 // ---------- санитайзер ----------
 assert.equal(cleanValue('Клиенты бросают терапию'), undefined, 'кириллица не проходит')
@@ -128,6 +129,20 @@ assert.notEqual(statusOf(notGone, computeRisk(notGone, NOW), NOW), 'gone', 'ри
   process.env.ADMIN_TZ = 'Asia/Барнаул-опечатка'
   assert.equal(adminTz(), 'Asia/Barnaul', 'кривой пояс не роняет кабинет')
   process.env.ADMIN_TZ = prev
+}
+
+// ---------- адрес для редиректов за nginx ----------
+{
+  const r = (h: Record<string, string>) => ({ headers: new Headers(h) })
+  const prev = process.env.SITE_URL
+  delete process.env.SITE_URL
+  assert.equal(publicOrigin(r({ host: 'psycont.ru', 'x-forwarded-proto': 'https', 'x-forwarded-host': 'psycont.ru' })), 'https://psycont.ru')
+  assert.equal(publicOrigin(r({ host: 'psycont.ru' })), 'https://psycont.ru', 'без x-forwarded-proto протокол https')
+  assert.equal(publicOrigin(r({ host: 'localhost:3001', 'x-forwarded-proto': 'https' })), 'https://psycont.ru', 'localhost без SITE_URL уходит на psycont.ru')
+  assert.equal(publicOrigin(r({ host: '127.0.0.1:3007' })), 'https://psycont.ru')
+  process.env.SITE_URL = 'http://localhost:3005/'
+  assert.equal(publicOrigin(r({ host: 'localhost:3005' })), 'http://localhost:3005', 'на localhost берем SITE_URL')
+  if (prev === undefined) delete process.env.SITE_URL; else process.env.SITE_URL = prev
 }
 
 console.log('ok: все проверки аналитики')
