@@ -9,9 +9,23 @@ const onest = Onest({
   display: 'swap',
 })
 
+const TITLE = 'PsyCont: посты и рилсы твоим голосом для психологов'
+const DESCRIPTION = 'PsyCont пишет посты, карусели и рилсы так, как ты говоришь с клиентами. Маркетологом становиться не надо. 10 материалов бесплатно.'
+
 export const metadata: Metadata = {
-  title: 'PsyCont, пишет как живой психолог, чтобы блог приводил клиентов',
-  description: 'AI-сервис для психологов: генерация постов, Reels-сценариев и контент-плана в вашем голосе. Звучит как вы, работает лучше.',
+  metadataBase: new URL('https://psycont.ru'),
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    url: 'https://psycont.ru',
+    siteName: 'PsyCont',
+    locale: 'ru_RU',
+    type: 'website',
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'PsyCont, блог без выгорания' }],
+  },
+  twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION, images: ['/og.png'] },
   icons: {
     icon: [{ url: '/brand/psycont-favicon.svg', type: 'image/svg+xml' }, { url: '/brand/psycont-favicon.png', type: 'image/png' }],
     apple: '/brand/psycont-apple-touch-icon.png',
