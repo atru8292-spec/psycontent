@@ -2,6 +2,8 @@
 // Новые поля профиля (миграция 20260930120000_generation_brain.sql) необязательны: пока их нет,
 // работают разумные умолчания из старых полей.
 
+import { toneText } from './tone'
+import { getArchetypeContextFromProfile } from '../archetypes'
 import { buildBaseSettings } from './prompts'
 
 export type StoryLevel = 'personal' | 'work' | 'practice'
@@ -28,6 +30,13 @@ export type AuthorSettings = {
   name: string
   niche: string
   booking: string
+  // поправка «Не совсем» с экрана голоса: ее собственные слова о голосе (в слепке она уже есть, простому пути нужна отдельно)
+  voiceCorrections: string
+  // для простого пути: явный выбор «Эмоции» (calm/live/hot), как автор сама описала манеру в экспрессе,
+  // и факты практики для «как на консультации» и приглашения
+  intensity: string
+  toneVerbal: string
+  practiceFacts: string
 }
 
 const arr = (v: unknown): string => (Array.isArray(v) ? v.filter(Boolean).join(', ') : v ? String(v) : '')
@@ -132,11 +141,13 @@ export function pickSamples(samples: string[], rotation = 0): string[] {
 export function buildAuthorSettings(profile: any, opts?: { rotation?: number }): AuthorSettings {
   const gender = genderOf(profile)
   const disclosure = disclosureOf(profile)
-  const audience = String(profile.audience || '').trim() || clip(String(profile.client_avatar || '').trim(), 160)
+  // «Кто тебя читает» (экран голоса), иначе «Кто твой клиент» и «чем занимается» из профиля практики
+  const audience = String(profile.audience || '').trim()
+    || clip([String(profile.client_avatar || '').trim(), String(profile.client_job || '').trim()].filter(Boolean).join(', '), 200)
   const womenAudience = /женщин|девушк|мам/i.test(audience) && !/мужчин|парн|пар[аы]/i.test(audience)
   const profanity = profile.profanity === 'free'
     ? 'свободно, как автор говорит в жизни; в Instagram со звездочкой в середине слова, в Telegram как у автора в образцах'
-    : profile.profanity === 'light' ? 'точечно, цензура как у автора в образцах' : 'нет'
+    : profile.profanity === 'light' ? 'иногда, точечно, со звездочкой в середине слова' : 'нет' // light в интерфейсе «Иногда, со звездочкой»
   const emotion = ({
     calm: 'спокойно и ровно: без восклицаний и резких слов',
     live: 'живо, как в разговоре: разговорные словечки, изредка восклицание',
@@ -155,6 +166,8 @@ export function buildAuthorSettings(profile: any, opts?: { rotation?: number }):
     audience,
     profanity,
     emotion,
+    tone: toneText(profile),
+    archetype: archetypeLine(profile),
     disclosure_text: DISCLOSURE_TEXT[disclosure],
     approach: approach || 'не указан',
     niche: niche || 'не указана',
@@ -197,7 +210,7 @@ export function buildAuthorSettings(profile: any, opts?: { rotation?: number }):
     baseSettings,
     genderForms,
     address,
-    profanityRule: profanity === 'нет' ? 'не использовать' : profile.profanity === 'free' ? 'автор матерится как в жизни, поэтому в материале мат обязательно есть, один-три раза, там где так сказали бы вслух: злость, шутка, облегчение, усталость; это короткая вспышка внутри живой фразы в момент, где правда бесит, своими словами под ситуацию, а не мат, пришитый к длинному аккуратному риторическому вопросу посреди объяснения; в речи рилса и в репликах слово целиком, как его произносят; в надписи на экране, описании, постах и слайдах для Instagram со звездочкой в середине слова' : 'можно точечно, там где автор злится или шутит, цензура как у автора',
+    profanityRule: profanity === 'нет' ? 'не использовать' : profile.profanity === 'free' ? 'автор матерится как в жизни, поэтому в материале мат обязательно есть, один-три раза, там где так сказали бы вслух: злость, шутка, облегчение, усталость; это короткая вспышка внутри живой фразы в момент, где правда бесит, своими словами под ситуацию, а не мат, пришитый к длинному аккуратному риторическому вопросу посреди объяснения; в речи рилса и в репликах слово целиком, как его произносят; в надписи на экране, описании, постах и слайдах для Instagram со звездочкой в середине слова' : 'можно точечно, там где автор злится или шутит, со звездочкой в середине слова',
     readerGenderRule: womenAudience ? 'о читательнице в женском роде' : 'без родовых окончаний',
     disclosure,
     voiceCore,
@@ -212,7 +225,28 @@ export function buildAuthorSettings(profile: any, opts?: { rotation?: number }):
     name: String(profile.full_name || '').trim().split(/\s+/)[0] || '',
     niche,
     booking: String(profile.booking_info || '').trim(),
+    voiceCorrections: corrections ? clip(corrections, 600) : '',
+    intensity: String(profile.intensity || ''),
+    toneVerbal: clip(String(profile.tone_verbal || '').trim(), 400),
+    practiceFacts: [
+      profile.client_fear ? `Чего клиент боится перед терапией: ${clip(String(profile.client_fear), 300)}` : '',
+      profile.client_tried ? `Что клиент пробовал до терапии: ${clip(String(profile.client_tried), 300)}` : '',
+      profile.client_result ? `Что меняется после работы: ${clip(String(profile.client_result), 300)}` : '',
+    ].filter(Boolean).join('\n'),
   }
+}
+
+// Тест-архетип одной строкой для базовых настроек: имя, как заходит и чего избегать (из блока АВТОРСКИЙ ПОЧЕРК,
+// lib/archetypes.ts). Форматы из блока не берем: формат выбирает человек, а длинный блок спорил бы с ходом ПЖ.
+export function archetypeLine(profile: any): string {
+  let ctx = ''
+  try { ctx = getArchetypeContextFromProfile(profile) } catch { return '' }
+  if (!ctx) return ''
+  const lines = ctx.split('\n')
+  const name = (lines[0] || '').replace(/^АВТОРСКИЙ ПОЧЕРК:\s*/u, '').trim()
+  const pick = (re: RegExp) => (lines.find(l => re.test(l)) || '').replace(/^-\s*[^:]+:\s*/u, '').trim()
+  const hook = pick(/^-\s*Как заходишь/u), avoid = pick(/^-\s*Чего избегать/u)
+  return [name, hook, avoid ? `избегать: ${avoid}` : ''].filter(Boolean).join('; ')
 }
 
 // До трех историй, подходящих к теме (совпадение слов), или все, если их мало.

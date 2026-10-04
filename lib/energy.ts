@@ -197,7 +197,8 @@ export async function logAiUsage(userId: string, operation: string, model: strin
 // ───────────────────────────────────────────────────────────────────────────
 // canConsume — РЕШЕНИЕ «можно ли», БЕЗ списания (вызывать ДО работы).
 // ───────────────────────────────────────────────────────────────────────────
-export async function canConsume(userId: string, operation: string): Promise<Decision> {
+// units: сколько текстов сразу (набор форматов из одной мысли, 04.10). По умолчанию 1, поведение прежнее.
+export async function canConsume(userId: string, operation: string, units = 1): Promise<Decision> {
   const db = admin()
   const op = OPERATIONS[operation]
   if (!op) return { ok: false, mode: 'blocked', operation, cost: 0, reason: 'unknown_operation', message: 'Неизвестная операция' }
@@ -209,6 +210,14 @@ export async function canConsume(userId: string, operation: string): Promise<Dec
     const count = await textCount(db, userId)
     if (cap !== null && cap !== undefined && count >= cap) {
       return { ok: false, mode: 'text', operation, cost: 0, reason: 'text_limit', message: 'Достигнут предел генераций. Он обновится в начале месяца.' }
+    }
+    if (cap !== null && cap !== undefined && count + units > cap) {
+      // число показываем только на бесплатном (там «N из 10» и так видно); у платных потолок скрытый
+      const left = cap - count
+      const message = plan.code === 'free'
+        ? `В этом месяце осталось текстов: ${left}. Выбери столько форматов или меньше.`
+        : 'Столько форматов сразу сейчас не получится, выбери поменьше.'
+      return { ok: false, mode: 'text', operation, cost: 0, reason: 'text_limit_partial', message }
     }
     return { ok: true, mode: 'text', operation, cost: 0 }
   }

@@ -246,9 +246,9 @@ ${approachGuidance}
 
 === ГОЛОС И ХАРАКТЕР ===
 Тональность (0=левый полюс, 100=правый):
-- Формальный ↔ Разговорный: ${profile.tone_formal ?? 50}/100
-- Серьезный ↔ С юмором: ${profile.tone_serious ?? 50}/100
-- Осторожный ↔ Прямой: ${profile.tone_cautious ?? 50}/100
+- Разговорный ↔ Формальный: ${profile.tone_formal ?? 50}/100
+- С юмором ↔ Серьезный: ${profile.tone_serious ?? 50}/100
+- Прямой ↔ Осторожный: ${profile.tone_cautious ?? 50}/100
 Как разговаривает с клиентами: ${profile.tone_verbal || 'не указано'}
 Ценности: ${arr(profile.values)}
 Антиценности (что бесит): ${arr(profile.anti_values)}

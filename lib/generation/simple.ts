@@ -151,7 +151,9 @@ async function cutToLength(ctx: GenContext, text: string, maxWords: number): Pro
   }
 }
 
-// Конец описания под рилсом и каруселью: кто автор и один мягкий призыв, по кругу (запись примерно раз в четыре).
+// Конец описания под рилсом и каруселью: кто автор и один мягкий призыв, по кругу.
+// Рилс и карусель живут в Instagram, а там на консультацию не зовем (запрет рекламы в РФ, 04.10):
+// приглашение записаться только в Telegram (смысл priglashenie в post_tg).
 export function captionTail(ctx: GenContext, format: FormatCode): string {
   if (!isReels(format) && format !== 'carousel') return ''
   const s = ctx.settings
@@ -159,7 +161,6 @@ export function captionTail(ctx: GenContext, format: FormatCode): string {
     'предложи сохранить или отправить тому, кому это нужно',
     'предложи подписаться, если хочется еще такого, и одной фразой скажи, о чем твой блог',
     'предложи написать в комментариях одно слово или свой пункт',
-    s.booking ? `позови на консультацию, как это устроено у автора: ${s.booking}` : 'предложи подписаться, если хочется еще такого',
   ]
   const who = [s.name ? `тебя зовут ${s.name}` : '', 'ты психолог', s.niche ? `работаешь с темой «${s.niche}» (скажи своими словами, коротко, как говоришь вслух)` : ''].filter(Boolean).join(', ')
   return `Закончи описание (текст после «Подпись:») двумя короткими строками от себя. Первая: кто ты, просто и по-человечески: ${who}. Вторая: один мягкий призыв: ${ctas[(ctx.memory.count || 0) % ctas.length]}.`
@@ -175,11 +176,12 @@ export async function simpleWrite(ctx: GenContext, req: GenRequest): Promise<{ t
     ? pickExamples(format, intent, opts)
     : pickExamples(format === 'carousel' ? 'reels_spisok' : 'reels_monolog', intent, { ...opts, count: 2 })
   // h2: вместо банка примеров по формату живые тексты целиком, подобранные по голосу автора
-  const voiceOpts = { allowMat: opts.allowMat, hot: /на эмоциях/u.test(s.baseSettings), calm: /спокойно и ровно/u.test(s.baseSettings), rotation: ctx.memory.count || 0 }
+  // hot и calm по явному выбору «Эмоции», а не по тексту настроек: переформулировка не сломает подбор примеров
+  const voiceOpts = { allowMat: opts.allowMat, hot: s.intensity === 'hot', calm: s.intensity === 'calm', rotation: ctx.memory.count || 0 }
   const liveExamples = hyps.has('zh') ? liveExamplesText(pickLiveExamples(format, voiceOpts))
     : hyps.has('h2')
     ? voiceExamplesText(pickVoiceExamples(format, {
-      allowMat: opts.allowMat, hot: /на эмоциях/u.test(s.baseSettings), calm: /спокойно и ровно/u.test(s.baseSettings), rotation: ctx.memory.count || 0,
+      allowMat: opts.allowMat, hot: s.intensity === 'hot', calm: s.intensity === 'calm', rotation: ctx.memory.count || 0,
     }))
     : examplesText(examples)
   // Материал автора: одна вещь на материал, по кругу (фразы клиентов, позиция, истории). Прогон 01.10: когда давали
@@ -196,15 +198,26 @@ export async function simpleWrite(ctx: GenContext, req: GenRequest): Promise<{ t
     s.position ? `Позиция автора: ${s.position}` : '',
     stories ? `Истории автора:\n${stories}` : '',
   ].filter(Boolean)
+  // Свои фразы автора (фирменные обороты и «что повторяешь клиентам»), кроме тех, что были в последних материалах
+  const used = new Set((ctx.memory.usedSignaturePhrases || []).map(x => x.toLowerCase()))
+  const ownPhrases = s.signatures.filter(x => !used.has(x.toLowerCase())).slice(0, 4)
+  // Для «как это на консультации» и приглашения: чего клиент боится, что пробовал и что меняется (профиль практики)
+  const practice = ['kak_v_terapii', 'priglashenie'].includes(intent) ? s.practiceFacts : ''
   const material = ownStory && stories ? `Истории автора:\n${stories}`
     : [s.clientPhrases ? `Фразы клиентов (возьми одну, если подходит): ${s.clientPhrases}` : '',
+       ownPhrases.length ? `Свои фразы автора (одну можно, если ложится сама): ${ownPhrases.map(x => `«${x}»`).join(', ')}` : '',
+       practice,
        extra.length ? extra[(ctx.memory.count || 0) % extra.length] : ''].filter(Boolean).join('\n') || 'нет'
   // h6, h7: потолок речи по целым живым транскриптам того же вида
   const reelMax = hyps.has('h6') || hyps.has('h7') || hyps.has('zh') ? liveReelsMaxWords(format) : reelsMaxWords(format)
   const user = fill(PP_USER, {
     live_examples: liveExamples,
     samples: s.samples.slice(0, 2).map((x, i) => `<текст ${i + 1}>\n${x}\n</текст ${i + 1}>`).join('\n') || 'нет',
-    base_settings: s.baseSettings,
+    // простой путь слепок не берет (короткий промпт выиграл сравнение), но ее поправку о голосе берет всегда (8а, 04.10)
+    // в Instagram «как ко мне попасть» не даем: звать на консультацию там нельзя (запрет рекламы), только в Telegram
+    base_settings: [format === 'post_tg' ? s.baseSettings : s.baseSettings.replace(/^Как ко мне попасть:.*\n?/mu, ''),
+      s.toneVerbal ? `Как автор сама описала свою манеру: ${s.toneVerbal}` : '',
+      s.voiceCorrections ? `Автор сама сказала про свой голос: ${s.voiceCorrections}` : ''].filter(Boolean).join('\n'),
     profanity_rule: s.profanityRule,
     gender_forms: s.genderForms,
     address: s.address,
@@ -218,6 +231,11 @@ export async function simpleWrite(ctx: GenContext, req: GenRequest): Promise<{ t
     skeleton: hyps.has('zh') ? moveText(chooseMove(PZH_MOVES, format, intent, ctx.memory.count || 0)) : chooseSkeleton(ctx, intent, format),
     reels_rule: isReels(format) ? hypReelsRule(fill(PP_REELS, { max_words: reelMax }), hyps, reelMax) : '',
     caption_tail: captionTail(ctx, format),
+    core_block: req.coreBlock,
+    neighbors: req.neighbors,
+    // обучение на правках и «Не похоже» доходит и в простой путь (8а, 04.10; раньше только в полную цепочку)
+    edit_pairs: ctx.editPairs,
+    feedback_reasons: (ctx.memory.feedbackReasons || []).slice(0, 4).join('; '),
   })
   const text = await callModel({
     system: hyps.has('zh') ? PZH_SYSTEM : hypSystem(PP_SYSTEM, format, hyps), user, effort: 'medium', verbosity: 'medium', maxTokens: 8000, ...hypCall(hyps),

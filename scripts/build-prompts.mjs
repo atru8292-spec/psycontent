@@ -78,6 +78,8 @@ const p2p = find('П2п')
 const pp = find('ПП.')
 const pn = find('ПН.')
 const pzh = find('ПЖ.')
+const ym = find('ЯМ.')
+const yp = find('ЯП.')
 const moves = find('Ходы ПЖ')
 const buttons = find('Кнопки')
 
@@ -138,6 +140,11 @@ export const PP_REELS = ${str(pick(pp, 'reels'))}
 
 export const PZH_SYSTEM = ${str(pick(pzh, 'system'))}
 export const PZH_MOVES: Record<string, string> = ${obj(cards(moves))}
+
+export const YM_SYSTEM = ${str(pick(ym, 'system'))}
+export const YM_USER = ${str(pick(ym, 'user'))}
+export const YP_SYSTEM = ${str(pick(yp, 'system'))}
+export const YP_USER = ${str(pick(yp, 'user'))}
 
 export const PN_SYSTEM = ${str(pick(pn, 'system'))}
 export const PN_USER = ${str(pick(pn, 'user'))}

@@ -11,7 +11,7 @@ export const REELS_FORMATS = ['reels_monolog', 'reels_otvet', 'reels_spisok', 'r
 export const ALL_FORMATS: FormatCode[] = ['post', 'post_tg', 'carousel', ...REELS_FORMATS, 'stories'];
 export const isReels = (f: string) => f === 'reels_auto' || (REELS_FORMATS as readonly string[]).includes(f);
 // Служебные метки формата в начале строки: их не считаем текстом (зачины, двоеточия, рубленые фразы).
-const LABELS = 'Слайд\\s*\\d+|Экран\\s*\\d+|Текст на экране|Крупно на экране|Итог на схеме|Речь|Подпись|Персонажи|Обложка|Кадр|Рисую|[АБAB](?:\\s*\\([^)\\n]{1,40}\\))?';
+const LABELS = 'Слайд\\s*\\d+|Экран\\s*\\d+|Текст на экране|Крупно на экране|Итог на схеме|Речь|Подпись|Персонажи|Обложка|Кадр|Рисую|Снять|Надпись|Стикер|Что делать с ответами|[АБAB](?:\\s*\\([^)\\n]{1,40}\\))?';
 export const LABEL_RE = new RegExp(`^\\s*(?:${LABELS})\\s*[:.]\\s*`, 'iu');
 export type GuardFinding = { rule: string; quote: string };
 export type GuardResult = { text: string; findings: GuardFinding[]; metrics: Record<string, number | boolean> };

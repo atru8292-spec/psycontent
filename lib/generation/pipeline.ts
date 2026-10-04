@@ -54,6 +54,8 @@ export type GenRequest = {
   intent?: string | null          // точный смысл, если выбран
   intentChoices?: string[] | null // смыслы кнопки «Что дать читателю»
   userDetail?: string | null
+  coreBlock?: string | null       // ядро мысли для этого формата (group.ts coreBlockFor), набор из одной мысли
+  neighbors?: string | null       // что делают соседние форматы набора, «не начинай так же»
 }
 
 const LENGTH_LIMIT: Record<string, number> = { korotko: 400, sredne: 900, dlinno: 1800 }
@@ -139,6 +141,8 @@ export function materialFromPlan(ctx: GenContext, plan: Plan, req: GenRequest): 
       parts.push(`Позиция психолога: ${s.position}`)
     }
   }
+  // как на консультации и приглашение: чего клиент боится, что пробовал и что меняется (профиль практики, 8а)
+  if (s.practiceFacts && [plan.intent, req.intent].some(i => i === 'kak_v_terapii' || i === 'priglashenie')) parts.push(s.practiceFacts)
   return parts.join('\n\n')
 }
 
@@ -166,6 +170,8 @@ export async function runText(ctx: GenContext, plan: Plan, req: GenRequest, rewr
     feedback_reasons: mv.feedback_reasons,
     rewrite_note: rewriteNote,
     topic_for_text: plan.topic_for_text,
+    core_block: req.coreBlock,
+    neighbors: req.neighbors,
     edit_pairs: ctx.editPairs,
     live_examples: examplesText(examplesFor(ctx, plan, req.format)),
   })

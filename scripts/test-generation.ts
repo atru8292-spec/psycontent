@@ -11,6 +11,9 @@ import { applyCuts } from '../lib/generation/simple'
 import { pickLiveExamples, chooseMove } from '../lib/generation/hypotheses'
 import { guard } from '../lib/generation/text-guard'
 import * as GEN from '../lib/generation/prompts.generated'
+import { normalizeCore } from '../lib/generation/core'
+import { coreBlockFor, neighborsFor, checkSet, intentForFormat, adPhrases, stripAds } from '../lib/generation/group'
+import { captionTail } from '../lib/generation/simple'
 
 process.env.OPENAI_API_KEY = 'test'
 process.env.GENERATION_CANDIDATES = '1' // цепочка ниже проверяется с одним черновиком; выбор из двух проверен отдельно в конце
@@ -191,6 +194,58 @@ const req = { topic: 'тревога', format: 'post' as const, intentChoices: [
   const gk = guard(kar, { format: 'carousel' }).findings.map(f => f.rule)
   assert.ok(!gk.includes('dvoetochiya') && !gk.includes('dezhurnyy_final') && !gk.includes('rublenye'), `карусель: ложные находки ${gk}`)
   console.log('ok: карусель')
+
+  // одна мысль в несколько форматов (задача sdelat-i-brend, раздел 4)
+  const core = normalizeCore({
+    thought: 'Бросают терапию на третьей встрече, когда становится по-настоящему страшно',
+    who: 'человек, который уже был у психолога пару раз', scene: 'Вечер перед третьей встречей, пишет «заболела, перенесем»',
+    mechanism: 'Первые встречи держатся на облегчении. К третьей подходишь к тому, о чем молчал.',
+    others_say: 'Значит, психолог не мой', distinction: 'Страшно и не подходит это разные вещи', step: 'Скажи на встрече, что хотелось отменить',
+    quote: 'Хочется сбежать именно там, где начинается работа', author_detail: '', flags: ['нет'], extra: 'x',
+  }, 'mehanizm')
+  assert.equal(core.intent, 'mehanizm')
+  assert.ok(!('extra' in core), 'ядро: лишние поля отброшены')
+  assert.equal(normalizeCore({ thought: 'а', quote: 'раз два три четыре пять шесть семь восемь девять десять одиннадцать двенадцать тринадцать' }, 'x').quote, '', 'ядро: цитата длиннее 12 слов пустая')
+  const bReels = coreBlockFor(core, 'reels_monolog'), bCar = coreBlockFor(core, 'carousel'), bTg = coreBlockFor(core, 'post_tg'), bPost = coreBlockFor(core, 'post')
+  assert.ok(bReels.includes('Сцена:') && bReels.includes('Фраза для цитаты') && !bReels.includes('Шаг или вопрос'), 'ядро: рилс берет сцену и цитату, без шага')
+  assert.ok(bCar.includes('Шаг или вопрос') && !bCar.includes('Сцена:'), 'ядро: карусель берет шаг, без сцены')
+  assert.ok(bPost.includes('личного не добавляй'), 'ядро: без детали автора пост строится без личного')
+  assert.ok(bPost.includes('без цен') && !bTg.includes('без цен'), 'ядро: запрет рекламы только в Instagram')
+  assert.ok(neighborsFor(['reels_monolog', 'carousel', 'post'], 'post').includes('Карусель') && !neighborsFor(['reels_monolog', 'post'], 'post').includes('Пост в Instagram'), 'соседи: без себя')
+  assert.equal(intentForFormat('priglashenie', 'post'), 'kak_v_terapii', 'в Instagram на консультацию не зовем')
+  assert.equal(intentForFormat('priglashenie', 'post_tg'), 'priglashenie', 'в Telegram звать можно')
+  // промпт простого пути получает ядро и соседей
+  const ppUser = fill(GEN.PP_USER, { core_block: bReels, neighbors: 'Карусель: ...', topic: 'т' })
+  assert.ok(ppUser.includes('<ядро_мысли') && ppUser.includes('<соседи'), 'ПП: блоки ядра и соседей')
+  assert.ok(!fill(GEN.PP_USER, { topic: 'т' }).includes('<ядро_мысли'), 'ПП: без ядра блока нет')
+  assert.ok(fill(P2_USER, { core_block: bCar, topic_for_text: 'т' }).includes('<ядро_мысли'), 'П2: блок ядра')
+  // проверка набора: повтор фразы и первой строки в позднем формате, цитата может повторяться, реклама в Instagram
+  const set = checkSet([
+    { format: 'reels_monolog', text: 'Текст на экране: третья встреча\nВечером ты пишешь «заболела». Первые встречи держатся на облегчении. Хочется сбежать именно там, где начинается работа.' },
+    { format: 'carousel', text: 'Слайд 1: Вечером ты пишешь «заболела».\nСлайд 2: Первые встречи держатся на облегчении.\nСлайд 3: Хочется сбежать именно там, где начинается работа.' },
+    { format: 'post', text: 'Третья встреча самая трудная.\n\nПервая консультация 3000 ₽, записывайтесь в директ.' },
+    { format: 'post_tg', text: 'Пишу как есть. Запись на консультацию в личке.' },
+  ], core.quote)
+  const car = set.find(x => x.format === 'carousel')
+  assert.ok(car && car.phrases.some(p => p.includes('облегчении')), 'набор: повтор фразы в карусели найден')
+  assert.ok(!car!.phrases.some(p => p.includes('сбежать')), 'набор: цитата повторяться может')
+  assert.ok(!set.some(x => x.index === 0), 'набор: первый материал не переписываем')
+  assert.equal(car!.index, 1, 'набор: проблема привязана к номеру материала')
+  const same = checkSet([{ format: 'post', text: 'Запись на консультацию открыта, пиши мне в директ.' }, { format: 'post', text: 'Первые встречи держатся на облегчении и надежде.' }], '')
+  assert.ok(same.every(x => x.index === 0), 'набор: реклама старого материала не приписывается новому того же формата')
+  assert.ok(checkSet([{ format: 'post', text: 'Первые встречи держатся на облегчении и надежде.' }, { format: 'post', text: 'Первые встречи держатся на облегчении и надежде.' }], '').some(x => x.index === 1), 'набор: повтор между двумя постами ловится')
+  assert.ok(set.find(x => x.format === 'post')?.phrases.some(p => p.includes('₽')), 'набор: цена в Instagram найдена')
+  assert.ok(!set.some(x => x.format === 'post_tg'), 'набор: в Telegram позвать можно')
+  assert.equal(adPhrases('Не успеть все это нормально. Если отзывается, напиши. Дай себе скидку на усталость. Сделай запись на диктофон. Я веду 3 рубрики в блоге. Я получила отзыв от подруги.').length, 0, 'реклама: обычные фразы психолога не реклама')
+  for (const ad of ['Запишись на консультацию по ссылке в профиле.', 'Пиши мне в директ слово «хочу».', 'Консультация стоит 5000.', 'Первая встреча 3000 ₽.', 'Скидка 20% до пятницы.', 'Успей, осталось 2 места.', 'Отзывы клиентов в закрепе.'])
+    assert.equal(adPhrases(ad).length, 1, `реклама: «${ad}» поймана`)
+  // описание под рилсом без приглашения на консультацию
+  const ctxB = { userId: 'u', settings: { ...buildAuthorSettings({ ...profile, booking: 'пишите в директ' }), booking: 'пишите в директ' }, memory: { count: 3 } } as any
+  for (let n = 0; n < 4; n++) assert.ok(!/консультац/u.test(captionTail({ ...ctxB, memory: { count: n } }, 'reels_monolog')), 'описание рилса без записи на консультацию')
+  const stripped = stripAds('post', 'Третья встреча самая трудная.\n\nТак бывает почти у всех. Запишись на консультацию по ссылке в профиле.')
+  assert.ok(!/Запишись/u.test(stripped) && /Третья встреча/u.test(stripped), 'реклама в Instagram вырезана кодом')
+  assert.ok(/Запишись/u.test(stripAds('post_tg', 'Пишу как есть. Запишись на консультацию по ссылке.')), 'в Telegram приглашение остается')
+  console.log('ok: одна мысль в несколько форматов')
 
   console.log('ok: все проверки')
 })().catch(e => { console.error('FAIL', e); process.exit(1) })
