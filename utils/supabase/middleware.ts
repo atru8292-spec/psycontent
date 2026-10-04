@@ -68,8 +68,11 @@ export async function updateSession(request: NextRequest) {
 
   // Защищаем только личные разделы. Лендинг и обменник входа доступны всем.
   const path = request.nextUrl.pathname
-  // Кабинет /admin без входа отвечает 404, как и для чужой почты (app/admin/layout.tsx), чтобы раздел не светился
-  if (!user && path.startsWith('/admin')) {
+  // Кабинет /admin без входа и для чужой почты отвечает 404, чтобы раздел не светился. Это первый слой;
+  // дальше requireAdmin в каждой странице и adminOrNull у данных (lib/admin.ts, lib/analytics/admin-data.ts)
+  const adminList = (process.env.ADMIN_EMAILS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+  const isAdminUser = !!user?.email && !!user.email_confirmed_at && adminList.includes(user.email.toLowerCase())
+  if (path.startsWith('/admin') && !isAdminUser) {
     const url = request.nextUrl.clone()
     url.pathname = '/admin-not-found'
     return NextResponse.rewrite(url, { status: 404 })
