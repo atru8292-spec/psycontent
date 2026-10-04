@@ -1,5 +1,7 @@
 'use client'
 
+import { screenOf } from '@/lib/analytics/events'
+import { useFeatureOpen, useTrackOnce } from '@/lib/analytics/hooks'
 import { useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 
@@ -14,6 +16,7 @@ export function ServerErrorNotice({
   cooldownSec?: number
 }) {
   const [left, setLeft] = useState(cooldownSec)
+  useTrackOnce('error_shown', { code: 'server_error', screen: typeof window !== 'undefined' ? screenOf(location.pathname) : 'other' })
 
   useEffect(() => {
     if (left <= 0) return

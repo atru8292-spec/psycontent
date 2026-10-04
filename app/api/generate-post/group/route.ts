@@ -25,6 +25,7 @@ import {
 } from '@/lib/generation/group'
 import { finalNet, type FormatCode } from '@/lib/generation/text-guard'
 import { savePost } from '../new-pipeline'
+import { serverTrack } from '@/lib/track-server'
 import {
   fetchTelegramPost, isInstagramUrl, isTelegramUrl, parseSample, sampleBlock, sourceLabel, overlap, sentencesWithChains, sentencesWithTrigrams,
   type SampleInput, type SampleSkeleton,
@@ -65,6 +66,13 @@ export async function POST(req: NextRequest) {
   const editedRaw = typeof body?.editedText === 'string' ? body.editedText.trim() : ''
   const editedText = editedRaw ? editedRaw.slice(0, 8000) : null
 
+  // замеры (lib/analytics/events.ts): коды форматов через запятую и режим запуска, без текстов
+  const fmtList = formats.join(',')
+  const fail = (code: string, status: number, extra: Record<string, unknown> = {}) => {
+    serverTrack(userId, 'make_error', { code, format: fmtList })
+    return NextResponse.json({ error: code, ...extra }, { status })
+  }
+
   // «Сделать так же»: ссылка (только публичный Telegram), текст поста или скрины (data URL, до 10)
   let sample: SampleInput | null = null
   const sb = body?.sample
@@ -75,11 +83,11 @@ export async function POST(req: NextRequest) {
       const images = sb.images.filter((x: unknown) => typeof x === 'string' && /^data:image\/(jpeg|png|webp);base64,/.test(x) && x.length < 3_000_000).slice(0, 10)
       if (images.length) sample = { kind: 'screens', images }
     }
-    if (!sample) return NextResponse.json({ error: 'sample_failed' }, { status: 422 })
+    if (!sample) return fail('sample_failed', 422)
   }
   // ссылка Instagram не открывается вовсе: отвечаем сразу, без внешних запросов
   if (sample?.kind === 'link' && (isInstagramUrl(sample.url) || !isTelegramUrl(sample.url)))
-    return NextResponse.json({ error: isInstagramUrl(sample.url) ? 'sample_instagram' : 'sample_failed' }, { status: 422 })
+    return fail(isInstagramUrl(sample.url) ? 'sample_instagram' : 'sample_failed', 422)
 
   const db = admin()
   const profileRes = await db.from('onboarding_profiles').select('*').eq('user_id', userId).single()
@@ -117,16 +125,24 @@ export async function POST(req: NextRequest) {
   const decision = await canConsume(userId, OP, formats.length)
   if (!decision.ok) {
     await recordRefusal(userId, OP)
-    return NextResponse.json({ error: decision.reason || 'limit', message: decision.message }, { status: 429 })
+    return fail(decision.reason || 'limit', 429, { message: decision.message })
   }
 
   // оригинал только в памяти этого запроса; на t.me идем только после флага и проверки предела
   let original = ''
   if (sample?.kind === 'link') {
     const tg = await fetchTelegramPost(sample.url)
-    if ('error' in tg) return NextResponse.json({ error: tg.error === 'closed' ? 'sample_closed' : 'sample_failed' }, { status: 422 })
+    if ('error' in tg) return fail(tg.error === 'closed' ? 'sample_closed' : 'sample_failed', 422)
     original = tg.text
   } else if (sample?.kind === 'text') original = sample.text
+
+  // запуск: «еще формат» пишем как правку материала, остальное как make_start с режимом
+  const t0 = Date.now()
+  if (fromPostId) serverTrack(userId, 'material_adjust', { action: 'more_format', format: fmtList })
+  serverTrack(userId, 'make_start', {
+    formats: fmtList, n: formats.length, voice: body?.voice === true,
+    ...(fromPostId ? {} : { mode: sample ? 'same' : body?.mode === 'topic' ? 'topic' : 'thought' }),
+  })
 
   const enc = new TextEncoder()
   const stream = new ReadableStream({
@@ -146,6 +162,7 @@ export async function POST(req: NextRequest) {
           const p = await parseSample(ctx, { kind: sample.kind, original, images: sample.kind === 'screens' ? sample.images : undefined })
           if ('error' in p) {
             await recordFailure(userId, OP)
+            serverTrack(userId, 'make_error', { code: p.error === 'private' ? 'sample_private' : 'sample_empty', format: fmtList })
             send({ type: 'error', code: p.error === 'private' ? 'sample_private' : 'sample_empty', error: 'Не получилось разобрать пост' })
             return
           }
@@ -215,6 +232,7 @@ export async function POST(req: NextRequest) {
             return { f, ok: true as const, req: greq, text, plan, version, draftText }
           } catch (e: any) {
             console.error('group format failed:', f, e?.message || e)
+            serverTrack(userId, 'make_error', { code: 'format_failed', format: f })
             return { f, ok: false as const }
           }
         }))
@@ -272,10 +290,12 @@ export async function POST(req: NextRequest) {
             overlap: leftovers.get(okItems.indexOf(r)) || [],
           })
         }
+        serverTrack(userId, 'make_done', { formats: fmtList, ms: Date.now() - t0, n_ok: results.filter(x => x.ok).length })
         send({ type: 'done', groupId })
       } catch (e: any) {
         console.error('group generation error:', e?.message || e)
         await recordFailure(userId, OP).catch(() => {})
+        serverTrack(userId, 'make_error', { code: 'server', format: fmtList })
         send({ type: 'error', error: 'Не получилось собрать мысль. Попробуй еще раз' })
       } finally {
         clearInterval(ping)

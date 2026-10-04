@@ -6,6 +6,7 @@
 // на выбор, автопереход с уважением, передышка с проблеском результата, момент сборки
 // почерка в финале. Мобилка: h-[100dvh], вопрос и кнопка видны без прокрутки.
 
+import { useFeatureOpen, useTrackOnce } from '@/lib/analytics/hooks'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -67,6 +68,7 @@ function BackBtn({ onClick, className = '' }: { onClick: () => void; className?:
 
 export default function ArchetypeTest() {
   const router = useRouter()
+  useFeatureOpen('archetype_test')
   const [phase, setPhase] = useState<Phase>('intro')
   const [sIdx, setSIdx] = useState(0)
   const [oIdx, setOIdx] = useState(0)

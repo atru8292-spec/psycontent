@@ -1,5 +1,7 @@
 'use client'
 
+import { track } from '@/lib/track'
+import { normFormat } from '@/lib/analytics/events'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -168,6 +170,7 @@ function CarouselGeneratorContent() {
 
   const copySlide = (index: number) => {
     navigator.clipboard.writeText(slides[index].text)
+    track('material_take', { how: 'copy_text', format: 'carousel' })
     setCopied(index)
     setTimeout(() => setCopied(null), 2000)
   }
@@ -175,6 +178,7 @@ function CarouselGeneratorContent() {
   const copyAll = () => {
     const allText = slides.map((s, i) => `[Слайд ${i + 1}]\n${s.text}`).join('\n\n')
     navigator.clipboard.writeText(allText)
+    track('material_take', { how: 'copy', format: 'carousel' })
     setCopiedAll(true)
     setTimeout(() => setCopiedAll(false), 2000)
   }

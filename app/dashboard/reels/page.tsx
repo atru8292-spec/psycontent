@@ -1,5 +1,7 @@
 'use client'
 
+import { track } from '@/lib/track'
+import { normFormat } from '@/lib/analytics/events'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -122,6 +124,7 @@ export default function ReelsGenerator() {
   const handleCopy = () => {
     if (result) {
       navigator.clipboard.writeText(result)
+      track('material_take', { how: 'copy', format: 'reels' })
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }

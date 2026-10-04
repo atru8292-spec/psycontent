@@ -1,5 +1,6 @@
 'use client'
 
+import { useFeatureOpen, useTrackOnce } from '@/lib/analytics/hooks'
 import { Sparkles } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -19,6 +20,7 @@ export function LimitNotice({
   actionHref?: string
 }) {
   const router = useRouter()
+  useTrackOnce('paywall_view', { where: 'limit_notice' })
   return (
     <div className="rounded-3xl bg-brand-soft border border-brand-border-soft p-5 sm:p-6 flex items-start gap-3">
       <div className="w-10 h-10 rounded-2xl bg-brand-card flex items-center justify-center shrink-0">

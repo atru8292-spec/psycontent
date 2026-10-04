@@ -5,6 +5,9 @@
 // в «моем оформлении». Слайды листаются как в ленте (рамка 4:5), тап по слайду открывает правку под ним.
 // Сохранение: на телефоне «Сохранить в Фото» (share с файлами), на компьютере архив и по одному.
 
+import { useFeatureOpen, useTrackOnce } from '@/lib/analytics/hooks'
+import { track as trackEvent } from '@/lib/track'
+import { normFormat } from '@/lib/analytics/events'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Loader2, Check, Copy, Download, X, Plus, Shuffle, ChevronDown, ChevronLeft, ChevronRight, Scissors, Type, ImageDown } from 'lucide-react'
 import { parseCarouselText } from '@/lib/carousel/parse'
@@ -58,6 +61,7 @@ export const initialsOf = (name: string) => name.trim().split(/\s+/).slice(0, 2)
 const isTouch = () => typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
 
 export default function CarouselDesigner({ postId, text, onTextChange }: { postId: string; text: string; onTextChange: (t: string) => void }) {
+  useFeatureOpen('carousel_design')
   const [design, setDesign] = useState<DesignView | null>(null)
   const [loaded, setLoaded] = useState(false)
   const [busy, setBusy] = useState<string | null>(null) // что сейчас делаем, для подписи на кнопке
@@ -286,6 +290,7 @@ export default function CarouselDesigner({ postId, text, onTextChange }: { postI
   const copyCaption = () => {
     if (!caption) return
     navigator.clipboard.writeText(caption)
+    trackEvent('material_take', { how: 'copy_caption', format: 'carousel', post: postId })
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }

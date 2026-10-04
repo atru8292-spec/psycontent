@@ -5,6 +5,7 @@
 // Плашка формата открывает этот формат в результате «Сделать» (/dashboard/make?post=<id>&f=<формат>).
 // Хуки не показываем (отфильтрованы в запросе).
 
+import { useFeatureOpen, useTrackOnce } from '@/lib/analytics/hooks'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, Check, Loader2 } from 'lucide-react'
@@ -44,6 +45,7 @@ export default function MyTexts() {
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<Status>('all')
   const [fmt, setFmt] = useState<MakeFormat | null>(null)
+  useFeatureOpen('texts')
 
   useEffect(() => {
     let on = true

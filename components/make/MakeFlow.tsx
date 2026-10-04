@@ -5,6 +5,8 @@
 // первый готовый формат открывается сразу, остальные догружаются во вкладках. Старые материалы
 // открываются по ?post=<id> (из «Моих текстов»), вся мысль целиком, если у материала есть группа.
 
+import { track } from '@/lib/track'
+import { normFormat } from '@/lib/analytics/events'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, Check, Loader2, X, Film, Layers, AlignLeft, Send, Smartphone } from 'lucide-react'
@@ -240,6 +242,7 @@ export default function MakeFlow() {
       if (e?.name === 'AbortError') return // человек ушел «Назад»: сервер доделает и сохранит сам
       const msg = friendly(e?.code || (/fetch|network|load failed/i.test(String(e?.message)) ? 'network' : ''), e?.msg)
       // готовые форматы уже на экране и в базе: при сбое после них не уходим в поле, помечаем недописанные
+      track('error_shown', { code: String(e?.code || 'server'), screen: 'make' })
       if (!append && !opened) {
         if (['sample_closed', 'sample_failed', 'sample_empty'].includes(String(e?.code || ''))) setAskSampleText(true)
         setView('compose'); setError(msg)
@@ -257,7 +260,7 @@ export default function MakeFlow() {
     if (s.sozhe) { submitSample(s); return }
     const topic = s.text.length > 120 ? s.text.slice(0, 120).replace(/\s+\S*$/, '') : s.text
     setThought(topic)
-    runGroup({ topic, userDetail: s.text, goal: s.goal }, s.formats, false)
+    runGroup({ topic, userDetail: s.text, goal: s.goal, mode: s.mode, voice: s.voice }, s.formats, false)
   }
 
   // «Сделать так же»: скрины уменьшаем в браузере (до 1280 px, JPEG), оригинал на сервере только в памяти запроса
@@ -296,6 +299,7 @@ export default function MakeFlow() {
 
   const copyAll = () => {
     const all = items.filter(x => x.status === 'ready').map(x => `${formatLabel(x.format)}\n\n${x.text}`).join('\n\n* * *\n\n')
+    for (const x of items) if (x.status === 'ready') track('material_take', { how: 'copy', format: normFormat(x.code), ...(x.postId ? { post: x.postId } : {}) })
     navigator.clipboard.writeText(all).then(() => showToast('Скопировала все форматы')).catch(() => {})
     setMoreOpen(false)
   }

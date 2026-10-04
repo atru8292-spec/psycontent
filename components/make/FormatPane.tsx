@@ -5,6 +5,8 @@
 // вставка своего вместо [добавь: ...], «Опубликовала». Липкая панель над таб-баром: Скопировать, Поправить, •••.
 // Обучение голосу: правки перед копированием уходят в /api/voice-events (как на старом экране).
 
+import { track } from '@/lib/track'
+import { normFormat } from '@/lib/analytics/events'
 import { useState } from 'react'
 import { Check, Copy, PenTool, MoreHorizontal, Loader2 } from 'lucide-react'
 import { splitPostTitle } from '@/lib/post-format'
@@ -111,6 +113,7 @@ export default function FormatPane({ item, onChange, onPublished, onMore }: {
       setLastReported(text)
       sendVoiceEvent({ action: 'copy', postId, generated: item.baseline, copied: text })
     }
+    track('material_take', { how: 'copy', format: normFormat(code), ...(postId ? { post: postId } : {}) })
     navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
       .catch(() => { setError('Не получилось скопировать. Нажми на текст и выдели вручную') })
   }
@@ -172,7 +175,7 @@ export default function FormatPane({ item, onChange, onPublished, onMore }: {
               </div>
             )}
             {code.startsWith('reels') ? (
-              <ReelsScript text={text} format={code} mark={t => t} />
+              <ReelsScript text={text} format={code} postId={postId} mark={t => t} />
             ) : code === 'stories' ? (
               <StoriesView text={text} />
             ) : (
@@ -180,7 +183,7 @@ export default function FormatPane({ item, onChange, onPublished, onMore }: {
                 {splitCaption(body).body.split(/\n{2,}/).map((p, i) => (
                   <p key={i} className="text-[16px] leading-[26px] text-brand-text whitespace-pre-wrap break-words">{p}</p>
                 ))}
-                <CaptionBlock caption={splitCaption(body).caption} title={code === 'carousel' ? 'Описание под каруселью' : 'Описание к публикации'} />
+                <CaptionBlock caption={splitCaption(body).caption} format={code} postId={postId} title={code === 'carousel' ? 'Описание под каруселью' : 'Описание к публикации'} />
               </div>
             )}
           </>

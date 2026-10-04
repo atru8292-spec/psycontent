@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { EnergyBadge, EnergyInfo } from '@/components/EnergyTariff'
 import { DashboardMeContext } from '@/lib/dashboard-me'
+import ScreenTracker from '@/components/analytics/ScreenTracker'
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Главная', href: '/dashboard', exact: true },
@@ -248,6 +249,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </header>
 
+        <ScreenTracker />
         <DashboardMeContext.Provider value={{ me: energy, loaded: meLoaded, typing }}>{children}</DashboardMeContext.Provider>
       </main>
 

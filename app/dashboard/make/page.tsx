@@ -3,6 +3,8 @@
 // «Сделать»: один экран создания вместо генераторов поста, карусели, Reels, сторис, хуков и рерайта
 // (_знания/мозг-генератора/09-PUT-POLZOVATELYA.md, раздел 3). Старый адрес /dashboard/post-generator ведет сюда.
 
+import { track } from '@/lib/track'
+import { normFormat } from '@/lib/analytics/events'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -614,6 +616,7 @@ function MakeContent() {
     }
     if (result) {
       navigator.clipboard.writeText(result)
+      track('material_take', { how: 'copy', format: normFormat(generatedFormat), ...(postId ? { post: postId } : {}) })
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }

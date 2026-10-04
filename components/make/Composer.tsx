@@ -5,6 +5,7 @@
 // и «Видела классный пост?». В поле есть текст: карточки прячутся, появляются форматы, цель и кнопка.
 // Режим «так же»: в поле ссылка на чужой пост или выбраны скрины (раздел 5).
 
+import { useFeatureOpen, useTrackOnce } from '@/lib/analytics/hooks'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Mic, Paperclip, Plus, Check, ChevronDown, ChevronRight, FileText, Link2, Image as ImageIcon, X, Loader2 } from 'lucide-react'
@@ -20,7 +21,8 @@ const FORMATS_KEY = 'psycont_make_formats'
 const URL_RE = /^\s*(?:https?:\/\/)?(?:www\.)?(?:t\.me|telegram\.me|instagram\.com|instagr\.am)\/\S+\s*$/i
 
 export type SozheSource = { kind: 'link'; url: string } | { kind: 'screens'; files: File[] } | { kind: 'text'; text: string; label: string }
-export type ComposerSubmit = { text: string; formats: MakeFormat[]; goal: MakeGoal; sozhe?: SozheSource; about?: string }
+// mode и voice только для замеров (make_start): тема взята готовой или своя мысль, надиктована ли
+export type ComposerSubmit = { text: string; formats: MakeFormat[]; goal: MakeGoal; sozhe?: SozheSource; about?: string; mode?: 'thought' | 'topic'; voice?: boolean }
 
 const readLS = (k: string) => { try { return localStorage.getItem(k) } catch { return null } }
 const writeLS = (k: string, v: string | null) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v) } catch {} }
@@ -82,7 +84,8 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
     el.style.height = `${Math.min(Math.max(el.scrollHeight, 72), 144)}px`
   }, [text])
 
-  const appendVoice = useCallback((t: string) => { typed.current = true; setText(prev => (prev.trim() ? `${prev.trim()} ${t}` : t)) }, [])
+  const usedVoice = useRef(false)
+  const appendVoice = useCallback((t: string) => { typed.current = true; usedVoice.current = true; setText(prev => (prev.trim() ? `${prev.trim()} ${t}` : t)) }, [])
   const rec = useVoiceRecorder(appendVoice, { maxSeconds: VOICE_MAX, nearSeconds: VOICE_NEAR })
   const transcribing = rec.state === 'transcribing'
   const transcribeFailed = rec.state === 'error' && rec.errorKind === 'network'
@@ -101,6 +104,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
     : link && needText ? (sampleText.trim().length >= 40 ? { kind: 'text', text: sampleText.trim(), label: link } : undefined)
     : link ? { kind: 'link', url: link } : undefined
   const hasText = !!text.trim() || !!sozhe || screens.length > 0
+  useFeatureOpen('sozhe', !!link || screens.length > 0)
   const topic = topics.length ? topics[topicIdx % topics.length] : null
 
   const toggleFormat = (f: MakeFormat) => setFormats(prev => {
@@ -144,7 +148,10 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
     writeLS(FORMATS_KEY, JSON.stringify(formats))
     // черновик стирает MakeFlow после первого готового формата: при ошибке мысль должна остаться
     setDraft(null)
-    onSubmit({ text: link ? '' : text.trim(), formats, goal, sozhe, about: sozhe ? about.trim() : undefined })
+    // тема: поле ровно как готовая тема (из адреса, карточки «Беру» или плана), иначе своя мысль
+    const t = text.trim()
+    const isTopic = !!t && (t === (initialText || '').trim() || topics.includes(t))
+    onSubmit({ text: link ? '' : t, formats, goal, sozhe, about: sozhe ? about.trim() : undefined, mode: isTopic ? 'topic' : 'thought', voice: usedVoice.current })
   }
 
   const sourceLabel = screens.length

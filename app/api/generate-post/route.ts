@@ -1,3 +1,4 @@
+import { serverTrack } from '@/lib/track-server'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
@@ -219,6 +220,8 @@ const SYSTEM_PROMPT = `Ты пишешь посты за практикующе�
 Для сторис выводи экраны как сказано в задании, без заголовка-вывески.`
 
 export async function POST(req: NextRequest) {
+  // для make_error в catch: кто и какой формат (до этого места ошибка значит не наш запуск)
+  let trackCtx: { userId: string; format: string } | null = null
   try {
     const body = await req.json()
     const { topic, customTopic, format, pillar, platform } = body
@@ -251,8 +254,17 @@ export async function POST(req: NextRequest) {
 
     // Новая цепочка генерации (мозг 3.4): включается переменной NEW_GENERATION_PIPELINE,
     // по умолчанию выключена. Старый путь ниже остается рабочим.
+    // замеры: одиночная генерация (старый экран «Сделать» и старые генераторы); набор форматов пишет group/route.ts
+    const fmtCode = String(format || 'post').startsWith('reels') ? 'reels' : String(format || 'post')
+    trackCtx = { userId, format: fmtCode }
+    const t0 = Date.now()
+    serverTrack(userId, 'make_start', { formats: fmtCode, n: 1, mode: body?.topic && !body?.customTopic ? 'topic' : 'thought' })
+
     if (isNewPipeline(profile)) {
-      return await handleNewPipeline({ db: supabase, userId, profile, body, topic: finalTopic, pillar })
+      const res = await handleNewPipeline({ db: supabase, userId, profile, body, topic: finalTopic, pillar })
+      if (res.ok) serverTrack(userId, 'make_done', { formats: fmtCode, ms: Date.now() - t0, n_ok: 1 })
+      else serverTrack(userId, 'make_error', { code: `http_${res.status}`, format: fmtCode })
+      return res
     }
 
     // Старый путь пишет только пост и сторис. Карусель и Reels без нового движка живут на своих страницах.
@@ -330,10 +342,12 @@ ${platformInstruction}
       console.warn('Failed to save post to DB:', insertError.message)
     }
 
+    serverTrack(userId, 'make_done', { formats: fmtCode, ms: Date.now() - t0, n_ok: 1 })
     return NextResponse.json({ post })
 
   } catch (error: any) {
     console.error('Generate post error:', error)
+    if (trackCtx) serverTrack(trackCtx.userId, 'make_error', { code: 'server', format: trackCtx.format })
 
     return NextResponse.json(
       {

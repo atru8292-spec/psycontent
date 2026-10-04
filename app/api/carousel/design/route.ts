@@ -4,6 +4,7 @@
 // PATCH: правки карусели (слайд, разделить слайд, цвета, шрифт, вид), «оставить этот вид», данные автора, отметка сохранения.
 // Поля миграции 20261003100000 (font_pair, options, export_*, carousel_name, carousel_about, carousel_my_design) необязательны:
 // без нее запись идет без них, а фронт прячет то, что без них не работает (designView.tunable, canSaveMine).
+import { serverTrack } from '@/lib/track-server'
 import { NextRequest, NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/auth'
@@ -194,6 +195,7 @@ export async function PATCH(req: NextRequest) {
     const { error } = await db.from('carousel_designs').update({ export_count: (Number((d as any).export_count) || 0) + 1, exported_at: new Date().toISOString(), export_method: body.exported })
       .eq('id', d.id).eq('user_id', user.id)
     if (error && !missingColumn(error)) console.error('carousel export mark:', error.message)
+    serverTrack(user.id, 'material_take', { how: body.exported, format: 'carousel', post: (d as any).post_id })
     return NextResponse.json({ ok: true })
   }
   const patch: Record<string, any> = { updated_at: new Date().toISOString() }
@@ -233,6 +235,7 @@ export async function PATCH(req: NextRequest) {
     patch.export_count = (Number((d as any).export_count) || 0) + 1
     patch.exported_at = new Date().toISOString()
     patch.export_method = body.exported
+    serverTrack(user.id, 'material_take', { how: body.exported, format: 'carousel', post: (d as any).post_id })
   }
 
   const { data: saved, error } = await saveDesign(r => db.from('carousel_designs').update(r).eq('id', d.id).eq('user_id', user.id).select('*').single(), patch)

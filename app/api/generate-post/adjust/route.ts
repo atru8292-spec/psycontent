@@ -1,5 +1,6 @@
 // Кнопки «Поправить» (теплее, короче, живее, без клише) и «3 других захода» для поста новой цепочки.
 // Берет план из сохраненной записи, чтобы правка знала смысл, дугу и финал.
+import { serverTrack } from '@/lib/track-server'
 import { NextRequest, NextResponse } from 'next/server'
 import { getSessionUser } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/generation/db'
@@ -22,6 +23,9 @@ export async function POST(req: NextRequest) {
       db.from('onboarding_profiles').select('*').eq('user_id', user.id).single(),
     ])
     if (postRes.error || !postRes.data) return NextResponse.json({ error: 'Пост не найден' }, { status: 404 })
+    // замеры: какая правка и к какому формату (код действия только латиницей, русские кнопки сводим к кодам)
+    const ACTION_CODE: Record<string, string> = { 'теплее': 'warmer', 'короче': 'shorter', 'живее': 'livelier', 'без клише': 'no_cliche', hooks: 'other_hook', cover: 'cover' }
+    serverTrack(user.id, 'material_adjust', { action: ACTION_CODE[String(action)] || 'other', format: String(postRes.data.format || 'post').startsWith('reels') ? 'reels' : String(postRes.data.format || 'post') })
 
     // Обложка к посту: плана не нужно (подходит и для поста из своего черновика)
     if (action === 'cover') {

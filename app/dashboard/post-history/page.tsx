@@ -1,5 +1,7 @@
 'use client'
 
+import { track } from '@/lib/track'
+import { normFormat } from '@/lib/analytics/events'
 import { useState, useEffect } from 'react'
 import NextImage from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -103,6 +105,7 @@ export default function PostHistory() {
 
   const handleCopy = (post: Post) => {
     navigator.clipboard.writeText(post.content)
+    track('material_take', { how: 'copy', format: normFormat(post.format), post: post.id })
     setCopiedId(post.id)
     setTimeout(() => setCopiedId(null), 2000)
   }

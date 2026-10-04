@@ -1,6 +1,8 @@
 'use client'
 // Описание к публикации (у модели метка «Подпись:» в конце текста). Показываем отдельно от самого текста
 // рилса, карусели или поста и копируем отдельной кнопкой: в Instagram его вставляют в другое поле.
+import { track } from '@/lib/track'
+import { normFormat } from '@/lib/analytics/events'
 import { useState, type ReactNode } from 'react'
 import { Copy, Check } from 'lucide-react'
 
@@ -10,11 +12,12 @@ export function splitCaption(text: string): { body: string; caption: string } {
   return { body: text.slice(0, m.index).trimEnd(), caption: text.slice(m.index + m[0].length).trim() }
 }
 
-export default function CaptionBlock({ caption, title = 'Описание к публикации', mark }: { caption: string; title?: string; mark?: (s: string) => ReactNode }) {
+export default function CaptionBlock({ caption, title = 'Описание к публикации', mark, format, postId }: { caption: string; title?: string; mark?: (s: string) => ReactNode; format?: string; postId?: string | null }) {
   const [copied, setCopied] = useState(false)
   if (!caption) return null
   const copy = () => {
     navigator.clipboard.writeText(caption)
+    track('material_take', { how: 'copy_caption', format: normFormat(format), ...(postId ? { post: postId } : {}) })
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }

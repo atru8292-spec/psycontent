@@ -1,5 +1,6 @@
 'use client'
 
+import { useFeatureOpen, useTrackOnce } from '@/lib/analytics/hooks'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -276,6 +277,7 @@ export default function BrandPassport() {
   const [serverError, setServerError] = useState(false)
   const [copied, setCopied] = useState(false)
   const router = useRouter()
+  useFeatureOpen('passport')
 
   useEffect(() => {
     const init = async () => {

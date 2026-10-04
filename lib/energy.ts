@@ -1,3 +1,4 @@
+import { serverTrack } from './track-server'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 // Служебный клиент (service_role): энергией управляет ТОЛЬКО сервер.
@@ -204,12 +205,14 @@ export async function canConsume(userId: string, operation: string, units = 1): 
   if (!op) return { ok: false, mode: 'blocked', operation, cost: 0, reason: 'unknown_operation', message: 'Неизвестная операция' }
 
   const plan = await getPlanForUser(db, userId)
+  // limit_hit в каждой ветке отказа: без await, запись событий не задерживает решение
+  const refuse = (d: Decision): Decision => { serverTrack(userId, 'limit_hit', { reason: d.reason || 'limit', plan: plan.code, op: operation }); return d }
 
   if (op.kind === 'text') {
     const cap = plan.fair_use_text_cap
     const count = await textCount(db, userId)
     if (cap !== null && cap !== undefined && count >= cap) {
-      return { ok: false, mode: 'text', operation, cost: 0, reason: 'text_limit', message: 'Достигнут предел генераций. Он обновится в начале месяца.' }
+      return refuse({ ok: false, mode: 'text', operation, cost: 0, reason: 'text_limit', message: 'Достигнут предел генераций. Он обновится в начале месяца.' })
     }
     if (cap !== null && cap !== undefined && count + units > cap) {
       // число показываем только на бесплатном (там «N из 10» и так видно); у платных потолок скрытый
@@ -217,7 +220,7 @@ export async function canConsume(userId: string, operation: string, units = 1): 
       const message = plan.code === 'free'
         ? `В этом месяце хватит еще на ${left} ${left % 10 === 1 && left % 100 !== 11 ? 'текст' : left % 10 >= 2 && left % 10 <= 4 && (left % 100 < 12 || left % 100 > 14) ? 'текста' : 'текстов'}. Убери лишние форматы, и я сделаю.`
         : 'Столько форматов сразу сейчас не выйдет. Убери пару и нажми еще раз.'
-      return { ok: false, mode: 'text', operation, cost: 0, reason: 'text_limit_partial', message }
+      return refuse({ ok: false, mode: 'text', operation, cost: 0, reason: 'text_limit_partial', message })
     }
     return { ok: true, mode: 'text', operation, cost: 0 }
   }
@@ -236,7 +239,7 @@ export async function canConsume(userId: string, operation: string, units = 1): 
     const message = plan.code === 'free'
       ? 'Пробный разбор уже использован. Глубокий анализ доступен на тарифе Практика.'
       : 'Глубокий анализ доступен на тарифе Практика.'
-    return { ok: false, mode: 'blocked', operation, cost, reason: 'no_access', message }
+    return refuse({ ok: false, mode: 'blocked', operation, cost, reason: 'no_access', message })
   }
 
   if (trialLeft) return { ok: true, mode: 'trial', operation, cost }
@@ -246,7 +249,7 @@ export async function canConsume(userId: string, operation: string, units = 1): 
     const message = plan.code === 'free'
       ? 'Пробный разбор уже использован. Глубокий анализ доступен на тарифе Практика.'
       : 'Не хватает энергии. Пополните баланс или перейдите на тариф выше.'
-    return { ok: false, mode: 'blocked', operation, cost, reason: 'insufficient', message, balance }
+    return refuse({ ok: false, mode: 'blocked', operation, cost, reason: 'insufficient', message, balance })
   }
   return { ok: true, mode: 'charge', operation, cost, balance }
 }

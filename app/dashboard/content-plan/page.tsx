@@ -1,5 +1,6 @@
 'use client'
 
+import { track } from '@/lib/track'
 import { useState, useEffect } from 'react'
 import NextImage from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -393,6 +394,8 @@ export default function ContentPlan() {
   // на нулевой прозрачности. Дальше держим смонтированными, чтобы подбор тем не терялся при переключении
   const [ideasMounted, setIdeasMounted] = useState(false)
   useEffect(() => { if (tab === 'ideas') setIdeasMounted(true) }, [tab])
+  // feature_open при каждом открытии вкладки «Идеи» или «План»
+  useEffect(() => { if (newMenu && tab) track('feature_open', { feature: tab === 'ideas' ? 'ideas' : 'plan' }) }, [tab, newMenu])
   const router = useRouter()
 
   // Вкладка из адреса; без параметра «План», если он уже есть, иначе «Идеи». Назад/вперед по истории тоже

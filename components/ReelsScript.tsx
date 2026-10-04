@@ -2,6 +2,8 @@
 // Результат Reels на экране «Сделать»: сначала сам текст (что сказать), потом подсказки к съемке
 // и подпись под роликом. Модель отдает сценарий с метками (карточки форматов в 03-PROMPTY.md),
 // тут метки переводятся на понятный психологу язык. Правка текста идет как раньше, в textarea целиком.
+import { track } from '@/lib/track'
+import { normFormat } from '@/lib/analytics/events'
 import { useState, type ReactNode } from 'react'
 import { Copy, Check, Video } from 'lucide-react'
 import CaptionBlock from './CaptionBlock'
@@ -61,7 +63,7 @@ export function reelsSpeech(text: string): string {
   return res.join('\n').trim()
 }
 
-export default function ReelsScript({ text, mark, format }: { text: string; mark: (s: string) => ReactNode; format?: string }) {
+export default function ReelsScript({ text, mark, format, postId }: { text: string; mark: (s: string) => ReactNode; format?: string; postId?: string | null }) {
   const lines = parse(text)
   const kind = format ? KIND[format] : undefined
   const [copied, setCopied] = useState(false)
@@ -76,6 +78,7 @@ export default function ReelsScript({ text, mark, format }: { text: string; mark
 
   const copySpeech = () => {
     navigator.clipboard.writeText(reelsSpeech(text))
+    track('material_take', { how: 'copy_text', format: 'reels', ...(postId ? { post: postId } : {}) })
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }

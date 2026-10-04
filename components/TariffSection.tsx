@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { track } from '@/lib/track'
+import { useFeatureOpen, useTrackOnce } from '@/lib/analytics/hooks'
+import { useEffect, useRef, useState } from 'react'
 import { Check, X } from 'lucide-react'
 
 // Витрина тарифов. Только показ и захват внимания, НИКАКИХ записей в БД и смены
@@ -51,9 +53,20 @@ const PLANS: Plan[] = [
 
 export default function TariffSection({ currentCode }: { currentCode?: string }) {
   const [picked, setPicked] = useState<Plan | null>(null)
+  // paywall_view, когда блок тарифов попал на экран
+  const box = useRef<HTMLDivElement>(null)
+  const [seen, setSeen] = useState(false)
+  useEffect(() => {
+    const el = box.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { setSeen(true); io.disconnect() } }, { threshold: 0.3 })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+  useTrackOnce('paywall_view', { where: 'tariffs' }, seen)
 
   return (
-    <div>
+    <div ref={box}>
       {/* Честная плашка про оплату, без urgency */}
       <div className="rounded-3xl bg-brand-soft border border-brand-border-soft p-4 sm:p-5 mb-4">
         <p className="text-sm text-brand-text leading-relaxed">
@@ -102,7 +115,7 @@ export default function TariffSection({ currentCode }: { currentCode?: string })
                 ) : (
                   <button
                     type="button"
-                    onClick={() => setPicked(plan)}
+                    onClick={() => { track('plan_click', { plan: plan.code }); setPicked(plan) }}
                     className={`block w-full text-center text-sm font-semibold rounded-2xl py-2.5 transition cursor-pointer ${
                       plan.popular
                         ? 'bg-brand-accent text-white hover:bg-brand-accent-hover'

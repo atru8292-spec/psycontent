@@ -5,6 +5,7 @@
 // чтобы было видно, что сервис понял, и можно было поправить. Ручные настройки свернуты вниз.
 // Поля из миграции 20260930120000_generation_brain.sql.
 
+import { useFeatureOpen, useTrackOnce } from '@/lib/analytics/hooks'
 import { TONE_POSITIONS, tonePosition, toneAxisState, type ToneAxis } from '@/lib/generation/tone'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -65,6 +66,7 @@ const field = 'w-full px-4 py-3 rounded-xl border border-brand-border bg-white t
 
 export default function VoicePage() {
   const router = useRouter()
+  useFeatureOpen('voice')
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 

@@ -1,3 +1,4 @@
+import { serverTrack } from '@/lib/track-server'
 import { NextRequest, NextResponse, after } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
@@ -145,6 +146,7 @@ const SYSTEM_PROMPT = `Ты ghostwriter для практикующего пси
 Выдай ТОЛЬКО готовый текст. Без предисловий, без "Вот ваш пост:", без кавычек.`
 
 export async function POST(req: NextRequest) {
+  let userIdForTrack: string | null = null
   try {
     const reqBody = await req.json()
     const { sourceText, format, goal } = reqBody
@@ -155,10 +157,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
     }
     const userId = user.id
+    userIdForTrack = userId
 
     if (!sourceText) {
       return NextResponse.json({ error: 'Не указан текст' }, { status: 400 })
     }
+    // замеры: свой черновик (режим draft), без текста
+    const t0Track = Date.now()
+    serverTrack(userId, 'make_start', { formats: String(format || 'post').startsWith('reels') ? 'reels' : String(format || 'post'), n: 1, mode: 'draft' })
 
     const supabase = getSupabaseAdmin()
 
@@ -231,9 +237,11 @@ ${sourceText}
       postId = ins.data?.id ?? null
     } catch (_) {}
 
+    serverTrack(user.id, 'make_done', { formats: String(format).startsWith('reels') ? 'reels' : String(format), ms: Date.now() - t0Track, n_ok: 1 })
     return NextResponse.json({ post, postId })
   } catch (error: any) {
     console.error('Rewrite API error:', error)
+    serverTrack(userIdForTrack, 'make_error', { code: 'server', format: 'post' })
     return NextResponse.json({ error: `Не удалось переписать текст: ${error?.message || String(error)}` }, { status: 500 })
   }
 }
