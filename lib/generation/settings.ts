@@ -32,6 +32,8 @@ export type AuthorSettings = {
   booking: string
   // поправка «Не совсем» с экрана голоса: ее собственные слова о голосе (в слепке она уже есть, простому пути нужна отдельно)
   voiceCorrections: string
+  // короткий слепок для простого пути: до 5 строк (манера, словечки, чего избегать), пусто, пока слепка нет
+  voiceBrief: string
   // для простого пути: явный выбор «Эмоции» (calm/live/hot), как автор сама описала манеру в экспрессе,
   // и факты практики для «как на консультации» и приглашения
   intensity: string
@@ -97,6 +99,25 @@ export function voiceCoreShortOf(core: string): string {
   }
   const text = out.join('\n').trim() || core
   return clip(text, 800)
+}
+
+// Короткий слепок для простого пути (решение Арины 04.10): длинный слепок туда не идет (короткий промпт выиграл
+// слепое сравнение 01.10), но манеру держать надо. Берем пункты слепка: 1 ритм, 7 температура (манера),
+// 4 лексика (подпись «Речь»: слово «Слова» анонимайзер принимает за фамилию на -ова), 11 обороты (свои словечки), 10 чего нет (чего избегать). Первая фраза пункта, до 180 знаков,
+// не больше 5 строк. Пункты «не видно по образцам» пропускаем.
+const BRIEF_POINTS: [string, string][] = [['1', 'Ритм'], ['7', 'Манера'], ['4', 'Речь'], ['11', 'Свои обороты'], ['10', 'Чего у нее нет']]
+export function voiceBriefOf(core: string): string {
+  if (!core) return ''
+  const out: string[] = []
+  for (const [num, label] of BRIEF_POINTS) {
+    const block = pointBlock(core, num).replace(/^\s*\d{1,2}[.)]\s*/, '').replace(/\s+/g, ' ').trim()
+    if (!block || /не видно по образцам/iu.test(block.slice(0, 60))) continue
+    const body = block.replace(/^[^:]{0,40}:\s*/u, '')
+    const first = num === '11' ? body : (body.match(/^.+?[.!?](?=\s|$)/u)?.[0] || body)
+    out.push(`- ${label}: ${clip(first, 180)}`)
+    if (out.length >= 5) break
+  }
+  return out.join('\n')
 }
 
 // Фирменные обороты из пункта 11 слепка: всё, что в кавычках.
@@ -226,6 +247,7 @@ export function buildAuthorSettings(profile: any, opts?: { rotation?: number }):
     niche,
     booking: String(profile.booking_info || '').trim(),
     voiceCorrections: corrections ? clip(corrections, 600) : '',
+    voiceBrief: voiceBriefOf(core),
     intensity: String(profile.intensity || ''),
     toneVerbal: clip(String(profile.tone_verbal || '').trim(), 400),
     practiceFacts: [

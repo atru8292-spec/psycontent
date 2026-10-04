@@ -74,10 +74,9 @@ const INTENT_SETTINGS: [string, Record<string, any>, string][] = [
   ['client_tried (что пробовал)', { client_tried: 'медитации и книги' }, 'kak_v_terapii'],
 ]
 
-// Осознанно не доходят (решение за Ариной, 04.10): простой путь не берет слепок голоса целиком
-// (короткий промпт выиграл слепое сравнение 01.10); полная цепочка берет свои фразы через слепок (пункт 11),
+// Осознанно не доходят: полная цепочка берет свои фразы через слепок (пункт 11),
 // а отдельное поле signature_phrases там служит только запретом повтора.
-const KNOWN = new Set(['simple voice_core (слепок)', 'full signature_phrases (свои фразы)'])
+const KNOWN = new Set(['full signature_phrases (свои фразы)'])
 
 const TOPIC = 'тревога после сообщения без ответа'
 type Mode = 'simple' | 'full'

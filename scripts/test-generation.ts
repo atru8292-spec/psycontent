@@ -1,7 +1,7 @@
 // Проверка сборки промптов и логики цепочки без настоящей модели (fetch подменен).
 // Запуск: npx tsx scripts/test-generation.ts
 import assert from 'node:assert/strict'
-import { buildAuthorSettings, parseSignatures, parseSampleFit, voiceCoreShortOf } from '../lib/generation/settings'
+import { buildAuthorSettings, parseSignatures, parseSampleFit, voiceCoreShortOf, voiceBriefOf } from '../lib/generation/settings'
 import { memoryVars, type Memory } from '../lib/generation/memory'
 import { draft, refine, changedFragments, severityOf, materialFromPlan, type GenContext } from '../lib/generation/pipeline'
 import { HOOK_DESCRIPTIONS, INTENT_HOOKS, INTENT_CODES, fill } from '../lib/generation/prompts'
@@ -245,6 +245,9 @@ const req = { topic: 'тревога', format: 'post' as const, intentChoices: [
   const stripped = stripAds('post', 'Третья встреча самая трудная.\n\nТак бывает почти у всех. Запишись на консультацию по ссылке в профиле.')
   assert.ok(!/Запишись/u.test(stripped) && /Третья встреча/u.test(stripped), 'реклама в Instagram вырезана кодом')
   assert.ok(/Запишись/u.test(stripAds('post_tg', 'Пишу как есть. Запишись на консультацию по ссылке.')), 'в Telegram приглашение остается')
+  const brief = voiceBriefOf('1. Фразы короткие. Рвет мысль.\n4. Лексика разговорная.\n7. Тепло и иронично.\n8. Сравнения из кухни.\n10. не видно по образцам\n11. Обороты: «ну вот правда»')
+  assert.ok(brief.split('\n').length <= 5 && /Ритм: Фразы короткие\./u.test(brief) && !/не видно/u.test(brief) && /ну вот правда/u.test(brief), 'короткий слепок: до 5 строк, без пустых пунктов')
+  assert.equal(voiceBriefOf(''), '', 'без слепка короткого слепка нет')
   console.log('ok: одна мысль в несколько форматов')
 
   console.log('ok: все проверки')

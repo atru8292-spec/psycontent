@@ -213,10 +213,11 @@ export async function simpleWrite(ctx: GenContext, req: GenRequest): Promise<{ t
   const user = fill(PP_USER, {
     live_examples: liveExamples,
     samples: s.samples.slice(0, 2).map((x, i) => `<текст ${i + 1}>\n${x}\n</текст ${i + 1}>`).join('\n') || 'нет',
-    // простой путь слепок не берет (короткий промпт выиграл сравнение), но ее поправку о голосе берет всегда (8а, 04.10)
+    // простой путь берет слепок коротко (voiceBrief, решение 04.10) и ее поправку о голосе всегда
     // в Instagram «как ко мне попасть» не даем: звать на консультацию там нельзя (запрет рекламы), только в Telegram
     base_settings: [format === 'post_tg' ? s.baseSettings : s.baseSettings.replace(/^Как ко мне попасть:.*\n?/mu, ''),
-      s.toneVerbal ? `Как автор сама описала свою манеру: ${s.toneVerbal}` : '',
+      // слепок коротко, до 5 строк; пока его нет, манера словами автора из экспресса
+      s.voiceBrief ? `Как звучит автор по ее текстам:\n${s.voiceBrief}` : s.toneVerbal ? `Как автор сама описала свою манеру: ${s.toneVerbal}` : '',
       s.voiceCorrections ? `Автор сама сказала про свой голос: ${s.voiceCorrections}` : ''].filter(Boolean).join('\n'),
     profanity_rule: s.profanityRule,
     gender_forms: s.genderForms,
