@@ -4,7 +4,8 @@
 //   {type:'progress', format}                  черновик формата готов (до проверки набора)
 //   {type:'format', format, ok, postId, code, text, intent} | {type:'format', format, ok:false, error}
 //   {type:'done', groupId}                     | {type:'error', error}
-// Тело: { topic, userDetail?, formats: ['reels','carousel','post','post_tg','stories'], goal?, fromPostId?, editedText? }.
+// Тело: { topic, userDetail?, formats: ['reels','carousel','post','post_tg','stories'], goal?, fromPostId?, editedText?,
+//   sample?: {kind:'link',url} | {kind:'text',text} | {kind:'screens',images:[data URL]} }  («Сделать так же», событие {type:'sample'})
 // fromPostId: «Сделать еще формат из этой мысли»: ядро берем у материала (только свой, по user_id); если текст
 // правили (editedText отличается от сохраненного), ядро сначала пересобираем из правленой версии.
 // Счет: каждый готовый формат как одна текстовая генерация (lib/energy.ts, kind text). Упавший не считаем.
@@ -24,6 +25,10 @@ import {
 } from '@/lib/generation/group'
 import { finalNet, type FormatCode } from '@/lib/generation/text-guard'
 import { savePost } from '../new-pipeline'
+import {
+  fetchTelegramPost, isInstagramUrl, isTelegramUrl, parseSample, sampleBlock, sourceLabel, overlap, sentencesWithChains, sentencesWithTrigrams,
+  type SampleInput, type SampleSkeleton,
+} from '@/lib/generation/sample'
 
 export const maxDuration = 300
 
@@ -44,6 +49,8 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
   const userId = user.id
 
+  // до 10 скринов по ~400 КБ в base64: больше 8 МБ не читаем в память
+  if (Number(req.headers.get('content-length') || 0) > 8 * 1024 * 1024) return NextResponse.json({ error: 'too_large' }, { status: 413 })
   let body: any
   try { body = await req.json() } catch { return NextResponse.json({ error: 'bad_request' }, { status: 400 }) }
 
@@ -57,6 +64,22 @@ export async function POST(req: NextRequest) {
   // правленый текст сравниваем целиком, без обрезки: иначе длинный материал всегда выглядел бы правленым
   const editedRaw = typeof body?.editedText === 'string' ? body.editedText.trim() : ''
   const editedText = editedRaw ? editedRaw.slice(0, 8000) : null
+
+  // «Сделать так же»: ссылка (только публичный Telegram), текст поста или скрины (data URL, до 10)
+  let sample: SampleInput | null = null
+  const sb = body?.sample
+  if (sb && typeof sb === 'object') {
+    if (sb.kind === 'link' && typeof sb.url === 'string') sample = { kind: 'link', url: sb.url.trim().slice(0, 300) }
+    else if (sb.kind === 'text' && typeof sb.text === 'string' && sb.text.trim().length >= 40) sample = { kind: 'text', text: sb.text.trim().slice(0, 6000) }
+    else if (sb.kind === 'screens' && Array.isArray(sb.images)) {
+      const images = sb.images.filter((x: unknown) => typeof x === 'string' && /^data:image\/(jpeg|png|webp);base64,/.test(x) && x.length < 3_000_000).slice(0, 10)
+      if (images.length) sample = { kind: 'screens', images }
+    }
+    if (!sample) return NextResponse.json({ error: 'sample_failed' }, { status: 422 })
+  }
+  // ссылка Instagram не открывается вовсе: отвечаем сразу, без внешних запросов
+  if (sample?.kind === 'link' && (isInstagramUrl(sample.url) || !isTelegramUrl(sample.url)))
+    return NextResponse.json({ error: isInstagramUrl(sample.url) ? 'sample_instagram' : 'sample_failed' }, { status: 422 })
 
   const db = admin()
   const profileRes = await db.from('onboarding_profiles').select('*').eq('user_id', userId).single()
@@ -83,7 +106,13 @@ export async function POST(req: NextRequest) {
   }
   // тема для истории короткая: если пришла только мысль, берем ее начало
   const topic = clean(body?.topic, 500) || (origin ? String(origin.topic || '') : '') || (userDetail ? (userDetail.length > 120 ? userDetail.slice(0, 120).replace(/\s+\S*$/, '') : userDetail) : '')
-  if (!topic && !userDetail) return NextResponse.json({ error: 'no_topic' }, { status: 400 })
+  // «так же» без своей темы: «подберу сама» из боли клиентов или ниши в профиле
+  const sampleTopic = sample && !topic
+    ? (String(profile.client_pain_phrases || '').split(/\n|;/).map((x: string) => x.trim()).find((x: string) => x.length > 6)
+      || String(profile.one_niche || '').trim() || 'то, с чем ко мне приходят чаще всего').slice(0, 200)
+    : ''
+  const topicFinal = topic || sampleTopic
+  if (!topicFinal && !userDetail) return NextResponse.json({ error: 'no_topic' }, { status: 400 })
 
   const decision = await canConsume(userId, OP, formats.length)
   if (!decision.ok) {
@@ -91,30 +120,56 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: decision.reason || 'limit', message: decision.message }, { status: 429 })
   }
 
+  // оригинал только в памяти этого запроса; на t.me идем только после флага и проверки предела
+  let original = ''
+  if (sample?.kind === 'link') {
+    const tg = await fetchTelegramPost(sample.url)
+    if ('error' in tg) return NextResponse.json({ error: tg.error === 'closed' ? 'sample_closed' : 'sample_failed' }, { status: 422 })
+    original = tg.text
+  } else if (sample?.kind === 'text') original = sample.text
+
   const enc = new TextEncoder()
   const stream = new ReadableStream({
     async start(controller) {
       const send = (o: unknown) => { try { controller.enqueue(enc.encode(JSON.stringify(o) + '\n')) } catch { /* клиент ушел */ } }
+      // пока разбор скринов и ядро молчат дольше минуты, прокси (nginx proxy_read_timeout 60s) рвет соединение;
+      // пинг раз в 15 секунд держит поток живым, клиент неизвестные события пропускает
+      const ping = setInterval(() => send({ type: 'ping' }), 15000)
       try {
         const ctx = await buildContext(db, userId, profile)
         const t0 = Date.now()
 
+        // «Так же»: разбор видит оригинал и отдает только устройство; писатель получает только устройство
+        let skeleton: SampleSkeleton | null = null
+        let compareWith = original
+        if (sample) {
+          const p = await parseSample(ctx, { kind: sample.kind, original, images: sample.kind === 'screens' ? sample.images : undefined })
+          if ('error' in p) {
+            await recordFailure(userId, OP)
+            send({ type: 'error', code: p.error === 'private' ? 'sample_private' : 'sample_empty', error: 'Не получилось разобрать пост' })
+            return
+          }
+          skeleton = p
+          compareWith = original || p.seenText || ''
+          send({ type: 'sample', label: sourceLabel(sample), priem: p.priem, clientStory: p.flags.client_story })
+        }
+
         // Смысл набора: из ядра исходного материала, иначе по цели (своя история только при историях автора)
         const goalChoices = goal ? GOAL_INTENTS[goal].filter(i => i !== 'svoya_istoriya' || ctx.settings.stories.length > 0) : null
         const savedCore = origin ? coreFromRow(origin.core) : null
-        const groupIntent = savedCore?.intent || (origin?.intent as string) || chooseIntent(ctx, { topic, format: 'post', intentChoices: goalChoices })
+        const groupIntent = savedCore?.intent || (origin?.intent as string) || chooseIntent(ctx, { topic: topicFinal, format: 'post', intentChoices: goalChoices })
         const intentLabel = goal ? GOAL_LABELS[goal] : 'любая'
 
         const edited = !!(origin && editedRaw && editedRaw !== String(origin.content || '').trim())
         let core: ThoughtCore
         if (savedCore && !edited) core = savedCore
         else core = await buildCore(ctx, {
-          topic: topic || userDetail || '', intent: groupIntent, intentLabel,
+          topic: topicFinal || userDetail || '', intent: groupIntent, intentLabel,
           userDetail: origin ? null : userDetail,
           fromText: origin ? (edited ? editedText : String(origin.content || '')) : null,
         })
         // модель вернула ядро без мысли: держимся за тему, иначе все форматы получат пустую «Мысль:»
-        if (!core.thought) core.thought = (userDetail || topic).slice(0, 300)
+        if (!core.thought) core.thought = (userDetail || topicFinal).slice(0, 300)
         send({ type: 'core', thought: core.thought })
 
         const groupId: string = origin?.group_id || randomUUID()
@@ -134,12 +189,13 @@ export async function POST(req: NextRequest) {
         const results = await Promise.all(formats.map(async (f, i) => {
           const code = codes[i]
           const greq: GenRequest = {
-            topic,
+            topic: topicFinal,
             format: code,
             intent: intentForFormat(groupIntent, code),
             userDetail: origin ? null : userDetail,
             coreBlock: coreBlockFor(core, code),
             neighbors: neighborsFor(all, code),
+            sampleBlock: skeleton ? sampleBlock(skeleton) : null,
           }
           try {
             let text: string, plan: Plan, version: string, draftText: string
@@ -179,6 +235,20 @@ export async function POST(req: NextRequest) {
           if (item.text !== before) fixed.set(k, iss.phrases.length)
         }))
 
+        // «Так же»: сверка с оригиналом (цепочка из 5 слов или больше 10% общих троек) → переписать эти фразы;
+        // не вышло, отдаем совпадения экрану для подсветки
+        const leftovers = new Map<number, string[]>()
+        if (compareWith) {
+          await Promise.all(okItems.map(async (item, k) => {
+            let ov = overlap(compareWith, item.text)
+            if (!ov.hit) return
+            const phrases = ov.chains.length ? sentencesWithChains(item.text, ov.chains) : sentencesWithTrigrams(item.text, compareWith)
+            if (phrases.length) item.text = stripAds(item.req.format, await rewritePhrases(ctx, item.req.format, item.text, phrases))
+            ov = overlap(compareWith, item.text)
+            if (ov.hit) leftovers.set(k, ov.chains.length ? ov.chains : sentencesWithTrigrams(item.text, compareWith))
+          }))
+        }
+
         for (const r of results) {
           if (!r.ok) {
             await recordFailure(userId, OP)
@@ -191,12 +261,15 @@ export async function POST(req: NextRequest) {
             draft_content: r.draftText, pipeline_status: 'ready',
             check_result: { mode: 'group', set_fixed: fixed.get(okItems.indexOf(r)) || 0, ms_total: Date.now() - t0 },
             group_id: groupId, core,
+            // источник «так же»: тип, подпись и устройство, без чужого текста
+            ...(skeleton && sample ? { sample_source: { kind: sample.kind, label: sourceLabel(sample), priem: skeleton.priem, steps: skeleton.steps, why: skeleton.why, format: skeleton.format, flags: skeleton.flags } } : {}),
           }, { basicId: true })
           // считаем только то, что записалось: без строки в базе материала у человека нет
           if (postId) await commitConsume(userId, OP, decision)
           send({
             type: 'format', format: r.f, ok: true, postId, code: r.req.format, intent: r.plan.intent, text: r.text,
             placeholders: r.text.match(PLACEHOLDER_RE) || [],
+            overlap: leftovers.get(okItems.indexOf(r)) || [],
           })
         }
         send({ type: 'done', groupId })
@@ -205,6 +278,7 @@ export async function POST(req: NextRequest) {
         await recordFailure(userId, OP).catch(() => {})
         send({ type: 'error', error: 'Не получилось собрать мысль. Попробуй еще раз' })
       } finally {
+        clearInterval(ping)
         // клиент мог закрыть вкладку: материалы все равно сохранены в «Моих текстах» и посчитаны
         try { controller.close() } catch { /* поток уже закрыт */ }
       }

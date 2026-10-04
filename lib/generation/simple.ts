@@ -234,6 +234,7 @@ export async function simpleWrite(ctx: GenContext, req: GenRequest): Promise<{ t
     caption_tail: captionTail(ctx, format),
     core_block: req.coreBlock,
     neighbors: req.neighbors,
+    sample_block: req.sampleBlock,
     // обучение на правках и «Не похоже» доходит и в простой путь (8а, 04.10; раньше только в полную цепочку)
     edit_pairs: ctx.editPairs,
     feedback_reasons: (ctx.memory.feedbackReasons || []).slice(0, 4).join('; '),

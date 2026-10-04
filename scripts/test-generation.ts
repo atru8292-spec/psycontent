@@ -14,6 +14,7 @@ import * as GEN from '../lib/generation/prompts.generated'
 import { normalizeCore } from '../lib/generation/core'
 import { coreBlockFor, neighborsFor, checkSet, intentForFormat, adPhrases, stripAds } from '../lib/generation/group'
 import { captionTail } from '../lib/generation/simple'
+import { overlap, sentencesWithChains, sampleBlock, sourceLabel, isInstagramUrl, isTelegramUrl, fetchTelegramPost } from '../lib/generation/sample'
 
 process.env.OPENAI_API_KEY = 'test'
 process.env.GENERATION_CANDIDATES = '1' // цепочка ниже проверяется с одним черновиком; выбор из двух проверен отдельно в конце
@@ -249,6 +250,28 @@ const req = { topic: 'тревога', format: 'post' as const, intentChoices: [
   assert.ok(brief.split('\n').length <= 5 && /Ритм: Фразы короткие\./u.test(brief) && !/не видно/u.test(brief) && /ну вот правда/u.test(brief), 'короткий слепок: до 5 строк, без пустых пунктов')
   assert.equal(voiceBriefOf(''), '', 'без слепка короткого слепка нет')
   console.log('ok: одна мысль в несколько форматов')
+
+  // «Сделать так же» (раздел 5)
+  const orig = 'Вы думаете, что прокрастинация это лень. На самом деле мозг бережет вас от стыда за несовершенный результат. Попробуйте начать с самого маленького шага.'
+  const copy = 'Ты думаешь, что дело в характере. Мозг бережет вас от стыда за несовершенный результат, вот что тут происходит.'
+  const ov = overlap(orig, copy)
+  assert.ok(ov.hit && ov.chains.some(c => c.includes('бережет вас от стыда')), 'так же: цепочка из 5 слов найдена')
+  assert.ok(sentencesWithChains(copy, ov.chains).length === 1, 'так же: переписываем только фразу с совпадением')
+  assert.ok(!overlap(orig, 'Сижу вечером и листаю ленту, а дело стоит. Страшно, что выйдет криво, поэтому я не начинаю вовсе.').hit, 'так же: свой текст про то же не совпадение')
+  assert.ok(!overlap(orig, 'и вот я не знаю что и как тут').hit, 'так же: служебные слова не считаются')
+  const blk = sampleBlock({ format: 'post', priem: 'чужая фраза и разбор', steps: ['сцена', 'совет', 'почему не работает'], why: 'узнавание', flags: { client_story: true, review: false, promise: false } })
+  assert.ok(blk.includes('Прием: чужая фраза') && blk.includes('без клиента'), 'так же: блок писателя с пометкой про клиента')
+  assert.equal(sourceLabel({ kind: 'link', url: 'https://t.me/psy_anna/123' }), 't.me/psy_anna')
+  assert.ok(isInstagramUrl('https://www.instagram.com/reel/abc/') && isTelegramUrl('t.me/x/1') && !isTelegramUrl('https://instagram.com/p/1'))
+  const realFetch = globalThis.fetch
+  globalThis.fetch = (async () => new Response('<div class="tgme_widget_message_text js-message_text" dir="auto">Первая строка поста<br/>и вторая &quot;строка&quot; с <b>жирным</b> словом, достаточно длинная для разбора.</div>', { status: 200 })) as any
+  const tg = await fetchTelegramPost('https://t.me/psy_anna/123')
+  assert.ok('text' in tg && tg.text.includes('Первая строка поста\nи вторая "строка" с жирным'), 'так же: текст поста Telegram из виджета')
+  globalThis.fetch = (async () => new Response('<div class="tgme_widget_message_error">Post not found</div>', { status: 200 })) as any
+  const tg2 = await fetchTelegramPost('https://t.me/closed/5')
+  assert.ok('error' in tg2 && tg2.error === 'closed', 'так же: закрытый канал')
+  globalThis.fetch = realFetch
+  console.log('ok: сделать так же')
 
   console.log('ok: все проверки')
 })().catch(e => { console.error('FAIL', e); process.exit(1) })

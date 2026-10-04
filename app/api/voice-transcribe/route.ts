@@ -97,7 +97,10 @@ export async function POST(request: NextRequest) {
     const text = typeof data?.text === 'string' ? data.text.trim() : ''
     // Все, что психолог надиктовала, это ее живая речь: копим как образец голоса (08-GOLOS-I-OBUCHENIE.md).
     // Короткие обрывки не берем. Ошибка записи не мешает вернуть текст.
-    if (text.length >= 80) {
+    // purpose=sample: расшифровка ЧУЖОГО рилса для «Сделать так же». Это не ее речь: в память голоса не идет,
+    // в базу не пишется (оригинал не храним). По умолчанию (поле без purpose) это ее голос, как раньше.
+    const isSample = form.get('purpose') === 'sample'
+    if (text.length >= 80 && !isSample) {
       const uid = user.id
       after(async () => {
         try {

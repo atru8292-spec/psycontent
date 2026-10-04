@@ -56,6 +56,7 @@ export type GenRequest = {
   userDetail?: string | null
   coreBlock?: string | null       // ядро мысли для этого формата (group.ts coreBlockFor), набор из одной мысли
   neighbors?: string | null       // что делают соседние форматы набора, «не начинай так же»
+  sampleBlock?: string | null     // «Сделать так же»: устройство чужого поста без его слов (sample.ts sampleBlock)
 }
 
 const LENGTH_LIMIT: Record<string, number> = { korotko: 400, sredne: 900, dlinno: 1800 }
@@ -172,6 +173,7 @@ export async function runText(ctx: GenContext, plan: Plan, req: GenRequest, rewr
     topic_for_text: plan.topic_for_text,
     core_block: req.coreBlock,
     neighbors: req.neighbors,
+    sample_block: req.sampleBlock,
     edit_pairs: ctx.editPairs,
     live_examples: examplesText(examplesFor(ctx, plan, req.format)),
   })

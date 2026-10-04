@@ -33,6 +33,7 @@ import ReelsScript from '@/components/ReelsScript'
 import CaptionBlock, { splitCaption } from '@/components/CaptionBlock'
 import { REELS_MODES } from '@/components/ReelsFormatPicker'
 import { pickAsk, markShown, markDone, markDismissed, type AskKey } from '@/lib/voice-asks'
+import MakeFlow from '@/components/make/MakeFlow'
 
 // Форматы «Сделать». Текстовый пост бывает для Instagram и для Telegram, остальное под Instagram.
 // Карусель и Reels пишет новый движок; без него ведем на старые страницы.
@@ -622,6 +623,7 @@ function MakeContent() {
   // когда профиль загружен. Тема из seed (демо) или выведена из профиля.
   useEffect(() => {
     if (searchParams.get('auto') !== '1') return
+    if (serverNewGen === true) return // новый экран сам ведет первый пост, старую авто-генерацию не запускаем
     if (autoFired || loading || !user || !profile || generating || result) return
     const topic = deriveFirstTopic(profile, customTopic)
     if (!topic) return
@@ -648,6 +650,9 @@ function MakeContent() {
       </div>
     )
   }
+
+  // Новый мозг: новый экран «Сделать» (задача sdelat-i-brend, раздел 3). Старый ниже остается без флага
+  if (serverNewGen === true) return <MakeFlow />
 
   return (
     <div className="min-h-screen bg-brand-bg">

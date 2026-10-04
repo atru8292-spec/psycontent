@@ -26,6 +26,7 @@ export type CallOpts = {
   writer?: boolean // пишет текст (П2, П5, П6, П8): может идти на отдельной модели
   model?: string   // явная модель (например, дешевая для выбора черновика); иначе modelFor(writer)
   temperature?: number // только вместе с effort 'none' (гипотеза h5): с рассуждением temperature не принимают
+  images?: string[]    // картинки (data URL) к пользовательскому сообщению: скрины чужого поста для «Сделать так же»
 }
 
 // Модель новой цепочки (посты, карусели, Reels, сторис, слепок голоса): gpt-6.1-sol (решение 30.09).
@@ -50,7 +51,8 @@ export async function callModel(o: CallOpts): Promise<string> {
     model,
     messages: [
       { role: 'system', content: o.system },
-      { role: 'user', content: masked },
+      // скрины не обезличить (это картинки чужого публичного поста), текст рядом обезличен как обычно
+      { role: 'user', content: o.images?.length ? [{ type: 'text', text: masked }, ...o.images.map(url => ({ type: 'image_url', image_url: { url, detail: 'high' } }))] : masked },
     ],
     reasoning_effort: o.effort || 'low',
     verbosity: o.verbosity || 'low',

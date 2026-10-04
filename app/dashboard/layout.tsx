@@ -226,7 +226,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* ─── Основной контент ─── */}
-      <main className={`flex-1 min-h-dvh lg:pb-0 transition-all duration-300 ${newMenu ? 'pb-[calc(56px+env(safe-area-inset-bottom)+16px)]' : 'pb-20'} ${collapsed ? 'lg:ml-[72px]' : 'lg:ml-[240px]'}`}>
+      <main className={`flex-1 min-w-0 min-h-dvh lg:pb-0 transition-all duration-300 ${newMenu ? 'pb-[calc(56px+env(safe-area-inset-bottom)+16px)]' : 'pb-20'} ${collapsed ? 'lg:ml-[72px]' : 'lg:ml-[240px]'}`}>
         {/* Мобильная шапка: под вырезом iPhone отступ safe-area */}
         <header className="lg:hidden sticky top-0 z-30 bg-brand-card/90 backdrop-blur border-b border-brand-border h-14 box-content pt-[env(safe-area-inset-top)] flex items-center justify-between px-4">
           <Image
@@ -236,19 +236,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             height={24}
             className="h-6 w-auto"
           />
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <EnergyBadge compact data={energy} />
             <EnergyInfo placement="header" />
-            {!newMenu && <Link href="/dashboard/settings" className="p-2 text-brand-muted hover:text-brand-accent transition">
+            {!newMenu && <Link href="/dashboard/settings" className="w-11 h-11 flex items-center justify-center text-brand-muted hover:text-brand-accent transition">
               <Settings className="w-5 h-5" />
             </Link>}
-            <button onClick={handleLogout} aria-label="Выйти из аккаунта" className="p-2 text-brand-muted hover:text-brand-accent transition cursor-pointer">
+            <button onClick={handleLogout} aria-label="Выйти из аккаунта" className="w-11 h-11 flex items-center justify-center text-brand-muted hover:text-brand-accent transition cursor-pointer">
               <LogOut className="w-5 h-5" />
             </button>
           </div>
         </header>
 
-        <DashboardMeContext.Provider value={{ me: energy, loaded: meLoaded }}>{children}</DashboardMeContext.Provider>
+        <DashboardMeContext.Provider value={{ me: energy, loaded: meLoaded, typing }}>{children}</DashboardMeContext.Provider>
       </main>
 
       {/* ─── Нижняя навигация (мобилка) ─── */}

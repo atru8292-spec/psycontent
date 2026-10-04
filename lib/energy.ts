@@ -215,8 +215,8 @@ export async function canConsume(userId: string, operation: string, units = 1): 
       // число показываем только на бесплатном (там «N из 10» и так видно); у платных потолок скрытый
       const left = cap - count
       const message = plan.code === 'free'
-        ? `В этом месяце осталось текстов: ${left}. Выбери столько форматов или меньше.`
-        : 'Столько форматов сразу сейчас не получится, выбери поменьше.'
+        ? `В этом месяце хватит еще на ${left} ${left % 10 === 1 && left % 100 !== 11 ? 'текст' : left % 10 >= 2 && left % 10 <= 4 && (left % 100 < 12 || left % 100 > 14) ? 'текста' : 'текстов'}. Убери лишние форматы, и я сделаю.`
+        : 'Столько форматов сразу сейчас не выйдет. Убери пару и нажми еще раз.'
       return { ok: false, mode: 'text', operation, cost: 0, reason: 'text_limit_partial', message }
     }
     return { ok: true, mode: 'text', operation, cost: 0 }

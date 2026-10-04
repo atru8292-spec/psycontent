@@ -14,12 +14,17 @@ export type VoiceError = 'denied' | 'network' | 'empty' | null
 const MAX_SECONDS = 120 // авто-стоп на 2 минутах (решение по 6.2)
 const NEAR_LIMIT = 105 // 1:45, мягкое предупреждение «заканчивай мысль»
 
+// Экран «Сделать» пишет до 3 минут с предупреждением за 20 секунд (задача sdelat-i-brend, раздел 3)
+export type VoiceOptions = { maxSeconds?: number; nearSeconds?: number }
+
 export interface VoiceRecorder {
   state: VoiceState
   elapsed: number
   errorKind: VoiceError
   nearLimit: boolean
   justFinished: boolean
+  // громкость 0..1 для волны (пока идет запись), без записи 0
+  getLevel: () => number
   start: () => void
   stop: () => void
   cancel: () => void
@@ -27,7 +32,11 @@ export interface VoiceRecorder {
   reset: () => void
 }
 
-export function useVoiceRecorder(onText: (text: string) => void): VoiceRecorder {
+export function useVoiceRecorder(onText: (text: string) => void, opts?: VoiceOptions): VoiceRecorder {
+  const maxSeconds = opts?.maxSeconds ?? MAX_SECONDS
+  const nearSeconds = opts?.nearSeconds ?? NEAR_LIMIT
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const audioCtxRef = useRef<AudioContext | null>(null)
   const [state, setState] = useState<VoiceState>('idle')
   const [elapsed, setElapsed] = useState(0)
   const [errorKind, setErrorKind] = useState<VoiceError>(null)
@@ -101,12 +110,30 @@ export function useVoiceRecorder(onText: (text: string) => void): VoiceRecorder 
         // Гасим микрофон (иначе индикатор записи висит в браузере).
         streamRef.current?.getTracks().forEach((t) => t.stop())
         streamRef.current = null
+        analyserRef.current = null
+        audioCtxRef.current?.close().catch(() => {})
+        audioCtxRef.current = null
         if (cancelledRef.current) { setState('idle'); setElapsed(0); return }
         const blob = new Blob(chunksRef.current, { type: mr.mimeType || 'audio/webm' })
         chunksRef.current = []
         if (blob.size === 0) { setState('error'); setErrorKind('empty'); return }
         upload(blob)
       }
+
+      // анализатор громкости для волны; если браузер не дает AudioContext, волна просто стоит
+      try {
+        const Ctx = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext | undefined
+        if (Ctx) {
+          const ac = new Ctx()
+          // на iOS контекст, созданный не прямо по нажатию, стартует на паузе: без resume волна стоит
+          ac.resume?.().catch(() => {})
+          const an = ac.createAnalyser()
+          an.fftSize = 256
+          ac.createMediaStreamSource(stream).connect(an)
+          audioCtxRef.current = ac
+          analyserRef.current = an
+        }
+      } catch { analyserRef.current = null }
 
       mr.start()
       setState('recording')
@@ -115,7 +142,7 @@ export function useVoiceRecorder(onText: (text: string) => void): VoiceRecorder 
       timerRef.current = setInterval(() => {
         setElapsed((prev) => {
           const next = prev + 1
-          if (next >= MAX_SECONDS) stopRef.current() // авто-стоп с отправкой
+          if (next >= maxSeconds) stopRef.current() // авто-стоп с отправкой
           return next
         })
       }, 1000)
@@ -123,7 +150,7 @@ export function useVoiceRecorder(onText: (text: string) => void): VoiceRecorder 
       // NotAllowedError (отказ) или NotFoundError (нет микрофона) -> одна мягкая ветка.
       setState('error'); setErrorKind('denied')
     }
-  }, [upload])
+  }, [upload, maxSeconds])
 
   const cancel = useCallback(() => {
     // true и при recording, и при transcribing: upload по завершении не вставит текст.
@@ -145,12 +172,23 @@ export function useVoiceRecorder(onText: (text: string) => void): VoiceRecorder 
     if (timerRef.current) clearInterval(timerRef.current)
     if (finishTimerRef.current) clearTimeout(finishTimerRef.current)
     streamRef.current?.getTracks().forEach((t) => t.stop())
+    audioCtxRef.current?.close().catch(() => {})
+  }, [])
+
+  const getLevel = useCallback(() => {
+    const an = analyserRef.current
+    if (!an) return 0
+    const buf = new Uint8Array(an.fftSize)
+    an.getByteTimeDomainData(buf)
+    let sum = 0
+    for (const v of buf) { const x = (v - 128) / 128; sum += x * x }
+    return Math.min(1, Math.sqrt(sum / buf.length) * 4)
   }, [])
 
   return {
     state, elapsed, errorKind,
-    nearLimit: state === 'recording' && elapsed >= NEAR_LIMIT,
+    nearLimit: state === 'recording' && elapsed >= nearSeconds,
     justFinished,
-    start, stop, cancel, retry, reset,
+    start, stop, cancel, retry, reset, getLevel,
   }
 }

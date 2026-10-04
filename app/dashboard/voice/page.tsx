@@ -568,16 +568,21 @@ function ToneSteps({ tone, profanity, intensity, onChange }: {
         return (
           <div key={ax.key}>
             <div className="flex justify-between text-xs font-medium mb-1">
-              <span className={pos < 3 ? 'text-brand-accent' : 'text-brand-muted'}>{ax.left}</span>
-              <span className={pos > 3 ? 'text-brand-accent' : 'text-brand-muted'}>{ax.right}</span>
+              <span className={pos < 3 ? 'text-brand-accent font-semibold' : 'text-brand-muted'}>{ax.left}</span>
+              <span className={pos > 3 ? 'text-brand-accent font-semibold' : 'text-brand-muted'}>{ax.right}</span>
             </div>
             <input type="range" min={0} max={6} step={1} value={pos}
               onChange={e => onChange(ax.key, TONE_POSITIONS[Number(e.target.value)])}
               aria-label={`${ax.left} или ${ax.right}`} aria-valuetext={st.word || 'посередине'}
               className="w-full h-11 cursor-pointer" style={{ accentColor: 'var(--color-brand-accent)' }} />
+            {/* 7 засечек: видно, что это ступени, середина крупнее */}
+            <div className="-mt-3 mb-1 flex justify-between px-[7px]" aria-hidden="true">
+              {[0, 1, 2, 3, 4, 5, 6].map(i => <span key={i} className={`rounded-full ${i === 3 ? 'w-2 h-2' : 'w-1 h-1'} ${i === pos ? 'bg-brand-accent' : 'bg-brand-border'}`} />)}
+            </div>
             <p className="text-xs text-brand-muted">
-              {st.overriddenBy === 'intensity' ? `Сейчас главнее «Эмоции»${st.word ? `, выйдет: ${st.word}` : ', эта сторона не действует'}`
-                : st.overriddenBy === 'profanity' ? 'Сейчас главнее «Мат», эта сторона не действует'
+              {st.overriddenBy === 'intensity' && st.word ? `В постах: ${st.word}. Сильнее не стану, у тебя «Спокойно и ровно»`
+                : st.overriddenBy === 'intensity' ? `Ты выбрала «На эмоциях», поэтому будет ${ax.key === 'tone_cautious' ? 'прямее' : 'разговорнее'}. Ползунок пока не действует`
+                : st.overriddenBy === 'profanity' ? 'Ты разрешила мат, поэтому будет разговорнее. Ползунок пока не действует'
                 : st.word ? `В постах: ${st.word}` : 'Посередине, беру по твоим постам'}
             </p>
           </div>

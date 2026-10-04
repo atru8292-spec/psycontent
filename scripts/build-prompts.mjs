@@ -81,6 +81,7 @@ const pn = find('ПН.')
 const pzh = find('ПЖ.')
 const ym = find('ЯМ.')
 const yp = find('ЯП.')
+const tzh = find('ТЖ.')
 const moves = find('Ходы ПЖ')
 const buttons = find('Кнопки')
 
@@ -146,6 +147,8 @@ export const YM_SYSTEM = ${str(pick(ym, 'system'))}
 export const YM_USER = ${str(pick(ym, 'user'))}
 export const YP_SYSTEM = ${str(pick(yp, 'system'))}
 export const YP_USER = ${str(pick(yp, 'user'))}
+export const TZH_SYSTEM = ${str(pick(tzh, 'system'))}
+export const TZH_USER = ${str(pick(tzh, 'user'))}
 
 export const PN_SYSTEM = ${str(pick(pn, 'system'))}
 export const PN_USER = ${str(pick(pn, 'user'))}
