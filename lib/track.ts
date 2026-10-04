@@ -7,6 +7,7 @@
 //   onb_step_view      показали вопрос            props: step (1-5)
 //   onb_step_done      ответила и пошла дальше     props: step (1-5), ms (время на шаге)
 //   onb_skip           пропустила необязательный  props: step (сейчас только 5; onb_step_done для него не пишется)
+//   onb_situation_change  нажала «Другая ситуация» на шаге 4  props: index (номер реплики 0-3)
 //   onb_mic_denied     браузер не дал микрофон (шаг 4)
 //   onb_done           профиль сохранен, показан финал
 //   onb_first_click    нажала «Сделать пост и карусель» на финале

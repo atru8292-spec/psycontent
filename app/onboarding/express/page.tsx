@@ -29,12 +29,20 @@ const NICHES = [
 const STORE = 'psycont_onb_express'
 const TOTAL = 5
 const VOICE_LIMIT = 60
+// 4-й вопрос: конкретная реплика клиентки вместо абстрактного «как ты говоришь». Реплики дала Арина, не менять.
+// В профиль идет только ее ответ (tone_verbal), реплика в голос не попадает.
+const SITUATIONS = [
+  'Я понимаю, что тревожиться глупо, но не могу перестать',
+  'Мне кажется, я просто ленивая',
+  'Зачем мне терапия, если можно поговорить с подругой?',
+  'Я опять сорвалась на ребенка, я ужасная мать',
+]
 // Просмотр для проверки верстки: только в dev-сборке, ?preview=1 пропускает проверку профиля и ничего не пишет в базу.
 // В проде переменная NODE_ENV = production, режим не включается.
 const isPreview = () => process.env.NODE_ENV !== 'production' && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1'
 
-type Answers = { name: string; approaches: string[]; nicheChip: string | null; nicheText: string; tone: string; pain: string }
-const EMPTY: Answers = { name: '', approaches: [], nicheChip: null, nicheText: '', tone: '', pain: '' }
+type Answers = { name: string; approaches: string[]; nicheChip: string | null; nicheText: string; tone: string; pain: string; situation: number }
+const EMPTY: Answers = { name: '', approaches: [], nicheChip: null, nicheText: '', tone: '', pain: '', situation: 0 }
 // 0 вход, 1-5 вопросы, 6 финал
 type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6
 
@@ -232,7 +240,7 @@ export default function ExpressOnboarding() {
     1: 'Напиши имя, и пойдем дальше',
     2: 'Выбери хотя бы один подход',
     3: 'Впиши, с чем работаешь',
-    4: transcribing ? 'Подожди, расшифровываю' : 'Наговори или напиши хоть одну фразу',
+    4: transcribing ? 'Подожди, расшифровываю' : 'Наговори или напиши, что ответишь',
   }
   const nextBlock = (label = 'Дальше') => (
     <div ref={actionRef} className="mt-5">
@@ -271,7 +279,7 @@ export default function ExpressOnboarding() {
   let body: React.ReactNode = null
   if (step === 0) {
     body = (
-      <div className="pt-10">
+      <div>
         <Vera src="/vera/privet.webp" h={120} w={93} tilt="-rotate-2" delay={!reduce}>
           <p className="text-[16px] leading-[22px]">Я Вера. Пять коротких вопросов, около минуты. Потом сделаем первый пост твоим голосом</p>
         </Vera>
@@ -280,7 +288,7 @@ export default function ExpressOnboarding() {
     )
   } else if (step === 1) {
     body = (
-      <div className="pt-6">
+      <div>
         {title('Как тебя зовут?', 'Чтобы посты звучали от живого человека')}
         <input autoFocus value={a.name} onChange={e => setA({ ...a, name: e.target.value })} aria-label="Как тебя зовут"
           onKeyDown={e => { if (e.key === 'Enter') next() }} placeholder="Например, Анна" autoComplete="given-name" enterKeyHint="next"
@@ -290,7 +298,7 @@ export default function ExpressOnboarding() {
     )
   } else if (step === 2) {
     body = (
-      <div className="pt-6">
+      <div>
         {title('В каком подходе работаешь?', 'Чтобы не писать то, что противоречит твоему методу')}
         <div className="mt-5 flex flex-wrap gap-2">
           {APPROACHES.map(x => {
@@ -314,7 +322,7 @@ export default function ExpressOnboarding() {
     )
   } else if (step === 3) {
     body = (
-      <div className="pt-6">
+      <div>
         {title('С чем работаешь чаще всего?', 'Отсюда возьму первые темы')}
         <div className="mt-5 flex flex-wrap gap-2">
           {NICHES.map(x => {
@@ -348,22 +356,35 @@ export default function ExpressOnboarding() {
       </div>
     )
   } else if (step === 4) {
+    const sit = SITUATIONS[(a.situation || 0) % SITUATIONS.length]
     body = (
-      <div className="pt-6">
-        {title('Как ты говоришь с клиентами?')}
-        <div className="mt-4">
-          <Vera src="/vera/slushaet.webp" h={90} w={66} delay={false}>
-            <p className="text-[15px] leading-[21px]">Наговори, как сказала бы клиентке. Я запомню, как ты звучишь</p>
-          </Vera>
+      <div>
+        {title('Как ты отвечаешь клиентке?')}
+        {/* карточка-ситуация: как пузырь Веры, но с меткой */}
+        <div className="mt-4 rounded-[20px] bg-brand-soft border border-brand-border-soft px-4 py-3">
+          <p className="text-[13px] leading-[18px] text-brand-muted">Клиентка говорит:</p>
+          <p className="mt-1 text-[16px] leading-[22px] text-brand-text">«{sit}»</p>
         </div>
-        <div className="mt-4">{voiceField(a.tone, v => setA({ ...a, tone: v }), 'Или напиши текстом', 'Как ты говоришь с клиентами', !a.tone.trim())}</div>
-        {transcribeFailed ? (
+        <button type="button" onClick={() => {
+          const n = ((a.situation || 0) + 1) % SITUATIONS.length
+          setA({ ...a, situation: n })
+          track('onb_situation_change', { index: n })
+        }} className="h-11 -ml-1 px-1 text-[15px] text-brand-accent font-semibold underline underline-offset-4 cursor-pointer">Другая ситуация</button>
+        <div className="flex items-center gap-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/vera/slushaet.webp" alt="" aria-hidden="true" width={44} height={60} style={{ height: 60, width: 44, filter: 'drop-shadow(0 2px 6px rgba(59,42,34,.12))' }} className="shrink-0" />
+          <div className="relative min-w-0 bg-brand-soft border border-brand-border-soft rounded-[16px] px-3 py-2 text-[15px] leading-5 text-brand-text">
+            <span aria-hidden="true" className="absolute -left-[6px] top-1/2 -mt-[5px] w-2.5 h-2.5 rotate-45 bg-brand-soft border-l border-b border-brand-border-soft" />
+            Я запомню, как ты звучишь
+          </div>
+        </div>
+        <p className="mt-3 text-[15px] leading-5 text-brand-muted">Ответь своими словами, как на сессии. Пары фраз хватит</p>
+        <div className="mt-3">{voiceField(a.tone, v => setA({ ...a, tone: v }), 'Или напиши, что ответишь', 'Что ты ответишь клиентке', !a.tone.trim())}</div>
+        {transcribeFailed && (
           <div className="mt-2 flex items-center justify-between gap-2 text-[14px] text-brand-text">
             <span className="min-w-0">Не получилось расшифровать. Запись цела</span>
             <button type="button" onClick={rec.retry} className="h-11 px-4 rounded-full border border-brand-border font-semibold cursor-pointer shrink-0">Еще раз</button>
           </div>
-        ) : (
-          <p className="mt-2 text-[13px] leading-[18px] text-brand-muted">Например: давай по-честному, без умных слов</p>
         )}
         {nextBlock()}
       </div>
@@ -371,7 +392,7 @@ export default function ExpressOnboarding() {
   } else if (step === 5) {
     const hasPain = !!a.pain.trim()
     body = (
-      <div className="pt-6">
+      <div>
         {title('Какими словами клиент описывает боль?', 'Так посты заговорят словами твоих клиентов')}
         {/* без микрофона: здесь слова клиента, а записи с микрофона идут в память ее голоса */}
         <textarea value={a.pain} onChange={e => setA({ ...a, pain: e.target.value })} rows={3} aria-label="Какими словами клиент описывает боль"
@@ -392,7 +413,7 @@ export default function ExpressOnboarding() {
   } else {
     const name = a.name.trim()
     body = (
-      <div className="pt-8">
+      <div>
         <Vera src="/vera/raduetsya.webp" h={140} w={117} tilt="rotate-2" delay={!reduce}>
           <h1 ref={titleRef} tabIndex={-1} className="text-[20px] leading-[26px] font-semibold outline-none">{name ? `Готово, ${name}, я тебя услышала` : 'Готово, я тебя услышала'}</h1>
         </Vera>
@@ -409,8 +430,9 @@ export default function ExpressOnboarding() {
 
   const q = step >= 1 && step <= TOTAL ? step : 0
   return (
-    <div className="min-h-[100dvh] bg-brand-bg overflow-x-hidden">
-      <div className="max-w-[440px] mx-auto px-4 pb-8 pt-[max(8px,env(safe-area-inset-top))] sm:pt-16">
+    <div className="min-h-dvh bg-brand-bg overflow-x-hidden flex flex-col">
+      {/* шапка сверху, карточка по центру оставшейся высоты, оптический центр чуть выше середины (снизу 10dvh) */}
+      <div className="flex-1 w-full max-w-[440px] mx-auto px-4 pt-[max(8px,env(safe-area-inset-top))] flex flex-col">
         {/* шапка стоит на месте, двигается только тело */}
         <div className="h-11 flex items-center gap-1">
           {step >= 1 && step <= TOTAL ? (
@@ -429,6 +451,9 @@ export default function ExpressOnboarding() {
         </div>
         {q > 0 && <p className="pl-12 mt-0.5 text-[13px] leading-[18px] text-brand-muted tabular-nums">Вопрос {q} из {TOTAL}</p>}
 
+        {/* my-auto: не обрезает верх, если карточка выше экрана, тогда обычная прокрутка с начала */}
+        <div className="flex-1 flex flex-col pt-6 pb-[max(2rem,10dvh)]">
+        <div className="my-auto w-full">
         <AnimatePresence mode="wait" initial={false} custom={dir}>
           <motion.div key={step}
             initial={reduce ? false : { opacity: 0, x: 24 * dir }}
@@ -437,8 +462,12 @@ export default function ExpressOnboarding() {
             {body}
           </motion.div>
         </AnimatePresence>
+        </div>
+        </div>
       </div>
 
+      {/* dev-просмотр still=1: без CSS-переходов, в фоновой вкладке они не доигрываются и снимки врут */}
+      {reduce && isPreview() && <style>{'*{transition:none!important;animation:none!important}'}</style>}
       <VoiceSheet open={voiceOpen} rec={rec} maxSeconds={VOICE_LIMIT} prompt="Говори, как с клиенткой. Паузы не страшны." onClose={() => setVoiceOpen(false)}
         onWriteText={() => { setVoiceOpen(false); rec.reset(); setTimeout(() => fieldRef.current?.focus(), 50) }} />
     </div>
