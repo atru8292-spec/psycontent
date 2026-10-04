@@ -99,7 +99,7 @@ export default function TariffSection({ currentCode }: { currentCode?: string })
               </button>
             </div>
             <p className="text-sm text-brand-muted leading-relaxed">
-              Мы заканчиваем подключение оплаты. Как только заработает, перейдешь на «{picked.name}» в один тап, без анкет и звонков. Загляни сюда чуть позже.
+              Оплату еще подключаем. Когда заработает, перейти на «{picked.name}» можно будет здесь одной кнопкой, без анкет и звонков. Загляни чуть позже.
             </p>
             <button
               type="button"

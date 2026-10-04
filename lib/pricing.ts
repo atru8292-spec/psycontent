@@ -27,7 +27,7 @@ export const PRICING_FLAGS = { promo: false, yearly: false, paymentsOn: false }
 export const PLANS: PricePlan[] = [
   {
     id: 'trial', name: 'Пробный', price: 0, materials: 10, carousels: 1, perMonth: false,
-    who: 'Услышать свой голос и понять, нужно ли', extra: ['карта не нужна'], dbCodes: ['free'], track: 'free',
+    who: 'Проверить, звучит ли как ты, и решить, нужно ли', extra: ['карта не нужна'], dbCodes: ['free'], track: 'free',
   },
   {
     id: 'calm', name: 'Спокойный ритм', price: 1290, yearPrice: 12900, promoFirstMonth: 690, materials: 50, carousels: 6, perMonth: true,
@@ -35,7 +35,7 @@ export const PLANS: PricePlan[] = [
   },
   {
     id: 'daily', name: 'Каждый день', price: 2490, yearPrice: 24900, promoFirstMonth: 1290, materials: 150, carousels: 15, perMonth: true,
-    who: 'Если ведешь блог почти каждый день', extra: ['одна мысль сразу в пять форматов'], dbCodes: ['practice'], track: 'daily',
+    who: 'Если ведешь блог почти каждый день и раскладываешь мысль на пять форматов', dbCodes: ['practice'], track: 'daily',
   },
 ]
 

@@ -7,6 +7,7 @@ import Header from '@/components/landing/Header'
 import Demo from '@/components/landing/Demo'
 import ExamplePost from '@/components/landing/ExamplePost'
 import Faq from '@/components/landing/Faq'
+import ClampText from '@/components/landing/ClampText'
 import { HERO, PAINS, HOW, DEMO, EXAMPLE, WHY, ETHICS, PRICING, FAQ, FINAL, FOOTER, CONTACT_EMAIL, PRIVACY_URL, OFFER_URL } from '@/components/landing/content'
 import { EXAMPLES, COMPARE_TOPIC, COMPARE_PSYCONT } from '@/components/landing/examples'
 import { PLANS, PLAN_COMMON_LINE, MATERIAL_NOTE, formatRub, planPerks } from '@/lib/pricing'
@@ -15,8 +16,9 @@ import { PLANS, PLAN_COMMON_LINE, MATERIAL_NOTE, formatRub, planPerks } from '@/
 export const revalidate = 86400
 
 const WRAP = 'mx-auto w-full max-w-[1120px] px-4 md:px-8'
-const SECTION = 'py-[72px] lg:py-36'
-const H2 = 'text-[27px] font-bold leading-[1.15] text-brand-text lg:text-[38px]'
+const SECTION = 'py-12 lg:py-[72px]'
+const SECTION_TINT = 'py-[72px] lg:py-28'
+const H2 = 'text-[27px] font-bold leading-[1.15] text-brand-text [text-wrap:balance] lg:text-[38px]'
 const TEXT = 'text-[17px] leading-[1.55] lg:text-[19px]'
 
 // Рукописная линия шалфеем под ключевыми словами первого экрана (единственная на странице)
@@ -46,9 +48,9 @@ export default function Home() {
       <Header />
       <main>
         {/* 2. Первый экран */}
-        <section className={`${WRAP} pt-6 pb-[72px] lg:grid lg:min-h-[560px] lg:grid-cols-12 lg:items-center lg:gap-8 lg:pt-16 lg:pb-28`}>
+        <section className={`${WRAP} pt-6 pb-12 lg:grid lg:min-h-[520px] lg:grid-cols-12 lg:items-center lg:gap-8 lg:pt-16 lg:pb-[72px]`}>
           <div className="lg:col-span-7">
-            <h1 className="max-w-[640px] text-[36px] font-bold leading-[1.1] tracking-[-0.01em] text-brand-text lg:text-[60px]">
+            <h1 className="max-w-[640px] text-[36px] font-bold leading-[1.1] tracking-[-0.01em] text-brand-text [text-wrap:balance] lg:text-[60px]">
               {HERO.title}{' '}
               <span className="relative inline-block whitespace-nowrap">{HERO.titleMark}<Underline /></span>
             </h1>
@@ -58,12 +60,12 @@ export default function Home() {
               <p className="text-[15px] text-brand-muted">{HERO.note}</p>
             </div>
           </div>
-          <div className="mt-6 flex items-end gap-4 lg:col-span-5 lg:mt-0 lg:flex-row-reverse lg:justify-self-end">
+          <div className="mt-6 flex items-end gap-4 lg:col-span-5 lg:mt-0 lg:flex-col-reverse lg:items-end lg:gap-3 lg:justify-self-end">
             <figure className="flex shrink-0 flex-col items-center">
               <Image src="/vera/privet.webp" alt="Вера машет рукой" width={278} height={360} priority className="h-[168px] w-auto lg:h-[300px]" />
               <figcaption className="mt-2 text-center text-[14px] text-brand-muted">{HERO.veraRole}</figcaption>
             </figure>
-            <p className="relative mb-12 min-w-0 flex-1 rounded-3xl border border-brand-border-soft bg-brand-soft px-4 py-3 text-[16px] leading-[1.45] text-brand-text lg:mb-24 lg:max-w-[260px] lg:flex-none">
+            <p className="relative mb-12 min-w-0 flex-1 rounded-3xl border border-brand-border-soft bg-brand-soft px-4 py-3 text-[16px] leading-[1.45] text-brand-text lg:mb-0 lg:mr-6 lg:max-w-[280px] lg:flex-none">
               {HERO.veraSays}
             </p>
           </div>
@@ -110,7 +112,9 @@ export default function Home() {
                       )}
                     </div>
                     <div className={`mt-8 flex justify-center lg:mt-0 ${mirror ? 'lg:col-span-4 lg:col-start-2 lg:row-start-1' : 'lg:col-span-4 lg:col-start-8'}`}>
-                      <PhoneShot src={s.shot} alt={s.alt} w={s.w} h={s.h} />
+                      {s.shot
+                        ? <PhoneShot src={s.shot} alt={s.alt} w={s.w} h={s.h} />
+                        : <Image src={s.vera} alt={s.alt} width={338} height={360} className="h-[180px] w-auto lg:h-[280px]" />}
                     </div>
                   </li>
                 )
@@ -134,7 +138,7 @@ export default function Home() {
         </Reveal>
 
         {/* 6. Пример текста: акцент на бледной сирени */}
-        <section className={`${SECTION} bg-brand-soft`}>
+        <section className={`${SECTION_TINT} bg-brand-soft`}>
           <Reveal className={WRAP}>
             <h2 className={H2}>{EXAMPLE.title}</h2>
             <p className={`mt-3 max-w-[640px] text-brand-text ${TEXT}`}>{EXAMPLE.lead}</p>
@@ -164,11 +168,11 @@ export default function Home() {
             <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:items-start">
               <figure className="rounded-3xl border border-brand-border p-6 lg:p-8">
                 <figcaption className="inline-flex h-8 items-center rounded-full border border-brand-border px-3 text-[14px] text-brand-muted">{WHY.aiLabel}</figcaption>
-                <p className="mt-4 text-[17px] leading-[1.55] text-brand-text">{WHY.aiText}</p>
+                <div className="mt-4"><ClampText text={WHY.aiText} className={`text-brand-text ${TEXT}`} /></div>
               </figure>
               <figure className="rounded-3xl border border-brand-border bg-brand-card p-6 shadow-[0_1px_2px_rgba(59,42,34,.06)] lg:p-8">
                 <figcaption className="inline-flex h-8 items-center rounded-full bg-brand-soft px-3 text-[14px] text-brand-text">{WHY.oursLabel}</figcaption>
-                <p className="mt-4 whitespace-pre-line text-[17px] leading-[1.55] text-brand-text">{COMPARE_PSYCONT}</p>
+                <div className="mt-4"><ClampText text={COMPARE_PSYCONT} className={`text-brand-text ${TEXT}`} /></div>
               </figure>
             </div>
             <p className="mt-4 max-w-[640px] text-[15px] text-brand-muted">{WHY.compareNote}</p>
@@ -183,7 +187,7 @@ export default function Home() {
               {ETHICS.items.map(it => (
                 <li key={it.title} className="border-t border-brand-border pt-5">
                   <h3 className="text-[18px] font-semibold text-brand-text">{it.title}</h3>
-                  <p className="mt-1 text-[17px] leading-[1.55] text-brand-muted">{it.text}</p>
+                  <p className={`mt-1 text-brand-muted ${TEXT}`}>{it.text}</p>
                 </li>
               ))}
             </ul>
@@ -203,9 +207,9 @@ export default function Home() {
                     <span className="text-[40px] font-bold leading-none text-brand-text">{formatRub(p.price)}</span>
                     {p.perMonth && <span className="text-[17px] text-brand-muted">{PRICING.perMonth}</span>}
                   </p>
-                  <p className="mt-3 text-[17px] leading-[1.45] text-brand-muted">{p.who}</p>
+                  <p className="mt-3 text-[17px] leading-[1.45] text-brand-muted lg:text-[18px]">{p.who}</p>
                   <ul className="mt-5 mb-6">
-                    {planPerks(p).map(perk => <li key={perk} className="border-t border-brand-border py-3 text-[17px] text-brand-text">{perk}</li>)}
+                    {planPerks(p).map(perk => <li key={perk} className="border-t border-brand-border py-3 text-[17px] text-brand-text lg:text-[18px]">{perk}</li>)}
                   </ul>
                   <div className="mt-auto">
                     {p.price > 0 && <p className="mb-2 text-[14px] text-brand-muted">{PRICING.soon}</p>}
@@ -230,7 +234,7 @@ export default function Home() {
         </Reveal>
 
         {/* 11. Финал: акцент на бледной сирени */}
-        <section className="bg-brand-soft py-[72px] lg:py-32">
+        <section className={`${SECTION_TINT} bg-brand-soft`}>
           <Reveal className={`${WRAP} lg:grid lg:grid-cols-12 lg:items-center lg:gap-8`}>
             <Image src="/vera/raduetsya.webp" alt="Вера радуется" width={299} height={360} className="h-[160px] w-auto lg:order-2 lg:col-span-5 lg:h-[300px] lg:justify-self-center" />
             <div className="mt-6 lg:order-1 lg:col-span-7 lg:mt-0">
