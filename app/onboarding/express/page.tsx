@@ -6,7 +6,7 @@
 // upsert в конце с теми же полями, что раньше. Ползунки тона отсюда убраны (они на экране голоса): тон не пишем,
 // в базе остается значение по умолчанию, генерация середину ползунка не выводит.
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { ChevronLeft, Check, Plus, Mic, Loader2 } from 'lucide-react'
@@ -103,6 +103,10 @@ export default function ExpressOnboarding() {
   const fieldRef = useRef<HTMLTextAreaElement>(null)
   const actionRef = useRef<HTMLDivElement>(null)
   const uidRef = useRef<string | null>(null)
+  const areaRef = useRef<HTMLDivElement>(null)
+  const blockRef = useRef<HTMLDivElement>(null)
+  const [centered, setCentered] = useState(true)
+  const decideRef = useRef<() => void>(() => {})
   // флаг нового мозга: с ним финал ведет на новый «Сделать» (пост и карусель), без него как раньше
   const [newGen, setNewGen] = useState<boolean | null>(null)
 
@@ -162,6 +166,30 @@ export default function ExpressOnboarding() {
     setLimitHint(false)
     if (step >= 2) setTimeout(() => titleRef.current?.focus({ preventScroll: true }), reduce ? 0 : 220)
   }, [step, ready, reduce])
+
+  // по центру или сверху: блок меньше 60% высоты под шапкой и клавиатура закрыта.
+  // useLayoutEffect: решаем до отрисовки, иначе на смене шага блок мелькает по центру и прыгает наверх
+  useLayoutEffect(() => {
+    const decide = () => {
+      const area = areaRef.current, block = blockRef.current
+      if (!area || !block) return
+      const avail = window.innerHeight - area.getBoundingClientRect().top + window.scrollY
+      // клавиатура открыта: фокус в поле и видимая область заметно ниже окна (на десктопе фокус не мешает центру)
+      const el = document.activeElement
+      const vv = window.visualViewport
+      const keyboard = !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && !!vv && vv.height < window.innerHeight - 120
+      setCentered(!keyboard && block.offsetHeight < avail * 0.6)
+    }
+    decideRef.current = decide
+    decide()
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(decide) : null
+    if (ro && blockRef.current) ro.observe(blockRef.current)
+    window.addEventListener('resize', decide)
+    window.visualViewport?.addEventListener('resize', decide)
+    document.addEventListener('focusin', decide)
+    document.addEventListener('focusout', decide)
+    return () => { ro?.disconnect(); window.removeEventListener('resize', decide); window.visualViewport?.removeEventListener('resize', decide); document.removeEventListener('focusin', decide); document.removeEventListener('focusout', decide) }
+  }, [ready, step])
 
   // iOS: клавиатура кладется поверх, кнопку «Дальше» держим над ней
   useEffect(() => {
@@ -263,7 +291,9 @@ export default function ExpressOnboarding() {
   // ---------- общие куски ----------
   const green = 'w-full h-[52px] rounded-2xl text-[16px] font-semibold bg-brand-accent text-white hover:bg-brand-accent-hover cursor-pointer transition'
   const outline = 'w-full h-[52px] rounded-2xl text-[16px] font-semibold border-[1.5px] border-brand-accent text-brand-accent bg-brand-card cursor-pointer transition'
-  const chip = (on: boolean, dim = false) => `h-11 px-4 inline-flex items-center gap-1.5 rounded-full text-[15px] cursor-pointer transition ${on ? 'bg-brand-soft border-[1.5px] border-brand-accent text-brand-text font-semibold' : 'border border-brand-border text-brand-text'} ${dim ? 'opacity-50' : ''}`
+  // вопросы 2-4 (контента много, стоят сверху): крупнее, чтобы не было пустоты
+  const big = step >= 2 && step <= 4
+  const chip = (on: boolean, dim = false) => `${big ? 'min-h-[52px] px-5 text-[17px]' : 'h-11 px-4 text-[15px]'} inline-flex items-center gap-1.5 rounded-full cursor-pointer transition ${on ? 'bg-brand-soft border-[1.5px] border-brand-accent text-brand-text font-semibold' : 'border border-brand-border text-brand-text'} ${dim ? 'opacity-50' : ''}`
   const inputCls = 'h-14 w-full rounded-[20px] bg-brand-card border-[1.5px] border-brand-border px-4 text-[16px] text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-accent focus:ring-[3px] focus:ring-brand-soft'
 
   const missing: Record<number, string> = {
@@ -273,7 +303,7 @@ export default function ExpressOnboarding() {
     4: transcribing ? 'Подожди, расшифровываю' : 'Наговори или напиши, что ответишь',
   }
   const nextBlock = (label = 'Дальше') => (
-    <div ref={actionRef} className="mt-5">
+    <div ref={actionRef} className={step === 4 ? 'mt-3' : 'mt-5'}>
       <button type="button" onClick={next} aria-disabled={!valid[step] || saving} aria-describedby="onb-missing"
         className={valid[step] && !saving ? green : 'w-full h-[52px] rounded-2xl text-[16px] font-semibold bg-brand-border text-brand-muted cursor-not-allowed'}>
         {saving ? <span className="inline-flex items-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />Сохраняю</span> : label}
@@ -285,8 +315,8 @@ export default function ExpressOnboarding() {
   )
   const title = (t: string, hint?: string) => (
     <>
-      <h1 ref={titleRef} tabIndex={-1} className="text-[22px] leading-7 font-semibold text-brand-text outline-none">{t}</h1>
-      {hint && <p className="mt-1.5 text-[15px] leading-5 text-brand-muted">{hint}</p>}
+      <h1 ref={titleRef} tabIndex={-1} className={`${big ? 'text-[29px] leading-[34px]' : 'text-[22px] leading-7'} font-semibold text-brand-text outline-none`}>{t}</h1>
+      {hint && <p className={`mt-1.5 ${big ? 'text-[16px] leading-[22px]' : 'text-[15px] leading-5'} text-brand-muted`}>{hint}</p>}
     </>
   )
 
@@ -295,7 +325,7 @@ export default function ExpressOnboarding() {
     <div className="rounded-[20px] bg-brand-card border-[1.5px] border-brand-border focus-within:border-brand-accent focus-within:ring-[3px] focus-within:ring-brand-soft transition">
       <textarea ref={fieldRef} value={value} onChange={e => onChange(e.target.value)} readOnly={transcribing} rows={2} aria-label={label}
         placeholder={transcribing ? 'Расшифровываю...' : placeholder}
-        className={`block w-full min-h-[72px] max-h-[144px] resize-none bg-transparent px-4 pt-3.5 text-[16px] leading-6 text-brand-text placeholder:text-brand-muted focus:outline-none ${transcribing ? 'animate-pulse' : ''}`} />
+        className={`block w-full ${big ? 'min-h-[88px]' : 'min-h-[72px]'} max-h-[144px] resize-none bg-transparent px-4 pt-3.5 text-[16px] leading-6 text-brand-text placeholder:text-brand-muted focus:outline-none ${transcribing ? 'animate-pulse' : ''}`} />
       <div className="h-16 flex items-center justify-end pr-1.5">
         <button type="button" onClick={() => { rec.reset(); setVoiceOpen(true) }} disabled={transcribing}
           className={`h-[52px] px-5 rounded-full inline-flex items-center gap-2 text-[16px] font-semibold cursor-pointer transition disabled:opacity-60 ${primaryMic ? 'bg-brand-accent text-white hover:bg-brand-accent-hover' : 'bg-brand-card border-[1.5px] border-brand-accent text-brand-accent'}`}>
@@ -330,7 +360,8 @@ export default function ExpressOnboarding() {
     body = (
       <div>
         {title('В каком подходе работаешь?', 'Чтобы не писать то, что противоречит твоему методу')}
-        <div className="mt-5 flex flex-wrap gap-2">
+        <p className="mt-5 text-[14px] leading-5 text-brand-muted">Можно выбрать до трех</p>
+        <div className="mt-2.5 flex flex-wrap gap-2">
           {(showAll ? ALL_APPROACHES : TOP_APPROACHES).map(x => {
             const on = a.approaches.includes(x)
             const full = !on && a.approaches.length >= 3
@@ -357,7 +388,7 @@ export default function ExpressOnboarding() {
     body = (
       <div>
         {title('С чем работаешь чаще всего?', 'Отсюда возьму первые темы')}
-        <div className="mt-5 flex flex-wrap gap-2">
+        <div className="mt-6 flex flex-wrap gap-2.5">
           {NICHES.map(x => {
             const on = a.nicheChip === x && !ownNiche
             return (
@@ -394,25 +425,28 @@ export default function ExpressOnboarding() {
       <div>
         {title('Как ты отвечаешь клиентке?')}
         {/* карточка-ситуация: как пузырь Веры, но с меткой */}
-        <div className="mt-4 rounded-[20px] bg-brand-soft border border-brand-border-soft px-4 py-3">
+        <div className="mt-3 rounded-[20px] bg-brand-soft border border-brand-border-soft px-4 py-2.5">
           <p className="text-[13px] leading-[18px] text-brand-muted">Клиентка говорит:</p>
-          <p className="mt-1 text-[16px] leading-[22px] text-brand-text">«{sit}»</p>
+          <p className="mt-1 text-[17px] leading-[23px] text-brand-text">«{sit}»</p>
         </div>
         <button type="button" onClick={() => {
           const n = ((a.situation || 0) + 1) % SITUATIONS.length
           setA({ ...a, situation: n })
           track('onb_situation_change', { index: n })
         }} className="h-11 -ml-1 px-1 text-[15px] text-brand-accent font-semibold underline underline-offset-4 cursor-pointer">Другая ситуация</button>
-        <div className="flex items-center gap-2.5">
+        {/* Вера 80 px, справа ее пузырь и строка-задание: так блок ниже и влезает на 375×667 */}
+        <div className="flex items-start gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/vera/slushaet.webp" alt="" aria-hidden="true" width={44} height={60} style={{ height: 60, width: 44, filter: 'drop-shadow(0 2px 6px rgba(59,42,34,.12))' }} className="shrink-0" />
-          <div className="relative min-w-0 bg-brand-soft border border-brand-border-soft rounded-[16px] px-3 py-2 text-[15px] leading-5 text-brand-text">
-            <span aria-hidden="true" className="absolute -left-[6px] top-1/2 -mt-[5px] w-2.5 h-2.5 rotate-45 bg-brand-soft border-l border-b border-brand-border-soft" />
-            Я запомню, как ты звучишь
+          <img src="/vera/slushaet.webp" alt="" aria-hidden="true" width={59} height={80} style={{ height: 80, width: 59, filter: 'drop-shadow(0 2px 6px rgba(59,42,34,.12))' }} className="shrink-0" />
+          <div className="min-w-0">
+            <div className="relative inline-block bg-brand-soft border border-brand-border-soft rounded-[16px] px-3 py-2 text-[15px] leading-5 text-brand-text">
+              <span aria-hidden="true" className="absolute -left-[6px] top-4 w-2.5 h-2.5 rotate-45 bg-brand-soft border-l border-b border-brand-border-soft" />
+              Я запомню, как ты звучишь
+            </div>
+            <p className="mt-2 text-[16px] leading-[22px] text-brand-muted">Ответь своими словами, как на сессии. Пары фраз хватит</p>
           </div>
         </div>
-        <p className="mt-3 text-[15px] leading-5 text-brand-muted">Ответь своими словами, как на сессии. Пары фраз хватит</p>
-        <div className="mt-3">{voiceField(a.tone, v => setA({ ...a, tone: v }), 'Или напиши, что ответишь', 'Что ты ответишь клиентке', !a.tone.trim())}</div>
+        <div className="mt-2.5">{voiceField(a.tone, v => setA({ ...a, tone: v }), 'Или напиши, что ответишь', 'Что ты ответишь клиентке', !a.tone.trim())}</div>
         {transcribeFailed && (
           <div className="mt-2 flex items-center justify-between gap-2 text-[14px] text-brand-text">
             <span className="min-w-0">Не получилось расшифровать. Запись цела</span>
@@ -484,11 +518,14 @@ export default function ExpressOnboarding() {
         </div>
         {q > 0 && <p className="pl-12 mt-0.5 text-[13px] leading-[18px] text-brand-muted tabular-nums">Вопрос {q} из {TOTAL}</p>}
 
-        {/* my-auto: не обрезает верх, если карточка выше экрана, тогда обычная прокрутка с начала */}
-        <div className="flex-1 flex flex-col pt-6 pb-[max(2rem,10dvh)]">
-        <div className="my-auto w-full">
+        {/* Правило Арины: мало контента, блок по центру (чуть выше середины, снизу 10dvh); много, сверху сразу под
+            счетчиком. Решаем по высоте блока (меньше 60% доступной высоты), а не списком экранов. При открытой
+            клавиатуре всегда сверху. my-auto не обрезает верх: высокая карточка просто прокручивается с начала */}
+        <div ref={areaRef} className={`flex-1 flex flex-col ${centered ? 'pt-6 pb-[max(2rem,10dvh)]' : 'pt-4 pb-6'}`}>
+        <div ref={blockRef} className={`${centered ? 'my-auto' : ''} w-full`}>
         <AnimatePresence mode="wait" initial={false} custom={dir}>
-          <motion.div key={step}
+          {/* новая карточка смонтировалась: решаем по ее высоте сразу, до отрисовки (AnimatePresence держит старую до конца выхода) */}
+          <motion.div key={step} ref={(n: HTMLDivElement | null) => { if (n) decideRef.current() }}
             initial={reduce ? false : { opacity: 0, x: 24 * dir }}
             animate={{ opacity: 1, x: 0, transition: { duration: reduce ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] } }}
             exit={reduce ? { opacity: 1, transition: { duration: 0 } } : { opacity: 0, x: -24 * dir, transition: { duration: 0.14, ease: 'easeIn' } }}>
