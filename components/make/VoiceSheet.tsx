@@ -49,11 +49,13 @@ function Wave({ rec }: { rec: VoiceRecorder }) {
   )
 }
 
-export default function VoiceSheet({ open, rec, onClose, onWriteText }: {
+export default function VoiceSheet({ open, rec, onClose, onWriteText, maxSeconds = VOICE_MAX, prompt = 'Говори, как подруге. Паузы не страшны.' }: {
   open: boolean
   rec: VoiceRecorder
   onClose: () => void
   onWriteText: () => void
+  maxSeconds?: number // предел записи для подсчета «Осталось N секунд» (онбординг: 60)
+  prompt?: string     // подсказка над волной (онбординг: «как с клиенткой»)
 }) {
   const [intro, setIntro] = useState(false)
   const [tooShort, setTooShort] = useState(false)
@@ -69,7 +71,7 @@ export default function VoiceSheet({ open, rec, onClose, onWriteText }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
-  // «Готово» или авто-стоп на 3:00: пошла расшифровка, лист больше не нужен
+  // «Готово» или авто-стоп на пределе записи: пошла расшифровка, лист больше не нужен
   useEffect(() => { if (open && rec.state === 'transcribing') onClose() }, [open, rec.state, onClose])
 
   const close = () => { if (rec.state === 'recording' || rec.state === 'requesting') rec.cancel(); onClose() }
@@ -100,10 +102,10 @@ export default function VoiceSheet({ open, rec, onClose, onWriteText }: {
     body = <p className="text-[16px] leading-6 text-brand-text py-4">Ничего не записалось. Попробуешь еще раз?</p>
     footer = <button type="button" onClick={again} className={`w-full ${btn} bg-brand-accent text-white hover:bg-brand-accent-hover`}>Еще раз</button>
   } else {
-    const left = VOICE_MAX - rec.elapsed
+    const left = maxSeconds - rec.elapsed
     body = (
       <div className="py-2">
-        <p className="text-[18px] leading-6 text-brand-text">Говори, как подруге. Паузы не страшны.</p>
+        <p className="text-[18px] leading-6 text-brand-text">{prompt}</p>
         <div className="mt-4"><Wave rec={rec} /></div>
         <p className="mt-2 text-center text-[28px] font-semibold tabular-nums text-brand-text" aria-live="off">{mmss(rec.elapsed)}</p>
         <p className="h-5 text-center text-[13px] text-brand-muted" aria-live="polite">{rec.nearLimit ? `Осталось ${Math.max(0, left)} ${plural(Math.max(0, left), 'секунда', 'секунды', 'секунд')}` : ''}</p>

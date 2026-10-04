@@ -14,6 +14,7 @@ import * as GEN from '../lib/generation/prompts.generated'
 import { normalizeCore } from '../lib/generation/core'
 import { coreBlockFor, neighborsFor, checkSet, intentForFormat, adPhrases, stripAds } from '../lib/generation/group'
 import { captionTail } from '../lib/generation/simple'
+import { firstTopic, nicheTopics, topicsFor, GENERIC_TOPIC, NICHE_TOPICS } from '../lib/first-topic'
 import { overlap, sentencesWithChains, sampleBlock, sourceLabel, isInstagramUrl, isTelegramUrl, fetchTelegramPost } from '../lib/generation/sample'
 
 process.env.OPENAI_API_KEY = 'test'
@@ -272,6 +273,17 @@ const req = { topic: 'тревога', format: 'post' as const, intentChoices: [
   assert.ok('error' in tg2 && tg2.error === 'closed', 'так же: закрытый канал')
   globalThis.fetch = realFetch
   console.log('ok: сделать так же')
+
+  // первая тема после онбординга (lib/first-topic.ts): тема дня по нише, без модели
+  for (const n of NICHE_TOPICS) assert.ok(nicheTopics(n.niche).length === 3, `темы: у ниши ${n.niche} три темы`)
+  assert.ok(NICHE_TOPICS.some(n => n.topics.includes(firstTopic('Тревога и паника'))), 'темы: чип ниши')
+  assert.ok(NICHE_TOPICS.find(n => n.niche === 'Травма')!.topics.includes(firstTopic('детская травма')), 'темы: свой текст ниши по корню')
+  assert.equal(firstTopic('работаю с предпринимателями'), GENERIC_TOPIC, 'темы: «тел» в «предпринимателями» не психосоматика')
+  assert.equal(firstTopic('', 'устала быть сильной; мозг не выключается'), 'устала быть сильной', 'темы: без ниши фраза клиента')
+  assert.equal(firstTopic(''), GENERIC_TOPIC, 'темы: без всего общая тема')
+  assert.equal(topicsFor({ plan: ['из плана'], niche: 'Травма' })[0], 'из плана', 'темы: план первым')
+  for (const n of NICHE_TOPICS) for (const t of n.topics) assert.ok(!/ё|—|–/u.test(t), `темы: без ё и тире: ${t}`)
+  console.log('ok: первая тема')
 
   console.log('ok: все проверки')
 })().catch(e => { console.error('FAIL', e); process.exit(1) })

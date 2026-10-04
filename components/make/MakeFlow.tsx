@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, Check, Loader2, X, Film, Layers, AlignLeft, Send, Smartphone } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { topicsFor } from '@/lib/first-topic'
 import Composer, { DRAFT_KEY, type ComposerSubmit } from './Composer'
 import FormatPane, { type PaneItem } from './FormatPane'
 import BottomSheet from './BottomSheet'
@@ -88,8 +89,16 @@ export default function MakeFlow() {
   const [sampleInfo, setSampleInfo] = useState<{ label: string; clientStory: boolean } | null>(null)
   const initialTopic = params.get('topic') || ''
   // формат из плана (?format=post|carousel|reels|stories|post_tg) выбран в чипах заранее
+  // ?formats=post,carousel (финал онбординга) или ?format= из плана: выбраны в чипах заранее
   const planFormat = params.get('format')
-  const initialFormats = useMemo<MakeFormat[] | undefined>(() => (planFormat ? [toMakeFormat(planFormat)] : undefined), [planFormat])
+  const formatsParam = params.get('formats')
+  const initialFormats = useMemo<MakeFormat[] | undefined>(() => {
+    if (formatsParam) {
+      const fs = formatsParam.split(',').map(f => f.trim()).filter(f => MAKE_FORMATS.some(m => m.id === f)) as MakeFormat[]
+      if (fs.length) return fs
+    }
+    return planFormat ? [toMakeFormat(planFormat)] : undefined
+  }, [planFormat, formatsParam])
   // мысль из демо на лендинге (как на старом экране: localStorage, 24 часа), стираем после первого готового формата
   const [seed, setSeed] = useState('')
   useEffect(() => {
@@ -116,13 +125,13 @@ export default function MakeFlow() {
       ])
       if (!on) return
       setFirstTime((count.count || 0) === 0)
-      const list: string[] = []
-      const p: any[] = Array.isArray(plan.data?.plan) ? plan.data!.plan : []
       // план это «день 1..30» без дат (generated_at переписывается при каждой отметке), поэтому берем
-      // ближайшие несделанные дни по порядку
-      for (const x of p.filter(x => !x.done && typeof x.topic === 'string').sort((a, b) => (a.day ?? 0) - (b.day ?? 0))) list.push(x.topic)
-      for (const l of String(prof.data?.client_pain_phrases || '').split(/\n|;/)) if (l.trim().length > 6) list.push(l.trim())
-      setTopics([...new Set(list)].slice(0, 12))
+      // ближайшие несделанные дни по порядку; дальше темы ниши (тема дня первой) и фразы клиентов
+      const p: any[] = Array.isArray(plan.data?.plan) ? plan.data!.plan : []
+      const planTopics = p.filter((x: any) => !x.done && typeof x.topic === 'string').sort((a: any, b: any) => (a.day ?? 0) - (b.day ?? 0)).map((x: any) => String(x.topic))
+      const niche = prof.data?.one_niche || (Array.isArray(prof.data?.niches) ? prof.data.niches[0] : '')
+      const list = topicsFor({ plan: planTopics, niche, pain: prof.data?.client_pain_phrases })
+      setTopics(list.slice(0, 12))
     })()
     return () => { on = false }
   }, [])
