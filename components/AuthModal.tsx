@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
@@ -13,12 +13,16 @@ export default function AuthModal({
   isOpen,
   onClose,
   contextNote,
+  initialMode = 'register',
 }: {
   isOpen: boolean
   onClose: () => void
   contextNote?: string
+  initialMode?: 'login' | 'register'
 }) {
-  const [mode, setMode] = useState<'login' | 'register'>('register')
+  const [mode, setMode] = useState<'login' | 'register'>(initialMode)
+  // при каждом открытии начинаем с того режима, с которым открыли («Войти» или «Попробовать»)
+  useEffect(() => { if (isOpen) setMode(initialMode) }, [isOpen, initialMode])
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
