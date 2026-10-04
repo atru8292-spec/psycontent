@@ -10,7 +10,7 @@ import { track } from '@/lib/track'
 import AuthModal from '@/components/AuthModal'
 
 type Who = 'unknown' | 'anon' | 'noprofile' | 'profile'
-type Place = 'hero' | 'how' | 'pricing' | 'final' | 'header' | 'demo'
+type Place = 'hero' | 'how' | 'pricing' | 'final' | 'header'
 type Plan = 'free' | 'calm' | 'daily'
 
 type Ctx = {
@@ -28,23 +28,34 @@ export default function LandingShell({ children }: { children: React.ReactNode }
   const [modal, setModal] = useState<{ mode: 'login' | 'register'; note?: string } | null>(null)
   const viewed = useRef(false)
 
+  // Кто зашел. Пока проверка идет, клик ждет ее, чтобы вошедшему не открылась регистрация.
+  // Ошибка чтения профиля считается «не знаем» (как без входа: окно входа само разведет), а не «нет профиля».
+  const check = useRef<Promise<Who> | null>(null)
   useEffect(() => {
     if (!viewed.current) { viewed.current = true; track('land_view') }
     let alive = true
-    supabase.auth.getUser().then(async ({ data }) => {
+    check.current = (async (): Promise<Who> => {
+      try {
+        const { data } = await supabase.auth.getUser()
+        if (!data?.user) return 'anon'
+        const { data: prof, error } = await supabase.from('onboarding_profiles').select('user_id').eq('user_id', data.user.id).maybeSingle()
+        if (error) return 'anon'
+        return prof ? 'profile' : 'noprofile'
+      } catch { return 'anon' }
+    })()
+    check.current.then(w => {
       if (!alive) return
-      if (!data?.user) { setWho('anon'); return }
-      const { data: prof } = await supabase.from('onboarding_profiles').select('user_id').eq('user_id', data.user.id).maybeSingle()
-      if (!alive) return
-      if (prof) { setWho('profile'); router.replace('/dashboard') } else setWho('noprofile')
-    }).catch(() => alive && setWho('anon'))
+      setWho(w)
+      if (w === 'profile') router.replace('/dashboard')
+    })
     return () => { alive = false }
   }, [router])
 
-  const start = useCallback((place: Place, plan: Plan = 'free', opts?: { note?: string }) => {
+  const start = useCallback(async (place: Place, plan: Plan = 'free', opts?: { note?: string }) => {
     track('land_cta_click', { place, plan })
-    if (who === 'profile') router.push('/dashboard/make')
-    else if (who === 'noprofile') router.push('/onboarding/express')
+    const w = who !== 'unknown' ? who : (await check.current) || 'anon'
+    if (w === 'profile') router.push('/dashboard/make')
+    else if (w === 'noprofile') router.push('/onboarding/express')
     else setModal({ mode: 'register', note: opts?.note })
   }, [who, router])
 

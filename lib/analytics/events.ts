@@ -45,8 +45,8 @@ export const EVENTS = {
 
   // ---- лендинг (app/page.tsx): единственные события, которые сервер принимает без входа ----
   land_view: [],                                     // открыли главную, один раз за загрузку
-  land_cta_click: ['place', 'plan'],                 // кнопка в регистрацию: place hero|how|pricing|final|header|demo, plan free|calm|daily
-  land_demo_submit: [],                              // оставили мысль в демо (сама мысль в событие не идет)
+  land_cta_click: ['place', 'plan'],                 // кнопка в регистрацию: place hero|how|pricing|final|header, plan free|calm|daily
+  land_demo_submit: [],                              // оставили мысль в демо (сама мысль в событие не идет); демо пока снято со страницы
   land_faq_open: ['q'],                              // открыли вопрос: короткий код вроде q_chatgpt, текст вопроса не идет
 } as const satisfies Record<string, readonly string[]>
 

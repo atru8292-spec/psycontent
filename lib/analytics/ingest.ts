@@ -9,6 +9,9 @@ import { isLandingEvent } from './events'
 export const MAX_PER_REQUEST = 50
 export const MAX_PER_MINUTE_USER = 300
 export const MAX_PER_MINUTE_ANON = 60
+export const MAX_PER_REQUEST_ANON = 10        // лендингу больше не нужно
+export const MAX_PER_MINUTE_ANON_TOTAL = 1000 // на все анонимные запросы процесса
+export const MAX_BODY_ANON = 32 * 1024
 
 export function cleanBatch(raw: unknown[], hasUser: boolean): CleanEvent[] {
   return raw.slice(0, MAX_PER_REQUEST)

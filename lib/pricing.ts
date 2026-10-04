@@ -35,7 +35,7 @@ export const PLANS: PricePlan[] = [
   },
   {
     id: 'daily', name: 'Каждый день', price: 2490, yearPrice: 24900, promoFirstMonth: 1290, materials: 150, carousels: 15, perMonth: true,
-    who: 'Если ведешь блог почти каждый день и раскладываешь мысль на пять форматов', dbCodes: ['practice'], track: 'daily',
+    who: 'Если ведешь блог почти каждый день и раскладываешь мысль на пять форматов', dbCodes: ['practice', 'expert'], track: 'daily',
   },
 ]
 

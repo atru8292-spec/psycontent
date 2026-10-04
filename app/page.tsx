@@ -1,14 +1,14 @@
 // Главная psycont.ru. Тексты: components/landing/content.ts, примеры генератора: components/landing/examples.ts,
 // тарифы: lib/pricing.ts (один источник с витриной в настройках). Интерактив и аналитика лендинга (land_*)
-// в клиентских частях components/landing. Страница серверная: первый экран приходит готовым HTML.
+// в клиентских частях components/landing. Демо «впиши мысль» снято: после онбординга «Сделать» открывается
+// с темой дня, и мысль из демо до первого поста не доходила (правка в онбординге или MakeFlow, см. отчет 04.10). Страница серверная: первый экран приходит готовым HTML.
 import Image from 'next/image'
 import LandingShell, { CtaButton, Reveal } from '@/components/landing/LandingShell'
 import Header from '@/components/landing/Header'
-import Demo from '@/components/landing/Demo'
 import ExamplePost from '@/components/landing/ExamplePost'
 import Faq from '@/components/landing/Faq'
 import ClampText from '@/components/landing/ClampText'
-import { HERO, PAINS, HOW, DEMO, EXAMPLE, WHY, ETHICS, PRICING, FAQ, FINAL, FOOTER, CONTACT_EMAIL, PRIVACY_URL, OFFER_URL } from '@/components/landing/content'
+import { HERO, PAINS, HOW, EXAMPLE, WHY, ETHICS, PRICING, FAQ, FINAL, FOOTER, CONTACT_EMAIL, PRIVACY_URL, OFFER_URL } from '@/components/landing/content'
 import { EXAMPLES, COMPARE_TOPIC, COMPARE_PSYCONT } from '@/components/landing/examples'
 import { PLANS, PLAN_COMMON_LINE, MATERIAL_NOTE, formatRub, planPerks } from '@/lib/pricing'
 
@@ -98,7 +98,7 @@ export default function Home() {
                       <p className={`mt-3 max-w-[640px] text-brand-text ${TEXT}`}>{s.text}</p>
                       {i === 0 && <p className="mt-4 text-[15px] text-brand-muted">{HOW.step1Questions}</p>}
                       {i === 1 && (
-                        <ul aria-label="Форматы" className="mt-4 flex flex-wrap gap-2">
+                        <ul aria-label="Форматы" className="mt-4 hidden flex-wrap gap-2 lg:flex">
                           {HOW.step2Formats.map(f => (
                             <li key={f.label} className={`flex h-9 items-center rounded-full px-3 text-[15px] text-brand-text ${f.on ? 'border-[1.5px] border-brand-text/70 bg-brand-soft font-semibold' : 'border border-brand-border'}`}>{f.label}</li>
                           ))}
@@ -107,11 +107,11 @@ export default function Home() {
                       {i === 2 && (
                         <div className="mt-4">
                           <p className="text-[15px] text-brand-muted">{HOW.step3Note}</p>
-                          <a href="#demo" className="mt-2 inline-flex h-11 items-center rounded-lg font-semibold text-brand-accent underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-brand-accent">{HOW.step3Link}</a>
+                          <CtaButton place="how" variant="secondary" className="mt-4">{HOW.step3Link}</CtaButton>
                         </div>
                       )}
                     </div>
-                    <div className={`mt-8 flex justify-center lg:mt-0 ${mirror ? 'lg:col-span-4 lg:col-start-2 lg:row-start-1' : 'lg:col-span-4 lg:col-start-8'}`}>
+                    <div className={`mt-8 flex lg:mt-0 lg:justify-center ${s.shot ? 'justify-center' : 'justify-end'} ${mirror ? 'lg:col-span-4 lg:col-start-2 lg:row-start-1' : 'lg:col-span-4 lg:col-start-8'}`}>
                       {s.shot
                         ? <PhoneShot src={s.shot} alt={s.alt} w={s.w} h={s.h} />
                         : <Image src={s.vera} alt={s.alt} width={338} height={360} className="h-[180px] w-auto lg:h-[280px]" />}
@@ -120,20 +120,6 @@ export default function Home() {
                 )
               })}
             </ol>
-          </div>
-        </Reveal>
-
-        {/* 5. Демо */}
-        <Reveal as="section" className={`${SECTION} scroll-mt-16`}>
-          <div id="demo" className={`${WRAP} scroll-mt-20`}>
-            <div className="mx-auto flex max-w-[880px] items-end justify-between gap-4">
-              <div>
-                <h2 className={H2}>{DEMO.title}</h2>
-                <p className={`mt-3 max-w-[640px] text-brand-muted ${TEXT}`}>{DEMO.lead}</p>
-              </div>
-              <Image src="/vera/zapisyvaet.webp" alt="Вера записывает мысль" width={110} height={150} className="h-[150px] w-auto shrink-0 lg:hidden" />
-            </div>
-            <div className="mt-8 lg:mt-12"><Demo /></div>
           </div>
         </Reveal>
 

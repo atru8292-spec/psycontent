@@ -73,12 +73,19 @@ export async function loadLanding(o: AdminOpts): Promise<Loaded<LandingStats>> {
   if (o.demo) return { data: { views: 214, clicks: 31, demo: 9 }, error: null }
   try {
     const since = new Date(Date.now() - 7 * 86400000).toISOString()
-    const { data, error } = await getSupabaseAdmin().from('events').select('event, session_id')
-      .in('event', ['land_view', 'land_cta_click', 'land_demo_submit']).gte('created_at', since).limit(50000)
-    if (error) {
-      const missing = error.code === '42P01' || error.code === 'PGRST205'
-      if (!missing) console.warn('admin landing', error.code, error.message)
-      return { data: null, error: missing ? 'no_migration' : 'failed' }
+    // PostgREST отдает не больше 1000 строк за раз, поэтому читаем страницами по id (до 50 000 событий)
+    const data: { event: string; session_id: string | null }[] = []
+    for (let page = 0; page < 50; page++) {
+      const { data: part, error } = await getSupabaseAdmin().from('events').select('event, session_id')
+        .in('event', ['land_view', 'land_cta_click', 'land_demo_submit']).gte('created_at', since)
+        .order('id', { ascending: true }).range(page * 1000, page * 1000 + 999)
+      if (error) {
+        const missing = error.code === '42P01' || error.code === 'PGRST205'
+        if (!missing) console.warn('admin landing', error.code, error.message)
+        return { data: null, error: missing ? 'no_migration' : 'failed' }
+      }
+      data.push(...(part || []))
+      if (!part || part.length < 1000) break
     }
     const uniq = (ev: string) => new Set((data || []).filter(r => r.event === ev && r.session_id).map(r => r.session_id)).size
     return { data: { views: uniq('land_view'), clicks: uniq('land_cta_click'), demo: uniq('land_demo_submit') }, error: null }
