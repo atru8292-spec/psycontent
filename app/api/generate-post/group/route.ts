@@ -68,21 +68,21 @@ export async function POST(req: NextRequest) {
   if (!isNewPipeline(profile)) return NextResponse.json({ error: 'not_available' }, { status: 403 })
 
   // Исходный материал для «еще формата»: только свой
-  let source: any = null
+  let origin: any = null
   let siblings: { format: FormatCode; text: string }[] = []
   if (fromPostId) {
     const r = await db.from('generated_posts').select('*').eq('id', fromPostId).eq('user_id', userId).maybeSingle()
     if (r.error || !r.data) return NextResponse.json({ error: 'not_found' }, { status: 404 })
-    source = r.data
-    if (source.group_id) {
-      const sib = await db.from('generated_posts').select('format, content').eq('user_id', userId).eq('group_id', source.group_id)
+    origin = r.data
+    if (origin.group_id) {
+      const sib = await db.from('generated_posts').select('format, content').eq('user_id', userId).eq('group_id', origin.group_id)
       siblings = (sib.data || []).map((x: any) => ({ format: x.format as FormatCode, text: String(x.content || '') }))
     } else {
-      siblings = [{ format: source.format as FormatCode, text: String(source.content || '') }]
+      siblings = [{ format: origin.format as FormatCode, text: String(origin.content || '') }]
     }
   }
   // тема для истории короткая: если пришла только мысль, берем ее начало
-  const topic = clean(body?.topic, 500) || (source ? String(source.topic || '') : '') || (userDetail ? (userDetail.length > 120 ? userDetail.slice(0, 120).replace(/\s+\S*$/, '') : userDetail) : '')
+  const topic = clean(body?.topic, 500) || (origin ? String(origin.topic || '') : '') || (userDetail ? (userDetail.length > 120 ? userDetail.slice(0, 120).replace(/\s+\S*$/, '') : userDetail) : '')
   if (!topic && !userDetail) return NextResponse.json({ error: 'no_topic' }, { status: 400 })
 
   const decision = await canConsume(userId, OP, formats.length)
@@ -101,27 +101,27 @@ export async function POST(req: NextRequest) {
 
         // Смысл набора: из ядра исходного материала, иначе по цели (своя история только при историях автора)
         const goalChoices = goal ? GOAL_INTENTS[goal].filter(i => i !== 'svoya_istoriya' || ctx.settings.stories.length > 0) : null
-        const savedCore = source ? coreFromRow(source.core) : null
-        const groupIntent = savedCore?.intent || (source?.intent as string) || chooseIntent(ctx, { topic, format: 'post', intentChoices: goalChoices })
+        const savedCore = origin ? coreFromRow(origin.core) : null
+        const groupIntent = savedCore?.intent || (origin?.intent as string) || chooseIntent(ctx, { topic, format: 'post', intentChoices: goalChoices })
         const intentLabel = goal ? GOAL_LABELS[goal] : 'любая'
 
-        const edited = !!(source && editedRaw && editedRaw !== String(source.content || '').trim())
+        const edited = !!(origin && editedRaw && editedRaw !== String(origin.content || '').trim())
         let core: ThoughtCore
         if (savedCore && !edited) core = savedCore
         else core = await buildCore(ctx, {
           topic: topic || userDetail || '', intent: groupIntent, intentLabel,
-          userDetail: source ? null : userDetail,
-          fromText: source ? (edited ? editedText : String(source.content || '')) : null,
+          userDetail: origin ? null : userDetail,
+          fromText: origin ? (edited ? editedText : String(origin.content || '')) : null,
         })
         // модель вернула ядро без мысли: держимся за тему, иначе все форматы получат пустую «Мысль:»
         if (!core.thought) core.thought = (userDetail || topic).slice(0, 300)
         send({ type: 'core', thought: core.thought })
 
-        const groupId: string = source?.group_id || randomUUID()
+        const groupId: string = origin?.group_id || randomUUID()
         // старый материал без группы становится первым в группе (без колонки просто не выйдет, это не мешает)
-        if (source && !source.group_id) {
-          await db.from('generated_posts').update({ group_id: groupId, core }).eq('id', source.id).eq('user_id', userId)
-            .then(r => { if (r.error) console.warn('group_id on source failed:', r.error.message) })
+        if (origin && !origin.group_id) {
+          await db.from('generated_posts').update({ group_id: groupId, core }).eq('id', origin.id).eq('user_id', userId)
+            .then(r => { if (r.error) console.warn('group_id on origin post failed:', r.error.message) })
         }
 
         // Коды форматов: вид рилса выбираем заранее, чтобы блок ядра и соседи знали, сценка это или монолог
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
             topic,
             format: code,
             intent: intentForFormat(groupIntent, code),
-            userDetail: source ? null : userDetail,
+            userDetail: origin ? null : userDetail,
             coreBlock: coreBlockFor(core, code),
             neighbors: neighborsFor(all, code),
           }
@@ -190,7 +190,7 @@ export async function POST(req: NextRequest) {
             ...postFields(ctx, r.plan, r.req, r.text), pipeline_version: r.version,
             draft_content: r.draftText, pipeline_status: 'ready',
             check_result: { mode: 'group', set_fixed: fixed.get(okItems.indexOf(r)) || 0, ms_total: Date.now() - t0 },
-            group_id: groupId, core, source: null,
+            group_id: groupId, core,
           }, { basicId: true })
           // считаем только то, что записалось: без строки в базе материала у человека нет
           if (postId) await commitConsume(userId, OP, decision)

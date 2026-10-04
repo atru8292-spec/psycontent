@@ -115,9 +115,10 @@ export async function handleNewPipeline(args: {
 }
 
 // Запись с новыми полями; если миграция еще не применена, пишем как раньше. Три ступени: все поля;
-// без полей набора (group_id, core, source из миграции 20261004100000, пока она не применена); только базовые.
+// без полей набора (group_id, core, sample_source из миграции 20261004100000, пока она не применена); только базовые.
 // basicId: вернуть id и для базовой записи (набору форматов он нужен, фоновой проверке нет: ей некуда писать статус).
-const GROUP_COLUMNS = ['group_id', 'core', 'source']
+// старую колонку source (text, default 'generator') новый код не пишет никогда
+const GROUP_COLUMNS = ['group_id', 'core', 'sample_source']
 export async function savePost(db: SupabaseClient, row: Record<string, any>, opts?: { basicId?: boolean }): Promise<string | null> {
   const full = await db.from('generated_posts').insert(row).select('id').single()
   if (!full.error) return full.data?.id ?? null
