@@ -22,7 +22,9 @@ const MAX_BATCH = 50
 
 let queue: Queued[] = []
 let timer: ReturnType<typeof setTimeout> | null = null
-let mem: { id: string; last: number } | null = null
+// o: в этой сессии уже ушел app_open (события лендинга его не запускают)
+type Sess = { id: string; last: number; o?: boolean }
+let mem: Sess | null = null
 let listening = false
 
 const isDev = process.env.NODE_ENV !== 'production'
@@ -35,17 +37,21 @@ function newId(): string {
 }
 
 // Сессия в localStorage, без него в памяти
-function session(now: number): { id: string; isNew: boolean } {
+function save(next: Sess) {
+  mem = next
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify(next)) } catch {}
+}
+
+function session(now: number): Sess {
   let cur = mem
   try {
     const raw = localStorage.getItem(SESSION_KEY)
     if (raw) { const s = JSON.parse(raw); if (s && typeof s.id === 'string' && typeof s.last === 'number') cur = s }
   } catch {}
   const isNew = isNewSession(cur ? cur.last : null, now)
-  const next = { id: isNew || !cur ? newId() : cur.id, last: now }
-  mem = next
-  try { localStorage.setItem(SESSION_KEY, JSON.stringify(next)) } catch {}
-  return { id: next.id, isNew }
+  const next: Sess = isNew || !cur ? { id: newId(), last: now, o: false } : { id: cur.id, last: now, o: !!cur.o }
+  save(next)
+  return next
 }
 
 function deviceProps(): TrackProps {
@@ -111,10 +117,15 @@ export function track(event: EventName | string, props?: TrackProps): void {
     const now = Date.now()
     const s = session(now)
     const path = cleanPath(location.pathname)
-    if (s.isNew && event !== 'app_open') {
-      queue.push({ event: 'app_open', props: deviceProps(), path, session_id: s.id, ts: now })
+    // События лендинга (land_*) пишутся и без входа и не запускают app_open: иначе одноразовый
+    // signup_source ушел бы до регистрации, сервер его выбросил бы, и источник потерялся бы.
+    // app_open и signup_source уйдут с первым событием не лендинга в этой сессии.
+    const landing = String(event).startsWith('land_')
+    if (!landing && !s.o) {
+      if (event !== 'app_open') queue.push({ event: 'app_open', props: deviceProps(), path, session_id: s.id, ts: now })
       const src = signupSource()
       if (src) queue.push({ event: 'signup_source', props: src, path, session_id: s.id, ts: now })
+      save({ ...s, o: true })
     }
     queue.push({ event, props, path, session_id: s.id, ts: now })
     // eslint-disable-next-line no-console

@@ -63,3 +63,27 @@ export const loadFeatures = (o: AdminOpts) => (o.demo ? demoOk<Features>(() => d
 export const loadCosts = (o: AdminOpts) => (o.demo ? demoOk<Costs>(() => demo.demoCosts()) : rpc<Costs>('analytics_costs', { ...base(o), ...range(o.period), p_tz: adminTz() }))
 export const loadPerson = (o: AdminOpts, id: string) =>
   (o.demo ? demoOk<PersonDetail | null>(() => demo.demoPerson(id)) : rpc<PersonDetail | null>('analytics_person', { p_user_id: id, p_tz: adminTz() }))
+
+// Лендинг за 7 дней: уникальные session_id по land_view, land_cta_click, land_demo_submit.
+// Прямой запрос к events (без SQL-функции и миграции). Служебных тут не отделить: на лендинге человек
+// чаще всего еще без входа, поэтому переключатель «Показать служебных» на эти цифры не влияет.
+export type LandingStats = { views: number; clicks: number; demo: number }
+export async function loadLanding(o: AdminOpts): Promise<Loaded<LandingStats>> {
+  if (!(await adminOrNull())) return { data: null, error: 'failed' }
+  if (o.demo) return { data: { views: 214, clicks: 31, demo: 9 }, error: null }
+  try {
+    const since = new Date(Date.now() - 7 * 86400000).toISOString()
+    const { data, error } = await getSupabaseAdmin().from('events').select('event, session_id')
+      .in('event', ['land_view', 'land_cta_click', 'land_demo_submit']).gte('created_at', since).limit(50000)
+    if (error) {
+      const missing = error.code === '42P01' || error.code === 'PGRST205'
+      if (!missing) console.warn('admin landing', error.code, error.message)
+      return { data: null, error: missing ? 'no_migration' : 'failed' }
+    }
+    const uniq = (ev: string) => new Set((data || []).filter(r => r.event === ev && r.session_id).map(r => r.session_id)).size
+    return { data: { views: uniq('land_view'), clicks: uniq('land_cta_click'), demo: uniq('land_demo_submit') }, error: null }
+  } catch (e) {
+    console.warn('admin landing', (e as Error)?.message)
+    return { data: null, error: 'failed' }
+  }
+}

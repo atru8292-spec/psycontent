@@ -42,7 +42,16 @@ export const EVENTS = {
   // ---- ошибки и функции ----
   error_shown: ['code', 'screen'],                   // клиент: показана плашка ошибки
   feature_open: ['feature'],                         // клиент: открыта функция из FEATURES
+
+  // ---- лендинг (app/page.tsx): единственные события, которые сервер принимает без входа ----
+  land_view: [],                                     // открыли главную, один раз за загрузку
+  land_cta_click: ['place', 'plan'],                 // кнопка в регистрацию: place hero|how|pricing|final|header|demo, plan free|calm|daily
+  land_demo_submit: [],                              // оставили мысль в демо (сама мысль в событие не идет)
+  land_faq_open: ['q'],                              // открыли вопрос: короткий код вроде q_chatgpt, текст вопроса не идет
 } as const satisfies Record<string, readonly string[]>
+
+// События лендинга пишутся и без входа (user_id пустой, только session_id от track)
+export const isLandingEvent = (e: string) => e.startsWith('land_')
 
 export type EventName = keyof typeof EVENTS
 export const EVENT_NAMES = Object.keys(EVENTS) as EventName[]

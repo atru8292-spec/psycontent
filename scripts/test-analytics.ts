@@ -7,6 +7,7 @@ import { computeRisk, statusOf, rhythmDays, habitOf, levelOf, shareCol, type Per
 import { toCsv, fmtDate } from '../lib/analytics/export'
 import { adminTz } from '../lib/admin'
 import { publicOrigin } from '../lib/origin'
+import { cleanBatch, MinuteLimiter, MAX_PER_MINUTE_ANON } from '../lib/analytics/ingest'
 
 // ---------- санитайзер ----------
 assert.equal(cleanValue('Клиенты бросают терапию'), undefined, 'кириллица не проходит')
@@ -143,6 +144,31 @@ assert.notEqual(statusOf(notGone, computeRisk(notGone, NOW), NOW), 'gone', 'ри
   process.env.SITE_URL = 'http://localhost:3005/'
   assert.equal(publicOrigin(r({ host: 'localhost:3005' })), 'http://localhost:3005', 'на localhost берем SITE_URL')
   if (prev === undefined) delete process.env.SITE_URL; else process.env.SITE_URL = prev
+}
+
+// ---------- лендинг: события без входа ----------
+{
+  const raw = [
+    { event: 'land_view', session_id: 'abc-12345678', path: '/' },
+    { event: 'land_cta_click', props: { place: 'hero', plan: 'free', text: 'Попробовать бесплатно' }, session_id: 'abc-12345678' },
+    { event: 'land_demo_submit', props: { thought: 'клиенты извиняются' }, session_id: 'abc-12345678' },
+    { event: 'land_faq_open', props: { q: 'q_chatgpt' }, session_id: 'abc-12345678' },
+    { event: 'land_faq_open', props: { q: 'Будет ли звучать как ChatGPT?' }, session_id: 'abc-12345678' },
+    { event: 'make_start', props: { formats: 'post' }, session_id: 'abc-12345678' },
+    { event: 'app_open', props: { device: 'mobile' }, session_id: 'abc-12345678' },
+  ]
+  const anon = cleanBatch(raw, false)
+  assert.deepEqual(anon.map(e => e.event), ['land_view', 'land_cta_click', 'land_demo_submit', 'land_faq_open', 'land_faq_open'], 'без входа проходят только land_*')
+  assert.deepEqual(anon[1].props, { place: 'hero', plan: 'free' }, 'текст кнопки отброшен')
+  assert.deepEqual(anon[2].props, {}, 'мысль из демо в событие не попадает')
+  assert.deepEqual(anon[3].props, { q: 'q_chatgpt' })
+  assert.deepEqual(anon[4].props, {}, 'текст вопроса не проходит санитайзер')
+  assert.equal(anon[0].session_id, 'abc-12345678')
+  assert.equal(cleanBatch(raw, true).length, 7, 'с входом проходят все известные события')
+  const lim = new MinuteLimiter(MAX_PER_MINUTE_ANON)
+  assert.equal(lim.allow('1.2.3.4', 50, 0), 50)
+  assert.equal(lim.allow('1.2.3.4', 50, 1000), 10, 'без входа не больше 60 в минуту на IP')
+  assert.equal(lim.allow('1.2.3.4', 5, 61001), 5, 'через минуту счетчик заново')
 }
 
 console.log('ok: все проверки аналитики')

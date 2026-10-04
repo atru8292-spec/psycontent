@@ -1,6 +1,6 @@
 // Сводка: главная плитка «Взяли текст», остальные плитки, «Требуют внимания», воронка с «Кто тут застрял».
 import { adminTz, requireAdmin } from '@/lib/admin'
-import { optsFrom, loadOverview, loadFunnel, loadPeople } from '@/lib/analytics/admin-data'
+import { optsFrom, loadOverview, loadFunnel, loadPeople, loadLanding, type LandingStats } from '@/lib/analytics/admin-data'
 import { FUNNEL_RU, type FunnelStep, type PersonRow, type AdminOpts } from '@/lib/analytics/admin-types'
 import { reasonText, share, plural } from '@/lib/analytics/definitions'
 import { PERIOD_RU, filterPeople } from '@/lib/analytics/admin-view'
@@ -13,7 +13,7 @@ export default async function AdminHome({ searchParams }: { searchParams: SP }) 
   const o = optsFrom(await searchParams)
   const tz = adminTz()
   const now = new Date()
-  const [ov, fu, pe] = await Promise.all([loadOverview(o), loadFunnel(o), loadPeople(o)])
+  const [ov, fu, pe, la] = await Promise.all([loadOverview(o), loadFunnel(o), loadPeople(o), loadLanding(o)])
   const err = ov.error || fu.error || pe.error
   const sub = `Воронка ${PERIOD_RU[o.period]}, плитки за свои сроки · ${o.includeInternal ? 'со служебными' : 'без служебных'}`
 
@@ -23,6 +23,7 @@ export default async function AdminHome({ searchParams }: { searchParams: SP }) 
       {err || !ov.data || !fu.data || !pe.data ? <LoadError kind={err === 'no_migration' ? 'no_migration' : 'failed'} /> : (
         <div className="space-y-6 lg:space-y-8">
           <Tiles d={ov.data} />
+          <LandingRow d={la.data} />
           <Attention people={pe.data} o={o} tz={tz} now={now} />
           <Funnel steps={fu.data} people={pe.data} o={o} tz={tz} now={now} empty={!pe.data.some(p => p.last_visit_at)} />
         </div>
@@ -37,6 +38,22 @@ function Tile({ label, value, foot, className = '' }: { label: string; value: Re
       <div className="text-[13px] text-brand-muted">{label}</div>
       <div className="text-[28px] lg:text-[32px] font-semibold leading-none">{value}</div>
       {foot && <div className="text-[13px] text-brand-muted">{foot}</div>}
+    </Card>
+  )
+}
+
+// Строка про лендинг: уникальные посещения (session_id) за 7 дней
+function LandingRow({ d }: { d: LandingStats | null }) {
+  return (
+    <Card className="px-4 lg:px-5 py-3 flex flex-wrap items-baseline gap-x-6 gap-y-1">
+      <span className="font-medium">Лендинг за 7 дней</span>
+      {d ? (
+        <>
+          <span>заходы <b className="font-semibold">{num(d.views)}</b></span>
+          <span>нажали кнопку <b className="font-semibold">{num(d.clicks)}</b></span>
+          <span>оставили мысль в демо <b className="font-semibold">{num(d.demo)}</b></span>
+        </>
+      ) : <span className="text-brand-muted text-[13px]">цифры не загрузились</span>}
     </Card>
   )
 }
