@@ -16,7 +16,7 @@ export default function Header() {
     return () => window.removeEventListener('scroll', on)
   }, [])
   return (
-    <header className={`sticky top-0 z-40 bg-brand-bg transition-colors ${scrolled ? 'border-b border-brand-border' : 'border-b border-transparent'}`}>
+    <header className={`sticky top-0 z-40 bg-brand-bg bg-[url('/paper-grain.png')] bg-[length:128px_128px] transition-colors ${scrolled ? 'border-b border-brand-border' : 'border-b border-transparent'}`}>
       <div className="mx-auto flex h-14 w-full max-w-[1120px] items-center justify-between gap-3 px-4 md:px-8 lg:h-[72px]">
         <Link href="/" aria-label="PsyCont, на главную" className="flex shrink-0 items-center rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-accent">
           <Image src="/brand/psycont-wordmark.svg" alt="PsyCont" width={119} height={32} priority className="hidden h-8 w-auto min-[361px]:block" />

@@ -28,11 +28,12 @@ function Underline() {
   )
 }
 
-function PhoneShot({ src, alt }: { src: string; alt: string }) {
+// Снимок во всю ширину рамки, лишнее уходит только снизу: бока экрана не режем
+function PhoneShot({ src, alt, w, h }: { src: string; alt: string; w: number; h: number }) {
   return (
     <div className="w-[232px] rounded-[40px] border border-brand-border bg-white p-2 shadow-[0_1px_2px_rgba(59,42,34,.06)] lg:w-[300px]">
-      <div className="relative aspect-[375/600] overflow-hidden rounded-[32px] border border-brand-border">
-        <Image src={src} alt={alt} fill sizes="(min-width: 1024px) 284px, 216px" className="object-cover object-top" />
+      <div className="aspect-[375/600] overflow-hidden rounded-[32px] border border-brand-border bg-brand-bg">
+        <Image src={src} alt={alt} width={w} height={h} sizes="(min-width: 1024px) 284px, 216px" className="block h-auto w-full" />
       </div>
     </div>
   )
@@ -45,7 +46,7 @@ export default function Home() {
       <Header />
       <main>
         {/* 2. Первый экран */}
-        <section className={`${WRAP} pt-6 pb-[72px] lg:grid lg:min-h-[600px] lg:grid-cols-12 lg:items-end lg:gap-8 lg:pt-20 lg:pb-36`}>
+        <section className={`${WRAP} pt-6 pb-[72px] lg:grid lg:min-h-[560px] lg:grid-cols-12 lg:items-center lg:gap-8 lg:pt-16 lg:pb-28`}>
           <div className="lg:col-span-7">
             <h1 className="max-w-[640px] text-[36px] font-bold leading-[1.1] tracking-[-0.01em] text-brand-text lg:text-[60px]">
               {HERO.title}{' '}
@@ -62,7 +63,7 @@ export default function Home() {
               <Image src="/vera/privet.webp" alt="Вера машет рукой" width={278} height={360} priority className="h-[168px] w-auto lg:h-[300px]" />
               <figcaption className="mt-2 text-center text-[14px] text-brand-muted">{HERO.veraRole}</figcaption>
             </figure>
-            <p className="relative mb-12 max-w-[260px] rounded-3xl border border-brand-border-soft bg-brand-soft px-4 py-3 text-[16px] leading-[1.45] text-brand-text lg:mb-24">
+            <p className="relative mb-12 min-w-0 flex-1 rounded-3xl border border-brand-border-soft bg-brand-soft px-4 py-3 text-[16px] leading-[1.45] text-brand-text lg:mb-24 lg:max-w-[260px] lg:flex-none">
               {HERO.veraSays}
             </p>
           </div>
@@ -109,7 +110,7 @@ export default function Home() {
                       )}
                     </div>
                     <div className={`mt-8 flex justify-center lg:mt-0 ${mirror ? 'lg:col-span-4 lg:col-start-2 lg:row-start-1' : 'lg:col-span-4 lg:col-start-8'}`}>
-                      <PhoneShot src={s.shot} alt={s.alt} />
+                      <PhoneShot src={s.shot} alt={s.alt} w={s.w} h={s.h} />
                     </div>
                   </li>
                 )
@@ -246,7 +247,7 @@ export default function Home() {
       <footer className="bg-brand-text py-12 text-brand-bg lg:py-16">
         <div className={`${WRAP} flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between`}>
           <div>
-            <Image src="/brand/psycont-wordmark-light.svg" alt="PsyCont" width={105} height={32} className="h-8 w-auto" />
+            <Image src="/brand/psycont-wordmark-light.svg" alt="PsyCont" width={131} height={40} className="h-10 w-auto" />
             <p className="mt-3 text-[15px] text-[#D9CFC0]">{FOOTER.slogan}</p>
           </div>
           <div className="flex flex-col gap-2 text-[15px] lg:items-end">
