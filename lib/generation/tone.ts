@@ -58,3 +58,24 @@ export function toneText(profile: any): string {
   if (s === -3 && calm) s = -2 // «спокойно и ровно» и «много юмора» вместе дают странный текст
   return [word(FORMAL, f), word(SERIOUS, s), word(CAUTIOUS, c)].filter(Boolean).join('; ')
 }
+
+// ---------- для экрана голоса: те же ступени, что видит модель ----------
+export type ToneAxis = 'tone_formal' | 'tone_serious' | 'tone_cautious'
+const AXES: Record<ToneAxis, Steps> = { tone_formal: FORMAL, tone_serious: SERIOUS, tone_cautious: CAUTIOUS }
+// Ползунок на экране голоса стоит на одной из 7 позиций; храним середину ступени, чтобы toneStep ее узнал
+export const TONE_POSITIONS = [7, 21, 36, 50, 64, 79, 93]
+export const tonePosition = (v: unknown) => toneStep(v) + 3
+
+// Что уйдет в промпт по этой оси и не перебивает ли ее явный выбор «Мат» или «Эмоции» (то же правило, что в toneText)
+export function toneAxisState(axis: ToneAxis, profile: any): { word: string; overriddenBy: 'profanity' | 'intensity' | null } {
+  const v = toneStep(profile?.[axis])
+  const swearing = profile?.profanity === 'light' || profile?.profanity === 'free'
+  const hot = profile?.intensity === 'hot', calm = profile?.intensity === 'calm'
+  let step: number = v
+  let by: 'profanity' | 'intensity' | null = null
+  if (axis === 'tone_formal' && v > 0 && (swearing || hot)) { step = 0; by = hot ? 'intensity' : 'profanity' }
+  if (axis === 'tone_cautious' && v > 0 && hot) { step = 0; by = 'intensity' }
+  if (axis === 'tone_cautious' && v === -3 && calm) { step = -2; by = 'intensity' }
+  if (axis === 'tone_serious' && v === -3 && calm) { step = -2; by = 'intensity' }
+  return { word: word(AXES[axis], step), overriddenBy: by }
+}

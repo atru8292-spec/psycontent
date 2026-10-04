@@ -5,6 +5,7 @@
 // чтобы было видно, что сервис понял, и можно было поправить. Ручные настройки свернуты вниз.
 // Поля из миграции 20260930120000_generation_brain.sql.
 
+import { TONE_POSITIONS, tonePosition, toneAxisState, type ToneAxis } from '@/lib/generation/tone'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Loader2, Plus, Trash2, Check, ChevronDown, Mic } from 'lucide-react'
@@ -95,6 +96,8 @@ export default function VoicePage() {
   const [address, setAddress] = useState<'ty' | 'vy' | 'vy_devochki' | null>(null)
   const [profanity, setProfanity] = useState<'no' | 'light' | 'free' | null>(null)
   const [intensity, setIntensity] = useState<'calm' | 'live' | 'hot' | null>(null)
+  // ползунки тона (те же, что в экспрессе): 0..100, высокое = формально / серьезно / бережно
+  const [tone, setTone] = useState<Record<ToneAxis, number>>({ tone_formal: 50, tone_serious: 50, tone_cautious: 50 })
   const [toneSaved, setToneSaved] = useState<string | null>(null)
   const [disclosure, setDisclosure] = useState<1 | 2 | 3 | null>(null)
   const [audience, setAudience] = useState('')
@@ -130,6 +133,8 @@ export default function VoicePage() {
         setAddress(p.reader_address ?? null)
         setProfanity(p.profanity ?? null)
         setIntensity(p.intensity ?? null)
+        // ?? 50, не || 50: ноль это валидный край «очень разговорно»
+        setTone({ tone_formal: p.tone_formal ?? 50, tone_serious: p.tone_serious ?? 50, tone_cautious: p.tone_cautious ?? 50 })
         setDisclosure(p.disclosure ?? null)
         setAudience(p.audience || '')
         setBooking(p.booking_info || '')
@@ -225,7 +230,7 @@ export default function VoicePage() {
   }
 
   // Мат и эмоции сохраняются сразу по клику: это главные ручки голоса, без кнопки «Сохранить»
-  const saveTone = async (patch: { profanity?: string; intensity?: string }) => {
+  const saveTone = async (patch: { profanity?: string; intensity?: string } | Partial<Record<ToneAxis, number>>) => {
     if (!userId) return
     setToneSaved(null)
     const { error } = await supabase.from('onboarding_profiles').update(patch).eq('user_id', userId)
@@ -328,6 +333,8 @@ export default function VoicePage() {
             ]} />
             <p className="text-xs text-brand-muted">{intensity === 'hot' ? 'Можно резко, с иронией, иногда капсом одно слово.' : intensity === 'calm' ? 'Без восклицаний и резких слов, мягко и по делу.' : intensity === 'live' ? 'Разговорные словечки, немного восклицаний, как говоришь с подругой.' : 'Не выбрала, значит беру по твоим постам.'}</p>
           </div>
+          <ToneSteps tone={tone} profanity={profanity} intensity={intensity}
+            onChange={(axis, v) => { setTone(t => ({ ...t, [axis]: v })); saveTone({ [axis]: v }) }} />
           {toneSaved && <p className="text-xs text-brand-text">{toneSaved}</p>}
         </section>
 
@@ -534,6 +541,48 @@ export default function VoicePage() {
 
         <p className="text-xs text-brand-muted text-center pb-4">Только твой голос, без клиентов. Аудио удаляем сразу после расшифровки.</p>
       </div>
+    </div>
+  )
+}
+
+// Ползунки тона на экране голоса: 7 позиций (три ступени в каждую сторону и середина), как их видит модель
+// (lib/generation/tone.ts). Под ползунком то, что уйдет в промпт; если «Мат» или «Эмоции» перебивают ось, пишем об этом.
+function ToneSteps({ tone, profanity, intensity, onChange }: {
+  tone: Record<ToneAxis, number>
+  profanity: string | null
+  intensity: string | null
+  onChange: (axis: ToneAxis, v: number) => void
+}) {
+  const axes: { key: ToneAxis; left: string; right: string }[] = [
+    { key: 'tone_formal', left: 'Разговорно', right: 'Сдержанно' },
+    { key: 'tone_serious', left: 'С юмором', right: 'Серьезно' },
+    { key: 'tone_cautious', left: 'Прямо', right: 'Бережно' },
+  ]
+  const profile = { ...tone, profanity, intensity }
+  return (
+    <div className="space-y-4">
+      <p className="text-sm font-semibold text-brand-text">Тон</p>
+      {axes.map(ax => {
+        const pos = tonePosition(tone[ax.key])
+        const st = toneAxisState(ax.key, profile)
+        return (
+          <div key={ax.key}>
+            <div className="flex justify-between text-xs font-medium mb-1">
+              <span className={pos < 3 ? 'text-brand-accent' : 'text-brand-muted'}>{ax.left}</span>
+              <span className={pos > 3 ? 'text-brand-accent' : 'text-brand-muted'}>{ax.right}</span>
+            </div>
+            <input type="range" min={0} max={6} step={1} value={pos}
+              onChange={e => onChange(ax.key, TONE_POSITIONS[Number(e.target.value)])}
+              aria-label={`${ax.left} или ${ax.right}`} aria-valuetext={st.word || 'посередине'}
+              className="w-full h-11 cursor-pointer" style={{ accentColor: 'var(--color-brand-accent)' }} />
+            <p className="text-xs text-brand-muted">
+              {st.overriddenBy === 'intensity' ? `Сейчас главнее «Эмоции»${st.word ? `, выйдет: ${st.word}` : ', эта сторона не действует'}`
+                : st.overriddenBy === 'profanity' ? 'Сейчас главнее «Мат», эта сторона не действует'
+                : st.word ? `В постах: ${st.word}` : 'Посередине, беру по твоим постам'}
+            </p>
+          </div>
+        )
+      })}
     </div>
   )
 }
