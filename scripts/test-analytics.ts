@@ -3,7 +3,9 @@ import assert from 'node:assert/strict'
 import { sanitizeProps, sanitizeEvent, cleanPath, cleanValue } from '../lib/analytics/sanitize'
 import { EVENTS, isEventName, screenOf, FEATURES } from '../lib/analytics/events'
 import { isNewSession, SESSION_GAP_MS } from '../lib/track'
-import { computeRisk, statusOf, rhythmDays, habitOf, levelOf, type PersonFacts } from '../lib/analytics/definitions'
+import { computeRisk, statusOf, rhythmDays, habitOf, levelOf, shareCol, type PersonFacts } from '../lib/analytics/definitions'
+import { toCsv, fmtDate } from '../lib/analytics/export'
+import { adminTz } from '../lib/admin'
 
 // ---------- санитайзер ----------
 assert.equal(cleanValue('Клиенты бросают терапию'), undefined, 'кириллица не проходит')
@@ -107,5 +109,25 @@ const gone = base({ take_days: [day(40), day(47), day(54)], last_take_at: at(40)
 assert.equal(statusOf(gone, computeRisk(gone, NOW), NOW), 'gone', 'ритм 7, тишина 30 дней (больше 28)')
 const notGone = base({ take_days: [day(20), day(34), day(48)], last_take_at: at(20), last_visit_at: at(20) })
 assert.notEqual(statusOf(notGone, computeRisk(notGone, NOW), NOW), 'gone', 'ритм 14: 20 дней тишины еще не ушла (нужно 56)')
+
+// ---------- выгрузка ----------
+{
+  const csv = toCsv({ name: 't', headers: ['Имя', 'Число'], rows: [['=HYPERLINK("x";"y")', 1.5], ['+7 999', -3], ['a;b', null], [true, 2]] })
+  assert.ok(csv.startsWith('\uFEFF'), 'BOM в начале')
+  const lines = csv.slice(1).split('\r\n')
+  assert.equal(lines[0], 'Имя;Число')
+  assert.equal(lines[1], `"'=HYPERLINK(""x"";""y"")";1,5`, 'формула обезврежена, дробь с запятой')
+  assert.equal(lines[2], "'+7 999;-3", 'плюс в начале строки обезврежен, отрицательное число осталось числом')
+  assert.equal(lines[3], '"a;b";', 'точка с запятой в кавычках, пусто для null')
+  assert.equal(lines[4], 'да;2')
+  assert.equal(fmtDate('2026-10-04T17:00:00Z', 'Asia/Barnaul'), '05.10.2026 00:00', 'полночь пишется 00, не 24')
+  assert.equal(shareCol(3, 7, 25), '43%'); assert.equal(shareCol(3, 7, 19), '3 из 7')
+}
+{
+  const prev = process.env.ADMIN_TZ
+  process.env.ADMIN_TZ = 'Asia/Барнаул-опечатка'
+  assert.equal(adminTz(), 'Asia/Barnaul', 'кривой пояс не роняет кабинет')
+  process.env.ADMIN_TZ = prev
+}
 
 console.log('ok: все проверки аналитики')
