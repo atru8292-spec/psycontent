@@ -146,14 +146,14 @@ export function reasonText(r: RiskReason, f: PersonFacts, risk: Risk, now: Date)
   const rhythm = risk.rhythm_days
   const silent = f.last_take_at ? Math.floor((now.getTime() - Date.parse(f.last_take_at)) / DAY) : 0
   switch (r.code) {
-    case 'recency': return `молчит ${silent} ${plural(silent, 'день', 'дня', 'дней')}, обычно берет текст ${rhythm <= 1 ? 'каждый день' : `раз в ${fmtNum(rhythm)} ${plural(Math.round(rhythm), 'день', 'дня', 'дней')}`}`
-    case 'decline': return `за 14 дней взяла ${f.takes_14}, а до этого ${f.takes_prev_14}`
-    case 'empty_last3': return 'три последних текста не взяты'
+    case 'recency': return `не брала текст ${silent} ${plural(silent, 'день', 'дня', 'дней')}, обычно берет ${rhythm <= 1 ? 'каждый день' : `раз в ${fmtNum(rhythm)} ${plural(Math.round(rhythm), 'день', 'дня', 'дней')}`}`
+    case 'decline': return `за 14 дней взяла ${f.takes_14}, за 14 дней до этого ${f.takes_prev_14}`
+    case 'empty_last3': return 'три последних текста не взяла'
     case 'unhappy': return f.not_like_7 >= RISK.UNHAPPY_NOT_LIKE ? `${f.not_like_7} «не похоже» за неделю` : `${f.strong_edits_7} сильных правки за неделю`
     case 'errors': return `${f.errors_7} ошибки за неделю`
     case 'limit_no_return': return 'уперлась в лимит и не вернулась'
     case 'no_voice': return 'голос не настроен'
-    case 'habit': return 'есть привычка'
+    case 'habit': return 'берет текст почти каждую неделю'
     case 'published': return 'отмечает «опубликовала»'
   }
 }
@@ -173,4 +173,6 @@ export function plural(n: number, one: string, few: string, many: string): strin
 }
 export const fmtNum = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1).replace('.', ','))
 // Доля при знаменателе меньше 20 показывается «3 из 7», а не процентом
+// В таблице формат один на всю колонку: проценты, только если самый большой знаменатель колонки от 20
+export const shareCol = (a: number, b: number, colMax: number) => (b <= 0 ? '0' : colMax < 20 ? `${a} из ${b}` : `${Math.round((a / b) * 100)}%`)
 export const share = (a: number, b: number) => (b <= 0 ? '0' : b < 20 ? `${a} из ${b}` : `${Math.round((a / b) * 100)}%`)

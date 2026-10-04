@@ -1,6 +1,9 @@
 -- ─────────────────────────────────────────────────────────────────────────
 -- АНАЛИТИКА И АДМИН-КАБИНЕТ (задача _знания/PROMPT-CLAUDE-CODE-analitika.md, этапы 1 и 4).
 -- НЕ ПРИМЕНЕНА. Применяет другой агент после «да» Арины.
+-- Нужны колонки carousel_designs.export_count, exported_at, export_method (миграция
+-- 20261003100000_carousel_my_design.sql). На живой базе 04.10 они есть; без них
+-- analytics_features и analytics_person упадут при вызове (plpgsql), а не при применении.
 --
 -- Что это:
 -- 1) Таблица public.events: факты действий людей в продукте (визиты, шаги онбординга,
@@ -186,7 +189,7 @@ as $$
      where e.event in ('make_start', 'paywall_view', 'plan_click')
      group by e.user_id
   ), src as (
-    select distinct on (e.user_id) e.user_id, e.props->>'src' as src
+    select distinct on (e.user_id) e.user_id, coalesce(nullif(e.props->>'src', ''), e.props->>'ref') as src
       from public.events e join u on u.user_id = e.user_id
      where e.event = 'signup_source'
      order by e.user_id, e.created_at desc
@@ -818,7 +821,7 @@ begin
   with ms as (
     select * from public._analytics_milestones(p_exclude_emails, p_exclude_test, p_tz)
   ), ul as (
-    select l.user_id, l.created_at, l.operation, coalesce(l.model, 'unknown') as model,
+    select l.user_id, l.created_at, coalesce(l.operation, 'unknown') as operation, coalesce(l.model, 'unknown') as model,
            coalesce(l.real_cost_rub, 0) as rub
       from public.usage_log l join ms on ms.user_id = l.user_id
      where (p_from is null or l.created_at >= p_from)
@@ -960,7 +963,7 @@ begin
                               'change_ratio', public._analytics_num(v.data->>'change_ratio'))
       from public.voice_events v where v.user_id = p_user_id and v.created_at is not null
   ), money as (
-    select l.operation, coalesce(l.model, 'unknown') as model, coalesce(l.real_cost_rub, 0) as rub,
+    select coalesce(l.operation, 'unknown') as operation, coalesce(l.model, 'unknown') as model, coalesce(l.real_cost_rub, 0) as rub,
            l.created_at > now() - interval '30 days' as in_30
       from public.usage_log l where l.user_id = p_user_id
   )
@@ -972,7 +975,7 @@ begin
     'plan_code', (select sub.code from sub),
     'plan_name', (select sub.name from sub),
     'plan_price', (select sub.price from sub),
-    'src', (select e.props->>'src' from public.events e
+    'src', (select coalesce(nullif(e.props->>'src', ''), e.props->>'ref') from public.events e
              where e.user_id = p_user_id and e.event = 'signup_source'
              order by e.created_at desc limit 1),
     'last_visit_at', (select max(e.created_at) from public.events e where e.user_id = p_user_id),
