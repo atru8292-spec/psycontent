@@ -27,7 +27,7 @@ export default function EmptyState({
         <span
           className="block w-16 h-16 sm:w-20 sm:h-20 opacity-[0.10]"
           style={{
-            maskImage: "url('/logo/out_icon_mono.svg')", WebkitMaskImage: "url('/logo/out_icon_mono.svg')",
+            maskImage: "url('/brand/psycont-icon-mono.svg')", WebkitMaskImage: "url('/brand/psycont-icon-mono.svg')",
             maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat',
             backgroundColor: 'var(--color-brand-text)',
           }}

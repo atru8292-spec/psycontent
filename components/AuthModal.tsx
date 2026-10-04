@@ -112,7 +112,7 @@ export default function AuthModal({
           <div className="text-center mb-6">
             <div className="flex items-center justify-center mb-3">
               <Image
-                src="/logo/out_wordmark.svg"
+                src="/brand/psycont-wordmark.svg"
                 alt="PsyCont"
                 width={119}
                 height={32}

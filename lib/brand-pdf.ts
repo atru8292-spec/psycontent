@@ -282,7 +282,7 @@ export async function setupBrandFonts(pdf: jsPDF) {
 // фон, без альфы) — чисто и легко (без гигантского битмапа).
 export async function loadWordmark(): Promise<{ dataUrl: string; aspect: number }> {
   const img = new Image()
-  img.src = '/logo/out_wordmark.svg'
+  img.src = '/brand/psycont-wordmark.svg'
   await img.decode()
   // у вордмарка в корне SVG стоят width/height (780x210), поэтому естественный размер верный
   const aspect = (img.naturalWidth || 780) / (img.naturalHeight || 210)

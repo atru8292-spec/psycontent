@@ -151,10 +151,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className={`flex items-center gap-2.5 px-4 h-16 border-b border-brand-border shrink-0 ${collapsed ? 'justify-center px-0' : ''}`}>
           {collapsed ? (
             /* Только знак: на светлом фоне он всегда в темно-зеленом круге (out_icon.svg) */
-            <Image src="/logo/out_icon.svg" alt="PsyCont" width={36} height={36} className="w-9 h-9 shrink-0" />
+            <Image src="/brand/psycont-icon.svg" alt="PsyCont" width={36} height={36} className="w-9 h-9 shrink-0" />
           ) : (
             <Image
-              src="/logo/out_wordmark.svg"
+              src="/brand/psycont-wordmark.svg"
               alt="PsyCont"
               width={104}
               height={28}
@@ -231,7 +231,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Мобильная шапка: под вырезом iPhone отступ safe-area */}
         <header className="lg:hidden sticky top-0 z-30 bg-brand-card/90 backdrop-blur border-b border-brand-border h-14 box-content pt-[env(safe-area-inset-top)] flex items-center justify-between px-4">
           <Image
-            src="/logo/out_wordmark.svg"
+            src="/brand/psycont-wordmark.svg"
             alt="PsyCont"
             width={89}
             height={24}

@@ -534,7 +534,7 @@ export default function ContentPlan() {
                 </>
               )}
               <div className="flex items-center gap-1.5">
-                <NextImage src="/logo/out_wordmark.svg" alt="PsyCont" width={104} height={28} className="h-6 w-auto" />
+                <NextImage src="/brand/psycont-wordmark.svg" alt="PsyCont" width={104} height={28} className="h-6 w-auto" />
               </div>
             </div>
           </div>

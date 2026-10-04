@@ -240,7 +240,7 @@ export default function TopicIdeas({ embedded = false }: { embedded?: boolean })
               </button>
             )}
             <div className="flex items-center gap-2">
-              <NextImage src="/logo/out_wordmark.svg" alt="PsyCont" width={104} height={28} className="h-6 w-auto" />
+              <NextImage src="/brand/psycont-wordmark.svg" alt="PsyCont" width={104} height={28} className="h-6 w-auto" />
             </div>
           </div>
         </div>

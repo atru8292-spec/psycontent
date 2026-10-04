@@ -13,8 +13,8 @@ export const metadata: Metadata = {
   title: 'PsyCont, пишет как живой психолог, чтобы блог приводил клиентов',
   description: 'AI-сервис для психологов: генерация постов, Reels-сценариев и контент-плана в вашем голосе. Звучит как вы, работает лучше.',
   icons: {
-    icon: [{ url: '/logo/out_favicon.svg', type: 'image/svg+xml' }, { url: '/logo/out_favicon.png', type: 'image/png' }],
-    apple: '/logo/apple-touch-icon.png',
+    icon: [{ url: '/brand/psycont-favicon.svg', type: 'image/svg+xml' }, { url: '/brand/psycont-favicon.png', type: 'image/png' }],
+    apple: '/brand/psycont-apple-touch-icon.png',
   },
 }
 
