@@ -72,10 +72,10 @@ export async function updateSession(request: NextRequest) {
   // дальше requireAdmin в каждой странице и adminOrNull у данных (lib/admin.ts, lib/analytics/admin-data.ts)
   const adminList = (process.env.ADMIN_EMAILS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
   const isAdminUser = !!user?.email && !!user.email_confirmed_at && adminList.includes(user.email.toLowerCase())
+  // Отвечаем 404 сразу: rewrite за nginx Next принимает за внешний адрес и проксирует сам к себе
+  // на https://localhost:3001, где падает (EPROTO, socket hang up) и отдает 500
   if (path.startsWith('/admin') && !isAdminUser) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/admin-not-found'
-    return NextResponse.rewrite(url, { status: 404 })
+    return new NextResponse('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex' } })
   }
   const isProtected =
     path.startsWith('/dashboard') || path.startsWith('/onboarding')
