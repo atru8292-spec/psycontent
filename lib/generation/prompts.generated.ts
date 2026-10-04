@@ -1,4 +1,4 @@
-// АВТОСБОРКА из _знания/мозг-генератора/03-PROMPTY.md (scripts/build-prompts.mjs).
+// АВТОСБОРКА из docs/prompts/03-PROMPTY.md (scripts/build-prompts.mjs).
 // Руками не править: поправь документ и запусти node scripts/build-prompts.mjs.
 /* eslint-disable */
 

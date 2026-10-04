@@ -1,4 +1,5 @@
-// Собирает lib/generation/prompts.generated.ts из _знания/мозг-генератора/03-PROMPTY.md.
+// Собирает lib/generation/prompts.generated.ts из docs/prompts/03-PROMPTY.md (с 04.10 промпты живут в репо;
+// копия в _знания/мозг-генератора больше не источник).
 // Промпты живут в документе, в коде только их дословная копия. После правки документа:
 //   node scripts/build-prompts.mjs
 // Руками prompts.generated.ts не править.
@@ -8,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const src = join(root, '_знания', 'мозг-генератора', '03-PROMPTY.md')
+const src = join(root, 'docs', 'prompts', '03-PROMPTY.md')
 const out = join(root, 'lib', 'generation', 'prompts.generated.ts')
 
 const md = readFileSync(src, 'utf8').replace(/\r\n/g, '\n')
@@ -95,7 +96,7 @@ const esc = (s) => s.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g
 const str = (s) => '`' + esc(s) + '`'
 const obj = (o) => '{\n' + Object.entries(o).map(([k, v]) => `  ${JSON.stringify(k)}: ${str(v)},`).join('\n') + '\n}'
 
-const ts = `// АВТОСБОРКА из _знания/мозг-генератора/03-PROMPTY.md (scripts/build-prompts.mjs).
+const ts = `// АВТОСБОРКА из docs/prompts/03-PROMPTY.md (scripts/build-prompts.mjs).
 // Руками не править: поправь документ и запусти node scripts/build-prompts.mjs.
 /* eslint-disable */
 
