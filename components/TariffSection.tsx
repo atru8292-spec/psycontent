@@ -4,55 +4,15 @@ import { track } from '@/lib/track'
 import { useFeatureOpen, useTrackOnce } from '@/lib/analytics/hooks'
 import { useEffect, useRef, useState } from 'react'
 import { Check, X } from 'lucide-react'
+import { PLANS, PLAN_COMMON_LINE, formatRub, planPerks, planForDbCode, type PricePlan } from '@/lib/pricing'
 
-// Витрина тарифов. Только показ и захват внимания, НИКАКИХ записей в БД и смены
-// плана (план меняет только сервер, требование безопасности денег). Кнопка «Выбрать»
-// открывает честный поповер «оплата скоро», ничего не переключает.
-// Числа энергии черновые, в маркетинг не выносим, описываем качественно.
-
-type Plan = {
-  code: string
-  name: string
-  price: string
-  who: string
-  perks: string[]
-  popular?: boolean
-}
-
-const PLANS: Plan[] = [
-  {
-    code: 'free',
-    name: 'Старт',
-    price: 'бесплатно',
-    who: 'Попробовать, как звучит',
-    perks: ['10 пробных текстов', 'по одной пробе карусели, картинки и анализа', 'дальше нужен платный тариф'],
-  },
-  {
-    code: 'start',
-    name: 'Блог',
-    price: '990 ₽/мес',
-    who: 'Чтобы наконец писать регулярно',
-    perks: ['тексты без ограничений: посты, карусели, хуки, рилс, план', 'немного энергии на картинки к каруселям', 'карта бренда и контент-план'],
-  },
-  {
-    code: 'practice',
-    name: 'Практика',
-    price: '2490 ₽/мес',
-    popular: true,
-    who: 'Когда блог должен приводить клиентов',
-    perks: ['все из Блога', 'больше энергии на картинки и расшифровки', 'глубокий разбор конкурентов'],
-  },
-  {
-    code: 'expert',
-    name: 'Студия',
-    price: '4990 ₽/мес',
-    who: 'Полная мощность',
-    perks: ['все из Практики', 'много энергии на картинки, расшифровки и анализ', 'для тех, кто ведет несколько площадок'],
-  },
-]
+// Витрина тарифов в настройках. Цены и пункты из lib/pricing.ts (тот же источник, что у лендинга).
+// Только показ и захват внимания, НИКАКИХ записей в БД и смены плана (план меняет только сервер,
+// требование безопасности денег). Кнопка «Выбрать» открывает честный поповер «оплата скоро».
 
 export default function TariffSection({ currentCode }: { currentCode?: string }) {
-  const [picked, setPicked] = useState<Plan | null>(null)
+  const [picked, setPicked] = useState<PricePlan | null>(null)
+  const current = planForDbCode(currentCode)
   // paywall_view, когда блок тарифов попал на экран
   const box = useRef<HTMLDivElement>(null)
   const [seen, setSeen] = useState(false)
@@ -74,32 +34,24 @@ export default function TariffSection({ currentCode }: { currentCode?: string })
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {PLANS.map((plan) => {
-          const isCurrent = currentCode === plan.code
+          const isCurrent = current?.id === plan.id
           return (
             <div
-              key={plan.code}
+              key={plan.id}
               className={`relative flex flex-col rounded-3xl border p-5 ${
                 isCurrent
                   ? 'border-brand-accent bg-brand-soft ring-1 ring-brand-accent/30'
-                  : plan.popular
-                  ? 'border-brand-border-soft bg-brand-card'
                   : 'border-brand-border bg-brand-card'
               }`}
             >
-              {plan.popular && !isCurrent && (
-                <span className="absolute top-4 right-4 text-[10px] font-bold uppercase tracking-wide text-brand-accent bg-brand-soft-2 px-2 py-0.5 rounded-full">
-                  Популярный
-                </span>
-              )}
-
               <p className="text-lg font-bold text-brand-text leading-tight">{plan.name}</p>
-              <p className={`text-sm font-semibold mt-0.5 ${isCurrent || plan.popular ? 'text-brand-accent' : 'text-brand-text'}`}>{plan.price}</p>
+              <p className={`text-sm font-semibold mt-0.5 ${isCurrent ? 'text-brand-accent' : 'text-brand-text'}`}>{plan.price ? `${formatRub(plan.price)} в месяц` : 'бесплатно'}</p>
               <p className="text-xs text-brand-muted mt-1.5 leading-snug">{plan.who}</p>
 
               <ul className="mt-4 space-y-2 flex-1">
-                {plan.perks.map((perk, i) => (
+                {planPerks(plan).map((perk, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <Check className="w-3.5 h-3.5 text-brand-sage shrink-0 mt-0.5" />
                     <span className="text-[13px] text-brand-text leading-snug">{perk}</span>
@@ -112,24 +64,21 @@ export default function TariffSection({ currentCode }: { currentCode?: string })
                   <span className="block w-full text-center text-sm font-semibold text-brand-accent bg-brand-card border border-brand-accent/30 rounded-2xl py-2.5">
                     Ты здесь
                   </span>
-                ) : (
+                ) : plan.price > 0 ? (
                   <button
                     type="button"
-                    onClick={() => { track('plan_click', { plan: plan.code }); setPicked(plan) }}
-                    className={`block w-full text-center text-sm font-semibold rounded-2xl py-2.5 transition cursor-pointer ${
-                      plan.popular
-                        ? 'bg-brand-accent text-white hover:bg-brand-accent-hover'
-                        : 'bg-brand-card text-brand-accent border border-brand-accent/40 hover:bg-brand-soft'
-                    }`}
+                    onClick={() => { track('plan_click', { plan: plan.dbCodes[0] || plan.id }); setPicked(plan) }}
+                    className="block w-full text-center text-sm font-semibold rounded-2xl py-2.5 transition cursor-pointer bg-brand-card text-brand-accent border border-brand-accent/40 hover:bg-brand-soft"
                   >
                     Выбрать
                   </button>
-                )}
+                ) : null}
               </div>
             </div>
           )
         })}
       </div>
+      <p className="text-[13px] text-brand-muted mt-3 leading-relaxed">{PLAN_COMMON_LINE}</p>
 
       {/* Поповер «оплата скоро»: честно, не переключает план, в БД не пишет */}
       {picked && (
