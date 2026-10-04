@@ -389,6 +389,10 @@ export default function ContentPlan() {
   const { me } = useDashboardMe()
   const newMenu = me?.newPipeline === true
   const [tab, setTab] = useState<'ideas' | 'plan' | null>(null)
+  // «Идеи» монтируем, когда их впервые открыли: смонтированные скрытыми, они застревали в анимации появления
+  // на нулевой прозрачности. Дальше держим смонтированными, чтобы подбор тем не терялся при переключении
+  const [ideasMounted, setIdeasMounted] = useState(false)
+  useEffect(() => { if (tab === 'ideas') setIdeasMounted(true) }, [tab])
   const router = useRouter()
 
   // Вкладка из адреса; без параметра «План», если он уже есть, иначе «Идеи». Назад/вперед по истории тоже
@@ -569,7 +573,7 @@ export default function ContentPlan() {
           </div>
         )}
         {/* «Идеи» не размонтируем при переключении: подбор идет около минуты, результат не должен теряться */}
-        {newMenu && (
+        {newMenu && ideasMounted && (
           <div role="tabpanel" id="panel-ideas" aria-labelledby="tab-ideas" hidden={tab !== 'ideas'}>
             <TopicIdeas embedded />
           </div>
