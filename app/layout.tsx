@@ -9,8 +9,8 @@ const onest = Onest({
   display: 'swap',
 })
 
-const TITLE = 'PsyCont: посты и рилсы твоим голосом для психологов'
-const DESCRIPTION = 'PsyCont пишет посты, карусели и рилсы так, как ты говоришь с клиентами. Маркетологом становиться не надо. 10 материалов бесплатно.'
+const TITLE = 'PsyCont: блог для психологов, которые не мечтали стать блогерами'
+const DESCRIPTION = 'Ты помогаешь людям найти себя. PsyCont поможет им найти тебя. Расскажи мысль и получи пост, карусель и рилс твоим голосом.'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://psycont.ru'),
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     siteName: 'PsyCont',
     locale: 'ru_RU',
     type: 'website',
-    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'PsyCont, блог без выгорания' }],
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'PsyCont. Ты помогаешь людям найти себя. PsyCont поможет им найти тебя' }],
   },
   twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION, images: ['/og.png'] },
   icons: {
