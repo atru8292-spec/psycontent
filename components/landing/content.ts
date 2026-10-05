@@ -124,7 +124,7 @@ export const FINAL = {
 }
 
 export const FOOTER = {
-  slogan: 'блог без выгорания',
+  slogan: 'Посты, в которых клиент узнает себя',
   mailLabel: 'Есть вопрос? Пиши:',
   privacy: 'Политика конфиденциальности',
   offer: 'Оферта',

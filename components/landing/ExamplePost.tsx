@@ -10,7 +10,7 @@ export default function ExamplePost({ kind, text, className = '' }: { kind: stri
   return (
     <article className={`rounded-3xl border border-brand-border bg-brand-card p-6 lg:p-8 ${className}`}>
       <header className="flex items-center gap-3">
-        <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-lilac text-[17px] font-bold text-brand-text ring-1 ring-brand-text/20">Т</span>
+        <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-bg text-[17px] font-bold text-brand-text ring-1 ring-brand-border">Т</span>
         <div className="min-w-0">
           <p className="text-[15px] font-semibold text-brand-text">{EXAMPLE.author}</p>
           <p className="text-[14px] text-brand-muted">{kind}</p>

@@ -36,17 +36,24 @@ const NOTES = [
 
 // Шаги по нарастанию тона (крем с рамкой, бледная сирень, зеленый)
 const STEP_CARD = [
-  'border border-brand-border bg-brand-bg text-brand-text',
+  'border border-brand-border bg-brand-card text-brand-text',
   'bg-brand-soft text-brand-text lg:mt-12',
   'bg-brand-accent text-brand-bg lg:mt-24',
+]
+
+// Тарифы тоже по нарастанию тона: крем, бледная сирень, белая с зеленой рамкой. Метку «популярный» не ставим, пока нет данных
+const PLAN_CARD = [
+  'border border-brand-border bg-brand-bg',
+  'border border-brand-border-soft bg-brand-soft-2 lg:mt-6',
+  'border-[1.5px] border-brand-accent bg-brand-card lg:mt-12',
 ]
 
 // Снимок во всю ширину рамки, лишнее уходит только снизу: бока экрана не режем
 function PhoneShot({ src, alt, w, h }: { src: string; alt: string; w: number; h: number }) {
   return (
-    <div className="w-[220px] rounded-[36px] border border-brand-border bg-brand-card p-2">
+    <div className="w-[232px] rounded-[36px] lg:w-full lg:max-w-[280px] border border-brand-border bg-brand-card p-2">
       <div className="aspect-[375/600] overflow-hidden rounded-[28px] border border-brand-border bg-brand-bg">
-        <Image src={src} alt={alt} width={w} height={h} sizes="204px" className="block h-auto w-full" />
+        <Image src={src} alt={alt} width={w} height={h} sizes="(min-width: 1024px) 264px, 216px" className="block h-auto w-full" />
       </div>
     </div>
   )
@@ -85,14 +92,14 @@ export default function Home() {
         </section>
 
         {/* 2. Боли на шоколаде: фразы психологов заметками в четырех цветах, на мобилке лента вбок */}
-        <section className={`bg-brand-text ${SECTION}`}>
+        <section className="bg-brand-text pt-14 pb-10 lg:py-24">
           <div className={WRAP}>
             <h2 className={`${H2} max-w-[560px] !text-brand-bg`}>{PAINS.title}</h2>
             <p className="mt-3 flex items-center gap-1.5 text-[15px] text-brand-on-dark lg:hidden">
               {PAINS.swipeHint}<ArrowRight aria-hidden className="h-4 w-4" strokeWidth={1.75} />
             </p>
             <ul tabIndex={0} aria-label={PAINS.title.replace(' ', ' ')}
-              className="-mx-4 mt-2 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pt-10 pb-6 [scrollbar-width:none] focus-visible:outline-2 focus-visible:outline-brand-on-dark lg:mx-0 lg:mt-6 lg:grid lg:grid-cols-12 lg:items-start lg:gap-x-6 lg:gap-y-10 lg:overflow-visible lg:px-0 lg:pb-0">
+              className="-mx-4 mt-2 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pt-10 pb-2 [scrollbar-width:none] focus-visible:outline-2 focus-visible:outline-brand-on-dark lg:mx-0 lg:mt-6 lg:grid lg:grid-cols-12 lg:items-start lg:gap-x-6 lg:gap-y-10 lg:overflow-visible lg:px-0 lg:pb-0">
               {PAINS.items.map((p, i) => {
                 const n = NOTES[i % NOTES.length]
                 return (
@@ -126,7 +133,7 @@ export default function Home() {
                         ))}
                       </ul>
                     )}
-                    {s.shot && <div className="mt-6 flex justify-center"><PhoneShot src={s.shot} alt={s.alt} w={s.w} h={s.h} /></div>}
+                    {s.shot && <div className={`mt-6 justify-center ${i === 0 ? 'hidden lg:flex' : 'flex'}`}><PhoneShot src={s.shot} alt={s.alt} w={s.w} h={s.h} /></div>}
                     {dark && (
                       <>
                         <p className="mt-4 text-[15px] text-brand-on-dark">{HOW.step3Note}</p>
@@ -150,13 +157,13 @@ export default function Home() {
           <div className={WRAP}>
             <h2 className={H2}>{EXAMPLE.title}</h2>
             <p className={`mt-3 max-w-[640px] text-brand-text ${TEXT}`}>{EXAMPLE.lead}</p>
-            <div className="mt-2 flex items-start gap-2">
+            <div className="mt-2 flex flex-row-reverse items-start justify-end gap-2">
               <p className="text-[15px] text-brand-muted">{EXAMPLE.caption}</p>
-              <HandArrow className="mt-2 h-12 w-14 shrink-0 lg:h-16 lg:w-20" />
+              <HandArrow className="mt-3 h-12 w-14 shrink-0 -scale-x-100 lg:-ml-2 lg:h-16 lg:w-20" />
             </div>
             <div className="mt-4 grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-10">
               {EXAMPLES.map((e, i) => (
-                <div key={e.id} className={i === 0 ? 'relative rotate-[-1.5deg] pt-3' : 'lg:mt-20'}>
+                <div key={e.id} className={i === 0 ? 'relative mx-2 rotate-[-1deg] pt-3 lg:mx-0 lg:rotate-[-1.5deg]' : 'lg:mt-20'}>
                   {i === 0 && <Dekor name="zazhim-sirenevyj" className="-top-5 left-1/2 z-10 w-[44px] -translate-x-1/2 lg:w-[52px]" />}
                   <ExamplePost kind={e.kind} text={e.text} />
                 </div>
@@ -200,15 +207,15 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 6. Этика, крем */}
+        {/* 6. Этика, крем: заголовок сверху, четыре пункта в ряд (не повторяет раскладку «почему» и FAQ) */}
         <section className={SECTION}>
-          <div className={`${WRAP} lg:grid lg:grid-cols-12 lg:gap-8`}>
-            <h2 className={`${H2} lg:col-span-4`}>{ETHICS.title}</h2>
-            <ul className="mt-8 grid gap-5 lg:col-span-8 lg:mt-0 lg:grid-cols-2 lg:gap-x-8 lg:gap-y-8">
+          <div className={WRAP}>
+            <h2 className={`${H2} max-w-[640px]`}>{ETHICS.title}</h2>
+            <ul className="mt-8 grid gap-x-8 gap-y-7 sm:grid-cols-2 lg:mt-12 lg:grid-cols-4">
               {ETHICS.items.map(it => (
-                <li key={it.title} className="border-t border-brand-border pt-5">
-                  <h3 className="text-[18px] font-semibold text-brand-text">{it.title}</h3>
-                  <p className={`mt-1 text-brand-muted ${TEXT}`}>{it.text}</p>
+                <li key={it.title}>
+                  <h3 className="text-[19px] font-bold leading-[1.25] text-brand-text">{it.title}</h3>
+                  <p className="mt-2 text-[17px] leading-[1.55] text-brand-muted">{it.text}</p>
                 </li>
               ))}
             </ul>
@@ -220,9 +227,13 @@ export default function Home() {
           <div id="pricing" className={`${WRAP} scroll-mt-20`}>
             <h2 className={H2}>{PRICING.title}</h2>
             <p className={`mt-3 max-w-[640px] text-brand-muted ${TEXT}`}>{PRICING.lead}</p>
-            <div className="mt-8 grid gap-4 lg:mt-12 lg:grid-cols-3 lg:gap-6">
-              {PLANS.map(p => (
-                <div key={p.id} className="flex flex-col rounded-3xl border border-brand-border bg-brand-bg p-6 lg:p-8">
+            <p className="mt-3 flex items-center gap-1.5 text-[15px] text-brand-muted lg:hidden">
+              {PAINS.swipeHint}<ArrowRight aria-hidden className="h-4 w-4" strokeWidth={1.75} />
+            </p>
+            <div tabIndex={0} role="group" aria-label={PRICING.title}
+              className="-mx-4 mt-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] focus-visible:outline-2 focus-visible:outline-brand-accent lg:mx-0 lg:mt-12 lg:grid lg:grid-cols-3 lg:items-start lg:gap-6 lg:overflow-visible lg:px-0">
+              {PLANS.map((p, i) => (
+                <div key={p.id} className={`flex w-[84%] max-w-[360px] shrink-0 snap-start flex-col rounded-3xl p-6 lg:w-auto lg:max-w-none lg:p-8 ${PLAN_CARD[i]}`}>
                   <h3 className="text-[18px] font-semibold text-brand-text">{p.name}</h3>
                   <p className="mt-3 flex items-baseline gap-2">
                     <span className="text-[40px] font-bold leading-none text-brand-text">{formatRub(p.price)}</span>
@@ -234,7 +245,7 @@ export default function Home() {
                   </ul>
                   <div className="mt-auto">
                     {p.price > 0 && <p className="mb-2 text-[14px] text-brand-muted">{PRICING.soon}</p>}
-                    <CtaButton place="pricing" plan={p.track} variant={p.price > 0 ? 'secondary' : 'primary'} className="w-full">
+                    <CtaButton place="pricing" plan={p.track} variant={p.price > 0 ? 'secondary' : 'primary'} className="w-full !px-4">
                       {p.price > 0 ? PRICING.ctaPaid : PRICING.ctaFree}
                     </CtaButton>
                   </div>
@@ -255,12 +266,12 @@ export default function Home() {
         </section>
 
         {/* 9. Финал на бледной сирени: волна сверху, Вера в другой позе с бантом */}
-        <section className={`relative z-10 bg-brand-soft ${SECTION}`}>
+        <section className="relative z-10 bg-brand-soft pt-14 pb-12 lg:pt-20 lg:pb-16">
           <Wave side="top" />
           <div className={`${WRAP} lg:grid lg:grid-cols-12 lg:items-center lg:gap-8`}>
-            <figure className="relative flex w-fit flex-col items-center lg:order-2 lg:col-span-5 lg:justify-self-center">
+            <figure className="relative mx-auto flex w-fit flex-col items-center lg:mx-0 lg:order-2 lg:col-span-5 lg:justify-self-center">
               <Image src="/vera/raduetsya.webp" alt="Вера радуется" width={299} height={360} className="h-[170px] w-auto lg:h-[300px]" />
-              <Dekor name="bant-zelenyj-atlas" className="top-1 right-[10%] w-[52px] rotate-[18deg] lg:top-2 lg:w-[72px]" />
+              <Dekor name="bant-zelenyj-atlas" className="top-[4%] left-[14%] w-[48px] rotate-[-24deg] lg:w-[64px]" />
               <figcaption className="mt-2 text-[14px] text-brand-muted">{HERO.veraRole}</figcaption>
             </figure>
             <div className="mt-6 lg:order-1 lg:col-span-7 lg:mt-0">
