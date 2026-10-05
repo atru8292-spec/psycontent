@@ -24,7 +24,7 @@ export default function Faq() {
             <h3>
               <button type="button" id={`${base}-q${i}`} aria-expanded={on} aria-controls={`${base}-a${i}`} onClick={() => toggle(i)}
                 className="group flex min-h-[56px] w-full items-center justify-between gap-4 py-5 text-left text-[18px] font-semibold text-brand-text focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-accent rounded-lg cursor-pointer">
-                <span className="group-hover:underline underline-offset-4">{it.q}</span>
+                <span className="transition-[color] duration-150 group-hover:text-brand-accent">{it.q}</span>
                 <ChevronDown aria-hidden strokeWidth={1.5} className={`h-5 w-5 shrink-0 text-brand-muted motion-safe:transition-transform motion-safe:duration-200 ${on ? 'rotate-180' : ''}`} />
               </button>
             </h3>

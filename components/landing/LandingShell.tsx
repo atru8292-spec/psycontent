@@ -84,24 +84,3 @@ export function CtaButton({ place, plan, variant = 'primary', className = '', ch
     </button>
   )
 }
-
-// Мягкое появление секции при входе в экран: opacity и сдвиг 12 px, 280 мс, один раз.
-// Без JS и при reduced-motion секция видна сразу (класс reveal-on ставится только после монтирования).
-export function Reveal({ children, className = '', as: Tag = 'div' }: { children: React.ReactNode; className?: string; as?: 'div' | 'section' }) {
-  const ref = useRef<HTMLElement>(null)
-  const [state, setState] = useState<'idle' | 'hidden' | 'shown'>('idle')
-  useEffect(() => {
-    const el = ref.current
-    if (!el || typeof IntersectionObserver === 'undefined') return
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
-    if (el.getBoundingClientRect().top < window.innerHeight * 0.9) return
-    setState('hidden')
-    const io = new IntersectionObserver(es => {
-      if (es.some(e => e.isIntersecting)) { setState('shown'); io.disconnect() }
-    }, { rootMargin: '0px 0px -10% 0px' })
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
-  const cls = state === 'hidden' ? 'opacity-0 translate-y-3' : state === 'shown' ? 'opacity-100 translate-y-0 transition-[opacity,transform] duration-300 ease-out' : ''
-  return <Tag ref={ref as never} className={`${className} ${cls}`}>{children}</Tag>
-}

@@ -14,11 +14,12 @@ export function Wave({ side, color = 'text-brand-soft' }: { side: 'top' | 'botto
 }
 
 // Неровный штрих зеленым под одним словом заголовка
-export function HandUnderline() {
+// draw: линия прорисовывается один раз при загрузке, как ручкой (класс ink-draw в globals.css; без JS и при reduced-motion сразу нарисована)
+export function HandUnderline({ draw = false }: { draw?: boolean }) {
   return (
-    <svg aria-hidden viewBox="0 0 200 18" preserveAspectRatio="none" className="absolute -bottom-2 left-[-4%] h-[12px] w-[108%] text-brand-accent lg:-bottom-3 lg:h-[16px]">
-      <path d="M3 11 C 30 6, 62 13, 96 9 S 160 4, 197 8" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-      <path d="M22 15 C 70 11, 120 14, 176 11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" opacity=".7" />
+    <svg aria-hidden viewBox="0 0 200 18" preserveAspectRatio="none" className={`absolute -bottom-2 left-[-4%] h-[12px] w-[108%] text-brand-accent lg:-bottom-3 lg:h-[16px] ${draw ? 'ink-draw' : ''}`}>
+      <path pathLength={1} d="M3 11 C 30 6, 62 13, 96 9 S 160 4, 197 8" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+      <path pathLength={1} d="M22 15 C 70 11, 120 14, 176 11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" opacity=".7" />
     </svg>
   )
 }
@@ -30,6 +31,21 @@ export function HandArrow({ className = '' }: { className?: string }) {
       <path d="M6 6 C 22 2, 44 6, 54 22 S 60 46, 58 56" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
       <path d="M47 47 L 58 58 L 67 45" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  )
+}
+
+// Пометка на полях, как от руки: короткая изогнутая стрелка вверх к карточке и строка Onest 15-16 px без капса.
+// tone: text (шоколад) или accent (зеленый)
+export function MarginNote({ children, tone = 'text', className = '' }: { children: React.ReactNode; tone?: 'text' | 'accent'; className?: string }) {
+  const color = tone === 'accent' ? 'text-brand-accent' : 'text-brand-text'
+  return (
+    <p className={`flex items-start gap-1.5 text-[15px] leading-[1.4] lg:text-[16px] ${color} ${className}`}>
+      <svg aria-hidden viewBox="0 0 40 36" className="mt-[-6px] h-8 w-9 shrink-0">
+        <path d="M32 33 C 28 22, 20 13, 9 8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M7 17 L 8 7 L 18 6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <span className="rotate-[-1deg]">{children}</span>
+    </p>
   )
 }
 
