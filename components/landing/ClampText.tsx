@@ -1,10 +1,10 @@
 'use client'
-// Длинный текст свернут с кнопкой «Показать целиком»: на мобилке до 6 строк, на десктопе до 9 (класс clamp).
+// Длинный текст свернут с кнопкой «Показать целиком»: на мобилке до 6 строк, на десктопе до 11 (класс clamp).
 // Раскрытие мгновенное, без затухания градиентом.
 import { useId, useState } from 'react'
 import { EXAMPLE } from './content'
 
-export default function ClampText({ text, clamp = 'line-clamp-6 lg:line-clamp-9', className = '' }: { text: string; clamp?: string; className?: string }) {
+export default function ClampText({ text, clamp = 'line-clamp-6 lg:line-clamp-[11]', className = '' }: { text: string; clamp?: string; className?: string }) {
   const [open, setOpen] = useState(false)
   const id = useId()
   return (

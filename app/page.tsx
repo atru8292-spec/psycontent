@@ -11,9 +11,9 @@ import ExamplePost from '@/components/landing/ExamplePost'
 import Faq from '@/components/landing/Faq'
 import ClampText from '@/components/landing/ClampText'
 import PainBoard from '@/components/landing/PainBoard'
-import { Wave, HandUnderline, HandArrow, Dekor } from '@/components/landing/Paper'
+import { Wave, HandUnderline, MarginNote, Dekor } from '@/components/landing/Paper'
 import { HERO, PAINS, HOW, EXAMPLE, WHY, ETHICS, PRICING, FAQ, FINAL, FOOTER, CONTACT_EMAIL, PRIVACY_URL, OFFER_URL } from '@/components/landing/content'
-import { EXAMPLES, COMPARE_TOPIC, COMPARE_PSYCONT } from '@/components/landing/examples'
+import { EXAMPLES, COMPARE_TOPIC, COMPARE_CHATGPT, COMPARE_PSYCONT } from '@/components/landing/examples'
 import { PLANS, PLAN_COMMON_LINE, MATERIAL_NOTE, formatRub, planPerks } from '@/lib/pricing'
 
 // Год в подвале берется из даты сборки; пересобираем страницу раз в сутки, чтобы он сменился сам
@@ -29,6 +29,13 @@ const STEP_CARD = [
   'border border-brand-border bg-brand-card text-brand-text',
   'bg-brand-soft text-brand-text lg:mt-12',
   'bg-brand-accent text-brand-bg lg:mt-24',
+]
+
+// Карточки подачи: легкие повороты, на десктопе разная высота старта
+const MANNER_CARD = [
+  'rotate-[-1.2deg] pt-1 lg:pt-2',
+  'rotate-[0.8deg] lg:mt-12',
+  'rotate-[-0.4deg] lg:mt-5',
 ]
 
 // Тарифы тоже по нарастанию тона: крем, бледная сирень, белая с зеленой рамкой. Метку «популярный» не ставим, пока нет данных
@@ -59,9 +66,10 @@ export default function Home() {
         <section className={`${WRAP} pt-6 lg:grid lg:grid-cols-12 lg:gap-8 lg:pt-14`}>
           <div className="lg:col-span-8 lg:self-center lg:pb-24">
             <p className="text-[16px] leading-[1.4] text-brand-muted lg:text-[18px]">{HERO.eyebrow}</p>
-            <h1 className="mt-3 max-w-[680px] text-[30px] font-medium leading-[1.15] tracking-[-0.01em] text-brand-text [text-wrap:balance] min-[390px]:text-[31px] lg:mt-4 lg:text-[46px]">
-              <span className="font-bold">{HERO.titleBold}</span>{' '}{HERO.title}{' '}
-              <span className="relative inline-block whitespace-nowrap">{HERO.titleMark}<HandUnderline /></span>
+            {/* каждое предложение с новой строки, чтобы два веса читались как два голоса: про нее и про нас */}
+            <h1 className="mt-3 max-w-[760px] text-[30px] font-medium leading-[1.15] tracking-[-0.01em] text-brand-text [text-wrap:balance] min-[390px]:text-[31px] lg:mt-4 lg:text-[44px]">
+              <span className="block font-bold">{HERO.titleBold}</span>{HERO.title}{' '}
+              <span className="relative inline-block whitespace-nowrap">{HERO.titleMark}<HandUnderline draw /></span>
             </h1>
             <p className="mt-5 max-w-[640px] text-[17px] leading-[1.55] text-brand-muted lg:mt-7 lg:max-w-[480px] lg:text-[20px]">{HERO.lead}</p>
             <div className="mt-6 flex flex-col gap-3 lg:mt-10 lg:flex-row lg:items-center lg:gap-4">
@@ -89,24 +97,33 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 3. Почему звучит как ты, белый: сразу после болей самое сильное доказательство, одна тема и два текста */}
+        {/* 3. Почему звучит как ты, белый: сразу после болей самое сильное доказательство. Настоящий ответ ChatGPT
+            и PsyCont на одну тему, обе карточки рилсы, у каждой пометка на полях глазами читателя */}
         <section className={`bg-brand-card ${SECTION}`}>
           <div className={WRAP}>
             <h2 className={H2}>{WHY.title}</h2>
             <p className={`mt-3 max-w-[680px] text-brand-text ${TEXT}`}>{WHY.lead}</p>
-            <p className={`mt-8 max-w-[640px] font-semibold text-brand-text lg:mt-12 ${TEXT}`}>{WHY.compareLead}</p>
-            <p className="mt-1 text-[15px] text-brand-muted">Тема: {COMPARE_TOPIC}</p>
-            <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:items-start">
-              <figure className="rounded-3xl border border-brand-border p-6 lg:p-8">
-                <figcaption className="inline-flex h-8 items-center rounded-full border border-brand-border px-3 text-[14px] text-brand-muted">{WHY.aiLabel}</figcaption>
-                <div className="mt-4"><ClampText text={WHY.aiText} className={`text-brand-text ${TEXT}`} /></div>
-              </figure>
-              <figure className="rounded-3xl bg-brand-bg p-6 lg:p-8">
-                <figcaption className="inline-flex h-8 items-center rounded-full bg-brand-soft px-3 text-[14px] text-brand-text">{WHY.oursLabel}</figcaption>
-                <div className="mt-4"><ClampText text={COMPARE_PSYCONT} className={`text-brand-text ${TEXT}`} /></div>
-              </figure>
+            <p className="mt-6 text-[15px] text-brand-muted lg:mt-10">Тема: {COMPARE_TOPIC}</p>
+            <p className="mt-2 max-w-[720px] text-[16px] leading-[1.5] text-brand-text lg:text-[17px]">{WHY.method}</p>
+            <p className="mt-1 max-w-[720px] text-[16px] leading-[1.5] text-brand-muted lg:text-[17px]">{WHY.compareLead}</p>
+            <div className="mt-5 grid gap-6 lg:grid-cols-2 lg:items-start lg:gap-8">
+              <div>
+                <figure className="relative rounded-3xl border border-brand-border p-5 lg:p-8">
+                  <figcaption className="inline-flex h-8 items-center rounded-full border border-brand-border px-3 text-[14px] text-brand-muted">{WHY.aiLabel}</figcaption>
+                  <span aria-hidden className="absolute top-6 right-6 hidden rotate-[3deg] text-[15px] text-brand-text lg:block">{WHY.aiSideNote}</span>
+                  <div className="mt-4"><ClampText text={COMPARE_CHATGPT} className={`text-brand-text ${TEXT}`} /></div>
+                </figure>
+                <MarginNote className="mt-3 pl-4">{WHY.aiNote}</MarginNote>
+              </div>
+              <div>
+                <figure className="rounded-3xl bg-brand-bg p-5 lg:p-8">
+                  <figcaption className="inline-flex h-8 items-center rounded-full bg-brand-soft px-3 text-[14px] text-brand-text">{WHY.oursLabel}</figcaption>
+                  <div className="mt-4"><ClampText text={COMPARE_PSYCONT} className={`text-brand-text ${TEXT}`} /></div>
+                </figure>
+                <MarginNote tone="accent" className="mt-3 pl-4">{WHY.oursNote}</MarginNote>
+              </div>
             </div>
-            <p className="mt-4 max-w-[640px] text-[15px] text-brand-muted">{WHY.compareNote}</p>
+            <p className="mt-6 max-w-[720px] text-[15px] text-brand-muted">{WHY.compareNote}</p>
           </div>
         </section>
 
@@ -145,24 +162,29 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 5. Примеры на бледной сирени: волна сверху (снизу волна шалфея от этики), пост на зажиме, одна рукописная стрелка */}
-        <section className={`relative z-10 bg-brand-soft ${SECTION}`}>
+        {/* 5. Подача на бледной сирени: волна сверху (снизу волна шалфея от этики). Три манеры, у каждой пометка от руки,
+            первая карточка на зажиме; десктоп три в ряд разной высоты с легкими поворотами, мобилка столбиком */}
+        <section className="relative z-10 bg-brand-soft pt-10 pb-8 lg:py-24">
           <Wave side="top" />
           <div className={WRAP}>
             <h2 className={H2}>{EXAMPLE.title}</h2>
-            <p className={`mt-3 max-w-[640px] text-brand-text ${TEXT}`}>{EXAMPLE.lead}</p>
-            <div className="mt-2 flex flex-row-reverse items-start justify-end gap-2">
-              <p className="text-[15px] text-brand-muted">{EXAMPLE.caption}</p>
-              <HandArrow className="mt-3 h-12 w-14 shrink-0 -scale-x-100 lg:-ml-2 lg:h-16 lg:w-20" />
-            </div>
-            <div className="mt-4 grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-10">
+            <p className={`mt-2 max-w-[680px] text-brand-text lg:mt-3 ${TEXT}`}>{EXAMPLE.lead}</p>
+            <div className="mt-4 grid gap-4 lg:mt-10 lg:grid-cols-3 lg:items-start lg:gap-7">
               {EXAMPLES.map((e, i) => (
-                <div key={e.id} className={i === 0 ? 'relative mx-2 rotate-[-1deg] pt-3 lg:mx-0 lg:rotate-[-1.5deg]' : 'lg:mt-20'}>
-                  {i === 0 && <Dekor name="zazhim-sirenevyj" className="-top-5 left-1/2 z-10 w-[44px] -translate-x-1/2 lg:w-[52px]" />}
-                  <ExamplePost kind={e.kind} text={e.text} />
+                <div key={e.id} className={MANNER_CARD[i]}>
+                  <p className="mb-1 pl-1 text-[17px] font-medium text-brand-accent lg:mb-3">
+                    <span className="relative inline-block">{e.manner}<HandUnderline /></span>
+                    <span className="ml-2 text-[14px] font-normal text-brand-muted">{e.kind}</span>
+                  </p>
+                  <div className="relative">
+                    {i === 0 && <Dekor name="zazhim-sirenevyj" className="-top-6 left-1/2 z-10 w-[40px] -translate-x-1/2 lg:w-[48px]" />}
+                    <ExamplePost text={e.text} className={i === 0 ? 'max-lg:pt-9' : ''} />
+                  </div>
+                  {e.note && <MarginNote className="mt-2 pl-3 lg:mt-3">{e.note}</MarginNote>}
                 </div>
               ))}
             </div>
+            <p className="mt-3 max-w-[720px] text-[15px] text-brand-muted lg:mt-6">{EXAMPLE.caption}</p>
           </div>
         </section>
 
@@ -200,11 +222,11 @@ export default function Home() {
                     </p>
                   </div>
                   <p className="mt-2 text-[16px] leading-[1.45] text-brand-muted lg:mt-3 lg:text-[18px]">{p.who}</p>
-                  <p className="mt-3 mb-4 text-[16px] leading-[1.5] text-brand-text lg:hidden">{planPerks(p).join(' · ')}</p>
+                  <p className="mt-3 text-[16px] leading-[1.5] text-brand-text lg:hidden">{[...planPerks(p), ...(p.price > 0 ? [PRICING.soon.toLowerCase()] : [])].join(' · ')}</p>
                   <ul className="mt-5 mb-6 hidden lg:block">
                     {planPerks(p).map(perk => <li key={perk} className="border-t border-brand-border py-3 text-[18px] text-brand-text">{perk}</li>)}
                   </ul>
-                  <div className="mt-auto">
+                  <div className={`mt-auto ${p.price > 0 ? 'max-lg:hidden' : 'max-lg:mt-4'}`}>
                     {p.price > 0 && <p className="mb-2 text-[14px] text-brand-muted">{PRICING.soon}</p>}
                     <CtaButton place="pricing" plan={p.track} variant={p.price > 0 ? 'secondary' : 'primary'} className="w-full !px-4">
                       {p.price > 0 ? PRICING.ctaPaid : PRICING.ctaFree}
@@ -213,7 +235,7 @@ export default function Home() {
                 </div>
               ))}
             </div>
-            <p className={`mt-8 max-w-[640px] text-brand-text ${TEXT}`}>{PLAN_COMMON_LINE}</p>
+            <p className="mt-6 max-w-[640px] text-[16px] leading-[1.55] text-brand-text lg:mt-8 lg:text-[19px]">{PLAN_COMMON_LINE}</p>
             <p className="mt-3 max-w-[640px] text-[15px] text-brand-muted">{MATERIAL_NOTE}</p>
           </div>
         </section>
@@ -229,19 +251,23 @@ export default function Home() {
         {/* 9. Финал на бледной сирени: волна сверху, Вера в другой позе с бантом */}
         <section className="relative z-10 bg-brand-soft pt-10 pb-10 lg:pt-20 lg:pb-16">
           <Wave side="top" />
-          <div className={`${WRAP} lg:grid lg:grid-cols-12 lg:items-center lg:gap-8`}>
-            <figure className="relative mx-auto flex w-fit flex-col items-center lg:mx-0 lg:order-2 lg:col-span-5 lg:justify-self-center">
-              {/* Бант на волосах справа от пробора: около четверти ширины головы, наклон по линии головы. Проценты от картинки 299x360 */}
-              <div className="relative">
-                <Image src="/vera/raduetsya.webp" alt="Вера радуется" width={299} height={360} className="h-[130px] w-auto lg:h-[300px]" />
-                <Dekor name="bant-zelenyj-atlas" className="top-[3%] left-[56%] w-[14%] rotate-[24deg]" />
-              </div>
-              <figcaption className="mt-2 text-[14px] text-brand-muted">{HERO.veraRole}</figcaption>
-            </figure>
-            <div className="mt-4 lg:order-1 lg:col-span-7 lg:mt-0">
+          {/* мобилка: заголовок слева, Вера справа, кнопка во всю ширину под ними; десктоп: текст слева, Вера справа на две строки сетки */}
+          <div className={`${WRAP} grid grid-cols-[1fr_auto] gap-x-3 lg:grid-cols-12 lg:items-center lg:gap-x-8`}>
+            <div className="col-start-1 row-start-1 self-center lg:col-span-7 lg:self-end">
               <h2 className={H2}>{FINAL.title}</h2>
               <p className={`mt-3 max-w-[640px] text-brand-text ${TEXT}`}>{FINAL.lead}</p>
-              <CtaButton place="final" className="mt-6 w-full lg:mt-8 lg:w-auto">{FINAL.cta}</CtaButton>
+            </div>
+            <figure className="relative col-start-2 row-start-1 flex flex-col items-center lg:col-span-5 lg:col-start-8 lg:row-span-2 lg:justify-self-center">
+              {/* Бант на волосах справа от пробора, около четверти ширины головы, наклон по линии головы (проценты от картинки 299x360).
+                  На мобилке Вера мелкая, бант читался бы соринкой, поэтому только на десктопе */}
+              <div className="relative">
+                <Image src="/vera/raduetsya.webp" alt="Вера радуется" width={299} height={360} className="h-[112px] w-auto lg:h-[300px]" />
+                <Dekor name="bant-zelenyj-atlas" className="top-[3%] left-[57%] w-[11%] rotate-[24deg] max-lg:hidden" />
+              </div>
+              <figcaption className="mt-1 max-w-[120px] text-center text-[13px] leading-[1.3] text-brand-muted lg:mt-2 lg:max-w-none lg:text-[14px]">{HERO.veraRole}</figcaption>
+            </figure>
+            <div className="col-span-2 row-start-2 lg:col-span-7 lg:col-start-1">
+              <CtaButton place="final" className="mt-5 w-full lg:mt-6 lg:w-auto">{FINAL.cta}</CtaButton>
               <p className="mt-3 text-[15px] text-brand-muted">{FINAL.note}</p>
             </div>
           </div>
@@ -249,7 +275,7 @@ export default function Home() {
       </main>
 
       {/* Подвал на шоколаде */}
-      <footer className="bg-brand-text py-12 text-brand-bg lg:py-16">
+      <footer className="bg-brand-text py-8 text-brand-bg lg:py-16">
         <div className={`${WRAP} flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between`}>
           <div>
             <Image src="/brand/psycont-wordmark-light.svg" alt="PsyCont" width={131} height={40} className="h-10 w-auto" />
