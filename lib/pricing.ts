@@ -13,7 +13,7 @@ export type PricePlan = {
   yearPrice?: number       // рублей за год (год за 10 месяцев), показывается при PRICING_FLAGS.yearly
   promoFirstMonth?: number // цена первого месяца, показывается при PRICING_FLAGS.promo
   materials: number        // материалов в месяц, у пробного за все время
-  carousels: number        // из них каруселей с картинками
+  carousels: number        // из них каруселей. «С картинками» не писать: AI-картинки к каруселям еще не сделаны
   perMonth: boolean        // false: лимит на все время (пробный)
   who: string              // кому, одной строкой
   extra?: string[]         // пункты сверх чисел
@@ -51,7 +51,7 @@ const plural = (n: number, one: string, few: string, many: string) => {
 // Пункты карточки из чисел конфига, чтобы цифры жили в одном месте
 export function planPerks(p: PricePlan): string[] {
   const mats = `${p.materials} ${plural(p.materials, 'материал', 'материала', 'материалов')}${p.perMonth ? ' в месяц' : ', без срока'}`
-  const cars = `${p.perMonth ? 'из них ' : ''}${p.carousels} ${plural(p.carousels, 'карусель', 'карусели', 'каруселей')} с картинками`
+  const cars = `${p.perMonth ? 'из них ' : ''}${p.carousels} ${plural(p.carousels, 'карусель', 'карусели', 'каруселей')}`
   return [mats, cars, ...(p.extra || [])]
 }
 
