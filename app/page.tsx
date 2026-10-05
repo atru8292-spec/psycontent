@@ -35,8 +35,8 @@ const STEP_CARD = [
 // Тарифы тоже по нарастанию тона: крем, бледная сирень, белая с зеленой рамкой. Метку «популярный» не ставим, пока нет данных
 const PLAN_CARD = [
   'border border-brand-border bg-brand-bg',
-  'border border-brand-border-soft bg-brand-soft-2 lg:mt-6',
-  'border-[1.5px] border-brand-accent bg-brand-card lg:mt-12',
+  'border border-brand-border-soft bg-brand-soft-2',
+  'border-[1.5px] border-brand-accent bg-brand-card',
 ]
 
 // Снимок во всю ширину рамки, лишнее уходит только снизу: бока экрана не режем
@@ -65,15 +65,15 @@ export default function Home() {
               {HERO.title}{' '}
               <span className="relative inline-block whitespace-nowrap">{HERO.titleMark}<HandUnderline /></span>
             </h1>
-            <p className="mt-5 max-w-[640px] text-[17px] leading-[1.55] text-brand-muted lg:mt-7 lg:text-[20px]">{HERO.lead}</p>
+            <p className="mt-5 max-w-[640px] text-[17px] leading-[1.55] text-brand-muted lg:mt-7 lg:max-w-[480px] lg:text-[20px]">{HERO.lead}</p>
             <div className="mt-6 flex flex-col gap-3 lg:mt-10 lg:flex-row lg:items-center lg:gap-4">
               <CtaButton place="hero" className="w-full lg:w-auto">{HERO.cta}</CtaButton>
               <p className="text-[15px] text-brand-muted">{HERO.note}</p>
             </div>
           </div>
-          <figure className="relative z-10 mt-8 flex items-end justify-end gap-3 lg:col-span-4 lg:mt-0 lg:flex-col lg:items-end lg:gap-4">
+          <figure className="relative z-10 mt-8 flex items-end justify-end gap-3 lg:col-span-4 lg:mt-0 lg:flex-col lg:items-end lg:gap-4 lg:pt-16">
             {/* Реплика-наклейка с хвостиком к Вере; она же подпись роли. Мобилка: слева от Веры, десктоп: над ней */}
-            <figcaption className="relative mb-24 min-w-0 max-w-[260px] flex-1 rotate-[-1.5deg] rounded-2xl border border-brand-border-soft bg-brand-card px-4 py-3 text-[16px] leading-[1.45] text-brand-text lg:mr-24 lg:mb-0 lg:max-w-[290px] lg:flex-none lg:rotate-[-2deg]">
+            <figcaption className="relative mb-24 min-w-0 max-w-[260px] flex-1 rotate-[-1.5deg] rounded-2xl border border-brand-border-soft bg-brand-card px-4 py-3 text-[16px] leading-[1.45] text-brand-text lg:mr-20 lg:mb-0 lg:max-w-[240px] lg:flex-none lg:rotate-[-2deg]">
               {HERO.veraSays}
               <span aria-hidden className="absolute -right-[7px] bottom-6 h-3.5 w-3.5 rotate-45 border-t border-r border-brand-border-soft bg-brand-card lg:hidden" />
               <span aria-hidden className="absolute -bottom-[7px] right-10 hidden h-3.5 w-3.5 rotate-45 border-r border-b border-brand-border-soft bg-brand-card lg:block" />
@@ -84,7 +84,7 @@ export default function Home() {
         </section>
 
         {/* 2. Боли на шоколаде: доска с заметками на разной бумаге и разных держателях, на мобилке лента вбок */}
-        <section className="bg-brand-text pt-14 pb-10 lg:py-24">
+        <section className="bg-brand-text pt-14 pb-10 lg:pt-24 lg:pb-16">
           <div className={WRAP}>
             <h2 className={`${H2} max-w-[560px] !text-brand-bg`}>{PAINS.title}</h2>
             <p className="mt-3 flex items-center gap-1.5 text-[15px] text-brand-on-dark lg:hidden">
@@ -107,13 +107,7 @@ export default function Home() {
                     <h3 className="mt-4 text-[22px] font-bold leading-[1.2] lg:text-[24px]"><span className="sr-only">Шаг {i + 1}. </span>{s.title}</h3>
                     <p className={`mt-3 text-[17px] leading-[1.55] ${dark ? 'text-brand-bg' : 'text-brand-text'}`}>{s.text}</p>
                     {i === 0 && <p className="mt-4 text-[15px] text-brand-muted">{HOW.step1Questions}</p>}
-                    {i === 1 && (
-                      <ul aria-label="Форматы" className="mt-4 flex flex-wrap gap-2">
-                        {HOW.step2Formats.map(f => (
-                          <li key={f.label} className={`flex h-9 items-center rounded-full px-3 text-[15px] text-brand-text ${f.on ? 'border-[1.5px] border-brand-text/70 bg-brand-card font-semibold' : 'border border-brand-border-soft'}`}>{f.label}</li>
-                        ))}
-                      </ul>
-                    )}
+                    {i === 1 && <p className="mt-4 text-[15px] text-brand-muted">{HOW.step2Formats.map(f => f.label).join(' · ')}</p>}
                     {s.shot && <div className={`mt-6 justify-center ${i === 0 ? 'hidden lg:flex' : 'flex'}`}><PhoneShot src={s.shot} alt={s.alt} w={s.w} h={s.h} /></div>}
                     {dark && (
                       <>

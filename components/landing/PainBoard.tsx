@@ -16,17 +16,17 @@ type Note = {
 }
 
 const NOTES: Note[] = [
-  // Линейка с шагом 30 px: строки текста тоже по 30 px, сдвиг фона = верхний отступ - 4, чтобы линия легла под строку
-  { paper: 'paper-lined rounded-[4px] [background-position:0_28px] lg:[background-position:0_44px]', pad: 'px-6 pt-8 pb-9 lg:px-10 lg:pt-12 lg:pb-16', rot: 'rotate-[-2deg]', grid: 'lg:col-span-6',
+  // Линейка с шагом 30 px: строки текста тоже по 30 px, сдвиг фона = верхний отступ, тогда линия ложится на 3-5 px ниже базовой линии строки
+  { paper: 'paper-lined rounded-[4px] [background-position:0_32px] lg:[background-position:0_48px]', pad: 'px-6 pt-8 pb-9 lg:px-10 lg:pt-12 lg:pb-16', rot: 'rotate-[-1deg]', grid: 'lg:col-span-6',
     holder: 'knopka-derevo', holderAt: '-top-6 left-1/2 w-[36px] -translate-x-1/2 rotate-[8deg] lg:w-[44px]', big: true },
   { paper: 'paper-fold', pad: 'px-6 pt-8 pb-11 pr-9 lg:px-7 lg:pt-10 lg:pb-12', rot: 'rotate-[2.5deg]', grid: 'lg:col-span-3 lg:-ml-4 lg:mt-14',
-    holder: 'skotch-kraft', holderAt: '-top-3 left-1/2 w-[56px] -translate-x-1/2 rotate-[-6deg]' },
-  { paper: 'paper-torn', pad: 'px-6 pt-10 pb-8 lg:px-7', rot: 'rotate-[-1deg]', grid: 'lg:col-span-3 lg:-ml-4 lg:mt-3',
-    holder: 'skrepka', holderAt: '-top-4 left-5 w-[40px] rotate-[-12deg]' },
-  { paper: 'bg-brand-sage rounded-[6px]', pad: 'px-6 pt-8 pb-8 lg:px-8 lg:pt-10 lg:pb-10', rot: 'rotate-[1.2deg]', grid: 'lg:col-span-4 lg:col-start-2 lg:-mt-2',
-    holder: 'knopka-sirenevaya', holderAt: '-top-4 right-8 w-[28px] rotate-[12deg]' },
-  { paper: 'paper-grid rounded-[4px]', pad: 'px-6 pt-8 pb-8 lg:px-8 lg:pt-10 lg:pb-10', rot: 'rotate-[-2.8deg]', grid: 'lg:col-span-5 lg:-ml-4 lg:mt-8',
-    holder: 'knopka-derevo-2', holderAt: '-top-6 left-10 w-[32px] rotate-[-10deg]' },
+    holder: 'skotch-kraft', holderAt: '-top-3 -left-4 w-[56px] rotate-[-32deg]' },
+  { paper: 'paper-torn', pad: 'px-6 pt-10 pb-8 lg:px-7', rot: 'rotate-[0.5deg]', grid: 'lg:col-span-3 lg:-ml-4 lg:mt-3',
+    holder: 'skrepka', holderAt: '-top-4 left-5 w-[44px] rotate-[-12deg]' },
+  { paper: 'bg-brand-sage rounded-[6px]', pad: 'px-6 pt-8 pb-8 lg:px-8 lg:pt-10 lg:pb-10', rot: 'rotate-[1.2deg]', grid: 'lg:col-span-5 lg:col-start-2 lg:-mt-2',
+    holder: 'knopka-sirenevaya', holderAt: '-top-5 right-8 w-[40px] rotate-[12deg]' },
+  { paper: 'paper-grid rounded-[4px]', pad: 'px-6 pt-8 pb-8 lg:px-8 lg:pt-10 lg:pb-10', rot: 'rotate-[-1.5deg]', grid: 'lg:col-span-6 lg:col-start-7 lg:-ml-4 lg:mt-8',
+    holder: 'knopka-derevo-2', holderAt: '-top-6 left-10 w-[40px] rotate-[-10deg]' },
 ]
 
 export default function PainBoard() {
