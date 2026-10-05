@@ -38,7 +38,6 @@ const DEKOR = {
   'zazhim-sirenevyj': { w: 115, h: 140 },
   'bant-zelenyj-atlas': { w: 199, h: 104 },
   'knopka-derevo-2': { w: 139, h: 191 },
-  'knopka-sirenevaya': { w: 67, h: 87 },
   'skotch-kraft': { w: 184, h: 99 },
   'skrepka': { w: 228, h: 200 },
 } as const

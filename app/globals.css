@@ -144,3 +144,19 @@ body {
       linear-gradient(#000 0 0) left 11px / 100% calc(100% - 11px) no-repeat;
   }
 }
+
+/* Заметка доски болей «прикалывается» при входе в экран (components/landing/PainBoard.tsx).
+   Единственная анимация лендинга: transform и opacity, 380 мс, один раз. Состояние ставит JS, без JS заметки видны сразу */
+@layer components {
+  .note-pin {
+    transition: opacity 380ms ease-out, transform 380ms ease-out;
+  }
+  .note-pin[data-pin='wait'] {
+    opacity: 0;
+    transform: translateY(16px) rotate(4deg);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .note-pin { transition: none; }
+    .note-pin[data-pin='wait'] { opacity: 1; transform: none; }
+  }
+}

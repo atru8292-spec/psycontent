@@ -16,7 +16,7 @@ export default function ExamplePost({ kind, text, className = '' }: { kind: stri
           <p className="text-[14px] text-brand-muted">{kind}</p>
         </div>
       </header>
-      <p id={id} className={`mt-4 whitespace-pre-line text-[17px] leading-[1.55] text-brand-text ${open ? '' : 'line-clamp-[10]'}`}>{text}</p>
+      <p id={id} className={`mt-4 whitespace-pre-line text-[17px] leading-[1.55] text-brand-text ${open ? '' : 'line-clamp-6 lg:line-clamp-[10]'}`}>{text}</p>
       <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen(v => !v)}
         className="mt-2 h-11 rounded-lg font-semibold text-brand-accent px-2 -mx-2 transition-colors hover:bg-brand-soft focus-visible:outline-2 focus-visible:outline-brand-accent cursor-pointer">
         {open ? EXAMPLE.less : EXAMPLE.more}

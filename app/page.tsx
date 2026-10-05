@@ -5,7 +5,6 @@
 // Вид (v2, 05.10, референсы в _знания/lending-refy): соседние блоки всегда разного фона, в каждом блоке
 // один «бумажный» прием (components/landing/Paper.tsx), декор только вырезками из public/dekor, 3 предмета на страницу.
 import Image from 'next/image'
-import { ArrowRight } from 'lucide-react'
 import LandingShell, { CtaButton } from '@/components/landing/LandingShell'
 import Header from '@/components/landing/Header'
 import ExamplePost from '@/components/landing/ExamplePost'
@@ -21,7 +20,7 @@ import { PLANS, PLAN_COMMON_LINE, MATERIAL_NOTE, formatRub, planPerks } from '@/
 export const revalidate = 86400
 
 const WRAP = 'mx-auto w-full max-w-[1120px] px-4 md:px-8'
-const SECTION = 'py-14 lg:py-24'
+const SECTION = 'py-11 lg:py-24'
 const H2 = 'text-[27px] font-bold leading-[1.15] text-brand-text [text-wrap:balance] lg:text-[38px]'
 const TEXT = 'text-[17px] leading-[1.55] lg:text-[19px]'
 
@@ -52,7 +51,6 @@ function PhoneShot({ src, alt, w, h }: { src: string; alt: string; w: number; h:
 
 export default function Home() {
   const year = new Date().getFullYear()
-  const [why1, ...whyRest] = WHY.points
   return (
     <LandingShell>
       <Header />
@@ -61,8 +59,8 @@ export default function Home() {
         <section className={`${WRAP} pt-6 lg:grid lg:grid-cols-12 lg:gap-8 lg:pt-14`}>
           <div className="lg:col-span-8 lg:self-center lg:pb-24">
             <p className="text-[16px] leading-[1.4] text-brand-muted lg:text-[18px]">{HERO.eyebrow}</p>
-            <h1 className="mt-3 max-w-[720px] text-[32px] font-bold leading-[1.12] tracking-[-0.01em] text-brand-text [text-wrap:balance] min-[390px]:text-[34px] lg:mt-4 lg:text-[52px]">
-              {HERO.title}{' '}
+            <h1 className="mt-3 max-w-[680px] text-[30px] font-medium leading-[1.15] tracking-[-0.01em] text-brand-text [text-wrap:balance] min-[390px]:text-[31px] lg:mt-4 lg:text-[46px]">
+              <span className="font-bold">{HERO.titleBold}</span>{' '}{HERO.title}{' '}
               <span className="relative inline-block whitespace-nowrap">{HERO.titleMark}<HandUnderline /></span>
             </h1>
             <p className="mt-5 max-w-[640px] text-[17px] leading-[1.55] text-brand-muted lg:mt-7 lg:max-w-[480px] lg:text-[20px]">{HERO.lead}</p>
@@ -83,40 +81,61 @@ export default function Home() {
           </figure>
         </section>
 
-        {/* 2. Боли на шоколаде: доска с заметками на разной бумаге и разных держателях, на мобилке лента вбок */}
-        <section className="bg-brand-text pt-14 pb-10 lg:pt-24 lg:pb-16">
+        {/* 2. Боли на шоколаде: доска с заметками на разной бумаге и разных держателях, на мобилке столбиком, заметки прикалываются при прокрутке */}
+        <section className="bg-brand-text pt-11 pb-10 lg:pt-24 lg:pb-16">
           <div className={WRAP}>
             <h2 className={`${H2} max-w-[560px] !text-brand-bg`}>{PAINS.title}</h2>
-            <p className="mt-3 flex items-center gap-1.5 text-[15px] text-brand-on-dark lg:hidden">
-              {PAINS.swipeHint}<ArrowRight aria-hidden className="h-4 w-4" strokeWidth={1.75} />
-            </p>
             <PainBoard />
           </div>
         </section>
 
-        {/* 3. Как это работает, крем: шаги по нарастанию тона, без иконок */}
+        {/* 3. Почему звучит как ты, белый: сразу после болей самое сильное доказательство, одна тема и два текста */}
+        <section className={`bg-brand-card ${SECTION}`}>
+          <div className={WRAP}>
+            <h2 className={H2}>{WHY.title}</h2>
+            <p className={`mt-3 max-w-[680px] text-brand-text ${TEXT}`}>{WHY.lead}</p>
+            <p className={`mt-8 max-w-[640px] font-semibold text-brand-text lg:mt-12 ${TEXT}`}>{WHY.compareLead}</p>
+            <p className="mt-1 text-[15px] text-brand-muted">Тема: {COMPARE_TOPIC}</p>
+            <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:items-start">
+              <figure className="rounded-3xl border border-brand-border p-6 lg:p-8">
+                <figcaption className="inline-flex h-8 items-center rounded-full border border-brand-border px-3 text-[14px] text-brand-muted">{WHY.aiLabel}</figcaption>
+                <div className="mt-4"><ClampText text={WHY.aiText} className={`text-brand-text ${TEXT}`} /></div>
+              </figure>
+              <figure className="rounded-3xl bg-brand-bg p-6 lg:p-8">
+                <figcaption className="inline-flex h-8 items-center rounded-full bg-brand-soft px-3 text-[14px] text-brand-text">{WHY.oursLabel}</figcaption>
+                <div className="mt-4"><ClampText text={COMPARE_PSYCONT} className={`text-brand-text ${TEXT}`} /></div>
+              </figure>
+            </div>
+            <p className="mt-4 max-w-[640px] text-[15px] text-brand-muted">{WHY.compareNote}</p>
+          </div>
+        </section>
+
+        {/* 4. Как это работает, крем: шаги по нарастанию тона, без иконок; снимки телефонов только на десктопе */}
         <section className={SECTION}>
           <div className={WRAP}>
             <h2 className={H2}>{HOW.title}</h2>
-            <ol className="mt-8 grid gap-5 lg:mt-12 lg:grid-cols-3 lg:items-start lg:gap-6">
+            <ol className="mt-6 grid gap-4 lg:mt-12 lg:grid-cols-3 lg:items-start lg:gap-6">
               {HOW.steps.map((s, i) => {
                 const dark = i === 2
                 return (
-                  <li key={s.title} className={`rounded-[28px] p-6 lg:p-7 ${STEP_CARD[i]}`}>
-                    <p aria-hidden className={`text-[56px] font-bold leading-none ${dark ? 'text-brand-lilac' : 'text-brand-text'}`}>{i + 1}</p>
-                    <h3 className="mt-4 text-[22px] font-bold leading-[1.2] lg:text-[24px]"><span className="sr-only">Шаг {i + 1}. </span>{s.title}</h3>
+                  <li key={s.title} className={`rounded-[28px] p-5 lg:p-7 ${STEP_CARD[i]}`}>
+                    {/* мобилка: цифра в строку с заголовком, десктоп: цифра крупно над ним */}
+                    <div className="flex items-baseline gap-3 lg:block">
+                      <p aria-hidden className={`text-[40px] font-bold leading-none lg:text-[56px] ${dark ? 'text-brand-lilac' : 'text-brand-text'}`}>{i + 1}</p>
+                      <h3 className="text-[21px] font-bold leading-[1.2] lg:mt-4 lg:text-[24px]"><span className="sr-only">Шаг {i + 1}. </span>{s.title}</h3>
+                    </div>
                     <p className={`mt-3 text-[17px] leading-[1.55] ${dark ? 'text-brand-bg' : 'text-brand-text'}`}>{s.text}</p>
-                    {i === 0 && <p className="mt-4 text-[15px] text-brand-muted">{HOW.step1Questions}</p>}
-                    {i === 1 && <p className="mt-4 text-[15px] text-brand-muted">{HOW.step2Formats.map(f => f.label).join(' · ')}</p>}
-                    {s.shot && <div className={`mt-6 justify-center ${i === 0 ? 'hidden lg:flex' : 'flex'}`}><PhoneShot src={s.shot} alt={s.alt} w={s.w} h={s.h} /></div>}
+                    {i === 0 && <p className="mt-4 hidden text-[15px] text-brand-muted lg:block">{HOW.step1Questions}</p>}
+                    {i === 1 && <p className="mt-4 hidden text-[15px] text-brand-muted lg:block">{HOW.step2Formats.map(f => f.label).join(' · ')}</p>}
+                    {s.shot && <div className="mt-6 hidden justify-center lg:flex"><PhoneShot src={s.shot} alt={s.alt} w={s.w} h={s.h} /></div>}
                     {dark && (
                       <>
                         <p className="mt-4 text-[15px] text-brand-on-dark">{HOW.step3Note}</p>
-                        <figure className="mt-5 flex items-end gap-3">
-                          <Image src={s.vera} alt={s.alt} width={338} height={360} className="h-[150px] w-auto" />
+                        <figure className="mt-4 flex items-end gap-3 lg:mt-5">
+                          <Image src={s.vera} alt={s.alt} width={338} height={360} className="h-[110px] w-auto lg:h-[150px]" />
                           <figcaption className="mb-2 text-[14px] text-brand-on-dark">{HERO.veraRole}</figcaption>
                         </figure>
-                        <CtaButton place="how" variant="light" className="mt-5 w-full">{HOW.step3Link}</CtaButton>
+                        <CtaButton place="how" variant="light" className="mt-4 w-full lg:mt-5">{HOW.step3Link}</CtaButton>
                       </>
                     )}
                   </li>
@@ -126,7 +145,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 4. Пример на бледной сирени: волна сверху и снизу, пост на зажиме, одна рукописная стрелка */}
+        {/* 5. Примеры на бледной сирени: волна сверху (снизу волна шалфея от этики), пост на зажиме, одна рукописная стрелка */}
         <section className={`relative z-10 bg-brand-soft ${SECTION}`}>
           <Wave side="top" />
           <div className={WRAP}>
@@ -145,44 +164,9 @@ export default function Home() {
               ))}
             </div>
           </div>
-          <Wave side="bottom" />
         </section>
 
-        {/* 5. Почему звучит как ты, белый: один пункт крупно, два поменьше */}
-        <section className={`bg-brand-card ${SECTION}`}>
-          <div className={WRAP}>
-            <div className="lg:grid lg:grid-cols-12 lg:gap-8">
-              <h2 className={`${H2} lg:col-span-5`}>{WHY.title}</h2>
-              <div className="mt-8 lg:col-span-7 lg:mt-0">
-                <h3 className="text-[22px] font-bold leading-[1.25] text-brand-text lg:text-[26px]">{why1.title}</h3>
-                <p className={`mt-2 max-w-[600px] text-brand-text ${TEXT}`}>{why1.text}</p>
-                <ul className="mt-8 grid gap-6 border-t border-brand-border pt-6 sm:grid-cols-2 sm:gap-8">
-                  {whyRest.map(p => (
-                    <li key={p.title}>
-                      <h3 className="text-[18px] font-semibold text-brand-text">{p.title}</h3>
-                      <p className="mt-1 text-[16px] leading-[1.55] text-brand-muted">{p.text}</p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            <p className={`mt-14 max-w-[640px] font-semibold text-brand-text lg:mt-20 ${TEXT}`}>{WHY.compareLead}</p>
-            <p className="mt-1 text-[15px] text-brand-muted">Тема: {COMPARE_TOPIC}</p>
-            <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:items-start">
-              <figure className="rounded-3xl border border-brand-border p-6 lg:p-8">
-                <figcaption className="inline-flex h-8 items-center rounded-full border border-brand-border px-3 text-[14px] text-brand-muted">{WHY.aiLabel}</figcaption>
-                <div className="mt-4"><ClampText text={WHY.aiText} className={`text-brand-text ${TEXT}`} /></div>
-              </figure>
-              <figure className="rounded-3xl bg-brand-bg p-6 lg:p-8">
-                <figcaption className="inline-flex h-8 items-center rounded-full bg-brand-soft px-3 text-[14px] text-brand-text">{WHY.oursLabel}</figcaption>
-                <div className="mt-4"><ClampText text={COMPARE_PSYCONT} className={`text-brand-text ${TEXT}`} /></div>
-              </figure>
-            </div>
-            <p className="mt-4 max-w-[640px] text-[15px] text-brand-muted">{WHY.compareNote}</p>
-          </div>
-        </section>
-
-        {/* 6. Этика на шалфее с волнами: разводит белые соседей «почему» и тарифы. Текст только шоколадный, не мельче 17 px */}
+        {/* 6. Этика на шалфее с волнами сверху и снизу. Текст только шоколадный, не мельче 17 px */}
         <section className={`relative z-10 bg-brand-sage ${SECTION}`}>
           <Wave side="top" color="text-brand-sage" />
           <div className={WRAP}>
@@ -204,17 +188,21 @@ export default function Home() {
           <div id="pricing" className={`${WRAP} scroll-mt-20`}>
             <h2 className={H2}>{PRICING.title}</h2>
             <p className={`mt-3 max-w-[640px] text-brand-muted ${TEXT}`}>{PRICING.lead}</p>
-            <div className="mt-8 grid gap-4 lg:mt-12 lg:grid-cols-3 lg:items-start lg:gap-6">
+            <div className="mt-6 grid gap-4 lg:mt-12 lg:grid-cols-3 lg:items-start lg:gap-6">
               {PLANS.map((p, i) => (
-                <div key={p.id} className={`flex flex-col rounded-3xl p-6 lg:p-8 ${PLAN_CARD[i]}`}>
-                  <h3 className="text-[18px] font-semibold text-brand-text">{p.name}</h3>
-                  <p className="mt-3 flex items-baseline gap-2">
-                    <span className="text-[40px] font-bold leading-none text-brand-text">{formatRub(p.price)}</span>
-                    {p.perMonth && <span className="text-[17px] text-brand-muted">{PRICING.perMonth}</span>}
-                  </p>
-                  <p className="mt-3 text-[17px] leading-[1.45] text-brand-muted lg:text-[18px]">{p.who}</p>
-                  <ul className="mt-5 mb-6">
-                    {planPerks(p).map(perk => <li key={perk} className="border-t border-brand-border py-3 text-[17px] text-brand-text lg:text-[18px]">{perk}</li>)}
+                <div key={p.id} className={`flex flex-col rounded-3xl p-5 lg:p-8 ${PLAN_CARD[i]}`}>
+                  {/* мобилка: название и цена в одну строку, пункты одной строкой; десктоп: столбиком со списком */}
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 lg:block">
+                    <h3 className="text-[18px] font-semibold text-brand-text">{p.name}</h3>
+                    <p className="flex items-baseline gap-2 lg:mt-3">
+                      <span className="text-[30px] font-bold leading-none text-brand-text lg:text-[40px]">{formatRub(p.price)}</span>
+                      {p.perMonth && <span className="text-[16px] text-brand-muted lg:text-[17px]">{PRICING.perMonth}</span>}
+                    </p>
+                  </div>
+                  <p className="mt-2 text-[16px] leading-[1.45] text-brand-muted lg:mt-3 lg:text-[18px]">{p.who}</p>
+                  <p className="mt-3 mb-4 text-[16px] leading-[1.5] text-brand-text lg:hidden">{planPerks(p).join(' · ')}</p>
+                  <ul className="mt-5 mb-6 hidden lg:block">
+                    {planPerks(p).map(perk => <li key={perk} className="border-t border-brand-border py-3 text-[18px] text-brand-text">{perk}</li>)}
                   </ul>
                   <div className="mt-auto">
                     {p.price > 0 && <p className="mb-2 text-[14px] text-brand-muted">{PRICING.soon}</p>}
@@ -239,15 +227,18 @@ export default function Home() {
         </section>
 
         {/* 9. Финал на бледной сирени: волна сверху, Вера в другой позе с бантом */}
-        <section className="relative z-10 bg-brand-soft pt-14 pb-12 lg:pt-20 lg:pb-16">
+        <section className="relative z-10 bg-brand-soft pt-10 pb-10 lg:pt-20 lg:pb-16">
           <Wave side="top" />
           <div className={`${WRAP} lg:grid lg:grid-cols-12 lg:items-center lg:gap-8`}>
             <figure className="relative mx-auto flex w-fit flex-col items-center lg:mx-0 lg:order-2 lg:col-span-5 lg:justify-self-center">
-              <Image src="/vera/raduetsya.webp" alt="Вера радуется" width={299} height={360} className="h-[170px] w-auto lg:h-[300px]" />
-              <Dekor name="bant-zelenyj-atlas" className="top-[4%] left-[14%] w-[48px] rotate-[-24deg] lg:w-[64px]" />
+              {/* Бант на волосах справа от пробора: около четверти ширины головы, наклон по линии головы. Проценты от картинки 299x360 */}
+              <div className="relative">
+                <Image src="/vera/raduetsya.webp" alt="Вера радуется" width={299} height={360} className="h-[130px] w-auto lg:h-[300px]" />
+                <Dekor name="bant-zelenyj-atlas" className="top-[3%] left-[56%] w-[14%] rotate-[24deg]" />
+              </div>
               <figcaption className="mt-2 text-[14px] text-brand-muted">{HERO.veraRole}</figcaption>
             </figure>
-            <div className="mt-6 lg:order-1 lg:col-span-7 lg:mt-0">
+            <div className="mt-4 lg:order-1 lg:col-span-7 lg:mt-0">
               <h2 className={H2}>{FINAL.title}</h2>
               <p className={`mt-3 max-w-[640px] text-brand-text ${TEXT}`}>{FINAL.lead}</p>
               <CtaButton place="final" className="mt-6 w-full lg:mt-8 lg:w-auto">{FINAL.cta}</CtaButton>
