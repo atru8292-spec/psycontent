@@ -102,10 +102,9 @@ export default function Home() {
         <section className={`bg-brand-card ${SECTION}`}>
           <div className={WRAP}>
             <h2 className={H2}>{WHY.title}</h2>
-            <p className={`mt-3 max-w-[680px] text-brand-text ${TEXT}`}>{WHY.lead}</p>
+            <p className={`mt-3 max-w-[720px] text-brand-text ${TEXT}`}>{WHY.lead}</p>
+            <p className="mt-2 max-w-[720px] text-[16px] leading-[1.5] text-brand-muted lg:text-[17px]">{WHY.compareLead}</p>
             <p className="mt-6 text-[15px] text-brand-muted lg:mt-10">Тема: {COMPARE_TOPIC}</p>
-            <p className="mt-2 max-w-[720px] text-[16px] leading-[1.5] text-brand-text lg:text-[17px]">{WHY.method}</p>
-            <p className="mt-1 max-w-[720px] text-[16px] leading-[1.5] text-brand-muted lg:text-[17px]">{WHY.compareLead}</p>
             <div className="mt-5 grid gap-6 lg:grid-cols-2 lg:items-start lg:gap-8">
               <div>
                 <figure className="relative rounded-3xl border border-brand-border p-5 lg:p-8">
@@ -173,9 +172,7 @@ export default function Home() {
               {EXAMPLES.map((e, i) => (
                 <div key={e.id} className={MANNER_CARD[i]}>
                   <p className="mb-1 pl-1 text-[17px] font-medium text-brand-accent lg:mb-3">
-                    <span className="relative inline-block">{e.manner}<HandUnderline /></span>
-                    <span className="ml-2 text-[14px] font-normal text-brand-muted">{e.kind}</span>
-                  </p>
+                    <span className="relative inline-block">{e.manner}<HandUnderline /></span>                  </p>
                   <div className="relative">
                     {i === 0 && <Dekor name="zazhim-sirenevyj" className="-top-6 left-1/2 z-10 w-[40px] -translate-x-1/2 lg:w-[48px]" />}
                     <ExamplePost text={e.text} className={i === 0 ? 'max-lg:pt-9' : ''} />
