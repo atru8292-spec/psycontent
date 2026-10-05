@@ -23,7 +23,7 @@ export default function Header() {
           <Image src="/brand/psycont-icon.svg" alt="PsyCont" width={32} height={32} priority className="h-8 w-8 min-[361px]:hidden" />
         </Link>
         <div className="flex items-center gap-1 sm:gap-2">
-          <button type="button" onClick={login} className="h-11 rounded-xl px-3 text-[16px] text-brand-text hover:underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-brand-accent cursor-pointer">
+          <button type="button" onClick={login} className="h-11 rounded-xl px-3 text-[16px] text-brand-text transition-colors hover:bg-brand-card focus-visible:outline-2 focus-visible:outline-brand-accent cursor-pointer">
             {HEADER.login}
           </button>
           <CtaButton place="header" variant="secondary" className="!h-11 !px-4 !text-[15px]">

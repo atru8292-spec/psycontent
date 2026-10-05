@@ -70,14 +70,16 @@ export default function LandingShell({ children }: { children: React.ReactNode }
 }
 
 const PRIMARY = 'inline-flex h-14 items-center justify-center rounded-2xl bg-brand-accent px-7 text-[17px] font-semibold text-brand-bg transition-colors hover:bg-brand-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent cursor-pointer'
+// Светлая кнопка для зеленой карточки: зеленая кнопка на зеленом не видна, кремовая читается
+const LIGHT = 'inline-flex h-12 items-center justify-center rounded-2xl bg-brand-bg px-6 text-[16px] font-semibold text-brand-text transition-colors hover:bg-brand-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-bg cursor-pointer'
 const SECONDARY = 'inline-flex h-12 items-center justify-center rounded-2xl border border-brand-border bg-transparent px-6 text-[16px] font-medium text-brand-text transition-colors hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent cursor-pointer'
 
 export function CtaButton({ place, plan, variant = 'primary', className = '', children }: {
-  place: Place; plan?: Plan; variant?: 'primary' | 'secondary'; className?: string; children: React.ReactNode
+  place: Place; plan?: Plan; variant?: 'primary' | 'secondary' | 'light'; className?: string; children: React.ReactNode
 }) {
   const { start } = useLanding()
   return (
-    <button type="button" onClick={() => start(place, plan)} className={`${variant === 'primary' ? PRIMARY : SECONDARY} ${className}`}>
+    <button type="button" onClick={() => start(place, plan)} className={`${variant === 'primary' ? PRIMARY : variant === 'light' ? LIGHT : SECONDARY} ${className}`}>
       {children}
     </button>
   )

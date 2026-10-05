@@ -26,6 +26,10 @@
   --color-brand-border: #E3DACB;
   --color-brand-border-soft: #DCCBF2;
 
+  /* Текст на шоколадном фоне (подвал, блок болей на лендинге): основной и тише */
+  --color-brand-on-dark: #D9CFC0;
+  --color-brand-on-dark-muted: #BFB4A5;
+
   /* Алиасы для обратной совместимости (используются в разметке) */
   --color-brand-text-secondary: var(--color-brand-muted);
   --color-brand-highlight: var(--color-brand-soft);
