@@ -11,6 +11,7 @@ import Header from '@/components/landing/Header'
 import ExamplePost from '@/components/landing/ExamplePost'
 import Faq from '@/components/landing/Faq'
 import ClampText from '@/components/landing/ClampText'
+import PainBoard from '@/components/landing/PainBoard'
 import { Wave, HandUnderline, HandArrow, Dekor } from '@/components/landing/Paper'
 import { HERO, PAINS, HOW, EXAMPLE, WHY, ETHICS, PRICING, FAQ, FINAL, FOOTER, CONTACT_EMAIL, PRIVACY_URL, OFFER_URL } from '@/components/landing/content'
 import { EXAMPLES, COMPARE_TOPIC, COMPARE_PSYCONT } from '@/components/landing/examples'
@@ -23,16 +24,6 @@ const WRAP = 'mx-auto w-full max-w-[1120px] px-4 md:px-8'
 const SECTION = 'py-14 lg:py-24'
 const H2 = 'text-[27px] font-bold leading-[1.15] text-brand-text [text-wrap:balance] lg:text-[38px]'
 const TEXT = 'text-[17px] leading-[1.55] lg:text-[19px]'
-
-// Заметки болей: цвет, поворот и место в свободной сетке на десктопе (12 колонок, два ряда разной ширины).
-// На шалфее текст не мельче 18 px (контраст 4.7), поэтому у всех заметок 18 px и выше.
-const NOTES = [
-  { bg: 'bg-brand-bg', rot: 'rotate-[-1.5deg]', grid: 'lg:col-span-5' },
-  { bg: 'bg-brand-lilac', rot: 'rotate-[1.2deg]', grid: 'lg:col-span-4 lg:mt-10' },
-  { bg: 'bg-brand-sage', rot: 'rotate-[-0.6deg]', grid: 'lg:col-span-3 lg:mt-3' },
-  { bg: 'bg-brand-soft', rot: 'rotate-[2deg]', grid: 'lg:col-span-5 lg:col-start-2 lg:-mt-2' },
-  { bg: 'bg-brand-bg', rot: 'rotate-[-2deg]', grid: 'lg:col-span-6 lg:mt-6' },
-]
 
 // Шаги по нарастанию тона (крем с рамкой, бледная сирень, зеленый)
 const STEP_CARD = [
@@ -66,10 +57,11 @@ export default function Home() {
     <LandingShell>
       <Header />
       <main className="overflow-x-clip">
-        {/* 1. Первый экран, крем: одно слово с рукописным штрихом, Вера вырезкой стоит на краю блока */}
-        <section className={`${WRAP} pt-6 lg:grid lg:grid-cols-12 lg:gap-8 lg:pt-16`}>
-          <div className="lg:col-span-7 lg:self-center lg:pb-24">
-            <h1 className="max-w-[640px] text-[36px] font-bold leading-[1.12] tracking-[-0.01em] text-brand-text [text-wrap:balance] lg:text-[60px]">
+        {/* 1. Первый экран, крем: для кого, заголовок с рукописным штрихом на «найти тебя», Вера вырезкой стоит на краю блока */}
+        <section className={`${WRAP} pt-6 lg:grid lg:grid-cols-12 lg:gap-8 lg:pt-14`}>
+          <div className="lg:col-span-8 lg:self-center lg:pb-24">
+            <p className="text-[16px] leading-[1.4] text-brand-muted lg:text-[18px]">{HERO.eyebrow}</p>
+            <h1 className="mt-3 max-w-[720px] text-[32px] font-bold leading-[1.12] tracking-[-0.01em] text-brand-text [text-wrap:balance] min-[390px]:text-[34px] lg:mt-4 lg:text-[52px]">
               {HERO.title}{' '}
               <span className="relative inline-block whitespace-nowrap">{HERO.titleMark}<HandUnderline /></span>
             </h1>
@@ -79,7 +71,7 @@ export default function Home() {
               <p className="text-[15px] text-brand-muted">{HERO.note}</p>
             </div>
           </div>
-          <figure className="relative z-10 mt-8 flex items-end justify-end gap-3 lg:col-span-5 lg:mt-0 lg:flex-col lg:items-end lg:gap-4">
+          <figure className="relative z-10 mt-8 flex items-end justify-end gap-3 lg:col-span-4 lg:mt-0 lg:flex-col lg:items-end lg:gap-4">
             {/* Реплика-наклейка с хвостиком к Вере; она же подпись роли. Мобилка: слева от Веры, десктоп: над ней */}
             <figcaption className="relative mb-24 min-w-0 max-w-[260px] flex-1 rotate-[-1.5deg] rounded-2xl border border-brand-border-soft bg-brand-card px-4 py-3 text-[16px] leading-[1.45] text-brand-text lg:mr-24 lg:mb-0 lg:max-w-[290px] lg:flex-none lg:rotate-[-2deg]">
               {HERO.veraSays}
@@ -91,25 +83,14 @@ export default function Home() {
           </figure>
         </section>
 
-        {/* 2. Боли на шоколаде: фразы психологов заметками в четырех цветах, на мобилке лента вбок */}
+        {/* 2. Боли на шоколаде: доска с заметками на разной бумаге и разных держателях, на мобилке лента вбок */}
         <section className="bg-brand-text pt-14 pb-10 lg:py-24">
           <div className={WRAP}>
             <h2 className={`${H2} max-w-[560px] !text-brand-bg`}>{PAINS.title}</h2>
             <p className="mt-3 flex items-center gap-1.5 text-[15px] text-brand-on-dark lg:hidden">
               {PAINS.swipeHint}<ArrowRight aria-hidden className="h-4 w-4" strokeWidth={1.75} />
             </p>
-            <ul tabIndex={0} aria-label={PAINS.title.replace(' ', ' ')}
-              className="-mx-4 mt-2 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pt-10 pb-2 [scrollbar-width:none] focus-visible:outline-2 focus-visible:outline-brand-on-dark lg:mx-0 lg:mt-6 lg:grid lg:grid-cols-12 lg:items-start lg:gap-x-6 lg:gap-y-10 lg:overflow-visible lg:px-0 lg:pb-0">
-              {PAINS.items.map((p, i) => {
-                const n = NOTES[i % NOTES.length]
-                return (
-                  <li key={i} className={`relative w-[78%] max-w-[340px] shrink-0 snap-start lg:w-auto lg:max-w-none ${n.grid}`}>
-                    <p className={`h-full rounded-md px-5 lg:h-auto pt-6 pb-7 text-[18px] font-medium leading-[1.4] text-brand-text lg:px-7 lg:pt-8 lg:pb-9 lg:text-[20px] ${n.bg} ${n.rot}`}>{p}</p>
-                    {i === 0 && <Dekor name="knopka-derevo" className="-top-7 left-1/2 w-[40px] -translate-x-1/2 rotate-[8deg] lg:w-[46px]" />}
-                  </li>
-                )
-              })}
-            </ul>
+            <PainBoard />
           </div>
         </section>
 
@@ -207,19 +188,21 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 6. Этика, крем: заголовок сверху, четыре пункта в ряд (не повторяет раскладку «почему» и FAQ) */}
-        <section className={SECTION}>
+        {/* 6. Этика на шалфее с волнами: разводит белые соседей «почему» и тарифы. Текст только шоколадный, не мельче 17 px */}
+        <section className={`relative z-10 bg-brand-sage ${SECTION}`}>
+          <Wave side="top" color="text-brand-sage" />
           <div className={WRAP}>
             <h2 className={`${H2} max-w-[640px]`}>{ETHICS.title}</h2>
             <ul className="mt-8 grid gap-x-8 gap-y-7 sm:grid-cols-2 lg:mt-12 lg:grid-cols-4">
               {ETHICS.items.map(it => (
                 <li key={it.title}>
                   <h3 className="text-[19px] font-bold leading-[1.25] text-brand-text">{it.title}</h3>
-                  <p className="mt-2 text-[17px] leading-[1.55] text-brand-muted">{it.text}</p>
+                  <p className="mt-2 text-[17px] leading-[1.55] text-brand-text">{it.text}</p>
                 </li>
               ))}
             </ul>
           </div>
+          <Wave side="bottom" color="text-brand-sage" />
         </section>
 
         {/* 7. Тарифы из lib/pricing.ts, белый фон и кремовые карточки */}
@@ -227,13 +210,9 @@ export default function Home() {
           <div id="pricing" className={`${WRAP} scroll-mt-20`}>
             <h2 className={H2}>{PRICING.title}</h2>
             <p className={`mt-3 max-w-[640px] text-brand-muted ${TEXT}`}>{PRICING.lead}</p>
-            <p className="mt-3 flex items-center gap-1.5 text-[15px] text-brand-muted lg:hidden">
-              {PAINS.swipeHint}<ArrowRight aria-hidden className="h-4 w-4" strokeWidth={1.75} />
-            </p>
-            <div tabIndex={0} role="group" aria-label={PRICING.title}
-              className="-mx-4 mt-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] focus-visible:outline-2 focus-visible:outline-brand-accent lg:mx-0 lg:mt-12 lg:grid lg:grid-cols-3 lg:items-start lg:gap-6 lg:overflow-visible lg:px-0">
+            <div className="mt-8 grid gap-4 lg:mt-12 lg:grid-cols-3 lg:items-start lg:gap-6">
               {PLANS.map((p, i) => (
-                <div key={p.id} className={`flex w-[84%] max-w-[360px] shrink-0 snap-start flex-col rounded-3xl p-6 lg:w-auto lg:max-w-none lg:p-8 ${PLAN_CARD[i]}`}>
+                <div key={p.id} className={`flex flex-col rounded-3xl p-6 lg:p-8 ${PLAN_CARD[i]}`}>
                   <h3 className="text-[18px] font-semibold text-brand-text">{p.name}</h3>
                   <p className="mt-3 flex items-baseline gap-2">
                     <span className="text-[40px] font-bold leading-none text-brand-text">{formatRub(p.price)}</span>
