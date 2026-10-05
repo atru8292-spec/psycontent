@@ -29,6 +29,8 @@
   /* Текст на шоколадном фоне (подвал, блок болей на лендинге): основной и тише */
   --color-brand-on-dark: #D9CFC0;
   --color-brand-on-dark-muted: #BFB4A5;
+  /* Теплая тень бумажных заметок на шоколаде */
+  --color-brand-shadow-dark: rgb(20 12 8 / 0.35);
 
   /* Алиасы для обратной совместимости (используются в разметке) */
   --color-brand-text-secondary: var(--color-brand-muted);
@@ -90,4 +92,55 @@ body {
            transition;
   }
 
+}
+
+/* ── Бумага для заметок на доске болей лендинга (components/landing/PainBoard.tsx) ──
+   Все цвета из токенов; линии и клетка через color-mix от шоколада, почти незаметные */
+@layer components {
+  /* Мягкая теплая тень под шоколадный фон; на обертке, чтобы ее не срезала маска рваного края */
+  .note-shadow {
+    filter: drop-shadow(0 6px 18px var(--color-brand-shadow-dark));
+  }
+
+  /* Кремовая карточка в тонкую линейку */
+  .paper-lined {
+    background-color: var(--color-brand-bg);
+    background-image: repeating-linear-gradient(to bottom, transparent 0 29px, color-mix(in srgb, var(--color-brand-text) 9%, transparent) 29px 30px);
+  }
+
+  /* Кремовая карточка в клетку */
+  .paper-grid {
+    background-color: var(--color-brand-bg);
+    background-image:
+      linear-gradient(to right, color-mix(in srgb, var(--color-brand-text) 7%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--color-brand-text) 7%, transparent) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  /* Квадратный стикер сирени с загнутым нижним правым углом: угол срезан фоном, загиб нарисован ::after */
+  .paper-fold {
+    position: relative;
+    background: linear-gradient(-45deg, transparent 22px, var(--color-brand-lilac) 22px);
+  }
+  .paper-fold::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 31px;
+    height: 31px;
+    background: linear-gradient(-45deg, transparent 50%, color-mix(in srgb, var(--color-brand-lilac) 78%, var(--color-brand-text)) 50%);
+    border-top-left-radius: 6px;
+  }
+
+  /* Листок из блокнота бледной сирени с рваным верхним краем (маска: зубцы сверху + сплошное тело) */
+  .paper-torn {
+    background-color: var(--color-brand-soft);
+    -webkit-mask:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 12' preserveAspectRatio='none'%3E%3Cpath d='M0 12V7l4-3 5 4 6-6 4 5 7-4 5 5 6-6 5 4 6-3 4 4 4-2v15z'/%3E%3C/svg%3E") top left / 60px 12px repeat-x,
+      linear-gradient(#000 0 0) left 11px / 100% calc(100% - 11px) no-repeat;
+    mask:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 12' preserveAspectRatio='none'%3E%3Cpath d='M0 12V7l4-3 5 4 6-6 4 5 7-4 5 5 6-6 5 4 6-3 4 4 4-2v15z'/%3E%3C/svg%3E") top left / 60px 12px repeat-x,
+      linear-gradient(#000 0 0) left 11px / 100% calc(100% - 11px) no-repeat;
+  }
 }

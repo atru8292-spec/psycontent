@@ -4,10 +4,10 @@ import Image from 'next/image'
 
 // Волнистый край у блока на бледной сирени: svg того же цвета, что фон блока, выходит за его край.
 // Блоку нужен relative z-10, чтобы соседний блок не перекрыл волну.
-export function Wave({ side }: { side: 'top' | 'bottom' }) {
+export function Wave({ side, color = 'text-brand-soft' }: { side: 'top' | 'bottom'; color?: string }) {
   return (
     <svg aria-hidden viewBox="0 0 1440 40" preserveAspectRatio="none"
-      className={`pointer-events-none absolute inset-x-0 h-4 w-full text-brand-soft lg:h-7 ${side === 'top' ? 'bottom-full -mb-px' : 'top-full -mt-px rotate-180'}`}>
+      className={`pointer-events-none absolute inset-x-0 h-4 w-full lg:h-7 ${color} ${side === 'top' ? 'bottom-full -mb-px' : 'top-full -mt-px rotate-180'}`}>
       <path d="M0 26 C 150 6, 290 6, 430 22 S 700 40, 860 24 S 1150 2, 1290 18 S 1400 30, 1440 24 V40 H0 Z" fill="currentColor" />
     </svg>
   )
@@ -37,7 +37,13 @@ const DEKOR = {
   'knopka-derevo': { w: 141, h: 194 },
   'zazhim-sirenevyj': { w: 115, h: 140 },
   'bant-zelenyj-atlas': { w: 199, h: 104 },
+  'knopka-derevo-2': { w: 139, h: 191 },
+  'knopka-sirenevaya': { w: 67, h: 87 },
+  'skotch-kraft': { w: 184, h: 99 },
+  'skrepka': { w: 228, h: 200 },
 } as const
+
+export type DekorName = keyof typeof DEKOR
 
 // Вырезка из public/dekor. Ширина 40-120 px по CSS, крупнее вырезки мылятся.
 export function Dekor({ name, className = '' }: { name: keyof typeof DEKOR; className?: string }) {
