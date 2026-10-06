@@ -26,6 +26,9 @@ export const metadata: Metadata = {
     images: [{ url: '/og.png', width: 1200, height: 630, alt: 'PsyCont. Ты помогаешь людям найти себя. PsyCont поможет им найти тебя' }],
   },
   twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION, images: ['/og.png'] },
+  // Публичные страницы открыты для индексации; кабинет, онбординг и админка переопределяют это noindex в своих layout.
+  // canonical не здесь, а у каждой публичной страницы (главная: app/page.tsx), иначе он унаследуется всем страницам
+  robots: { index: true, follow: true },
   icons: {
     icon: [{ url: '/brand/psycont-favicon.svg', type: 'image/svg+xml' }, { url: '/brand/psycont-favicon.png', type: 'image/png' }],
     apple: '/brand/psycont-apple-touch-icon.png',

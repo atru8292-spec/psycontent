@@ -8,8 +8,9 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Работаем на всех страницах, кроме статики и картинок (их не нужно проверять).
+  // Работаем на всех страницах, кроме статики, картинок и файлов для ботов (robots.txt, sitemap.xml, llms.txt):
+  // боты приходят без куки, им не нужна проверка сессии, и эти адреса всегда отвечают 200.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|llms.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)',
   ],
 }
