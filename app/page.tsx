@@ -4,6 +4,7 @@
 // с темой дня, и мысль из демо до первого поста не доходила (правка в онбординге или MakeFlow, см. отчет 04.10). Страница серверная: первый экран приходит готовым HTML.
 // Вид (v2, 05.10, референсы в _знания/lending-refy): соседние блоки всегда разного фона, в каждом блоке
 // один «бумажный» прием (components/landing/Paper.tsx), декор только вырезками из public/dekor, 3 предмета на страницу.
+import type { Metadata } from 'next'
 import Image from 'next/image'
 import LandingShell, { CtaButton } from '@/components/landing/LandingShell'
 import Header from '@/components/landing/Header'
@@ -14,10 +15,14 @@ import PainBoard from '@/components/landing/PainBoard'
 import { Wave, HandUnderline, MarginNote, Dekor } from '@/components/landing/Paper'
 import { HERO, PAINS, HOW, EXAMPLE, WHY, ETHICS, PRICING, FAQ, FINAL, FOOTER, CONTACT_EMAIL, PRIVACY_URL, OFFER_URL } from '@/components/landing/content'
 import { EXAMPLES, COMPARE_TOPIC, COMPARE_CHATGPT, COMPARE_PSYCONT } from '@/components/landing/examples'
+import { jsonLdString } from '@/lib/structured-data'
 import { PLANS, PLAN_COMMON_LINE, MATERIAL_NOTE, formatRub, planPerks } from '@/lib/pricing'
 
 // Год в подвале берется из даты сборки; пересобираем страницу раз в сутки, чтобы он сменился сам
 export const revalidate = 86400
+
+// canonical только у главной (в layout он унаследовался бы всем страницам)
+export const metadata: Metadata = { alternates: { canonical: '/' } }
 
 const WRAP = 'mx-auto w-full max-w-[1120px] px-4 md:px-8'
 const SECTION = 'py-11 lg:py-24'
@@ -60,6 +65,8 @@ export default function Home() {
   const year = new Date().getFullYear()
   return (
     <LandingShell>
+      {/* JSON-LD для поисковиков и нейросетей: lib/structured-data.ts (цены из lib/pricing.ts, FAQ из того же источника, что на странице) */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString() }} />
       <Header />
       <main className="overflow-x-clip">
         {/* 1. Первый экран, крем: для кого, заголовок с рукописным штрихом на «найти тебя», Вера вырезкой стоит на краю блока */}

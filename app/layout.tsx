@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Onest } from 'next/font/google'
 import './globals.css'
+import { SITE_TITLE, SITE_DESCRIPTION } from '@/lib/site'
 
 const onest = Onest({
   subsets: ['latin', 'cyrillic'],
@@ -9,8 +10,9 @@ const onest = Onest({
   display: 'swap',
 })
 
-const TITLE = 'PsyCont: блог для психологов, которые не мечтали стать блогерами'
-const DESCRIPTION = 'Ты помогаешь людям найти себя. PsyCont поможет им найти тебя. Расскажи мысль и получи пост, карусель и рилс твоим голосом.'
+// Тексты в lib/site.ts: их же берет JSON-LD на главной
+const TITLE = SITE_TITLE
+const DESCRIPTION = SITE_DESCRIPTION
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://psycont.ru'),
