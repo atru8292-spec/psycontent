@@ -1,7 +1,7 @@
 // Структурированные данные (JSON-LD) для главной: Organization, WebSite, SoftwareApplication, FAQPage.
-// Все данные из тех же источников, что и страница: описание из lib/site.ts, цены из lib/pricing.ts,
+// Все данные из тех же источников, что и страница: описание сервиса из lib/site.ts (SITE_DEFINITION), цены из lib/pricing.ts,
 // вопросы и ответы из FAQ в components/landing/content.ts. Отзывов и рейтингов нет, их не добавляем.
-import { SITE_URL, SITE_DESCRIPTION } from './site'
+import { SITE_URL, SITE_DEFINITION } from './site'
 import { PLANS } from './pricing'
 import { FAQ } from '@/components/landing/content'
 
@@ -28,13 +28,24 @@ export function landingJsonLd() {
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
     inLanguage: 'ru',
-    description: SITE_DESCRIPTION,
+    description: SITE_DEFINITION,
     publisher: { '@id': `${SITE_URL}/#organization` },
+    // Платные тарифы помесячно (UnitPriceSpecification на 1 месяц), пробный бесплатно и без периода.
+    // Годовую цену отдельным Offer не показываем
     offers: PLANS.map(p => ({
       '@type': 'Offer',
       name: p.name,
       price: String(p.price),
       priceCurrency: 'RUB',
+      ...(p.perMonth && p.price > 0 ? {
+        priceSpecification: {
+          '@type': 'UnitPriceSpecification',
+          price: String(p.price),
+          priceCurrency: 'RUB',
+          unitText: 'MONTH',
+          referenceQuantity: { '@type': 'QuantitativeValue', value: 1, unitCode: 'MON' },
+        },
+      } : {}),
     })),
   }
   const faq = {
