@@ -10,7 +10,8 @@ export async function middleware(request: NextRequest) {
 export const config = {
   // Работаем на всех страницах, кроме статики, картинок и файлов для ботов (robots.txt, sitemap.xml, llms.txt):
   // боты приходят без куки, им не нужна проверка сессии, и эти адреса всегда отвечают 200.
+  // Только три файла точным адресом: общее исключение .txt/.xml пустило бы мимо сессии любой будущий роут с таким концом.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|llms.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|robots\\.txt$|sitemap\\.xml$|llms\\.txt$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 }
