@@ -39,6 +39,8 @@ export type AuthorSettings = {
   intensity: string
   toneVerbal: string
   practiceFacts: string
+  // смешное или странное с работы автора (вход «личная деталь», zh3 20.10): идет в материал только в гипотезе zh3
+  workDetail?: string
 }
 
 const arr = (v: unknown): string => (Array.isArray(v) ? v.filter(Boolean).join(', ') : v ? String(v) : '')
@@ -242,6 +244,7 @@ export function buildAuthorSettings(profile: any, opts?: { rotation?: number }):
     position: clip(position, 800),
     stories,
     clientPhrases: String(profile.client_pain_phrases || '').trim(),
+    workDetail: String(profile.work_detail || '').trim(),
     knownNames: profile.full_name ? [String(profile.full_name)] : [],
     name: String(profile.full_name || '').trim().split(/\s+/)[0] || '',
     niche,

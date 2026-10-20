@@ -2,14 +2,14 @@
 // потом «Ножницы» (раздел «ПН»): модель только называет лишние фразы, вырезает их код.
 // С 01.10 это путь генерации по умолчанию (выиграл слепое сравнение 4:2), GENERATION_MODE=full вернет старую цепочку.
 
-import { PP_SYSTEM, PP_USER, PP_REELS, PN_SYSTEM, PN_USER, SKELETONS, PZH_SYSTEM, PZH_MOVES } from './prompts.generated'
+import { PP_SYSTEM, PP_USER, PP_REELS, PN_SYSTEM, PN_USER, SKELETONS, PZH_SYSTEM, PZH_MOVES, PZH3_SYSTEM, PZH3_MOVES } from './prompts.generated'
 import { fill, INTENT_CARDS, FORMAT_CARDS } from './prompts'
 import { callModel, callJson } from './ai'
 import { finalNet, isReels, LABEL_RE, type FormatCode } from './text-guard'
 import { pickExamples, examplesText, LIVE_EXAMPLES } from './examples'
 import { relevantStories, storiesText } from './settings'
 import { pickReelsFormat, type GenContext, type GenRequest } from './pipeline'
-import { activeHyps, hypSystem, hypCall, pickVoiceExamples, voiceExamplesText, liveReelsMaxWords, hypReelsRule, H7_CUT_SYSTEM, pickLiveExamples, liveExamplesText, chooseMove, moveText } from './hypotheses'
+import { activeHyps, hypSystem, hypCall, pickVoiceExamples, voiceExamplesText, liveReelsMaxWords, hypReelsRule, H7_CUT_SYSTEM, pickLiveExamples, liveExamplesText, chooseMove, moveText, isZh } from './hypotheses'
 
 // Режим генерации: simple (по умолчанию с 01.10, выиграл слепое сравнение 4:2) или full (старая цепочка).
 export function isSimpleMode(): boolean {
@@ -172,13 +172,14 @@ export async function simpleWrite(ctx: GenContext, req: GenRequest): Promise<{ t
   const format: FormatCode = req.format === 'reels_auto' ? chooseReelsFormat(ctx, intent) : req.format
   const opts = { allowMat: s.profanityRule !== 'не использовать', rotation: ctx.memory.count, count: 3 }
   const hyps = activeHyps()
+  const zh = isZh(hyps)
   const examples = isReels(format)
     ? pickExamples(format, intent, opts)
     : pickExamples(format === 'carousel' ? 'reels_spisok' : 'reels_monolog', intent, { ...opts, count: 2 })
   // h2: вместо банка примеров по формату живые тексты целиком, подобранные по голосу автора
   // hot и calm по явному выбору «Эмоции», а не по тексту настроек: переформулировка не сломает подбор примеров
   const voiceOpts = { allowMat: opts.allowMat, hot: s.intensity === 'hot', calm: s.intensity === 'calm', rotation: ctx.memory.count || 0 }
-  const liveExamples = hyps.has('zh') ? liveExamplesText(pickLiveExamples(format, voiceOpts))
+  const liveExamples = zh ? liveExamplesText(pickLiveExamples(format, voiceOpts))
     : hyps.has('h2')
     ? voiceExamplesText(pickVoiceExamples(format, {
       allowMat: opts.allowMat, hot: s.intensity === 'hot', calm: s.intensity === 'calm', rotation: ctx.memory.count || 0,
@@ -207,9 +208,11 @@ export async function simpleWrite(ctx: GenContext, req: GenRequest): Promise<{ t
     : [s.clientPhrases ? `Фразы клиентов (возьми одну, если подходит): ${s.clientPhrases}` : '',
        ownPhrases.length ? `Свои фразы автора (одну можно, если ложится сама): ${ownPhrases.map(x => `«${x}»`).join(', ')}` : '',
        practice,
-       extra.length ? extra[(ctx.memory.count || 0) % extra.length] : ''].filter(Boolean).join('\n') || 'нет'
+       extra.length ? extra[(ctx.memory.count || 0) % extra.length] : '',
+       // zh3: смешное или странное с работы автора (вход «личная деталь»), только как материал, не в каждый текст
+       hyps.has('zh3') && s.workDetail ? `Смешное или странное с работы автора (бери, только если само ложится в тему; в большинстве текстов не нужно): ${s.workDetail}` : ''].filter(Boolean).join('\n') || 'нет'
   // h6, h7: потолок речи по целым живым транскриптам того же вида
-  const reelMax = hyps.has('h6') || hyps.has('h7') || hyps.has('zh') ? liveReelsMaxWords(format) : reelsMaxWords(format)
+  const reelMax = hyps.has('h6') || hyps.has('h7') || zh ? liveReelsMaxWords(format) : reelsMaxWords(format)
   const user = fill(PP_USER, {
     live_examples: liveExamples,
     samples: s.samples.slice(0, 2).map((x, i) => `<текст ${i + 1}>\n${x}\n</текст ${i + 1}>`).join('\n') || 'нет',
@@ -224,12 +227,12 @@ export async function simpleWrite(ctx: GenContext, req: GenRequest): Promise<{ t
     address: s.address,
     material,
     // zh: схему задает ход, поэтому «Возможная схема» из карточки смысла убираем
-    intent_card: hyps.has('zh') ? INTENT_CARDS[intent].split('\n').filter(l => !/^Возможная схема/u.test(l)).join('\n') : INTENT_CARDS[intent],
+    intent_card: zh ? INTENT_CARDS[intent].split('\n').filter(l => !/^Возможная схема/u.test(l)).join('\n') : INTENT_CARDS[intent],
     format_card: FORMAT_CARDS[format],
     topic: req.topic,
     user_detail: req.userDetail || '',
     // zh: вместо скелета ход живого психолога, во всех форматах, включая рилсы
-    skeleton: hyps.has('zh') ? moveText(chooseMove(PZH_MOVES, format, intent, ctx.memory.count || 0)) : chooseSkeleton(ctx, intent, format),
+    skeleton: zh ? moveText(chooseMove(hyps.has('zh3') ? PZH3_MOVES : PZH_MOVES, format, intent, ctx.memory.count || 0)) : chooseSkeleton(ctx, intent, format),
     reels_rule: isReels(format) ? hypReelsRule(fill(PP_REELS, { max_words: reelMax }), hyps, reelMax) : '',
     caption_tail: captionTail(ctx, format),
     core_block: req.coreBlock,
@@ -240,7 +243,7 @@ export async function simpleWrite(ctx: GenContext, req: GenRequest): Promise<{ t
     feedback_reasons: (ctx.memory.feedbackReasons || []).slice(0, 4).join('; '),
   })
   const text = await callModel({
-    system: hyps.has('zh') ? PZH_SYSTEM : hypSystem(PP_SYSTEM, format, hyps), user, effort: 'medium', verbosity: 'medium', maxTokens: 8000, ...hypCall(hyps),
+    system: hyps.has('zh3') ? PZH3_SYSTEM : hyps.has('zh') ? PZH_SYSTEM : hypSystem(PP_SYSTEM, format, hyps), user, effort: 'medium', verbosity: 'medium', maxTokens: 8000, ...hypCall(hyps),
     userId: ctx.userId, operation: 'generate_post_simple_path', writer: true, knownNames: s.knownNames,
   })
   // имя автора в строке «Я Ольга, психолог»: обезличивание иногда возвращает голую метку [ИМЯ] без номера
