@@ -11,12 +11,14 @@
 //   h7  наговорить и вырезать: речь вдвое длиннее потолка h6, потом ножницы режут целые фразы до потолка (до половины)
 //   h8  неочевидная сцена: про себя пять сцен, берется не первая; начало не обязано быть цитатой
 //   zh  новый промпт «ПЖ. Простой путь от живого» (03-PROMPTY.md)
+//   zh3 ПЖ версии 3 рядом с zh (раздел «ПЖ3» и «Ходы для ПЖ3», 20.10): правки лендинга принципами, новые живые приемы,
+//       рабочая деталь автора в материале; с zh не совмещается, при обоих берется zh3
 
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { isReels, type FormatCode } from './text-guard'
 
-export type Hyp = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'h7' | 'h8' | 'zh'
+export type Hyp = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'h7' | 'h8' | 'zh' | 'zh3'
 
 // По умолчанию (переменная пустая) zh+h7: этот вариант Арина в слепом чтении оценила выше живых текстов (релиз 2026-10).
 // PROMPT_HYP=h0 (или none) вернет базовый ПП без гипотез, любой другой список включает ровно его.
@@ -25,8 +27,10 @@ export function activeHyps(): Set<Hyp> {
   const raw = String(process.env.PROMPT_HYP || '').trim().toLowerCase()
   if (!raw) return new Set(DEFAULT_HYPS)
   if (raw === 'h0' || raw === 'none') return new Set()
-  return new Set(raw.split(/[\s,+]+/).filter((h): h is Hyp => /^(h[1-8]|zh)$/.test(h)))
+  return new Set(raw.split(/[\s,+]+/).filter((h): h is Hyp => /^(h[1-8]|zh3?)$/.test(h)))
 }
+// промпт от живого любой версии: живые примеры, ход вместо скелета, длина рилса по живым
+export const isZh = (hyps: Set<Hyp>) => hyps.has('zh') || hyps.has('zh3')
 
 // ---------- h3: короткий промпт ----------
 export const H3_SYSTEM = `Ты психолог и ведешь блог. Напиши один материал для своих подписчиков так, как сказал бы это вслух человеку напротив: своими словами, с характером автора.
@@ -150,7 +154,7 @@ export function liveReelsMaxWords(format: FormatCode): number {
 
 // правило рилса для h6 и h7: длиннее и дольше по времени
 export function hypReelsRule(rule: string, hyps: Set<Hyp>, maxWords: number): string {
-  if (!hyps.has('h6') && !hyps.has('h7') && !hyps.has('zh')) return rule
+  if (!hyps.has('h6') && !hyps.has('h7') && !isZh(hyps)) return rule
   let r = rule.replace(/за 30-45 секунд/u, 'за 60-75 секунд')
   if (hyps.has('h7')) {
     r = r.replace(/Речь без надписи и подписи не длиннее \d+ слов[^.]*\./u,
@@ -170,7 +174,8 @@ export const H7_CUT_SYSTEM = `Ты монтажер рилсов психоло�
 
 // ---------- zh: живые примеры из live-bank.json ----------
 // sub у каруселей: nabor, perevod, golos_iznutri, odna_mysl, obzor, dialog, prodayushaya (11-KAK-USTROENY-KARUSELI.md)
-export type LiveText = { id: string; source: 'reels' | 'tg' | 'karusel'; kind: string; sub?: string; voice: string[]; words: number; text: string; ai_like?: string }
+// author: автор или канал, если по id не понять (у каруселей id это kar_<автор>_<тема>)
+export type LiveText = { id: string; author?: string; source: 'reels' | 'tg' | 'karusel'; kind: string; sub?: string; voice: string[]; words: number; text: string; ai_like?: string }
 let liveBankCache: LiveText[] | null = null
 export function liveBank(): LiveText[] {
   if (liveBankCache) return liveBankCache
@@ -187,7 +192,7 @@ const ZH_KINDS: Record<string, string[]> = {
   reels_spisok: ['spisok', 'monolog'], reels_scenka: ['scenka', 'rol'], reels_rol: ['rol', 'scenka'],
   post: ['tg_post', 'monolog', 'istoriya', 'otvet'], post_tg: ['tg_post', 'otvet', 'monolog'], carousel: ['karusel', 'spisok', 'obyasnenie'],
 }
-const authorOf = (id: string) => (id.includes('#') ? id.split('#')[0] : id)
+const authorOf = (t: { id: string; author?: string }) => t.author || (t.id.includes('#') ? t.id.split('#')[0] : t.id)
 
 // 3-4 живых текста: свой вид первым, голос автора (с матом только у автора с матом; спокойным спокойные и теплые),
 // не больше двух одного автора или канала, по кругу от материала к материалу.
@@ -196,7 +201,8 @@ export function pickLiveExamples(format: FormatCode, o: { allowMat: boolean; hot
   const kinds = ZH_KINDS[format] || ['monolog', 'obyasnenie']
   const want = o.allowMat ? ['mat', 'emocii', 'rezko', 'ironiya'] : o.hot ? ['emocii', 'ironiya', 'rezko'] : o.calm ? ['spokoyno', 'teplo'] : ['spokoyno', 'teplo', 'ironiya']
   // автор без мата не получает ни мата, ни Прокопову (ее голос узнаваем и без мата, Арина 02.10)
-  const pool = liveBank().filter(t => t.words >= 40 && t.words <= (t.kind === 'karusel' ? 700 : 420) && (o.allowMat || (!t.voice.includes('mat') && !t.id.startsWith('olga_prokopova'))))
+  // карусели только к карусели: в примерах к рилсу и посту они раньше стояли в половине промптов (проверка 20.10, scripts/check-live-pick.ts)
+  const pool = liveBank().filter(t => t.kind !== 'karusel' && t.words >= 40 && t.words <= 420 && (o.allowMat || (!t.voice.includes('mat') && !t.id.startsWith('olga_prokopova'))))
   const score = (t: LiveText) => {
     const k = kinds.indexOf(t.kind)
     return (k === -1 ? 0 : 6 - k * 2) + t.voice.filter(v => want.includes(v)).length * 2 - (!o.allowMat && !o.hot && t.voice.includes('rezko') ? 5 : 0)
@@ -208,7 +214,7 @@ export function pickLiveExamples(format: FormatCode, o: { allowMat: boolean; hot
   let words = 0
   for (const t of rotated) {
     if (out.length >= (o.max || 4) || words + t.words > 1400) continue
-    if (out.filter(x => authorOf(x.id) === authorOf(t.id)).length >= 2) continue
+    if (out.filter(x => authorOf(x) === authorOf(t)).length >= 2) continue
     if (out.filter(x => x.kind === t.kind).length >= 2 && out.length < 3 && rotated.some(r => !out.includes(r) && r.kind !== t.kind && kinds.includes(r.kind))) continue
     out.push(t)
     words += t.words
@@ -222,14 +228,18 @@ export function pickLiveExamples(format: FormatCode, o: { allowMat: boolean; hot
 function pickLiveCarousels(o: { allowMat: boolean; hot: boolean; calm: boolean; rotation: number; max?: number }): LiveText[] {
   const want = o.allowMat || o.hot ? ['ironiya', 'rezko', 'emocii'] : o.calm ? ['spokoyno', 'teplo'] : ['teplo', 'ironiya', 'spokoyno']
   const pool = liveBank().filter(t => t.kind === 'karusel' && t.words <= 750 && (o.allowMat || !t.voice.includes('mat')))
-  const ranked = [...pool].sort((a, b) => b.voice.filter(v => want.includes(v)).length - a.voice.filter(v => want.includes(v)).length || a.id.localeCompare(b.id))
+  const sorted = [...pool].sort((a, b) => b.voice.filter(v => want.includes(v)).length - a.voice.filter(v => want.includes(v)).length || a.id.localeCompare(b.id))
+  // у автора с двумя каруселями в списке одна, по очереди: иначе он стоял в трех промптах из четырех
+  const byAuthor = new Map<string, LiveText[]>()
+  for (const t of sorted) byAuthor.set(authorOf(t), [...(byAuthor.get(authorOf(t)) || []), t])
+  const ranked = [...byAuthor.values()].map(list => list[Math.floor(o.rotation / 2) % list.length])
   const k = o.rotation % (ranked.length || 1)
   const rotated = [...ranked.slice(k), ...ranked.slice(0, k)]
   const out: LiveText[] = []
   let words = 0
   for (const t of rotated) {
     if (out.length >= Math.min(o.max || 3, 3) || words + t.words > 1700) continue
-    if (out.some(x => (x.sub || '') === (t.sub || '') || authorOf(x.id) === authorOf(t.id))) continue
+    if (out.some(x => (x.sub || '') === (t.sub || '') || authorOf(x) === authorOf(t))) continue
     out.push(t)
     words += t.words
   }
@@ -248,9 +258,11 @@ const MOVE_BY_FORMAT: Partial<Record<string, string>> = {
 // ход по формату, иначе по смыслу (вторая строка карточки «Смыслы: ...»), по кругу от материала к материалу
 export function chooseMove(moves: Record<string, string>, format: FormatCode, intent: string, rotation: number): string {
   if (intent === 'priglashenie' && moves.hod_zovu) return moves.hod_zovu
+  // ходы ПЖ3: сценка про механизм или маленький шаг показывает технику в разговоре
+  if (format === 'reels_scenka' && moves.hod_tehnika && ['mehanizm', 'malenkiy_shag'].includes(intent)) return moves.hod_tehnika
   const byFormat = MOVE_BY_FORMAT[format]
   if (byFormat && moves[byFormat]) return moves[byFormat]
-  const fit = Object.entries(moves).filter(([code, card]) => !['hod_dialog', 'hod_rol', 'hod_spisok', 'hod_zovu', 'hod_priznanie', 'hod_karusel'].includes(code) && (card.split('\n')[1] || '').includes(intent))
+  const fit = Object.entries(moves).filter(([code, card]) => !['hod_dialog', 'hod_rol', 'hod_spisok', 'hod_zovu', 'hod_priznanie', 'hod_karusel', 'hod_tehnika'].includes(code) && (card.split('\n')[1] || '').includes(intent))
   const pool = fit.length ? fit : Object.entries(moves).filter(([code]) => ['hod_raznesti', 'hod_beshus', 'hod_svoi', 'hod_poymat', 'hod_komment'].includes(code))
   return pool[rotation % pool.length][1]
 }
