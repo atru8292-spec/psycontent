@@ -123,6 +123,43 @@ export function selfStarts(texts: string[]): string {
   }).join(', ')
 }
 
+// Признаки шаблона и нейросети из разборов 104 рилсов и каруселей (_знания/мозг-генератора/zh3/01-NOVYE-PRAVILA-zh3.md, раздел 3).
+// Счет текстов, где признак есть. Ловится только то, что видно по словам; финал-антитезу, ровную речь без пауз
+// и диагноз читателю по смыслу словами не поймать, их проверять глазами (здесь только грубые подсказки).
+const sentencesOf = (t: string) => t.replace(/^\s*(?:Речь|Слайд\s*\d+|[АБ])\s*:\s*/gimu, '').split(/(?<=[.!?…])\s+|\n+/u).map(x => x.trim()).filter(x => W(x).length)
+const word = (s: string) => new RegExp(`(?<![${L}])(?:${s})`, 'iu')
+export const PRIZNAKI: [string, (t: string) => boolean][] = [
+  ['1 «у меня для вас новость»', t => word('у меня для (?:вас|тебя) (?:есть )?новост').test(t)],
+  ['2 детство последним поворотом', t => { const s = sentencesOf(t); return s.slice(Math.floor(s.length * 0.6)).some(x => word('детств|в детстве|родители ваши|ваши родители|твои родители|мама в детстве').test(x)) }],
+  ['3 лекторский вход', t => word('знакома ли|знакомо ли|знакомы ли|согласитесь|присаживайтесь|давайте разберемся|давайте разберем|сегодня (?:мы )?(?:поговорим|разберем)').test(sentencesOf(t).slice(0, 2).join(' '))],
+  ['4 кликбейт без содержания', t => word('скрывают|скрывает|настоящий прорыв|раз и навсегда|будет больно, но|никто не говорит об этом|об этом молчат|об этом не принято').test(t)],
+  ['5 наука без источника', t => word('исследовани|ученые|доказано|по данным|университет|нейробиолог').test(t)],
+  ['6 псевдотермины', t => word('энергообмен|легальн\\S* гор|самопредательств|психическ\\S* контейнер|грандиозн\\S* эго|ресурсн\\S* состояни|ресурсе|внутренн\\S* ребен').test(t)],
+  ['7 мантры-утешения', t => word('это (?:его|ее|их) ответственность|(?:вы|ты) (?:точно )?не (?:сломан|поломан)|с (?:тобой|вами) все в порядке|(?:вы|ты) достойн|(?:вы|ты) имеете? право|(?:ты|вы) не обязан\\S* (?:никому|ничего)').test(t)],
+  ['8 призыв-заготовка в речи', t => word('не забуд\\S* подписаться|подпиш\\S*, чтобы не потерять|сохран\\S*,? (?:чтобы не потерять|потом скаж\\S* спасибо|пригодится)|отправь\\S* (?:это )?(?:видео )?(?:подруге|друзьям)').test(t)],
+  ['9 аффирмации-запреты подряд (3+ «не нужно/не надо/не обязан» в одной фразе)', t => sentencesOf(t).some(x => (x.match(new RegExp(`(?<![${L}])(?:не нужно|не надо|не обязан|не должн)`, 'giu')) || []).length >= 3)],
+  ['10 финал-антитеза (подсказка: «не ..., а ...» в двух последних фразах)', t => /(?<![а-яё])не\s[^.!?]*?,\s+а\s/u.test(sentencesOf(t).slice(-2).join(' ').toLowerCase())],
+  ['11 терапевт из учебника', t => word('какую (?:внутреннюю )?потребность|от чего (?:ты|вы) (?:на самом деле )?(?:бежишь|сбегаешь|убегаете)|что (?:ты|вы) (?:сейчас )?чувству\\S* в теле|что за этим стоит|что для (?:тебя|вас) значит').test(t)],
+  ['12 фразы-статьи', t => word('подавал\\S* (?:вам |тебе )?сигнал|находят выход|отда\\S* ресурс|накопленн\\S* эмоци|психика (?:так )?защищается').test(t)],
+  ['13 одна рамка на пунктах (начало из 2 слов 3+ раз в тексте)', t => { const n = new Map<string, number>(); for (const x of sentencesOf(t)) { const k = W(x.toLowerCase()).slice(0, 2).join(' '); if (k.split(' ').length === 2) n.set(k, (n.get(k) || 0) + 1) } return [...n.values()].some(v => v >= 3) }],
+  ['14 шаблонный хук', t => word('один простой шаг|никто не говорит|никто не скажет|все равно ____|делать все «?правильно»?').test(sentencesOf(t).slice(0, 2).join(' '))],
+  ['15 ровная речь (подсказка: ни «ну», «вот», «короче», «блин», «прям», ни многоточия)', t => !RE_PART.test(t.toLowerCase()) && !/…|\.\.\./u.test(t)],
+  ['16 диагноз читателю (подсказка)', t => word('у (?:вас|тебя) (?:тревожн\\S* расстройств|депресси|птср|бпр|созависимост|нарцисс)|(?:вы|ты) (?:нарцисс|созависим)').test(t)],
+]
+export function priznaki(texts: string[]): string {
+  return PRIZNAKI.map(([name, f]) => { RE_PART.lastIndex = 0; return `${name}: ${texts.filter(t => { RE_PART.lastIndex = 0; return f(t) }).length}/${texts.length}` }).join('\n')
+}
+
+// Рабочая деталь автора (zh3, поле work_detail тестовых психологов): во скольких текстах автора она стоит.
+// Больше трети это новый шаблон.
+const DETAIL_RE: Record<string, RegExp> = { 'Юлия': /салфет/iu, 'Ольга': /мультик|трактор|кладов|пылесос/iu, 'Михаил': /у подъезда|в машине у|из окна/iu }
+export function detailShare(run: string): string {
+  const f = join(TEST, 'eval', run, 'results.json')
+  if (!existsSync(f)) return 'нет прогона'
+  const rows = JSON.parse(readFileSync(f, 'utf8')).filter((r: any) => !r.error && r.text && (!REELS_ONLY || isReels(r.format)))
+  return Object.entries(DETAIL_RE).map(([who, re]) => { const mine = rows.filter((r: any) => r.author === who); return `${who} ${mine.filter((r: any) => re.test(r.text)).length}/${mine.length}` }).join(', ')
+}
+
 function main() {
   const given = flag('runs').split(',').filter(Boolean)
   const runs = given.length ? given : readdirSync(join(TEST, 'eval'))
@@ -134,7 +171,9 @@ function main() {
   const grams = runs.map(r => { const t = runTexts(r); return `- ${r}: ${frequentGrams(t).filter(g => !liveGrams.has(g.gram)).slice(0, 25).map(g => `«${g.gram}» ${g.n}/${t.length}`).join(', ') || 'нет'}` })
   const selfs = runs.map(r => `- ${r}: ${selfStarts(runTexts(r))}`)
   const starts = runs.map(r => { const t = runTexts(r); return `- ${r}: ${templateStarts(t).slice(0, 30).map(g => `«${g.start}» ${g.n}/${t.length}`).join(', ') || 'нет'}` })
-  const md = `# Устройство речи (на 100 слов${REELS_ONLY ? ', только рилсы' : ''})\n\n${styloTable(rows)}\n\n## Как автор говорит о себе (текстов, где фраза начинается так)\n\n${selfs.join('\n')}\n\n## Шаблоны: начала фраз больше чем в 4 текстах из 48\n\n${starts.join('\n')}\n\n## Связки в больше чем трети текстов (кроме тех, что так же часты у живых)\n\n${grams.join('\n')}\n`
+  const priz = [`### живые рилсы\n\n${priznaki(live)}`, ...runs.map(r => `### ${r}\n\n${priznaki(runTexts(r))}`)]
+  const details = runs.map(r => `- ${r}: ${detailShare(r)}`)
+  const md = `# Устройство речи (на 100 слов${REELS_ONLY ? ', только рилсы' : ''})\n\n${styloTable(rows)}\n\n## Как автор говорит о себе (текстов, где фраза начинается так)\n\n${selfs.join('\n')}\n\n## Шаблоны: начала фраз больше чем в 4 текстах из 48\n\n${starts.join('\n')}\n\n## Связки в больше чем трети текстов (кроме тех, что так же часты у живых)\n\n${grams.join('\n')}\n\n## Признаки шаблона и нейросети (раздел 3 правил zh3, текстов с признаком)\n\n${priz.join('\n\n')}\n\n## Рабочая деталь автора в текстах (больше трети это шаблон)\n\n${details.join('\n')}\n`
   console.log(md)
   if (flag('out')) writeFileSync(join(flag('out'), 'stylo.md'), md)
 }

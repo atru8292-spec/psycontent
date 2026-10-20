@@ -114,7 +114,7 @@ button.on{background:var(--acc);border-color:var(--acc);color:#fff}button.on.bad
 table{border-collapse:collapse;width:100%;max-width:640px;background:var(--card)}td,th{border:1px solid var(--line);padding:6px 10px;text-align:left}
 #score{display:none}body.reveal #score{display:block}
 </style></head><body>
-<header><h1>Варианты вслепую</h1><span class="n" id="cnt"></span><button id="rev">Показать, где что</button></header>
+<header><h1>Варианты вслепую</h1><span class="n" id="cnt"></span><button id="dl">Скачать мои оценки</button><button id="rev">Показать, где что</button></header>
 <main><p class="n">Прочитай тексты каждой темы и отметь: «Живой» (похоже на живого психолога), «Так можно публиковать», «Нейросеть». Один текст в каждой теме настоящий. Ответы сохраняются в этом браузере.</p>
 <div id="app"></div>
 <div id="score"><h2>Счет по вариантам</h2><div id="tbl"></div></div></main>
@@ -138,6 +138,7 @@ const r={};V.forEach(v=>r[v]={live:0,pub:0,ai:0,all:0});
 T.forEach(t=>t.cards.forEach((c,ci)=>{const s=S[t.id+'#'+ci]||{};const x=r[c.v];if(!x)return;x.all++;if(s.lab==='live')x.live++;if(s.lab==='ai')x.ai++;if(s.pub)x.pub++}));
 document.getElementById('tbl').innerHTML='<table><tr><th>Вариант</th><th>Текстов</th><th>Живой</th><th>Публиковать</th><th>Нейросеть</th></tr>'+V.map(v=>'<tr><td>'+esc(v)+'</td><td>'+r[v].all+'</td><td>'+r[v].live+'</td><td>'+r[v].pub+'</td><td>'+r[v].ai+'</td></tr>').join('')+'</table>'}
 count();
+document.getElementById('dl').onclick=()=>{const out=[];T.forEach(t=>t.cards.forEach((c,ci)=>{const s=S[t.id+'#'+ci];if(s&&(s.lab||s.pub))out.push({topic:t.id,variant:c.v,mark:s.lab||null,publish:!!s.pub,text:c.text.slice(0,80)})}));const b=new Blob([JSON.stringify({page:KEY,ratings:out},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='ocenki-'+KEY+'.json';a.click()};
 document.getElementById('rev').onclick=()=>{document.body.classList.toggle('reveal');document.getElementById('rev').textContent=document.body.classList.contains('reveal')?'Скрыть':'Показать, где что'};
 </script></body></html>`
 }
