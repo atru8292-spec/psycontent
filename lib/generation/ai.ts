@@ -64,7 +64,8 @@ export async function callModel(o: CallOpts): Promise<string> {
   const send = () => fetch(OPENAI_URL, {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    signal: AbortSignal.timeout(o.timeoutMs || 55000),
+    // GENERATION_TIMEOUT_MS только для массовых прогонов (длинная речь h7 с рассуждением бывает дольше 55 с); в проде переменной нет
+    signal: AbortSignal.timeout(o.timeoutMs || Number(process.env.GENERATION_TIMEOUT_MS) || 55000),
     body: JSON.stringify(body),
   })
   let res = await send()
