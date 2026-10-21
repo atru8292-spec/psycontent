@@ -16,8 +16,12 @@ process.env.OPENAI_API_KEY = 'dry-run'
 process.env.GENERATION_CUT = '0'
 const sent: any[] = []
 ;(globalThis as any).fetch = async (_url: string, init: any) => {
-  sent.push(JSON.parse(init.body))
-  return new Response(JSON.stringify({ choices: [{ message: { content: 'Речь: заглушка.' } }], usage: {} }), { status: 200, headers: { 'content-type': 'application/json' } })
+  const body = JSON.parse(init.body)
+  sent.push(body)
+  // скелет zh5b ждет JSON: заглушка отдает пример, чтобы было видно, как скелет попадает в промпт писателя
+  const sk = /^Ты психолог\. Перед тем как записать ролик/u.test(body.messages?.[0]?.content || '')
+  const content = sk ? JSON.stringify({ mysl: '[мысль из скелета]', pochemu: ['[причина 1]', '[причина 2]'], primer: '[пример]', obraz: '' }) : 'Речь: заглушка.'
+  return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: {} }), { status: 200, headers: { 'content-type': 'application/json' } })
 }
 const coreFile = join(__dirname, '..', '_знания', 'мозг-генератора', 'test', 'eval', `voice_core_${who}_rilsy.json`)
 const core = existsSync(coreFile) ? JSON.parse(readFileSync(coreFile, 'utf8')) : { core: '', sig: [], fit: [], samples: [] }
@@ -27,6 +31,8 @@ const profile = { ...p, voice_core: core.core, signature_phrases: core.sig, voic
 const memory = { count: Number(flag('count')) || 0, lastHookTypes: [], lastArcs: [], lastOpenings: [], lastEndings: [], lastRings: [], lastIntents: [], lastFormats: [], usedClientPhrases: [], usedDetails: [], usedSignaturePhrases: [], recentTopics: [], feedbackReasons: [] }
 const ctx: GenContext = { userId: '', settings: buildAuthorSettings(profile, { rotation: 0 }), memory } as any
 simpleWrite(ctx, { topic: flag('topic') || 'тема', format: (flag('format') || 'reels_monolog') as FormatCode, intent: flag('intent') || 'uznavanie' } as any).then(() => {
-  const m = sent[0]?.messages || []
-  for (const x of m) console.log(`\n===== ${x.role} =====\n${x.content}`)
+  // вызов писателя: самый длинный системный промпт (скелет и ножницы короче)
+  const w = [...sent].sort((a, b) => (b.messages?.[0]?.content || '').length - (a.messages?.[0]?.content || '').length)[0]
+  if (sent.length > 1) console.log(`(вызовов: ${sent.length}, показан писатель)`)
+  for (const x of w?.messages || []) console.log(`\n===== ${x.role} =====\n${x.content}`)
 })

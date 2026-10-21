@@ -334,14 +334,19 @@ export function zh5Table(sets: { name: string; rows: R5[] }[]): string {
 const EXPL = /(?<![а-яё])(?:это|значит|потому что|на самом деле|мозг|психик\S*|поэтому|то есть|получается)(?![а-яё])/iu
 // «вы-повествование»: фраза начинается с «вы / ты» и глагола настоящего времени или сразу с такого глагола на -ете/-ите/-ешь/-ишь
 const VY = /^(?:и\s+|а\s+|потом\s+|тут\s+)?(?:(?:вы|ты)\s+(?:уже\s+|снова\s+|опять\s+|еще\s+)?[а-яё]+(?:ете|ите|ешь|ишь|етесь|итесь|ешься|ишься)|[а-яё]+(?:аете|яете|уете|ете|ите)(?:сь)?)(?![а-яё])/iu
+// 09-MYSL-U-ZHIVYH.md: язык психолога в объяснении (только для отчета, переделку по ним не запускаем)
+const PROF = /психик|защитн|защищ|сценари|привязанност|травм|(?<![а-яё])мозг|контрол|избега|тревожност|самооценк|границ/iu
+const MY = /(?<![а-яё])(?:мы|нам|нас)\s+(?:все\s+|часто\s+|очень\s+)?[а-яё]+(?:ем|им|ет|ит|ют|ят|ется|ются|ал|али)(?![а-яё])/iu
+const TYPE = /люди,? которые|человек,? который|когда человек|у людей|у таких людей|дети,? у которых|тревожник|такие люди/iu
+const VY_WHY = /(?<![а-яё])(?:вы|ты|вас|тебя|вам|тебе)(?![а-яё])[^.!?]*(?:потому что|потому,? что|значит|на самом деле|чтобы не|из-за того)/iu
 const PRIZYV = /подпис|сохран|пишите в коммент|напишите в коммент|запис|ссылк|в шапке|в директ|ставьте/iu
 export function normTable(sets: { name: string; rows: R5[] }[]): string {
-  const head = '| | текстов | фраз-объяснений | «вы-повествование» | слов в тексте по формату (медиана, от-до, разброс) | конец вопросом | призыв голосом в конце |\n|---|---|---|---|---|---|---|'
+  const head = '| | текстов | фраз-объяснений | «вы-повествование» | «вы» плюс почему | слова профессии | «мы»-обобщение | про тип людей | слов в тексте по формату (медиана, от-до, разброс) | конец вопросом | призыв голосом в конце |\n|---|---|---|---|---|---|---|---|---|---|---|'
   return head + '\n' + sets.map(({ name, rows }) => {
-    let all = 0, ex = 0, vy = 0
+    let all = 0, ex = 0, vy = 0, why = 0, prof = 0, my = 0, type = 0
     for (const r of rows) for (const line of splitText(r.text).speech.split(/\n+/)) {
       if (isDialog(line)) continue
-      for (const x of sentsOfLine(line)) { all++; if (EXPL.test(x)) ex++; if (VY.test(x)) vy++ }
+      for (const x of sentsOfLine(line)) { all++; if (EXPL.test(x)) ex++; if (VY.test(x)) vy++; if (VY_WHY.test(x)) why++; if (PROF.test(x)) prof++; if (MY.test(x)) my++; if (TYPE.test(x)) type++ }
     }
     const byF = new Map<string, number[]>()
     for (const r of rows) byF.set(r.format, [...(byF.get(r.format) || []), W(splitText(r.text).speech).length])
@@ -349,7 +354,8 @@ export function normTable(sets: { name: string; rows: R5[] }[]): string {
     const last = (r: R5) => { const ss = sents(splitText(r.text).speech); return ss.slice(-2).join(' ') }
     const endQ = rows.filter(r => /\?[»"]?$/u.test((sents(splitText(r.text).speech).slice(-1)[0] || ''))).length
     const pr = rows.filter(r => PRIZYV.test(last(r))).length
-    return `| ${name} | ${rows.length} | ${Math.round((ex / (all || 1)) * 100)}% | ${Math.round((vy / (all || 1)) * 1000) / 10}% | ${lens} | ${endQ}/${rows.length} | ${pr}/${rows.length} |`
+    const pc = (x: number) => `${Math.round((x / (all || 1)) * 1000) / 10}%`
+    return `| ${name} | ${rows.length} | ${Math.round((ex / (all || 1)) * 100)}% | ${pc(vy)} | ${pc(why)} | ${pc(prof)} | ${pc(my)} | ${pc(type)} | ${lens} | ${endQ}/${rows.length} | ${pr}/${rows.length} |`
   }).join('\n')
 }
 
