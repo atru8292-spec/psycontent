@@ -97,6 +97,11 @@ const picks5 = find('Начала, концы и подписи для ПЖ5')
 const cards5 = find('Карточки для ПЖ5')
 const pn5 = find('ПН5.')
 const tp5 = find('ТП5.')
+const pzh5b = find('ПЖ5b.')
+const moves5b = find('Ходы для ПЖ5b')
+const picks5b = find('Начала, концы, подписи и каркасы для ПЖ5b')
+const cards5b = find('Карточки для ПЖ5b')
+const sk = find('СК.')
 const buttons = find('Кнопки')
 
 const btn = {}
@@ -178,6 +183,14 @@ export const PN5_SYSTEM = ${str(pick(pn5, 'system'))}
 export const PN5_USER = ${str(pick(pn5, 'user'))}
 export const TP5_SYSTEM = ${str(pick(tp5, 'system'))}
 export const TP5_USER = ${str(pick(tp5, 'user'))}
+
+export const PZH5B_SYSTEM = ${str(pick(pzh5b, 'system'))}
+export const PZH5B_REELS = ${str(pick(pzh5b, 'reels'))}
+export const PZH5B_MOVES: Record<string, string> = ${obj(cards(moves5b))}
+export const PZH5B_PICKS: Record<string, string> = ${obj(cards(picks5b))}
+export const PZH5B_CARDS: Record<string, string> = ${obj(cards(cards5b))}
+export const SK_SYSTEM = ${str(pick(sk, 'system'))}
+export const SK_USER = ${str(pick(sk, 'user'))}
 
 export const YM_SYSTEM = ${str(pick(ym, 'system'))}
 export const YM_USER = ${str(pick(ym, 'user'))}
