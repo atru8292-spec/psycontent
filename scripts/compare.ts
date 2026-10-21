@@ -87,7 +87,8 @@ function main() {
     if (live) t.cards.push(live)
     t.cards = shuffle(t.cards, hash(t.id))
   }
-  const list = [...topics.values()]
+  // --need=zh5: только темы, где есть текст этого варианта (прогон мог оборваться, 22.10)
+  const list = [...topics.values()].filter(t => !flag('need') || t.cards.some(c => c.v === flag('need')))
   const stamp = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '-')
   const out = join(TEST, 'gipotezy', stamp)
   mkdirSync(out, { recursive: true })

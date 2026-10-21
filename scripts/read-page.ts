@@ -37,7 +37,9 @@ for (const spec of flag('runs').split(',').filter(Boolean)) {
   rows.forEach((r: any, i: number) => {
     const z = r.plan?.zh4 || {}
     const picks = [z.start ? `начало ${z.start}` : '', z.end ? `конец ${z.end}` : '', z.caption ? `подпись: ${CAP[z.caption] || z.caption}, ${LEN[z.len] || z.len}${z.vizitka ? ', с визиткой' : ''}` : '',
-      z.cover ? `обложка ${z.cover}` : '', z.karEnd ? `последний слайд ${z.karEnd}` : '', z.karShag ? 'слайд с шагом' : '', z.detail ? 'предложена рабочая деталь' : ''].filter(Boolean).join(' · ')
+      z.cover ? `обложка ${z.cover}` : '', z.karEnd ? `последний слайд ${z.karEnd}` : '', z.karShag ? 'слайд с шагом' : '', z.detail ? 'предложена рабочая деталь' : '',
+      // zh5: длина, призыв голосом, петля, обращение, мат, реплика в подписи
+      z.rlen ? `длина ${z.rlen} (${z.words})` : '', z.prizyv ? 'призыв голосом' : '', z.loop ? 'петля можно' : '', z.addr ? 'обращение можно' : '', z.mat === true ? 'мат можно' : z.mat === false ? 'без мата' : '', z.replika ? 'реплика в подписи можно' : ''].filter(Boolean).join(' · ')
     parts.push(`<div class="c"><div class="m">${i + 1}. ${esc(r.author)} · ${esc(r.format)} · «${esc(r.topic)}»${picks ? `<br>${esc(picks)}` : ''}</div><pre>${esc(r.text)}</pre></div>`)
     total++
   })

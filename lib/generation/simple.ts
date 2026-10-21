@@ -164,7 +164,9 @@ async function cutText5(ctx: GenContext, format: FormatCode, text: string): Prom
       userId: ctx.userId, operation: 'generate_post_cut', writer: true,
     })
     const f = applyFixes(text, Array.isArray(r?.fix) ? r.fix : [])
-    const c = [...NO_CUT, 'reels_rol'].includes(format) ? { text: f.text, cut: [] as string[] } : applyCuts(f.text, Array.isArray(r?.cut) ? r.cut : [])
+    // призыв голосом выбрал код (прогон 22.10: ножницы вырезали его в 4 текстах из 41), его не режем
+    const cuts = (Array.isArray(r?.cut) ? r.cut : []).filter(x => !/подпис[ыа]/iu.test(String(x)))
+    const c = [...NO_CUT, 'reels_rol'].includes(format) ? { text: f.text, cut: [] as string[] } : applyCuts(f.text, cuts)
     return { text: c.text, cut: [...c.cut, ...f.fixed.map(x => `исправлено: ${x}`)] }
   } catch {
     return { text, cut: [] }
