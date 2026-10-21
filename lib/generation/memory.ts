@@ -91,7 +91,7 @@ function zh4Of(rows: any[]): Zh4Memory {
   const z = rows.map(r => (r.check_result && typeof r.check_result === 'object' ? r.check_result.zh4 : null)).filter(Boolean)
   const s = (k: string) => z.map((x: any) => x[k]).filter((v: any) => typeof v === 'string' && v)
   const b = (k: string) => z.filter((x: any) => k in x).map((x: any) => x[k] === true)
-  return { starts: s('start'), ends: s('end'), captions: s('caption'), lens: s('len'), vizitka: b('vizitka'), covers: s('cover'), karEnds: s('karEnd'), karShag: b('karShag'), detail: b('detail'), loops: b('loop'), addr: b('addr'), mat: b('mat'), replika: b('replika'), rlens: s('rlen'), prizyv: b('prizyv') }
+  return { starts: s('start'), ends: s('end'), captions: s('caption'), lens: s('len'), vizitka: b('vizitka'), covers: s('cover'), karEnds: s('karEnd'), karShag: b('karShag'), detail: b('detail'), loops: b('loop'), addr: b('addr'), mat: b('mat'), replika: b('replika'), rlens: s('rlen'), prizyv: b('prizyv'), karkas: s('karkas') }
 }
 
 const list = (a: (string | boolean)[]) => (a.length ? a.map(String).join('; ') : 'нет')

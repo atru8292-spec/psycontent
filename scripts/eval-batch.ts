@@ -210,6 +210,7 @@ async function runOne(row: EvalRow, memory: Memory, core: Core): Promise<Result>
         if (y.caption) (z.replika = z.replika || []).unshift(!!y.replika)
         if (y.rlen) (z.rlens = z.rlens || []).unshift(y.rlen)
         ;(z.prizyv = z.prizyv || []).unshift(!!y.prizyv)
+        if (y.karkas) (z.karkas = z.karkas || []).unshift(y.karkas)
       }
       const g = guard(r.text, { format: r.format })
       const j = has('no-judge') ? null : await judge(row, r.format, r.text)

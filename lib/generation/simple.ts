@@ -2,7 +2,7 @@
 // потом «Ножницы» (раздел «ПН»): модель только называет лишние фразы, вырезает их код.
 // С 01.10 это путь генерации по умолчанию (выиграл слепое сравнение 4:2), GENERATION_MODE=full вернет старую цепочку.
 
-import { PP_SYSTEM, PP_USER, PP_REELS, PN_SYSTEM, PN_USER, SKELETONS, PZH_SYSTEM, PZH_MOVES, PZH3_SYSTEM, PZH3_MOVES, PZH4_SYSTEM, PZH4_MOVES, PZH4_REELS, PZH5_SYSTEM, PZH5_MOVES, PZH5_REELS, PZH5_CARDS, PN5_SYSTEM, PN5_USER } from './prompts.generated'
+import { PP_SYSTEM, PP_USER, PP_REELS, PN_SYSTEM, PN_USER, SKELETONS, PZH_SYSTEM, PZH_MOVES, PZH3_SYSTEM, PZH3_MOVES, PZH4_SYSTEM, PZH4_MOVES, PZH4_REELS, PZH5_SYSTEM, PZH5_MOVES, PZH5_REELS, PZH5_CARDS, PN5_SYSTEM, PN5_USER, PZH5B_SYSTEM, PZH5B_REELS, PZH5B_MOVES, PZH5B_PICKS, PZH5B_CARDS, SK_SYSTEM, SK_USER } from './prompts.generated'
 import { fill, INTENT_CARDS, FORMAT_CARDS } from './prompts'
 import { callModel, callJson } from './ai'
 import { finalNet, isReels, LABEL_RE, type FormatCode } from './text-guard'
@@ -11,6 +11,7 @@ import { relevantStories, storiesText } from './settings'
 import { pickReelsFormat, type GenContext, type GenRequest } from './pipeline'
 import { chooseStart, chooseEnd, chooseCaption, chooseCarousel, offerDetail, detailLine, startEndText, carouselText, captionText, zh4FormatCard, softCutFormat, applySoftCut, numberedSpeech, seedOf, PM_SYSTEM, type Zh4Choice } from './zh4'
 import { chooseStart5, chooseEnd5, chooseLen5, choosePrizyv, chooseLoop, chooseAddr, chooseMat, chooseReplika, chooseCaption5, offerDetail5, detailLine5, startEndText5, carouselText5, captionText5, matRule5, allowsMat, applyFixes, type Zh5Choice } from './zh5'
+import { chooseKarkas, startForKarkas, chooseEnd5b, skeletonText, type Skeleton } from './zh5b'
 import { activeHyps, hypSystem, hypCall, pickVoiceExamples, voiceExamplesText, liveReelsMaxWords, hypReelsRule, H7_CUT_SYSTEM, pickLiveExamples, liveExamplesText, chooseMove, moveText, isZh } from './hypotheses'
 
 // Режим генерации: simple (по умолчанию с 01.10, выиграл слепое сравнение 4:2) или full (старая цепочка).
@@ -217,7 +218,10 @@ export async function simpleWrite(ctx: GenContext, req: GenRequest): Promise<{ t
   const hyps = activeHyps()
   const zh = isZh(hyps)
   // zh5 главнее zh4 и zh3; zf это «семья ПЖ4»: начало, конец и подпись выбирает код
-  const zh5 = hyps.has('zh5')
+  // zh5b (и zh5bx) это zh5 с каркасом мысли и скелетом перед текстом
+  const z5b = hyps.has('zh5b') || hyps.has('zh5bx')
+  const z5x = hyps.has('zh5bx')
+  const zh5 = hyps.has('zh5') || z5b
   const zh4 = hyps.has('zh4') && !zh5
   const zf = zh4 || zh5
   const zh3 = hyps.has('zh3') && !zf
@@ -243,7 +247,7 @@ export async function simpleWrite(ctx: GenContext, req: GenRequest): Promise<{ t
   // выпал один ход, оба текста петлей-повтором)
   // zh5: петлю (ход «одна мысль повтором») код дает не чаще одного текста из 8 у автора, иначе этого хода в выборе нет
   const loop5 = zh5 ? chooseLoop(ctx.memory, s.name || '') : false
-  const moves5 = zh5 ? Object.fromEntries(Object.entries(PZH5_MOVES).filter(([code]) => loop5 || code !== 'hod_povtor')) : {}
+  const moves5 = zh5 ? Object.fromEntries(Object.entries(z5b ? PZH5B_MOVES : PZH5_MOVES).filter(([code]) => loop5 || code !== 'hod_povtor')) : {}
   const moveCard = zh ? chooseMove(zh5 ? moves5 : zh4 ? PZH4_MOVES : zh3 ? PZH3_MOVES : PZH_MOVES, format, intent, (ctx.memory.count || 0) + (zf ? seedOf(s.name || '') : 0)) : ''
   const z: Zh5Choice = {}
   if (zh5) {
@@ -257,6 +261,12 @@ export async function simpleWrite(ctx: GenContext, req: GenRequest): Promise<{ t
     z.loop = loop5
     z.addr = chooseAddr(ctx.memory, s, who)
     if (allowsMat(s)) z.mat = chooseMat(ctx.memory, s)
+    // zh5b: каркас мысли вместо хода в монологе, ответе, «важных словах» и списке; начало под каркас; сарказм в конце редко
+    if (z5b) {
+      z.karkas = chooseKarkas(ctx.memory, format, who, z5x)
+      if (z.karkas) z.start = startForKarkas(ctx.memory, z.karkas, who)
+      z.end = chooseEnd5b(ctx.memory, format, intent, moveText(moveCard), who)
+    }
   } else if (zh4) {
     const who = s.name || ''
     z.start = chooseStart(ctx.memory, format, moveCard, who)
@@ -293,11 +303,25 @@ export async function simpleWrite(ctx: GenContext, req: GenRequest): Promise<{ t
   const reelMax = hyps.has('h6') || hyps.has('h7') || zh ? liveReelsMaxWords(format) : reelsMaxWords(format)
   // zh4: рилс сразу своей длины; с h7m черновик в полтора раза длиннее и абзацами, потом мягкий монтажер
   const soft = zh4 && hyps.has('h7m') && softCutFormat(format)
-  const zh4Reels = zh5 && isReels(format) ? fill(PZH5_REELS, { words: z.words || String(reelMax) })
+  const zh4Reels = zh5 && isReels(format) ? fill(z5b ? PZH5B_REELS : PZH5_REELS, { words: z.words || String(reelMax) })
     : zh4 && isReels(format)
     ? fill(PZH4_REELS, { max_words: soft ? Math.round(reelMax * 1.5 / 10) * 10 : reelMax }) +
       (soft ? ' Сейчас наговори длиннее, около этого потолка, и раздели речь на абзацы по одной мысли или сцене, пустой строкой между ними: потом лишние абзацы вырежут целиком, поэтому каждый абзац законченный.' : '')
     : ''
+  // zh5b: скелет мысли отдельным коротким вызовом (раздел «СК»); если не вышел, текст пишется по одному каркасу
+  let sk: Skeleton | null = null
+  if (z5b && z.karkas) {
+    try {
+      sk = await callJson<Skeleton>({
+        system: SK_SYSTEM,
+        user: fill(SK_USER, { topic: req.topic, audience: (s.baseSettings.match(/^Аудитория:\s*(.*)$/mu) || ['', ''])[1], intent_card: INTENT_CARDS[intent], karkas: PZH5B_PICKS[`karkas_${z.karkas}`] || z.karkas, material }),
+        effort: 'low', verbosity: 'low', maxTokens: 1500, timeoutMs: CUT_TIMEOUT_MS,
+        userId: ctx.userId, operation: 'generate_post_skeleton', writer: true, knownNames: s.knownNames,
+      })
+      z.skeleton = [sk?.mysl, ...(sk?.pochemu || []), sk?.primer, sk?.obraz].filter(Boolean).join(' | ')
+    } catch { sk = null }
+  }
+  const picks = z5b ? PZH5B_PICKS : undefined
   const user = fill(PP_USER, {
     live_examples: liveExamples,
     samples: s.samples.slice(0, 2).map((x, i) => `<текст ${i + 1}>\n${x}\n</текст ${i + 1}>`).join('\n') || 'нет',
@@ -309,19 +333,19 @@ export async function simpleWrite(ctx: GenContext, req: GenRequest): Promise<{ t
       // слепок коротко, до 5 строк; пока его нет, манера словами автора из экспресса
       s.voiceBrief ? `Как звучит автор по ее текстам:\n${s.voiceBrief}` : s.toneVerbal ? `Как автор сама описала свою манеру: ${s.toneVerbal}` : '',
       s.voiceCorrections ? `Автор сама сказала про свой голос: ${s.voiceCorrections}` : ''].filter(Boolean).join('\n'),
-    profanity_rule: zh5 && z.mat !== undefined ? matRule5(z) : s.profanityRule,
+    profanity_rule: zh5 && z.mat !== undefined ? matRule5(z, picks) : s.profanityRule,
     gender_forms: s.genderForms,
     address: s.address,
     material,
     // zh: схему задает ход, поэтому «Возможная схема» из карточки смысла убираем
     intent_card: zh ? INTENT_CARDS[intent].split('\n').filter(l => !/^Возможная схема/u.test(l)).join('\n') : INTENT_CARDS[intent],
-    format_card: zh5 ? (PZH5_CARDS[format] || zh4FormatCard(format, FORMAT_CARDS[format])) : zh4 ? zh4FormatCard(format, FORMAT_CARDS[format]) : FORMAT_CARDS[format],
+    format_card: zh5 ? ((z5b ? PZH5B_CARDS : PZH5_CARDS)[format] || zh4FormatCard(format, FORMAT_CARDS[format])) : zh4 ? zh4FormatCard(format, FORMAT_CARDS[format]) : FORMAT_CARDS[format],
     topic: req.topic,
     user_detail: req.userDetail || '',
     // zh: вместо скелета ход живого психолога, во всех форматах, включая рилсы
-    skeleton: zh ? [moveText(moveCard), zh5 ? startEndText5(z, s) : zh4 ? startEndText(z) : '', format === 'carousel' ? (zh5 ? carouselText5(z) : zh4 ? carouselText(z) : '') : ''].filter(Boolean).join('\n') : chooseSkeleton(ctx, intent, format),
+    skeleton: zh ? [z.karkas ? skeletonText(z.karkas, sk, z5x) : moveText(moveCard), zh5 ? startEndText5(z, s, picks) : zh4 ? startEndText(z) : '', format === 'carousel' ? (zh5 ? carouselText5(z, picks) : zh4 ? carouselText(z) : '') : ''].filter(Boolean).join('\n') : chooseSkeleton(ctx, intent, format),
     reels_rule: zh4Reels || (isReels(format) ? hypReelsRule(fill(PP_REELS, { max_words: reelMax }), hyps, reelMax) : ''),
-    caption_tail: zh5 ? (z.caption ? captionText5(z, s) : '') : zh4 ? (z.caption ? captionText(z, s) : '') : captionTail(ctx, format),
+    caption_tail: zh5 ? (z.caption ? captionText5(z, s, picks) : '') : zh4 ? (z.caption ? captionText(z, s) : '') : captionTail(ctx, format),
     core_block: req.coreBlock,
     neighbors: req.neighbors,
     sample_block: req.sampleBlock,
@@ -330,7 +354,7 @@ export async function simpleWrite(ctx: GenContext, req: GenRequest): Promise<{ t
     feedback_reasons: (ctx.memory.feedbackReasons || []).slice(0, 4).join('; '),
   })
   const text = await callModel({
-    system: zh5 ? PZH5_SYSTEM : zh4 ? PZH4_SYSTEM : zh3 ? PZH3_SYSTEM : hyps.has('zh') ? PZH_SYSTEM : hypSystem(PP_SYSTEM, format, hyps), user, effort: 'medium', verbosity: 'medium', maxTokens: 8000, ...hypCall(hyps),
+    system: z5b ? PZH5B_SYSTEM : zh5 ? PZH5_SYSTEM : zh4 ? PZH4_SYSTEM : zh3 ? PZH3_SYSTEM : hyps.has('zh') ? PZH_SYSTEM : hypSystem(PP_SYSTEM, format, hyps), user, effort: 'medium', verbosity: 'medium', maxTokens: 8000, ...hypCall(hyps),
     // таймаут писателя (21.10): длинная речь h7 с рассуждением medium шла дольше общих 55 с и падала (4 текста zh2 20.10).
     // Писателю 100 с, ножницам 30 с: вместе с ножницами запрос укладывается в proxy_read_timeout 120 с у nginx.
     timeoutMs: WRITER_TIMEOUT_MS,

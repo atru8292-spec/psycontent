@@ -13,8 +13,10 @@ import type { Memory } from './memory'
 import type { AuthorSettings } from './settings'
 import type { FormatCode } from './text-guard'
 
-export type Zh5Choice = Zh4Choice & { loop?: boolean; addr?: boolean; mat?: boolean; replika?: boolean; rlen?: string; words?: string; prizyv?: boolean }
-const card = (code: string) => (PZH5_PICKS[code] || '').split('\n').slice(1).join('\n').trim()
+export type Zh5Choice = Zh4Choice & { loop?: boolean; addr?: boolean; mat?: boolean; replika?: boolean; rlen?: string; words?: string; prizyv?: boolean; karkas?: string; skeleton?: string }
+// карточки ПЖ5 по умолчанию; zh5b передает свои (PZH5B_PICKS)
+export type Picks = Record<string, string>
+const card = (code: string, picks: Picks = PZH5_PICKS) => (picks[code] || '').split('\n').slice(1).join('\n').trim()
 const mem = (m: Memory): Zh4Memory => ({ ...emptyZh4(), ...(m.zh4 || {}) })
 const k0 = (m: Memory, who: string) => (m.count || 0) + seedOf(who)
 
@@ -125,25 +127,25 @@ export const detailLine5 = (s: AuthorSettings) =>
   `Смешное или странное с работы автора: ${s.workDetail}\nВозьми эту подробность, только если она прямо про тему текста; если нет, не бери.`
 
 // блоки для промпта
-export function startEndText5(c: Zh5Choice, s?: AuthorSettings): string {
-  return [c.start ? card(`nachalo_${c.start}`) : '', c.end ? card(`konec_${c.end}`) : '',
-    c.prizyv ? card('prizyv_da') + (s?.blogAbout ? ` Про что блог: ${s.blogAbout}.` : '') : '',
-    card(c.loop ? 'petlya_da' : 'petlya_net'), card(c.addr ? 'obr_da' : 'obr_net')].filter(Boolean).join('\n')
+export function startEndText5(c: Zh5Choice, s?: AuthorSettings, picks: Picks = PZH5_PICKS): string {
+  return [c.start ? card(`nachalo_${c.start}`, picks) : '', c.end ? card(`konec_${c.end}`, picks) : '',
+    c.prizyv ? card('prizyv_da', picks) + (s?.blogAbout ? ` ${picks === PZH5_PICKS ? 'Про что блог' : 'О чем блог по сути (перескажи своими словами)'}: ${s.blogAbout}.` : '') : '',
+    card(c.loop ? 'petlya_da' : 'petlya_net', picks), card(c.addr ? 'obr_da' : 'obr_net', picks)].filter(Boolean).join('\n')
 }
-export function carouselText5(c: Zh5Choice): string {
-  return [card(`oblozhka_${c.cover}`), c.podzag ? 'Под обложкой короткий подзаголовок своими словами.' : 'Подзаголовка под обложкой нет, одна строка.',
-    card(`kar_konec_${c.karEnd}`), card(c.karShag ? 'kar_shag_da' : 'kar_shag_net'), card(c.addr ? 'obr_da' : 'obr_net')].filter(Boolean).join('\n')
+export function carouselText5(c: Zh5Choice, picks: Picks = PZH5_PICKS): string {
+  return [card(`oblozhka_${c.cover}`, picks), c.podzag ? 'Под обложкой короткий подзаголовок своими словами.' : 'Подзаголовка под обложкой нет, одна строка.',
+    card(`kar_konec_${c.karEnd}`, picks), card(c.karShag ? 'kar_shag_da' : 'kar_shag_net', picks), card(c.addr ? 'obr_da' : 'obr_net', picks)].filter(Boolean).join('\n')
 }
-export function captionText5(c: Zh5Choice, s: AuthorSettings): string {
+export function captionText5(c: Zh5Choice, s: AuthorSettings, picks: Picks = PZH5_PICKS): string {
   const facts = [s.name ? `имя: ${s.name}` : '', s.approach ? `метод: ${s.approach}` : '', s.niche ? `с кем работает: ${s.niche}` : '',
     s.blogAbout ? `про что блог: ${s.blogAbout}` : '', c.caption === 'zapis' && s.booking ? `как попасть: ${s.booking}` : ''].filter(Boolean).join('; ')
-  return [card(`podpis_${c.caption}`), card(`dlina_${c.len}`),
-    c.vizitka ? card('vizitka') : 'О себе в этой подписи не рассказывай.',
-    card(c.replika ? 'replika_da' : 'replika_net'),
-    c.end === 'vopros' ? card('bez_voprosa') : '',
+  return [card(`podpis_${c.caption}`, picks), card(`dlina_${c.len}`, picks),
+    c.vizitka ? card('vizitka', picks) : 'О себе в этой подписи не рассказывай.',
+    card(c.replika ? 'replika_da' : 'replika_net', picks),
+    c.end === 'vopros' ? card('bez_voprosa', picks) : '',
     (c.caption === 'podpiska' || c.vizitka) && facts ? `Данные автора: ${facts}.` : ''].filter(Boolean).join('\n')
 }
-export const matRule5 = (c: Zh5Choice) => card(c.mat ? 'mat_da' : 'mat_net').replace(/\.$/u, '')
+export const matRule5 = (c: Zh5Choice, picks: Picks = PZH5_PICKS) => card(c.mat ? 'mat_da' : 'mat_net', picks).replace(/\.$/u, '')
 
 // исправления ножниц ПН5: фраза стоит в тексте один раз, новая почти той же длины (до двух слов разницы)
 const W = (s: string) => (s.match(/[\p{L}\d]+/gu) || []).length
