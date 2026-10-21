@@ -41,6 +41,10 @@ export type AuthorSettings = {
   practiceFacts: string
   // смешное или странное с работы автора (вход «личная деталь», zh3 20.10): идет в материал только в гипотезе zh3
   workDetail?: string
+  // для подписи zh4 (21.10): метод и «про что мой блог» одной строкой. Поля blog_about в базе пока нет
+  // (онбординг его не спрашивает), есть только у тестовых психологов; без него подпись про подписку держится на ролике
+  approach?: string
+  blogAbout?: string
 }
 
 const arr = (v: unknown): string => (Array.isArray(v) ? v.filter(Boolean).join(', ') : v ? String(v) : '')
@@ -107,16 +111,38 @@ export function voiceCoreShortOf(core: string): string {
 // слепое сравнение 01.10), но манеру держать надо. Берем пункты слепка: 1 ритм, 7 температура (манера),
 // 4 лексика (подпись «Речь»: слово «Слова» анонимайзер принимает за фамилию на -ова), 11 обороты (свои словечки), 10 чего нет (чего избегать). Первая фраза пункта, до 180 знаков,
 // не больше 5 строк. Пункты «не видно по образцам» пропускаем.
-const BRIEF_POINTS: [string, string][] = [['1', 'Ритм'], ['7', 'Манера'], ['4', 'Речь'], ['11', 'Свои обороты'], ['10', 'Чего у нее нет']]
+// Поломка до 21.10: модель П0 повторяет название пункта отдельной фразой («1. Длина фраз и ритм. Большинство...»
+// или строкой «4. Лексика.»), а код брал первую фразу, и в промпт шло «Ритм: Длина фраз и ритм.» у всех пяти пунктов.
+// Теперь название пункта (до двоеточия или первая фраза до 6 слов со словом из названия пункта) отрезается, берутся две фразы содержания.
+// В пункте 11 только обороты в кавычках: пояснения модели к ним («первый показывает склонность...») не голос.
+const BRIEF_POINTS: [string, string][] = [['1', 'Ритм'], ['7', 'Манера'], ['4', 'Речь'], ['11', 'Свои обороты'], ['10', 'Чего в текстах нет']]
+// слова из названий пунктов П0, по ним видно, что первая фраза это заголовок, а не содержание («Фразы короткие.»)
+const BRIEF_HEADS: Record<string, RegExp> = { '1': /длин|ритм/iu, '4': /лексик/iu, '7': /эмоци|температур/iu, '10': /во всех|отсутству|чего нет/iu, '11': /оборот/iu }
+const sentencesOf = (s: string) => s.match(/[^.!?]+[.!?]+(?:[»"”)]+)?(?=\s|$)/gu)?.map(x => x.trim()) || [s]
 export function voiceBriefOf(core: string): string {
   if (!core) return ''
   const out: string[] = []
   for (const [num, label] of BRIEF_POINTS) {
-    const block = pointBlock(core, num).replace(/^\s*\d{1,2}[.)]\s*/, '').replace(/\s+/g, ' ').trim()
-    if (!block || /не видно по образцам/iu.test(block.slice(0, 60))) continue
-    const body = block.replace(/^[^:]{0,40}:\s*/u, '')
-    const first = num === '11' ? body : (body.match(/^.+?[.!?](?=\s|$)/u)?.[0] || body)
-    out.push(`- ${label}: ${clip(first, 180)}`)
+    let body = pointBlock(core, num).replace(/^\s*\d{1,2}[.)]\s*/, '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim()
+    // название пункта: «Лексика:» или «Длина фраз и ритм.» первой короткой фразой
+    if (/^[^:.!?«]{2,45}:\s/u.test(body)) body = body.replace(/^[^:]+:\s*/u, '')
+    else {
+      const head = sentencesOf(body)[0] || ''
+      if (head.split(/\s+/).length <= 6 && !/\d|«/u.test(head) && BRIEF_HEADS[num].test(head)) body = body.slice(head.length).trim()
+    }
+    if (!body || /не видно по образцам/iu.test(body.slice(0, 60))) continue
+    let text: string
+    if (num === '11') {
+      const quoted = [...body.matchAll(/«([^»]{2,60})»/gu)].map(m => `«${m[1].replace(/[.,]$/u, '')}»`)
+      if (!quoted.length) continue
+      text = Array.from(new Set(quoted)).slice(0, 5).join(', ')
+    } else {
+      const ss = sentencesOf(body)
+      text = ss[0] + (ss[1] && (ss[0] + ss[1]).length <= 220 ? ' ' + ss[1] : '')
+    }
+    // длинные тире из слепка в промпт не несем: в диапазоне цифр дефис, в речи запятая
+    text = text.replace(/(\d)\s*[–—]\s*(\d)/gu, '$1-$2').replace(/\s*[–—]\s*/gu, ', ')
+    out.push(`- ${label}: ${clip(text, 240)}`)
     if (out.length >= 5) break
   }
   return out.join('\n')
@@ -245,6 +271,8 @@ export function buildAuthorSettings(profile: any, opts?: { rotation?: number }):
     stories,
     clientPhrases: String(profile.client_pain_phrases || '').trim(),
     workDetail: String(profile.work_detail || '').trim(),
+    approach,
+    blogAbout: String(profile.blog_about || '').trim(),
     knownNames: profile.full_name ? [String(profile.full_name)] : [],
     name: String(profile.full_name || '').trim().split(/\s+/)[0] || '',
     niche,
