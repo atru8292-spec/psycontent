@@ -29,7 +29,8 @@ export type Scored = { id: string; text: string; ai: number; runs: number[]; tel
 
 async function scoreText(id: string, text: string, model?: string): Promise<Scored | null> {
   const runs: One[] = []
-  for (let k = 0; k < 3; k++) {
+  // TURING_CALLS=2 (21.10, лимит zh4): два вызова на текст вместо трех, среднее то же, разброс чуть больше
+  for (let k = 0; k < (Number(process.env.TURING_CALLS) || 3); k++) {
     try {
       const r = await callJson<One>({ system: SCORE_SYSTEM, user: `<текст>\n${text}\n</текст>`, effort: 'medium', verbosity: 'low', maxTokens: 2500, operation: 'eval_score', model })
       if (typeof r?.ai === 'number') runs.push(r)
