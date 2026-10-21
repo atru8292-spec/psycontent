@@ -4,7 +4,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { callJson } from '../lib/generation/ai'
-import { planPrompt, checkPlan, crossCommon, planSlots, WORN, type PlanTopic } from '../lib/generation/topics'
+import { planPrompt, checkPlan, crossCommon, planSlots, cleanTopic, WORN, type PlanTopic } from '../lib/generation/topics'
 import { PERSONAS, type Who } from './eval-data'
 
 const argv = process.argv.slice(2)
@@ -29,7 +29,12 @@ function report(plans: Record<string, { topics: PlanTopic[] }>): string {
 }
 
 async function main() {
-  if (flag('check')) { console.log(report(JSON.parse(readFileSync(flag('check'), 'utf8')))); return }
+  // --check: проверка готового плана; --clean перепишет в нем названия без тире и «ё»
+  if (flag('check')) {
+    const plans = JSON.parse(readFileSync(flag('check'), 'utf8'))
+    if (has('clean')) { for (const v of Object.values(plans) as any[]) v.topics = v.topics.map((t: any) => ({ ...t, title: cleanTopic(t.title), situation: cleanTopic(t.situation) })); writeFileSync(flag('check'), JSON.stringify(plans, null, 2)); writeFileSync(flag('check').replace(/\.json$/, '.md'), report(plans)) }
+    console.log(report(plans)); return
+  }
   console.log(`План тем: ${WHO.length} автора по ${N} тем. Около 10 ₽.`)
   if (!has('yes')) { console.log('Это настоящие деньги. Запусти с --yes.'); return }
   const out = flag('out') || join(__dirname, '..', '_знания', 'мозг-генератора', 'test', 'temy', new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '-'))
@@ -39,7 +44,7 @@ async function main() {
     const p = PERSONAS[who]
     const { system, user } = planPrompt(p, p.full_name, N)
     const r = await callJson<{ topics: PlanTopic[] }>({ system, user, effort: 'medium', verbosity: 'low', maxTokens: 9000, operation: 'topic_plan', writer: true, timeoutMs: 150000 })
-    plans[who] = { topics: (r.topics || []).map((t, i) => ({ ...t, n: Number(t.n) || i + 1 })) }
+    plans[who] = { topics: (r.topics || []).map((t, i) => ({ ...t, n: Number(t.n) || i + 1, title: cleanTopic(String(t.title || '')), situation: cleanTopic(String(t.situation || '')) })) }
     console.log(`${p.full_name}: ${plans[who].topics.length} тем`)
   }))
   const ordered = Object.fromEntries(WHO.map(w => [w, plans[w]]))

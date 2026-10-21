@@ -90,3 +90,6 @@ export function crossCommon(plans: Record<string, PlanTopic[]>): string[] {
       if (similar(x.situation, y.situation) >= 0.5) out.push(`${who[a]}${x.n} «${x.title}» и ${who[b]}${y.n} «${y.title}»`)
   return out
 }
+
+// тире и «ё» из названий тем: тема уходит в промпт генерации как есть (проба 21.10: модель плана ставила оба)
+export const cleanTopic = (t: string) => t.replace(/ё/g, 'е').replace(/Ё/g, 'Е').replace(/\s+[—–]\s+/gu, ', ').replace(/[—–]/gu, '-').trim()
