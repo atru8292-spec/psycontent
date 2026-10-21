@@ -15,13 +15,14 @@
 //       рабочая деталь автора в материале; с zh не совмещается, при обоих берется zh3
 //   zh4 ПЖ версии 4 (раздел «ПЖ4», 21.10): правки Арины к zh3 принципами, начало, конец, подпись и обложку выбирает код
 //       (lib/generation/zh4.ts), рилс сразу своей длины без h7; главнее zh3 и zh
+//   zh5 ПЖ версии 5 (раздел «ПЖ5», 22.10): доводка zh4 по живым, петлю, обращение, мат, реплику в подписи отмечает код (zh5.ts)
 //   h7m мягкий монтажер к zh4: черновик в полтора раза длиннее потолка, режутся только целые абзацы (раздел «ПМ»)
 
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { isReels, type FormatCode } from './text-guard'
 
-export type Hyp = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'h7' | 'h8' | 'zh' | 'zh3' | 'zh4' | 'h7m'
+export type Hyp = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'h7' | 'h8' | 'zh' | 'zh3' | 'zh4' | 'h7m' | 'zh5'
 
 // По умолчанию (переменная пустая) zh+h7: этот вариант Арина в слепом чтении оценила выше живых текстов (релиз 2026-10).
 // PROMPT_HYP=h0 (или none) вернет базовый ПП без гипотез, любой другой список включает ровно его.
@@ -30,10 +31,10 @@ export function activeHyps(): Set<Hyp> {
   const raw = String(process.env.PROMPT_HYP || '').trim().toLowerCase()
   if (!raw) return new Set(DEFAULT_HYPS)
   if (raw === 'h0' || raw === 'none') return new Set()
-  return new Set(raw.split(/[\s,+]+/).filter((h): h is Hyp => /^(h[1-8]|h7m|zh[34]?)$/.test(h)))
+  return new Set(raw.split(/[\s,+]+/).filter((h): h is Hyp => /^(h[1-8]|h7m|zh[345]?)$/.test(h)))
 }
 // промпт от живого любой версии: живые примеры, ход вместо скелета, длина рилса по живым
-export const isZh = (hyps: Set<Hyp>) => hyps.has('zh') || hyps.has('zh3') || hyps.has('zh4')
+export const isZh = (hyps: Set<Hyp>) => hyps.has('zh') || hyps.has('zh3') || hyps.has('zh4') || hyps.has('zh5')
 
 // ---------- h3: короткий промпт ----------
 export const H3_SYSTEM = `Ты психолог и ведешь блог. Напиши один материал для своих подписчиков так, как сказал бы это вслух человеку напротив: своими словами, с характером автора.

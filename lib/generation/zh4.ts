@@ -12,6 +12,8 @@ import type { AuthorSettings } from './settings'
 export type Zh4Memory = {
   starts: string[]; ends: string[]; captions: string[]; lens: string[]; vizitka: boolean[]
   covers: string[]; karEnds: string[]; karShag: boolean[]; detail: boolean[]
+  // zh5: петля, обращение, мат, реплика в подписи
+  loops?: boolean[]; addr?: boolean[]; mat?: boolean[]; replika?: boolean[]; rlens?: string[]; prizyv?: boolean[]
 }
 export const emptyZh4 = (): Zh4Memory => ({ starts: [], ends: [], captions: [], lens: [], vizitka: [], covers: [], karEnds: [], karShag: [], detail: [] })
 export type Zh4Choice = {
