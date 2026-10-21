@@ -263,7 +263,114 @@ export function captionChecks(run: string): string {
   ].join('\n')
 }
 
+
+// ---------- zh5 (22.10): короткие фразы, нарезка, петля, обращения, мат, повод, слово в кавычках, подписи ----------
+// Все счетчики считаются одинаково для наших прогонов и для живых из lib/generation/live-bank.json (без каруселей).
+type R5 = { id: string; author: string; format: string; text: string; plan?: any }
+const KIND_FORMAT: Record<string, string> = { monolog: 'reels_monolog', obyasnenie: 'reels_monolog', otvet: 'reels_otvet', rol: 'reels_rol', scenka: 'reels_scenka', spisok: 'reels_spisok', malysh: 'reels_malysh', istoriya: 'reels_istoriya', tg_post: 'post_tg' }
+export function liveRows(): R5[] {
+  const b = JSON.parse(readFileSync(join(ROOT, 'lib', 'generation', 'live-bank.json'), 'utf8'))
+  return b.filter((t: any) => !t.ai_like && t.kind !== 'karusel' && !['r03', 'r33', 'r40', 'r62', 'r65'].includes(t.id))
+    .map((t: any) => ({ id: t.id, author: t.author || String(t.id).split('#')[0], format: KIND_FORMAT[t.kind] || 'reels_monolog', text: t.text }))
+}
+// реплики диалога и роли по строкам; у живых сценок метки бывают «- », у наших «А:» / «Б:»
+const isDialog = (line: string) => /^\s*(?:[АБ]|[-–—])\s*[:]?\s/u.test(line)
+const sentsOfLine = (l: string) => l.replace(/^\s*(?:[АБ]\s*:|[-–—])\s*/u, '').split(/(?<=[.!?…])\s+/u).map(x => x.trim()).filter(x => W(x).length)
+const SHORT_OK = /^(?:да|ну|вот|так|короче|стоп|ага|нет|ой|ого|блин|ясно|именно|окей|ладно)(?![а-яё])/iu
+export function shortStats(rows: R5[]) {
+  let all = 0, short = 0, narezka = 0
+  const lens: number[] = []
+  const byFmt = new Map<string, [number, number]>()
+  for (const r of rows) {
+    const sp = splitText(r.text).speech
+    let textNarezka = false
+    for (const line of sp.split(/\n+/)) {
+      const ss = sentsOfLine(line)
+      let run = 0
+      for (const x of ss) {
+        const n = W(x).length
+        all++; lens.push(n)
+        const f = byFmt.get(r.format) || [0, 0]; f[0]++
+        if (n <= 3) { short++; f[1]++ }
+        byFmt.set(r.format, f)
+        // нарезка: два и больше коротких подряд без ? и !, не реплика диалога, не «да, ну, вот, так...»
+        const cut = n <= 3 && !/[?!]/u.test(x) && !isDialog(line) && !SHORT_OK.test(x)
+        run = cut ? run + 1 : 0
+        if (run >= 2) textNarezka = true
+      }
+    }
+    if (textNarezka) narezka++
+  }
+  const mean = lens.reduce((a, b) => a + b, 0) / (lens.length || 1)
+  const sd = Math.sqrt(lens.reduce((a, b) => a + (b - mean) ** 2, 0) / (lens.length || 1))
+  return { shortShare: Math.round((short / (all || 1)) * 1000) / 10, narezka, sd: Math.round(sd * 10) / 10, byFmt }
+}
+// петля: 4 и больше абзацев речи начинаются с одного слова
+export const loop4 = (t: string) => { const n = new Map<string, number>(); for (const p of splitText(t).speech.split(/\n+/)) { const w = (p.toLowerCase().match(/[\p{L}]+/gu) || [])[0]; if (w && w.length >= 3) n.set(w, (n.get(w) || 0) + 1) } return [...n.values()].some(v => v >= 4) }
+export const ADDRESS = /(?<![а-яё])(?:девочки|девчонки|милая|милые|милый|хорошая моя|хорошие мои|мои хорошие|солнышк\S*|зайк\S*|малышк\S*|дорогие|дорогая|дорогой|родные мои|котики|мои дорогие)(?![а-яё])/iu
+export const POVOD = /(?:увидел[аи]?|прочитал[аи]?|услышал[аи]?|наткнул\S*|попал\S* на)[^.!?]{0,40}(?:комментари|ленте|под роликом|под видео|под постом|в очереди|в гостях|в разговоре|в обсуждени|в чате|рилс)|в комментариях|вы сейчас смотрите|смотрите этот ролик|листаете ленту/iu
+const QWORD = /«([^»\s]{2,20})»[^.!?]{0,40}(?:беси|злит|задева|цепля|раздража|насторажива)|(?:беси|злит|задева|цепля|раздража|насторажива|зацепил)[^.!?]{0,30}(?:это|этот|эта|этом)\s+«([^»\s]{2,20})»/iu
+const MAT_FEEL = /меня[^.!?]{0,20}(?:злит|бесит|раздражает|возмущает|взбесил)|(?:злит|бесит)[^.!?]{0,10}меня/iu
+const UROK = /(?<![а-яё])(?:полезно|рекомендую|важно|стоит заранее|лучше заранее|можно ответить так|можно сказать так|попробуйте сказать|выпишите)(?![а-яё])/iu
+const DETAIL5 = /салфет|синий трактор|мультик|кладовк|в машине у подъезда|сидят в машине|просидел|из окна/iu
+export function zh5Table(sets: { name: string; rows: R5[] }[]): string {
+  const head = '| | текстов | фраз 1-3 слова | нарезка | разброс длины | петля 4+ абзаца | обращение | мат | мат рядом с «меня злит» | «увидела / в комментариях» | одно слово в кавычках у разных | реплика в кавычках в подписи | подпись-урок | рабочая деталь |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|'
+  const lines = sets.map(({ name, rows }) => {
+    const sp = (r: R5) => splitText(r.text).speech, cp = (r: R5) => splitText(r.text).caption
+    const st = shortStats(rows)
+    const n = (f: (r: R5) => boolean) => `${rows.filter(f).length}/${rows.length}`
+    // одно и то же слово в кавычках рядом с «бесит / злит / задевает» в двух и больше текстах
+    const words = new Map<string, number>()
+    for (const r of rows) { const m = sp(r).match(QWORD); const w = m && (m[1] || m[2]); if (w) words.set(w.toLowerCase(), (words.get(w.toLowerCase()) || 0) + 1) }
+    const rep = [...words.entries()].filter(([, v]) => v >= 2)
+    const qw = rep.reduce((a, [, v]) => a + v, 0)
+    const withCap = rows.filter(r => cp(r))
+    return `| ${name} | ${rows.length} | ${st.shortShare}% | ${st.narezka}/${rows.length} | ${st.sd} | ${n(r => loop4(r.text))} | ${n(r => ADDRESS.test(sp(r)))} | ${n(r => RE_MAT.test(sp(r).toLowerCase()) && (RE_MAT.lastIndex = 0, true))} | ${n(r => sents(sp(r)).some(x => MAT_FEEL.test(x) && (RE_MAT.lastIndex = 0, RE_MAT.test(x.toLowerCase()))))} | ${n(r => POVOD.test(sp(r)))} | ${qw}${rep.length ? ` (${rep.map(([w, v]) => `«${w}» ${v}`).join(', ')})` : ''} | ${withCap.length ? `${withCap.filter(r => /«[^»]{12,}»/u.test(cp(r))).length}/${withCap.length}` : '-'} | ${withCap.length ? `${withCap.filter(r => UROK.test(cp(r))).length}/${withCap.length}` : '-'} | ${n(r => DETAIL5.test(sp(r)))} |`
+  })
+  return head + '\n' + lines.join('\n')
+}
+
+// 0.13 (zh3/08-ZHIVYE-NORMY.md): мысль против рассказа, длина текста по формату, концы-вопросы, призыв голосом
+const EXPL = /(?<![а-яё])(?:это|значит|потому что|на самом деле|мозг|психик\S*|поэтому|то есть|получается)(?![а-яё])/iu
+// «вы-повествование»: фраза начинается с «вы / ты» и глагола настоящего времени или сразу с такого глагола на -ете/-ите/-ешь/-ишь
+const VY = /^(?:и\s+|а\s+|потом\s+|тут\s+)?(?:(?:вы|ты)\s+(?:уже\s+|снова\s+|опять\s+|еще\s+)?[а-яё]+(?:ете|ите|ешь|ишь|етесь|итесь|ешься|ишься)|[а-яё]+(?:аете|яете|уете|ете|ите)(?:сь)?)(?![а-яё])/iu
+const PRIZYV = /подпис|сохран|пишите в коммент|напишите в коммент|запис|ссылк|в шапке|в директ|ставьте/iu
+export function normTable(sets: { name: string; rows: R5[] }[]): string {
+  const head = '| | текстов | фраз-объяснений | «вы-повествование» | слов в тексте по формату (медиана, от-до, разброс) | конец вопросом | призыв голосом в конце |\n|---|---|---|---|---|---|---|'
+  return head + '\n' + sets.map(({ name, rows }) => {
+    let all = 0, ex = 0, vy = 0
+    for (const r of rows) for (const line of splitText(r.text).speech.split(/\n+/)) {
+      if (isDialog(line)) continue
+      for (const x of sentsOfLine(line)) { all++; if (EXPL.test(x)) ex++; if (VY.test(x)) vy++ }
+    }
+    const byF = new Map<string, number[]>()
+    for (const r of rows) byF.set(r.format, [...(byF.get(r.format) || []), W(splitText(r.text).speech).length])
+    const lens = [...byF.entries()].filter(([, v]) => v.length >= 3).sort().map(([f, v]) => { v.sort((a, b) => a - b); const m = v.reduce((a, b) => a + b, 0) / v.length; const sd = Math.round(Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / v.length)); return `${f.replace('reels_', '')} ${v[Math.floor(v.length / 2)]} (${v[0]}-${v[v.length - 1]}, ±${sd})` }).join('; ')
+    const last = (r: R5) => { const ss = sents(splitText(r.text).speech); return ss.slice(-2).join(' ') }
+    const endQ = rows.filter(r => /\?[»"]?$/u.test((sents(splitText(r.text).speech).slice(-1)[0] || ''))).length
+    const pr = rows.filter(r => PRIZYV.test(last(r))).length
+    return `| ${name} | ${rows.length} | ${Math.round((ex / (all || 1)) * 100)}% | ${Math.round((vy / (all || 1)) * 1000) / 10}% | ${lens} | ${endQ}/${rows.length} | ${pr}/${rows.length} |`
+  }).join('\n')
+}
+
+// доля фраз 1-3 слова по формату
+export function shortByFormat(sets: { name: string; rows: R5[] }[]): string {
+  return sets.map(({ name, rows }) => { const st = shortStats(rows); return `- ${name}: ` + [...st.byFmt.entries()].sort().map(([f, [a, s]]) => `${f.replace('reels_', '')} ${Math.round((s / a) * 100)}% (${a})`).join(', ') }).join('\n')
+}
+// по автору: обращения и мат
+export function byAuthor(rows: R5[]): string {
+  const au = [...new Set(rows.map(r => r.author))]
+  return au.map(a => { const m = rows.filter(r => r.author === a); const sp = (r: R5) => splitText(r.text).speech; return `${a}: обращение ${m.filter(r => ADDRESS.test(sp(r))).length}/${m.length}, мат ${m.filter(r => { RE_MAT.lastIndex = 0; return RE_MAT.test(sp(r).toLowerCase()) }).length}/${m.length}, петля ${m.filter(r => loop4(r.text)).length}/${m.length}` }).join('; ')
+}
+
 function main() {
+  if (argv.includes('--zh5')) {
+    const sets = [{ name: 'живые (банк без каруселей)', rows: liveRows() }, ...flag('runs').split(',').filter(Boolean).map(r => ({ name: r, rows: runRows(r, argv.includes('--all')) as R5[] }))]
+    const md = `# zh5: счетчики правок\n\n${zh5Table(sets)}\n\n## Мысль против рассказа, длина, концы, призыв (0.13)\n\n${normTable(sets)}\n\n## Фразы 1-3 слова по формату\n\n${shortByFormat(sets)}\n\n## По автору\n\n${sets.map(x => `- ${x.name}: ${byAuthor(x.rows)}`).join('\n')}\n`
+    console.log(md)
+    if (flag('out')) writeFileSync(join(flag('out'), 'stylo-zh5.md'), md)
+    return
+  }
   const given = flag('runs').split(',').filter(Boolean)
   const runs = given.length ? given : readdirSync(join(TEST, 'eval'))
     .filter(d => /^\d{4}-/.test(d) && !/kalibrovka|nozhnicy|demo/.test(d) && existsSync(join(TEST, 'eval', d, 'results.json')))

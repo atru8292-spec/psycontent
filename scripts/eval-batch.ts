@@ -35,6 +35,7 @@ import type { Memory } from '../lib/generation/memory'
 import { isSimpleMode, simpleWrite, cutText } from '../lib/generation/simple'
 import { PERSONAS, TOPICS as TOPICS_BASE, TOPICS_RAZNYE, TOPICS_ROLI, TOPICS_KARUSELI, TOPICS_ODINAKOVOST, type EvalRow, type Who } from './eval-data'
 import { emptyZh4 } from '../lib/generation/zh4'
+import { topicOk } from '../lib/generation/topics'
 
 const TEST = join(__dirname, '..', '_знания', 'мозг-генератора', 'test')
 const argv = process.argv.slice(2)
@@ -50,7 +51,8 @@ function planRows(): EvalRow[] {
   const ANGLE_INTENT: Record<string, string> = { povedenie: 'uznavanie', fraza: 'mif', rol: 'yumor', iznutri: 'poziciya', spor: 'mif', dva_sluchaya: 'razreshenie', ironiya: 'yumor' }
   const plans = JSON.parse(readFileSync(flag('plan'), 'utf8')) as Record<string, { topics: { n: number; title: string; angle: string; group: string }[] }>
   const k = Number(flag('plan-n')) || 3
-  return (Object.entries(plans) as [Who, any][]).flatMap(([who, p]) => p.topics.slice(0, k).map((t: any) => ({ id: `t_${who}_${t.n}`, who, intent: ANGLE_INTENT[t.angle] || 'uznavanie', format: 'reels_auto' as FormatCode, topic: t.title })))
+  // темы, которые не прошли проверку (схема угла в названии, популярный совет без спора), пропускаем
+  return (Object.entries(plans) as [Who, any][]).flatMap(([who, p]) => p.topics.filter((t: any) => topicOk(t)).slice(0, k).map((t: any) => ({ id: `t_${who}_${t.n}`, who, intent: ANGLE_INTENT[t.angle] || 'uznavanie', format: 'reels_auto' as FormatCode, topic: t.title })))
 }
 if (flag('model')) process.env.GENERATION_MODEL = flag('model')
 if (flag('writer')) process.env.GENERATION_WRITER_MODEL = flag('writer')
@@ -201,6 +203,13 @@ async function runOne(row: EvalRow, memory: Memory, core: Core): Promise<Result>
         if (r.zh4.caption) { z.captions.unshift(r.zh4.caption); z.lens.unshift(r.zh4.len || ''); z.vizitka.unshift(!!r.zh4.vizitka) }
         if (r.zh4.cover) { z.covers.unshift(r.zh4.cover); z.karEnds.unshift(r.zh4.karEnd || ''); z.karShag.unshift(!!r.zh4.karShag) }
         z.detail.unshift(!!r.zh4.detail)
+        // zh5: петля, обращение, мат, реплика в подписи, длина речи, призыв голосом
+        const y: any = r.zh4
+        ;(z.loops = z.loops || []).unshift(!!y.loop); (z.addr = z.addr || []).unshift(!!y.addr)
+        if (y.mat !== undefined) (z.mat = z.mat || []).unshift(!!y.mat)
+        if (y.caption) (z.replika = z.replika || []).unshift(!!y.replika)
+        if (y.rlen) (z.rlens = z.rlens || []).unshift(y.rlen)
+        ;(z.prizyv = z.prizyv || []).unshift(!!y.prizyv)
       }
       const g = guard(r.text, { format: r.format })
       const j = has('no-judge') ? null : await judge(row, r.format, r.text)

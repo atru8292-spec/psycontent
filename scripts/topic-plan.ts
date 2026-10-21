@@ -4,13 +4,15 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { callJson } from '../lib/generation/ai'
-import { planPrompt, checkPlan, crossCommon, planSlots, cleanTopic, WORN, type PlanTopic } from '../lib/generation/topics'
+import { planPrompt, checkPlan, crossCommon, planSlots, cleanTopic, angleScheme, bareAdvice, WORN, type PlanTopic } from '../lib/generation/topics'
 import { PERSONAS, type Who } from './eval-data'
 
 const argv = process.argv.slice(2)
 const flag = (name: string) => (argv.find(a => a.startsWith(`--${name}=`)) || '').split('=').slice(1).join('=')
 const has = (name: string) => argv.includes(`--${name}`)
 const N = Number(flag('n')) || 30
+// --v=5: план тем версии ТП5 (zh5, 22.10)
+const V = Number(flag('v')) || 4
 const WHO: Who[] = ['A', 'B', 'C']
 
 function report(plans: Record<string, { topics: PlanTopic[] }>): string {
@@ -20,7 +22,9 @@ function report(plans: Record<string, { topics: PlanTopic[] }>): string {
     const c = checkPlan(t, planSlots(t.length, PERSONAS[who as Who].full_name))
     lines.push(`## ${PERSONAS[who as Who].full_name} (${who})`, '',
       `Тем ${c.n}; затертых групп ${c.worn} (${c.wornShare}%), окон по 4 темы с двумя затертыми ${c.windowBreaks}; углов ${c.angles} из 7, повтор угла раньше чем через 5 тем ${c.angleRepeats}; не по месту плана ${c.offSlot}; групп ${c.groups}; похожие темы внутри автора ${c.dups.join(', ') || 'нет'}`, '')
-    for (const x of t) lines.push(`${x.n}. ${x.title} · ${x.angle} · ${x.group}${WORN.includes(x.group) ? ' (затертая)' : ''}`)
+    const sch = t.filter(x => angleScheme(x.title)).length, bare = t.filter(x => bareAdvice(x.title)).length
+    lines.push(`Схема угла в названии: ${sch}; популярный совет без спора: ${bare}`, '')
+    for (const x of t) lines.push(`${x.n}. ${x.title} · ${x.angle} · ${x.group}${WORN.includes(x.group) ? ' (затертая)' : ''}${angleScheme(x.title) ? ' [схема угла]' : ''}${bareAdvice(x.title) ? ' [голый совет]' : ''}`)
     lines.push('')
   }
   const cc = crossCommon(Object.fromEntries(Object.entries(plans).map(([k, v]) => [k, v.topics])))
@@ -42,7 +46,7 @@ async function main() {
   const plans: Record<string, { topics: PlanTopic[] }> = {}
   await Promise.all(WHO.map(async who => {
     const p = PERSONAS[who]
-    const { system, user } = planPrompt(p, p.full_name, N)
+    const { system, user } = planPrompt(p, p.full_name, N, undefined, V)
     const r = await callJson<{ topics: PlanTopic[] }>({ system, user, effort: 'medium', verbosity: 'low', maxTokens: 9000, operation: 'topic_plan', writer: true, timeoutMs: 150000 })
     plans[who] = { topics: (r.topics || []).map((t, i) => ({ ...t, n: Number(t.n) || i + 1, title: cleanTopic(String(t.title || '')), situation: cleanTopic(String(t.situation || '')) })) }
     console.log(`${p.full_name}: ${plans[who].topics.length} тем`)

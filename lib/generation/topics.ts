@@ -4,7 +4,7 @@
 // затертая группа (мама и детство, нарциссы и типы, тревога и депрессия) не чаще одной темы из четырех.
 // Модель заполняет места. Проверка готового плана: checkPlan. В продукт (контент-план кабинета) пока не подключено.
 
-import { TP_SYSTEM, TP_USER } from './prompts.generated'
+import { TP_SYSTEM, TP_USER, TP5_SYSTEM, TP5_USER } from './prompts.generated'
 import { fill } from './prompts'
 
 export const ANGLES = ['povedenie', 'fraza', 'rol', 'iznutri', 'spor', 'dva_sluchaya', 'ironiya'] as const
@@ -44,15 +44,15 @@ export function authorBlock(p: any): string {
   ].filter(Boolean).join('\n')
 }
 
-export function planPrompt(p: any, who: string, n: number, mem?: TopicMemory): { system: string; user: string; slots: ReturnType<typeof planSlots> } {
+export function planPrompt(p: any, who: string, n: number, mem?: TopicMemory, v = 4): { system: string; user: string; slots: ReturnType<typeof planSlots> } {
   const slots = planSlots(n, who, mem)
-  const user = fill(TP_USER, {
+  const user = fill(v === 5 ? TP5_USER : TP_USER, {
     author: authorBlock(p),
     recent: (mem?.topics || []).slice(0, 20).join('; '),
     slots: slots.map(s => `${s.n}. угол ${s.angle} (${ANGLE_NAMES[s.angle]}); ${s.worn ? 'можно из заезженного круга, только с неожиданной стороны' : 'не из заезженных кругов'}`).join('\n'),
     n: String(n),
   })
-  return { system: TP_SYSTEM, user, slots }
+  return { system: v === 5 ? TP5_SYSTEM : TP_SYSTEM, user, slots }
 }
 
 // ---------- проверка плана ----------
@@ -93,3 +93,11 @@ export function crossCommon(plans: Record<string, PlanTopic[]>): string[] {
 
 // тире и «ё» из названий тем: тема уходит в промпт генерации как есть (проба 21.10: модель плана ставила оба)
 export const cleanTopic = (t: string) => t.replace(/ё/g, 'е').replace(/Ё/g, 'Е').replace(/\s+[—–]\s+/gu, ', ').replace(/[—–]/gu, '-').trim()
+
+// zh5 (22.10): схема угла в названии («в кабинете» у угла изнутри, «Как X: делай Y» у роли) и популярный совет без спора.
+// Тема, которая сама звучит как ходовой совет, проходит, только если в названии видно несогласие с ним.
+export const angleScheme = (t: string) => /в кабинете/iu.test(t) || /^как [^:]{3,60}:/iu.test(t)
+const POPULAR = /сначала полюби себя|боится близости|доверься интуиции|сосчитай до десяти|отпусти ситуацию|просто отпусти|займись собой|будь собой|просто поговори|работай над собой|живи здесь и сейчас|не принимай близко|думай позитивно|выйди из зоны комфорта|все к лучшему|прости и отпусти|не накручивай|просто перестань|главное любить себя|никто тебе ничего не должен|ты никому ничего не должна/iu
+const DISPUTE = /почему|не работает|не помогает|плох|вредн|спор|против|а если|только хуже|сомнительн|бесит|зачем|не обязательно|неправ|миф|не так|чушь|ерунд|ловушк|не значит|не решает|не спасает|не лечит/iu
+export const bareAdvice = (t: string) => POPULAR.test(t) && !DISPUTE.test(t)
+export const topicOk = (t: PlanTopic) => !bareAdvice(t.title) && !angleScheme(t.title)
