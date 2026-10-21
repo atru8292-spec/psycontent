@@ -34,7 +34,7 @@ function freshest(list: string[], recent: string[], gap: number, k: number): str
   return r.find(x => !recent.slice(0, gap).includes(x)) || r.sort((a, b) => recent.indexOf(b) - recent.indexOf(a))[0]
 }
 // у каждого автора свой сдвиг (по имени), иначе три автора с пустой памятью начинают одинаково
-const seedOf = (s: string) => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7)
+export const seedOf = (s: string) => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7)
 
 // Карточка хода: строка «Начала: sovet, vopros» или «-» (начало задает сам ход)
 export function startsOfMove(moveCard: string): string[] | null {
@@ -169,7 +169,8 @@ export function zh4FormatCard(format: FormatCode, base: string): string {
 
 // ---------- h7m: мягкий монтажер ----------
 const W = (s: string) => (s.match(/[\p{L}\d]+/gu) || []).length
-const NO_SOFT_CUT: FormatCode[] = ['reels_scenka', 'reels_rol', 'reels_bez_slov']
+// список тоже не режем (прогон 21.10: после вырезания пунктов «Четыре признака» оставались с двумя-тремя пунктами)
+const NO_SOFT_CUT: FormatCode[] = ['reels_scenka', 'reels_rol', 'reels_bez_slov', 'reels_spisok']
 export const softCutFormat = (f: FormatCode) => isReels(f) && !NO_SOFT_CUT.includes(f)
 
 type Para = { line: number; text: string }
@@ -193,12 +194,18 @@ const stems = (s: string) => new Set((s.toLowerCase().match(/[\p{L}]{5,}/gu) || 
 // слова-опоры: фраза с них ссылается на предыдущее
 const ANAPHOR = /^(это|этот|эта|эти|поэтому|тогда|тоже|так|и это|вот это|вот поэтому|второй|второе|во втором|в другом|зато|при этом|после этого|из-за этого|и тут|а тут|он же|она же|то есть|значит|итак|в итоге|потом)(?![\p{L}])/iu
 
-// Повтор-петля: начало фразы из 2-3 слов, которое стоит в начале трех и больше абзацев или фраз
-function loopStart(paras: Para[]): string | null {
-  const n = new Map<string, number>()
-  for (const p of paras) for (const s of sentences(p.text)) { const k = firstWords(s, 2); if (k.split(' ').length === 2) n.set(k, (n.get(k) || 0) + 1) }
-  const best = [...n.entries()].filter(([, v]) => v >= 3).sort((a, b) => b[1] - a[1])[0]
-  return best ? best[0] : null
+// Повтор-петля: первое слово (от 4 букв) или первые два слова, с которых начинаются три и больше абзацев
+// («Перепроверяете...», «Еще немного, и...»). Проба 21.10: по двум словам петля «Перепроверяете и» нашлась только
+// в трех абзацах из пяти, и код не дал вырезать ни одного из них.
+const loopKey = (p: Para, k: number) => firstWords(p.text, k)
+function loopStart(paras: Para[]): { key: string; k: number } | null {
+  for (const k of [1, 2]) {
+    const n = new Map<string, number>()
+    for (const p of paras) { const key = loopKey(p, k); if (key && (k === 2 || key.length >= 4)) n.set(key, (n.get(key) || 0) + 1) }
+    const best = [...n.entries()].filter(([, v]) => v >= 3).sort((a, b) => b[1] - a[1])[0]
+    if (best) return { key: best[0], k }
+  }
+  return null
 }
 const TWO_CASES = /(?<![\p{L}])(перв\S* случа|втор\S* случа|в одном случае|в другом случае|бывает два|два случая|два разных)/iu
 
@@ -225,7 +232,7 @@ export function applySoftCut(text: string, cutNums: number[], maxWords: number):
   if (paras.length < 3) return { text, cut: [], restored: [] }
   const keep = protectedParas(paras)
   const loop = loopStart(paras)
-  const loopIdx = loop ? paras.map((p, i) => (sentences(p.text).some(s => firstWords(s, 2) === loop) ? i : -1)).filter(i => i >= 0) : []
+  const loopIdx = loop ? paras.map((p, i) => (loopKey(p, loop.k) === loop.key ? i : -1)).filter(i => i >= 0) : []
   let cut = [...new Set(cutNums.map(n => Number(n) - 1))].filter(i => Number.isInteger(i) && i >= 0 && i < paras.length && !keep.has(i)).sort((a, b) => a - b)
   // петля: оставить не меньше трех абзацев с ней
   if (loopIdx.length) {

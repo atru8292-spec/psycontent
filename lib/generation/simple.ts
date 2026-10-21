@@ -9,7 +9,7 @@ import { finalNet, isReels, LABEL_RE, type FormatCode } from './text-guard'
 import { pickExamples, examplesText, LIVE_EXAMPLES } from './examples'
 import { relevantStories, storiesText } from './settings'
 import { pickReelsFormat, type GenContext, type GenRequest } from './pipeline'
-import { chooseStart, chooseEnd, chooseCaption, chooseCarousel, offerDetail, detailLine, startEndText, carouselText, captionText, zh4FormatCard, softCutFormat, applySoftCut, numberedSpeech, PM_SYSTEM, type Zh4Choice } from './zh4'
+import { chooseStart, chooseEnd, chooseCaption, chooseCarousel, offerDetail, detailLine, startEndText, carouselText, captionText, zh4FormatCard, softCutFormat, applySoftCut, numberedSpeech, seedOf, PM_SYSTEM, type Zh4Choice } from './zh4'
 import { activeHyps, hypSystem, hypCall, pickVoiceExamples, voiceExamplesText, liveReelsMaxWords, hypReelsRule, H7_CUT_SYSTEM, pickLiveExamples, liveExamplesText, chooseMove, moveText, isZh } from './hypotheses'
 
 // Режим генерации: simple (по умолчанию с 01.10, выиграл слепое сравнение 4:2) или full (старая цепочка).
@@ -215,7 +215,9 @@ export async function simpleWrite(ctx: GenContext, req: GenRequest): Promise<{ t
   // те, что совпадают с темой по словам (прогон 01.10: история про анализ попала в описание ролика про одиночество).
   const ownStory = intent === 'svoya_istoriya' || format === 'reels_istoriya'
   // zh4: ход, начало, конец, подпись, обложку выбирает код по памяти автора (lib/generation/zh4.ts)
-  const moveCard = zh ? chooseMove(zh4 ? PZH4_MOVES : zh3 ? PZH3_MOVES : PZH_MOVES, format, intent, ctx.memory.count || 0) : ''
+  // zh4: у каждого автора свой сдвиг по кругу ходов (проба 21.10: двум авторам с пустой памятью и одним смыслом
+  // выпал один ход, оба текста петлей-повтором)
+  const moveCard = zh ? chooseMove(zh4 ? PZH4_MOVES : zh3 ? PZH3_MOVES : PZH_MOVES, format, intent, (ctx.memory.count || 0) + (zh4 ? seedOf(s.name || '') : 0)) : ''
   const z: Zh4Choice = {}
   if (zh4) {
     const who = s.name || ''
