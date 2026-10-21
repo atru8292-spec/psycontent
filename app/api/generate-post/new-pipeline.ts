@@ -45,7 +45,8 @@ export async function handleNewPipeline(args: {
     const postId = await savePost(db, {
       user_id: userId, topic, format: req.format, category: pillar || 'Своя тема', content: r.text,
       ...postFields(ctx, plan, req, r.text), pipeline_version: 'simple-1',
-      draft_content: r.text, pipeline_status: 'ready', check_result: { mode: 'simple', ms_total: Date.now() - t0 },
+      // zh4: выбор кода (начало, конец, подпись) в память автора, ее читает loadMemory; без zh4 поля нет
+      draft_content: r.text, pipeline_status: 'ready', check_result: { mode: 'simple', ms_total: Date.now() - t0, ...(r.zh4 ? { zh4: r.zh4 } : {}) },
     })
     return NextResponse.json({
       post: r.text, postId, checking: false, intent: r.intent, format: req.format,

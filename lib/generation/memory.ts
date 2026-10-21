@@ -4,6 +4,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { extractOpening, findSignatures, ALL_FORMATS, type FormatCode } from './text-guard'
+import type { Zh4Memory } from './zh4'
 
 export type Memory = {
   count: number
@@ -19,6 +20,8 @@ export type Memory = {
   usedSignaturePhrases: string[]   // только последние 3 материала
   recentTopics: string[]
   feedbackReasons: string[]
+  // zh4 (21.10): что код выбрал для начала, конца, подписи, обложки (check_result.zh4 в generated_posts)
+  zh4?: Zh4Memory
 }
 
 const emptyMemory = (): Memory => ({
@@ -26,7 +29,7 @@ const emptyMemory = (): Memory => ({
   lastIntents: [], lastFormats: [], usedClientPhrases: [], usedDetails: [], usedSignaturePhrases: [], recentTopics: [], feedbackReasons: [],
 })
 
-const FULL_COLS = 'topic, format, format_code, content, intent, hook_type, arc, ending_type, ring, opening, details, client_phrase_used, signatures_used, topic_for_text, feedback, created_at'
+const FULL_COLS = 'topic, format, format_code, content, intent, hook_type, arc, ending_type, ring, opening, details, client_phrase_used, signatures_used, topic_for_text, feedback, check_result, created_at'
 const BASE_COLS = 'topic, format, content, created_at'
 
 const toFormat = (row: any): FormatCode => {
@@ -79,7 +82,16 @@ export async function loadMemory(db: SupabaseClient, userId: string, signatures:
     usedSignaturePhrases: uniq(sigRecent),
     recentTopics: uniq(rows.map(r => r.topic_for_text || r.topic)).slice(0, 10),
     feedbackReasons: uniq(feedback).slice(0, 8),
+    zh4: zh4Of(rows),
   }
+}
+
+// выбор кода zh4 по материалам, от нового к старому; пропуски (материал без этого выбора) не пишем
+function zh4Of(rows: any[]): Zh4Memory {
+  const z = rows.map(r => (r.check_result && typeof r.check_result === 'object' ? r.check_result.zh4 : null)).filter(Boolean)
+  const s = (k: string) => z.map((x: any) => x[k]).filter((v: any) => typeof v === 'string' && v)
+  const b = (k: string) => z.filter((x: any) => k in x).map((x: any) => x[k] === true)
+  return { starts: s('start'), ends: s('end'), captions: s('caption'), lens: s('len'), vizitka: b('vizitka'), covers: s('cover'), karEnds: s('karEnd'), karShag: b('karShag'), detail: b('detail') }
 }
 
 const list = (a: (string | boolean)[]) => (a.length ? a.map(String).join('; ') : 'нет')

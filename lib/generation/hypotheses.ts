@@ -13,12 +13,15 @@
 //   zh  новый промпт «ПЖ. Простой путь от живого» (03-PROMPTY.md)
 //   zh3 ПЖ версии 3 рядом с zh (раздел «ПЖ3» и «Ходы для ПЖ3», 20.10): правки лендинга принципами, новые живые приемы,
 //       рабочая деталь автора в материале; с zh не совмещается, при обоих берется zh3
+//   zh4 ПЖ версии 4 (раздел «ПЖ4», 21.10): правки Арины к zh3 принципами, начало, конец, подпись и обложку выбирает код
+//       (lib/generation/zh4.ts), рилс сразу своей длины без h7; главнее zh3 и zh
+//   h7m мягкий монтажер к zh4: черновик в полтора раза длиннее потолка, режутся только целые абзацы (раздел «ПМ»)
 
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { isReels, type FormatCode } from './text-guard'
 
-export type Hyp = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'h7' | 'h8' | 'zh' | 'zh3'
+export type Hyp = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'h7' | 'h8' | 'zh' | 'zh3' | 'zh4' | 'h7m'
 
 // По умолчанию (переменная пустая) zh+h7: этот вариант Арина в слепом чтении оценила выше живых текстов (релиз 2026-10).
 // PROMPT_HYP=h0 (или none) вернет базовый ПП без гипотез, любой другой список включает ровно его.
@@ -27,10 +30,10 @@ export function activeHyps(): Set<Hyp> {
   const raw = String(process.env.PROMPT_HYP || '').trim().toLowerCase()
   if (!raw) return new Set(DEFAULT_HYPS)
   if (raw === 'h0' || raw === 'none') return new Set()
-  return new Set(raw.split(/[\s,+]+/).filter((h): h is Hyp => /^(h[1-8]|zh3?)$/.test(h)))
+  return new Set(raw.split(/[\s,+]+/).filter((h): h is Hyp => /^(h[1-8]|h7m|zh[34]?)$/.test(h)))
 }
 // промпт от живого любой версии: живые примеры, ход вместо скелета, длина рилса по живым
-export const isZh = (hyps: Set<Hyp>) => hyps.has('zh') || hyps.has('zh3')
+export const isZh = (hyps: Set<Hyp>) => hyps.has('zh') || hyps.has('zh3') || hyps.has('zh4')
 
 // ---------- h3: короткий промпт ----------
 export const H3_SYSTEM = `Ты психолог и ведешь блог. Напиши один материал для своих подписчиков так, как сказал бы это вслух человеку напротив: своими словами, с характером автора.
@@ -267,4 +270,4 @@ export function chooseMove(moves: Record<string, string>, format: FormatCode, in
   return pool[rotation % pool.length][1]
 }
 // для промпта: без строки «Смыслы», с понятным заголовком
-export const moveText = (card: string) => card.split('\n').filter((l, i) => i !== 1).join('\n').replace(/^\[[a-z_]+\]\s*/, 'Ход: ').replace(/\s*\([^)]*\)\s*$/m, '')
+export const moveText = (card: string) => card.split('\n').filter((l, i) => i !== 1 && !/^Начала:/u.test(l)).join('\n').replace(/^\[[a-z_]+\]\s*/, 'Ход: ').replace(/\s*\([^)]*\)\s*$/m, '')
