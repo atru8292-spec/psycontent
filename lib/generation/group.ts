@@ -173,7 +173,13 @@ export function stripAds(format: FormatCode, text: string): string {
 }
 
 // Одиночная генерация в Instagram: нашли рекламу, переписываем эти фразы, а что осталось, вырезаем
-export async function cleanAds(ctx: GenContext, format: FormatCode, text: string): Promise<string> {
+// keepCaption (решение Арины 22.10): подпись типа «запись» (zh5, примерно одна из десяти, только в темах доверия и
+// записи, одной фразой, данные из профиля) может звать к себе; проверяется и чистится только остальной текст.
+export async function cleanAds(ctx: GenContext, format: FormatCode, text: string, opts?: { keepCaption?: boolean }): Promise<string> {
+  if (opts?.keepCaption) {
+    const m = text.match(/(^|\n)\s*Подпись\s*:/u)
+    if (m && m.index !== undefined) return (await cleanAds(ctx, format, text.slice(0, m.index))).trimEnd() + text.slice(m.index)
+  }
   if (!isInstagram(format)) return text
   const ads = adPhrases(text)
   if (!ads.length) return text

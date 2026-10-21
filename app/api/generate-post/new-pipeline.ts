@@ -40,7 +40,8 @@ export async function handleNewPipeline(args: {
     const r = await simpleWrite(ctx, req)
     req.format = r.format
     // в Instagram без цен, скидок, отзывов и приглашения записаться (запрет рекламы в РФ)
-    r.text = await cleanAds(ctx, req.format, r.text)
+    // подпись «запись» из zh5 зовет к себе по решению Арины 22.10, ее не чистим; речь рилса по-прежнему без приглашений
+    r.text = await cleanAds(ctx, req.format, r.text, { keepCaption: r.zh4?.caption === 'zapis' })
     const plan: Plan = { intent: r.intent, topic_for_text: topic, reels_format: r.format.startsWith('reels') ? r.format : null }
     const postId = await savePost(db, {
       user_id: userId, topic, format: req.format, category: pillar || 'Своя тема', content: r.text,
