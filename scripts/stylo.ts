@@ -160,6 +160,109 @@ export function detailShare(run: string): string {
   return Object.entries(DETAIL_RE).map(([who, re]) => { const mine = rows.filter((r: any) => r.author === who); return `${who} ${mine.filter((r: any) => re.test(r.text)).length}/${mine.length}` }).join(', ')
 }
 
+// ---------- zh4 (21.10): счет по правкам Арины к zh3 (03-PRAVKI-ARINY-zh3.md, 04, 06) ----------
+type Row = { id: string; author: string; format: string; text: string; plan?: any }
+export function runRows(run: string, all = false): Row[] {
+  const f = join(TEST, 'eval', run, 'results.json')
+  if (!existsSync(f)) return []
+  return JSON.parse(readFileSync(f, 'utf8')).filter((r: any) => !r.error && r.text && (all || isReels(r.format)))
+}
+// речь без надписи, ролей и подписи; подпись отдельно
+export function splitText(t: string): { speech: string; caption: string } {
+  const m = t.match(/(^|\n)\s*Подпись\s*:\s*/u)
+  const body = m && m.index !== undefined ? t.slice(0, m.index) : t
+  const caption = m && m.index !== undefined ? t.slice(m.index + m[0].length).trim() : ''
+  const speech = body.replace(/^\s*(?:Текст на экране|Персонажи)\s*:.*$/gimu, '').replace(/^\s*(?:Речь|[АБ]|Слайд\s*\d+)\s*:\s*/gimu, '').trim()
+  return { speech, caption }
+}
+const sents = (t: string) => t.split(/(?<=[.!?…])\s+|\n+/u).map(x => x.trim()).filter(x => W(x).length)
+const REACT = /(?<![а-яё])меня\s+(?:[а-яё]+\s+){0,3}(?:задева|цепля|беси|раздража|злит|задело)/iu
+// отдельная строка-реакция: короткая фраза (до 8 слов), где кроме реакции ничего («Вот это меня особенно задевает.»)
+export const reactionLine = (t: string) => sents(splitText(t).speech).some(x => REACT.test(x) && W(x).length <= 8 && !/[«"]/u.test(x))
+export const otvetFormula = (t: string) => /(?<![а-яё])(?:отвечаешь|отвечаете|отвечает|отвечаю|отвечают)\s+за(?![а-яё])/iu.test(splitText(t).speech)
+const lastSent = (t: string) => { const s = sents(splitText(t).speech); return s[s.length - 1] || '' }
+export const endsMozhno = (t: string) => /(?<![а-яё])можно(?![а-яё])/iu.test(lastSent(t))
+export const endsQuestion = (t: string) => /\?[»"]?$/u.test(lastSent(t))
+const BYT: [string, RegExp][] = [['ужин', /ужин/iu], ['чай', /(?<![а-яё])ча[йяюе](?![а-яё])|чаю(?![а-яё])/iu], ['остыл', /остыл|остыва|остынет/iu], ['телефон', /телефон/iu], ['повышение', /повышени|повысил/iu], ['плита', /(?<![а-яё])плит[аеуы]/iu], ['кухня', /кухн/iu], ['диван', /диван/iu], ['сторис', /сторис/iu]]
+const SIZHU = /сижу с (?:телефоном|чаем)|сижу,? (?:листаю|смотрю)|только что увидел/iu
+const firstWords = (t: string, n: number) => W(sents(splitText(t).speech)[0]?.toLowerCase() || '').slice(0, n).join(' ')
+
+export function zh4Checks(run: string, all = false): string {
+  const rows = runRows(run, all)
+  if (!rows.length) return 'нет прогона'
+  const n = (f: (t: string) => boolean) => `${rows.filter(r => f(r.text)).length}/${rows.length}`
+  const byt = BYT.map(([k, re]) => [k, rows.filter(r => re.test(splitText(r.text).speech)).length] as [string, number]).filter(([, x]) => x).map(([k, x]) => `${k} ${x}`).join(', ')
+  // одинаковые первые три слова у одного автора
+  const firsts = new Map<string, number>()
+  for (const r of rows) { const k = `${r.author}: ${firstWords(r.text, 3)}`; firsts.set(k, (firsts.get(k) || 0) + 1) }
+  const dupFirst = [...firsts.entries()].filter(([, v]) => v >= 2).map(([k, v]) => `«${k}» ${v}`).join(', ') || 'нет'
+  return [
+    `- любая фраза «меня (особенно) задевает / цепляет / бесит / раздражает / злит»: ${n(t => sents(splitText(t).speech).some(x => REACT.test(x)))}`,
+    `- отдельные строки-реакции «меня задевает / цепляет / бесит / раздражает»: ${n(reactionLine)}`,
+    `- формула «отвечаешь / отвечает за»: ${n(otvetFormula)}`,
+    `- «можно» в последней фразе: ${n(endsMozhno)}`,
+    `- конец вопросом: ${n(endsQuestion)}`,
+    `- «сижу с телефоном / только что увидела»: ${n(t => SIZHU.test(splitText(t).speech))}`,
+    `- бытовые слова (в скольких текстах): ${byt || 'нет'}`,
+    `- одинаковое начало (первые три слова) у одного автора: ${dupFirst}`,
+  ].join('\n')
+}
+
+// карусели: слов на слайд, обложки «Для тех, кто», концы «в комментариях», слайд с готовыми фразами
+export function carouselChecks(run: string): string {
+  const rows = runRows(run, true).filter(r => r.format === 'carousel')
+  if (!rows.length) return 'каруселей нет'
+  const slidesOf = (t: string) => splitText(t).speech.split(/\n(?=\s*\S)/u).length && t.split(/^\s*Слайд\s*\d+\s*:\s*/gimu).slice(1).map(x => x.replace(/\n\s*Подпись\s*:[\s\S]*$/u, '').trim())
+  const perSlide: number[] = []
+  let total = 0, dlyaTeh = 0, komm = 0, frazy = 0, oneLine = 0, podzag = 0
+  for (const r of rows) {
+    const sl = slidesOf(r.text) as string[]
+    sl.forEach(x => perSlide.push(W(x).length))
+    total += sl.reduce((a, x) => a + W(x).length, 0)
+    if (/для тех/iu.test(sl[0] || '')) dlyaTeh++
+    if ((sl[0] || '').split('\n').filter(x => x.trim()).length >= 2) podzag++
+    if (/коммент|напиши|напишите|\?\s*$/iu.test(sl[sl.length - 1] || '')) komm++
+    // слайд с готовыми фразами: две и больше реплик в кавычках на одном слайде или «что можно сказать»
+    if (sl.some(x => (x.match(/«/g) || []).length >= 2 && /сказать|скажи|ответ|фраз/iu.test(x) || /что можно сказать|можно сказать так/iu.test(x))) frazy++
+    if (sl.slice(1).some(x => W(x).length <= 10)) oneLine++
+  }
+  perSlide.sort((a, b) => a - b)
+  const med = perSlide[Math.floor(perSlide.length / 2)]
+  return [
+    `- каруселей ${rows.length}, слов на слайд медиана ${med} (самый короткий ${perSlide[0]}, длинный ${perSlide[perSlide.length - 1]}), слов на карусель в среднем ${Math.round(total / rows.length)}`,
+    `- со слайдом одной фразой (до 10 слов, кроме обложки): ${oneLine}/${rows.length}`,
+    `- обложка с «Для тех, кто»: ${dlyaTeh}/${rows.length}; с подзаголовком вообще: ${podzag}/${rows.length}`,
+    `- последний слайд вопросом или про комментарии: ${komm}/${rows.length}`,
+    `- слайд с готовыми фразами: ${frazy}/${rows.length}`,
+  ].join('\n')
+}
+
+// подписи: тип (из выбора кода zh4 или по словам), визитка, «подписывайтесь», длина
+export function captionType(r: Row): string {
+  const z = r.plan?.zh4?.caption
+  if (z) return z
+  const c = splitText(r.text).caption
+  if (/директ|запис|кодов\S* слов|первая встреча|первой встреч/iu.test(c)) return 'zapis'
+  if (/подпис/iu.test(c)) return 'podpiska'
+  if (/\?\s*[\p{Emoji}\s]*$/u.test(c)) return 'vopros'
+  return 'dobavit'
+}
+const VIZITKA = /(?:^|[.!?\n]\s*)[Яя]\s+[А-ЯЁ][а-яё]+,\s*(?:\S+\s+)?психолог|(?:^|[.!?\n]\s*)[Мм]еня зовут\s+[А-ЯЁ]|[Яя] психолог,?\s+работаю/u
+export function captionChecks(run: string): string {
+  const rows = runRows(run, true).filter(r => splitText(r.text).caption)
+  if (!rows.length) return 'подписей нет'
+  const types = new Map<string, number>()
+  for (const r of rows) types.set(captionType(r), (types.get(captionType(r)) || 0) + 1)
+  const lens = rows.map(r => W(splitText(r.text).caption).length).sort((a, b) => a - b)
+  const caps = rows.map(r => splitText(r.text).caption)
+  const iz = caps.filter(c => /^иногда/iu.test(c)).length
+  return [
+    `- подписей ${rows.length}; типы: ${[...types.entries()].map(([k, v]) => `${k} ${v}`).join(', ')}`,
+    `- с визиткой: ${caps.filter(c => VIZITKA.test(c)).length}/${rows.length}; с «подписывайтесь»: ${caps.filter(c => /подпис[ыа]в/iu.test(c)).length}/${rows.length}; кончается вопросом: ${caps.filter(c => /\?[\s\p{Emoji}]*$/u.test(c)).length}/${rows.length}; начинается с «Иногда»: ${iz}/${rows.length}`,
+    `- длина в словах: медиана ${lens[Math.floor(lens.length / 2)]}, от ${lens[0]} до ${lens[lens.length - 1]}; одной строкой (до 20 слов) ${lens.filter(x => x <= 20).length}, развернутых (от 50) ${lens.filter(x => x >= 50).length}`,
+  ].join('\n')
+}
+
 function main() {
   const given = flag('runs').split(',').filter(Boolean)
   const runs = given.length ? given : readdirSync(join(TEST, 'eval'))
@@ -173,7 +276,8 @@ function main() {
   const starts = runs.map(r => { const t = runTexts(r); return `- ${r}: ${templateStarts(t).slice(0, 30).map(g => `«${g.start}» ${g.n}/${t.length}`).join(', ') || 'нет'}` })
   const priz = [`### живые рилсы\n\n${priznaki(live)}`, ...runs.map(r => `### ${r}\n\n${priznaki(runTexts(r))}`)]
   const details = runs.map(r => `- ${r}: ${detailShare(r)}`)
-  const md = `# Устройство речи (на 100 слов${REELS_ONLY ? ', только рилсы' : ''})\n\n${styloTable(rows)}\n\n## Как автор говорит о себе (текстов, где фраза начинается так)\n\n${selfs.join('\n')}\n\n## Шаблоны: начала фраз больше чем в 4 текстах из 48\n\n${starts.join('\n')}\n\n## Связки в больше чем трети текстов (кроме тех, что так же часты у живых)\n\n${grams.join('\n')}\n\n## Признаки шаблона и нейросети (раздел 3 правил zh3, текстов с признаком)\n\n${priz.join('\n\n')}\n\n## Рабочая деталь автора в текстах (больше трети это шаблон)\n\n${details.join('\n')}\n`
+  const z4 = runs.map(r => `### ${r}\n\n${zh4Checks(r)}\n${captionChecks(r)}\n${carouselChecks(r)}`)
+  const md = `# Устройство речи (на 100 слов${REELS_ONLY ? ', только рилсы' : ''})\n\n${styloTable(rows)}\n\n## Как автор говорит о себе (текстов, где фраза начинается так)\n\n${selfs.join('\n')}\n\n## Шаблоны: начала фраз больше чем в 4 текстах из 48\n\n${starts.join('\n')}\n\n## Связки в больше чем трети текстов (кроме тех, что так же часты у живых)\n\n${grams.join('\n')}\n\n## Признаки шаблона и нейросети (раздел 3 правил zh3, текстов с признаком)\n\n${priz.join('\n\n')}\n\n## Рабочая деталь автора в текстах (больше трети это шаблон)\n\n${details.join('\n')}\n\n## Правки Арины к zh3: строки-реакции, формулы, концы, бытовые повторы, подписи, карусели\n\n${z4.join('\n\n')}\n`
   console.log(md)
   if (flag('out')) writeFileSync(join(flag('out'), 'stylo.md'), md)
 }

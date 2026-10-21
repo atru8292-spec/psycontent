@@ -33,14 +33,25 @@ import { callJson, modelFor } from '../lib/generation/ai'
 import { extractOpening, guard, isReels, type FormatCode } from '../lib/generation/text-guard'
 import type { Memory } from '../lib/generation/memory'
 import { isSimpleMode, simpleWrite, cutText } from '../lib/generation/simple'
-import { PERSONAS, TOPICS as TOPICS_BASE, TOPICS_RAZNYE, TOPICS_ROLI, TOPICS_KARUSELI, type EvalRow, type Who } from './eval-data'
+import { PERSONAS, TOPICS as TOPICS_BASE, TOPICS_RAZNYE, TOPICS_ROLI, TOPICS_KARUSELI, TOPICS_ODINAKOVOST, type EvalRow, type Who } from './eval-data'
+import { emptyZh4 } from '../lib/generation/zh4'
 
 const TEST = join(__dirname, '..', '_знания', 'мозг-генератора', 'test')
 const argv = process.argv.slice(2)
 const flag = (name: string) => (argv.find(a => a.startsWith(`--${name}=`)) || '').split('=').slice(1).join('=')
 const has = (name: string) => argv.includes(`--${name}`)
 // --set=raznye: разные темы и аудитории (мифы, «зачем мне психолог», отношения, родители, работа, мужчины)
-const TOPICS: EvalRow[] = flag('set') === 'raznye' ? TOPICS_RAZNYE : flag('set') === 'roli' ? TOPICS_ROLI : flag('set') === 'karuseli' ? TOPICS_KARUSELI : TOPICS_BASE
+// --set=odinakovost: шесть тем всем трем авторам (мера одинаковости, zh4); --set=plan --plan=<файл>: темы из планов
+// scripts/topic-plan.ts, по --plan-n (3) первых темы каждому автору, рилсом
+const TOPICS: EvalRow[] = flag('set') === 'raznye' ? TOPICS_RAZNYE : flag('set') === 'roli' ? TOPICS_ROLI : flag('set') === 'karuseli' ? TOPICS_KARUSELI
+  : flag('set') === 'odinakovost' ? TOPICS_ODINAKOVOST : flag('set') === 'plan' ? planRows() : TOPICS_BASE
+// угол темы в смысл для генератора
+function planRows(): EvalRow[] {
+  const ANGLE_INTENT: Record<string, string> = { povedenie: 'uznavanie', fraza: 'mif', rol: 'yumor', iznutri: 'poziciya', spor: 'mif', dva_sluchaya: 'razreshenie', ironiya: 'yumor' }
+  const plans = JSON.parse(readFileSync(flag('plan'), 'utf8')) as Record<string, { topics: { n: number; title: string; angle: string; group: string }[] }>
+  const k = Number(flag('plan-n')) || 3
+  return (Object.entries(plans) as [Who, any][]).flatMap(([who, p]) => p.topics.slice(0, k).map((t: any) => ({ id: `t_${who}_${t.n}`, who, intent: ANGLE_INTENT[t.angle] || 'uznavanie', format: 'reels_auto' as FormatCode, topic: t.title })))
+}
 if (flag('model')) process.env.GENERATION_MODEL = flag('model')
 if (flag('writer')) process.env.GENERATION_WRITER_MODEL = flag('writer')
 
@@ -182,9 +193,18 @@ async function runOne(row: EvalRow, memory: Memory, core: Core): Promise<Result>
       memory.count++
       memory.lastIntents.unshift(r.intent)
       memory.lastFormats.unshift(r.format)
+      // zh4: что выбрал код, в память автора, как в продукте (check_result.zh4)
+      if (r.zh4) {
+        const z = memory.zh4 = memory.zh4 || emptyZh4()
+        if (r.zh4.start) z.starts.unshift(r.zh4.start)
+        if (r.zh4.end) z.ends.unshift(r.zh4.end)
+        if (r.zh4.caption) { z.captions.unshift(r.zh4.caption); z.lens.unshift(r.zh4.len || ''); z.vizitka.unshift(!!r.zh4.vizitka) }
+        if (r.zh4.cover) { z.covers.unshift(r.zh4.cover); z.karEnds.unshift(r.zh4.karEnd || ''); z.karShag.unshift(!!r.zh4.karShag) }
+        z.detail.unshift(!!r.zh4.detail)
+      }
       const g = guard(r.text, { format: r.format })
       const j = has('no-judge') ? null : await judge(row, r.format, r.text)
-      return { ...base, format: r.format, seconds: Math.round((Date.now() - t0) / 1000), text: r.text, draft: r.draft, cut: r.cut, plan: { intent: r.intent }, review: null, fixes: 0, rewritten: false, guard: g.findings, judge: j }
+      return { ...base, format: r.format, seconds: Math.round((Date.now() - t0) / 1000), text: r.text, draft: r.draft, cut: r.cut, plan: { intent: r.intent, ...(r.zh4 ? { zh4: r.zh4 } : {}) }, review: null, fixes: 0, rewritten: false, guard: g.findings, judge: j }
     }
     let d = await draft(ctx, req)
     if (d.kind === 'need_detail') d = await draft(ctx, req, { plan: d.plan, skipDetail: true })
