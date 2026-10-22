@@ -32,6 +32,8 @@ export default function ExitSurveyCard({ place, onClose, paymentsOn = PRICING_FL
   const [contact, setContact] = useState(initialContact)
   const [sending, setSending] = useState<null | 'pause' | 'answer'>(null)
   const [error, setError] = useState(false)
+  // подсказка «отметь хотя бы один пункт» только после нажатия на пустую «Отправить», не заранее (product-kritik)
+  const [triedEmpty, setTriedEmpty] = useState(false)
 
   const reasons = visibleReasons(paymentsOn)
   const empty = !picked.length && !other.trim()
@@ -95,7 +97,7 @@ export default function ExitSurveyCard({ place, onClose, paymentsOn = PRICING_FL
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="min-w-0">
             <h2 id="exit-survey-title" className="font-bold text-lg leading-tight text-brand-text">{EXIT_COPY.title}</h2>
-            <p className="text-sm text-brand-muted mt-1">{EXIT_COPY.lead}</p>
+            <p className="text-sm text-brand-muted mt-1">{EXIT_COPY.leadCollapsed}</p>
           </div>
           <div className="flex flex-col gap-2 sm:items-end shrink-0">
             {errorLine}
@@ -118,7 +120,7 @@ export default function ExitSurveyCard({ place, onClose, paymentsOn = PRICING_FL
     <section className={root} aria-labelledby="exit-survey-title">
       <div className="max-w-2xl">
         <h2 id="exit-survey-title" className="font-bold text-lg leading-tight text-brand-text">{EXIT_COPY.title}</h2>
-        <p className="text-sm text-brand-muted mt-1">{EXIT_COPY.lead}</p>
+        <p className="text-sm text-brand-muted mt-1">{EXIT_COPY.leadOpen}</p>
 
         <div className="flex flex-wrap gap-2 mt-4" role="group" aria-label={EXIT_COPY.title}>
           {reasons.map(r => {
@@ -154,14 +156,14 @@ export default function ExitSurveyCard({ place, onClose, paymentsOn = PRICING_FL
         <div className="mt-5 space-y-2">
           {errorLine}
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <button type="button" onClick={sendAnswer} disabled={empty || !!sending}
-              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto h-11 px-6 rounded-2xl bg-brand-accent text-white font-semibold text-sm hover:bg-brand-accent-hover transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2">
+            <button type="button" onClick={() => (empty ? setTriedEmpty(true) : sendAnswer())} disabled={!!sending} aria-disabled={empty}
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto h-11 px-6 rounded-2xl bg-brand-accent text-white font-semibold text-sm hover:bg-brand-accent-hover transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed aria-disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2">
               {sending === 'answer' && <Loader2 className="w-4 h-4 animate-spin" aria-hidden />}
               {EXIT_COPY.send}
             </button>
             <button type="button" onClick={later} disabled={!!sending} className={`${textBtn} w-full sm:w-auto`}>{EXIT_COPY.later}</button>
           </div>
-          {empty && <p className="text-xs text-brand-muted">{EXIT_COPY.emptyHint}</p>}
+          {empty && triedEmpty && <p className="text-xs text-brand-muted" aria-live="polite">{EXIT_COPY.emptyHint}</p>}
         </div>
       </div>
     </section>
