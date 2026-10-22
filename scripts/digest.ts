@@ -31,7 +31,7 @@ async function send(text: string) {
       label: y.label, from: y.from, to: y.to, people, overview: demo.demoOverview(),
       aiRubDay: demo.demoCosts().by_day.at(-1)?.rub || 0, aiRubMonth: demo.demoCosts().total_rub,
       onboarded: 2, genErrors: demo.demoMake().errors, profileChecks: 3,
-      exits: [{ reasons: ['not_me', 'same'] }, { reasons: ['pause'] }, { reasons: ['no_clients'] }],
+      exits: [{ reasons: ['not_me', 'same'] }, { reasons: ['pause'] }, { reasons: ['no_clients'] }, { reasons: ['start'], place: 'stuck' }, { reasons: ['profile_long', 'busy'], place: 'stuck' }],
     }))
     console.log(text)
     return
@@ -56,7 +56,7 @@ async function send(text: string) {
     return (r.data || []).filter((e: any) => allowed.has(e.user_id))
   }
   const [onb, errs, checks] = await Promise.all([countEvent('onb_done'), countEvent('make_error'), countEvent('shapka_done')])
-  const ex = await db.from('exit_surveys').select('user_id, reasons').gte('created_at', y.from.toISOString()).lt('created_at', y.to.toISOString())
+  const ex = await db.from('exit_surveys').select('user_id, reasons, place').gte('created_at', y.from.toISOString()).lt('created_at', y.to.toISOString())
   const text = buildDigest(digestFrom({
     label: y.label, from: y.from, to: y.to, people: people.data || [], overview: overview.data,
     aiRubDay: costDay.data?.total_rub || 0, aiRubMonth: costMonth.data?.total_rub || 0,

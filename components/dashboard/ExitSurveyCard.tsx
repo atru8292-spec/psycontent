@@ -1,6 +1,7 @@
 'use client'
-// Опрос при уходе (аналитика 2, SPEC A). Сейчас стоит на главной кабинета (place="cooling") для тех, кто остыл
-// или ушел и вернулся. Право на показ решает сервер: GET /api/exit-survey (он же пишет exit_survey_shown).
+// Опрос при уходе (аналитика 2, SPEC A). Сейчас стоит на главной кабинета: place="cooling" для тех, кто остыл
+// или ушел и вернулся, place="stuck" («Где все застопорилось?») для тех, кто 3+ дня и ни разу не взял текст
+// (у stuck свои тексты STUCK_COPY и причины, кнопки паузы нет, остальное то же). Право на показ решает сервер: GET /api/exit-survey (он же пишет exit_survey_shown).
 // place="delete" и place="cancel" компонент уже умеет: подключать на экран удаления аккаунта и на экран отмены
 // подписки, когда они появятся (сейчас их в продукте нет), так: <ExitSurveyCard place="delete" onClose={...} />.
 // Тексты только из lib/analytics/exit-copy.ts. Поле своих слов без микрофона намеренно: диктовка ушла бы
@@ -8,7 +9,7 @@
 
 import { useState } from 'react'
 import { Check, Loader2, X } from 'lucide-react'
-import { EXIT_COPY, REASON_RU } from '@/lib/analytics/exit-copy'
+import { EXIT_COPY, STUCK_COPY, REASON_RU } from '@/lib/analytics/exit-copy'
 import { visibleReasons, OTHER_MAX, type ExitPlace, type ExitReason } from '@/lib/analytics/exit-survey'
 import { PRICING_FLAGS } from '@/lib/pricing'
 import { track } from '@/lib/track'
@@ -35,7 +36,9 @@ export default function ExitSurveyCard({ place, onClose, paymentsOn = PRICING_FL
   // подсказка «отметь хотя бы один пункт» только после нажатия на пустую «Отправить», не заранее (product-kritik)
   const [triedEmpty, setTriedEmpty] = useState(false)
 
-  const reasons = visibleReasons(paymentsOn)
+  const stuck = place === 'stuck'
+  const reasons = visibleReasons(paymentsOn, place)
+  const copy = stuck ? STUCK_COPY : EXIT_COPY
   const empty = !picked.length && !other.trim()
 
   const post = async (body: Record<string, unknown>) => {
@@ -44,7 +47,7 @@ export default function ExitSurveyCard({ place, onClose, paymentsOn = PRICING_FL
   }
 
   const sendPause = async () => {
-    if (sending) return
+    if (sending || stuck) return
     setSending('pause'); setError(false)
     try { await post({ action: 'pause' }); setView('pause') } catch { setError(true) } finally { setSending(null) }
   }
@@ -78,8 +81,8 @@ export default function ExitSurveyCard({ place, onClose, paymentsOn = PRICING_FL
               <p className="font-semibold text-brand-text">{EXIT_COPY.pauseThanks}</p>
             ) : (
               <>
-                <p className="font-semibold text-brand-text">{EXIT_COPY.thanksTitle}</p>
-                <p className="text-sm text-brand-muted mt-1">{EXIT_COPY.thanksText}</p>
+                <p className="font-semibold text-brand-text">{copy.thanksTitle}</p>
+                <p className="text-sm text-brand-muted mt-1">{copy.thanksText}</p>
                 {contact && <p className="text-sm text-brand-muted mt-1">{EXIT_COPY.thanksContact}</p>}
               </>
             )}
@@ -96,16 +99,18 @@ export default function ExitSurveyCard({ place, onClose, paymentsOn = PRICING_FL
       <section className={root} aria-labelledby="exit-survey-title">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="min-w-0">
-            <h2 id="exit-survey-title" className="font-bold text-lg leading-tight text-brand-text">{EXIT_COPY.title}</h2>
-            <p className="text-sm text-brand-muted mt-1">{EXIT_COPY.leadCollapsed}</p>
+            <h2 id="exit-survey-title" className="font-bold text-lg leading-tight text-brand-text">{copy.title}</h2>
+            <p className="text-sm text-brand-muted mt-1">{copy.leadCollapsed}</p>
           </div>
           <div className="flex flex-col gap-2 sm:items-end shrink-0">
             {errorLine}
             <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={sendPause} disabled={!!sending} className={secondary}>
-                {sending === 'pause' && <Loader2 className="w-4 h-4 animate-spin" aria-hidden />}
-                {EXIT_COPY.pause}
-              </button>
+              {!stuck && (
+                <button type="button" onClick={sendPause} disabled={!!sending} className={secondary}>
+                  {sending === 'pause' && <Loader2 className="w-4 h-4 animate-spin" aria-hidden />}
+                  {EXIT_COPY.pause}
+                </button>
+              )}
               <button type="button" onClick={openUp} disabled={!!sending} aria-expanded={false} className={secondary}>Рассказать</button>
               <button type="button" onClick={later} disabled={!!sending} className={textBtn}>{EXIT_COPY.later}</button>
             </div>
@@ -119,10 +124,10 @@ export default function ExitSurveyCard({ place, onClose, paymentsOn = PRICING_FL
   return (
     <section className={root} aria-labelledby="exit-survey-title">
       <div className="max-w-2xl">
-        <h2 id="exit-survey-title" className="font-bold text-lg leading-tight text-brand-text">{EXIT_COPY.title}</h2>
-        <p className="text-sm text-brand-muted mt-1">{EXIT_COPY.leadOpen}</p>
+        <h2 id="exit-survey-title" className="font-bold text-lg leading-tight text-brand-text">{copy.title}</h2>
+        <p className="text-sm text-brand-muted mt-1">{copy.leadOpen}</p>
 
-        <div className="flex flex-wrap gap-2 mt-4" role="group" aria-label={EXIT_COPY.title}>
+        <div className="flex flex-wrap gap-2 mt-4" role="group" aria-label={copy.title}>
           {reasons.map(r => {
             const on = picked.includes(r)
             return (

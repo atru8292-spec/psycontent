@@ -44,4 +44,14 @@ assert.equal([...(a.other || '')].length, 300)
 assert.equal(a.contact, false)
 assert.ok(!visibleReasons(false).includes('expensive') && visibleReasons(true).includes('expensive'))
 assert.ok(cleanAnswer({ reasons: ['pause'] }, false).reasons.includes('pause'))
+// «Где застряла?»: 3+ дня, ни одного взятого текста, один раз; опрос при уходе им не показываем
+import { decideStuck } from '../lib/analytics/exit-survey'
+const fresh = { ...facts, take_days: [], last_take_at: null, registered_at: ago(5) } as PersonFacts
+assert.equal(decideStuck({ facts: fresh, stuckShown: false, stuckAnswered: false, tookThisSession: false }, now).show, true)
+assert.equal(decideStuck({ facts: { ...fresh, registered_at: ago(2) }, stuckShown: false, stuckAnswered: false, tookThisSession: false }, now).show, false)
+assert.equal(decideStuck({ facts: fresh, stuckShown: true, stuckAnswered: false, tookThisSession: false }, now).show, false)
+assert.equal(decideStuck({ facts, stuckShown: false, stuckAnswered: false, tookThisSession: false }, now).show, false)
+assert.equal(decideSurvey({ ...base, facts: fresh }, now).show, false)
+assert.deepEqual(cleanAnswer({ reasons: ['start', 'not_me', 'other'] }, false, 'stuck').reasons, ['start'])
+assert.ok(!visibleReasons(false).includes('other' as any))
 console.log('ok: опрос при уходе')

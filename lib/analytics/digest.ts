@@ -14,6 +14,7 @@ export type DigestData = {
   aiRubDay: number; aiRubMonth: number
   genErrors: number; profileChecks: number
   exitReasons: Partial<Record<ExitReason, number>>; exitAnswers: number
+  stuckReasons?: Partial<Record<ExitReason, number>>; stuckAnswers?: number
 }
 
 export const shortId = (id: string) => (id || '').replace(/-/g, '').slice(-4)
@@ -37,6 +38,10 @@ export function buildDigest(d: DigestData): string {
     lines.push(`Опрос при уходе: ${d.exitAnswers} ${plural(d.exitAnswers, 'ответ', 'ответа', 'ответов')}`)
     for (const [k, n] of reasons) lines.push(`  ${REASON_RU[k as ExitReason] || k}: ${n}`)
   } else lines.push('Опрос при уходе: новых ответов нет')
+  if (d.stuckAnswers) {
+    lines.push(`Где застряли: ${d.stuckAnswers} ${plural(d.stuckAnswers, 'ответ', 'ответа', 'ответов')}`)
+    for (const [k, n] of Object.entries(d.stuckReasons || {}).filter(([, n]) => (n || 0) > 0).sort((a, b) => (b[1] || 0) - (a[1] || 0))) lines.push(`  ${REASON_RU[k as ExitReason] || k}: ${n}`)
+  }
   return lines.join('\n')
 }
 
@@ -68,14 +73,16 @@ export function yesterdayIn(tz: string, now = new Date()): { from: Date; to: Dat
 export function digestFrom(i: {
   label: string; from: Date; to: Date; people: PersonRow[]; overview: Overview
   aiRubDay: number; aiRubMonth: number; onboarded: number; genErrors: number; profileChecks: number
-  exits: { reasons: string[] }[]
+  exits: { reasons: string[]; place?: string }[]
 }): DigestData {
   const inDay = (iso: string | null) => !!iso && Date.parse(iso) >= i.from.getTime() && Date.parse(iso) < i.to.getTime()
   const stuck = i.people.filter(p => p.churn?.status === 'stuck').sort((a, b) => Date.parse(b.registered_at) - Date.parse(a.registered_at))
   const cooling = i.people.filter(p => p.churn?.status === 'cooling')
   const risky = i.people.filter(p => (p.churn?.score ?? 0) >= 60 && p.churn?.status !== 'gone').sort((a, b) => (b.churn?.score ?? 0) - (a.churn?.score ?? 0))
-  const reasons: Partial<Record<ExitReason, number>> = {}
-  for (const e of i.exits) for (const r of e.reasons) reasons[r as ExitReason] = (reasons[r as ExitReason] || 0) + 1
+  const reasons: Partial<Record<ExitReason, number>> = {}, stuckReasons: Partial<Record<ExitReason, number>> = {}
+  const leave = i.exits.filter(e => e.place !== 'stuck'), stuckEx = i.exits.filter(e => e.place === 'stuck')
+  for (const e of leave) for (const r of e.reasons) reasons[r as ExitReason] = (reasons[r as ExitReason] || 0) + 1
+  for (const e of stuckEx) for (const r of e.reasons) stuckReasons[r as ExitReason] = (stuckReasons[r as ExitReason] || 0) + 1
   return {
     day: i.label,
     registered: i.people.filter(p => inDay(p.registered_at)).length,
@@ -85,6 +92,6 @@ export function digestFrom(i: {
     stuck: { n: stuck.length, latest: stuck.slice(0, 3).map(p => ({ id: p.user_id, name: p.full_name })) },
     cooling: { n: cooling.length, risk60: risky.length, top: risky.slice(0, 3).map(p => ({ id: p.user_id, name: p.full_name, score: p.churn.score })) },
     aiRubDay: i.aiRubDay, aiRubMonth: i.aiRubMonth, genErrors: i.genErrors, profileChecks: i.profileChecks,
-    exitReasons: reasons, exitAnswers: i.exits.length,
+    exitReasons: reasons, exitAnswers: leave.length, stuckReasons, stuckAnswers: stuckEx.length,
   }
 }

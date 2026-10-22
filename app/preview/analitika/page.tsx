@@ -1,7 +1,7 @@
 // Предпросмотр аналитики 2 без входа, для снимков Playwright: карточка опроса в четырех состояниях, блок «Почему
 // уходят» и секция человека на демо-данных, вкладка «Тексты» на demoQuality. В базу страница не ходит (демо из кода),
 // POST /api/exit-survey и /api/ev на снимках перехватываются. На проде 404, если не включен PREVIEW_PAGES=1.
-// ?s=survey-collapsed | survey-open | survey-thanks | survey-pause | exits | texts (для texts еще f, v, w)
+// ?s=survey-collapsed | survey-open | survey-thanks | survey-pause | stuck-collapsed | stuck-open | stuck-thanks | exits | texts (для texts еще f, v, w)
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { demoExitStats, demoQuality, type PersonExit } from '@/lib/analytics/admin-a2'
@@ -15,6 +15,7 @@ export const metadata: Metadata = { robots: { index: false, follow: false } }
 export const dynamic = 'force-dynamic'
 
 const SURVEY = { 'survey-collapsed': 'collapsed', 'survey-open': 'open', 'survey-thanks': 'thanks', 'survey-pause': 'pause' } as const
+const STUCK = { 'stuck-collapsed': 'collapsed', 'stuck-open': 'open', 'stuck-thanks': 'thanks' } as const
 const TZ = 'Asia/Barnaul'
 
 export default async function AnalitikaPreview({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -22,6 +23,7 @@ export default async function AnalitikaPreview({ searchParams }: { searchParams:
   const sp = await searchParams
   const s = (Array.isArray(sp.s) ? sp.s[0] : sp.s) || 'survey-collapsed'
   if (s in SURVEY) return <SurveyDemo view={SURVEY[s as keyof typeof SURVEY]} />
+  if (s in STUCK) return <SurveyDemo place="stuck" view={STUCK[s as keyof typeof STUCK]} />
 
   const o: AdminOpts = { includeInternal: false, period: '30', demo: true }
   const now = new Date()

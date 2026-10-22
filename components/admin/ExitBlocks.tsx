@@ -12,7 +12,7 @@ import { PERIOD_RU } from '@/lib/analytics/admin-view'
 import { PRICING_FLAGS } from '@/lib/pricing'
 import { Card, Section, Note, Bar, Flag, LoadError, href, num, whenDay } from './ui'
 
-export const PLACE_RU: Record<ExitPlace, string> = { cooling: 'на главной, после перерыва', delete: 'перед удалением', cancel: 'при отмене подписки' }
+export const PLACE_RU: Record<ExitPlace, string> = { cooling: 'на главной, после перерыва', delete: 'перед удалением', cancel: 'при отмене подписки', stuck: 'в начале, без первого текста' }
 const NO_TABLE = 'Блок заработает, когда применишь миграцию 20261024110000_exit_surveys.sql'
 const OWN_SHOWN = 5
 
@@ -23,12 +23,12 @@ export function ExitSummary({ d, error, o, tz, now }: { d: ExitStats | null; err
   if (error === 'no_migration') return <Section title={ADMIN_EXIT.title}><Note>{NO_TABLE}</Note></Section>
   if (error || !d) return <Section title={ADMIN_EXIT.title}><LoadError kind="failed" /></Section>
 
-  const pauses = d.answers.filter(a => a.reasons.includes('pause')).length
+  // ответы «Где все застопорилось?» (stuck) это не уход: считаем отдельно и с причинами ухода не смешиваем
+  const leave = d.answers.filter(a => a.place !== 'stuck')
+  const stuck = d.answers.filter(a => a.place === 'stuck')
+  const pauses = leave.filter(a => a.reasons.includes('pause')).length
   // причины считаем от ответов, где назвали хоть что-то кроме паузы
-  const real = d.answers.filter(a => !isPauseOnly(a))
-  const counts = visibleReasons(PRICING_FLAGS.paymentsOn).map(r => ({ r, n: real.filter(a => a.reasons.includes(r)).length }))
-    .sort((a, b) => (b.n - a.n) || 0)
-  const max = Math.max(1, ...counts.map(c => c.n))
+  const real = leave.filter(a => !isPauseOnly(a))
   const own = d.answers.filter(a => a.other_text)
   const aside = `${num(d.sent)} ${plural(d.sent, 'ответ', 'ответа', 'ответов')} · ${PERIOD_RU[o.period]}`
 
@@ -44,18 +44,17 @@ export function ExitSummary({ d, error, o, tz, now }: { d: ExitStats | null; err
         <Card className="grid lg:grid-cols-2 lg:divide-x divide-brand-border">
           <div className="p-4 lg:p-5 min-w-0">
             <h3 className="font-semibold mb-3">{ADMIN_EXIT.reasons}</h3>
-            {!real.length ? <p className="text-brand-muted text-[13px]">Все ответившие отметили паузу</p> : (
-              <ul className="space-y-3">
-                {counts.map(c => (
-                  <li key={c.r} className="space-y-1">
-                    <div className={`flex justify-between gap-3 ${c.n ? '' : 'text-brand-muted'}`}>
-                      <span className="min-w-0">{REASON_RU[c.r]}</span>
-                      <span className="text-[13px] shrink-0 text-brand-muted">{c.n} · {Math.round((c.n / real.length) * 100)}%</span>
-                    </div>
-                    {c.n > 0 && <Bar value={c.n} max={max} />}
-                  </li>
-                ))}
-              </ul>
+            {!leave.length ? <p className="text-brand-muted text-[13px]">Пока не отвечали</p>
+              : !real.length ? <p className="text-brand-muted text-[13px]">Все ответившие отметили паузу</p>
+              : <ReasonList list={real} place="cooling" />}
+            {stuck.length > 0 && (
+              <div className="mt-6 pt-5 border-t border-brand-border">
+                <div className="flex items-baseline justify-between gap-3 mb-3">
+                  <h3 className="font-semibold">{ADMIN_EXIT.stuck}</h3>
+                  <span className="text-[13px] text-brand-muted shrink-0">{num(stuck.length)} {plural(stuck.length, 'ответ', 'ответа', 'ответов')}</span>
+                </div>
+                <ReasonList list={stuck} place="stuck" />
+              </div>
             )}
           </div>
           <div className="p-4 lg:p-5 min-w-0 border-t lg:border-t-0 border-brand-border">
@@ -78,6 +77,26 @@ export function ExitSummary({ d, error, o, tz, now }: { d: ExitStats | null; err
       )}
       <p className="text-[13px] text-brand-muted">{ADMIN_EXIT.note}</p>
     </Section>
+  )
+}
+
+// причины по убыванию, нули в конце без полоски; проценты от ответов этого списка
+function ReasonList({ list, place }: { list: ExitAnswer[]; place: ExitPlace }) {
+  const counts = visibleReasons(PRICING_FLAGS.paymentsOn, place).map(r => ({ r, n: list.filter(a => a.reasons.includes(r)).length }))
+    .sort((a, b) => b.n - a.n)
+  const max = Math.max(1, ...counts.map(c => c.n))
+  return (
+    <ul className="space-y-3">
+      {counts.map(c => (
+        <li key={c.r} className="space-y-1">
+          <div className={`flex justify-between gap-3 ${c.n ? '' : 'text-brand-muted'}`}>
+            <span className="min-w-0">{REASON_RU[c.r]}</span>
+            <span className="text-[13px] shrink-0 text-brand-muted">{c.n} · {Math.round((c.n / list.length) * 100)}%</span>
+          </div>
+          {c.n > 0 && <Bar value={c.n} max={max} />}
+        </li>
+      ))}
+    </ul>
   )
 }
 

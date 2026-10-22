@@ -4,8 +4,9 @@
 import { useState } from 'react'
 import { PenTool } from 'lucide-react'
 import ExitSurveyCard, { type ExitSurveyView } from '@/components/dashboard/ExitSurveyCard'
+import type { ExitPlace } from '@/lib/analytics/exit-survey'
 
-export default function SurveyDemo({ view }: { view: ExitSurveyView }) {
+export default function SurveyDemo({ view, place = 'cooling' }: { view: ExitSurveyView; place?: ExitPlace }) {
   const [open, setOpen] = useState(true)
   const close = () => { setOpen(false); setTimeout(() => setOpen(true), 1000) }
   return (
@@ -19,7 +20,7 @@ export default function SurveyDemo({ view }: { view: ExitSurveyView }) {
           <span className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold bg-brand-accent text-white"><PenTool className="w-4 h-4" aria-hidden /> Написать пост</span>
           <span className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold bg-brand-card text-brand-text border border-brand-border">Придумать хук</span>
         </div>
-        {open && <ExitSurveyCard place="cooling" onClose={close} initialView={view} initialContact={view === 'thanks'} />}
+        {open && <ExitSurveyCard place={place} onClose={close} initialView={view} initialContact={view === 'thanks'} />}
         <div className="h-40 rounded-3xl bg-brand-card border border-brand-border" aria-hidden />
       </div>
     </div>

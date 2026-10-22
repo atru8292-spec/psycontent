@@ -18,6 +18,9 @@ const SHOTS: [string, string][] = [
   ['survey-open', 'Карточка раскрыта: причины, свои слова, «можно написать»'],
   ['survey-thanks', 'Спасибо после ответа'],
   ['survey-pause', 'Ответ «Все в порядке, была пауза»'],
+  ['stuck-collapsed', 'Карточка «Где все застопорилось?» для тех, кто 3+ дня без первого текста'],
+  ['stuck-open', 'Она же раскрыта'],
+  ['stuck-thanks', 'Спасибо после ответа'],
   ['exits', 'Кабинет: «Почему уходят» и ответы в карточке человека (демо)'],
   ['texts', 'Кабинет: вкладка «Тексты» (демо)'],
 ]
@@ -45,6 +48,7 @@ const SHOTS: [string, string][] = [
 <style>body{font-family:-apple-system,Helvetica,sans-serif;background:#F5EFE4;color:#3B2A22;margin:0;padding:24px}section{margin:40px 0}.r{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}figure{margin:0;width:390px;max-width:100%}figure.d{width:min(900px,100%)}img{width:100%;border:1px solid #d8cfc0;border-radius:12px;background:#fff}figcaption{font-size:14px;margin-bottom:6px;color:#6B6458}.box{background:#fff;padding:16px 20px;border-radius:12px;max-width:900px}li{margin:4px 0}pre{white-space:pre-wrap;background:#fff;padding:16px;border-radius:12px;max-width:700px}</style>
 <h1>Аналитика 2</h1>
 <div class="box"><h2>Что сделано</h2><ul>
+<li>«Другое» убрано из причин, поле своих слов видно всегда. Новая карточка «Где все застопорилось?» один раз тем, кто зарегистрировался 3+ дня назад и ни разу не взял текст; вместе с опросом при уходе не показывается; в кабинете и сводке отдельной строкой.</li>
 <li>Опрос при уходе: карточка сверху главной для тех, кто остыл или ушел и вернулся (статус по прошлому визиту), один раз, потом 60 дней тишины, не больше 3 раз. Первая кнопка «Все в порядке, была пауза». Свои слова только в базе, в события идут коды.</li>
 <li>Кабинет: «Почему уходят» на Сводке, ответы в карточке человека, новая вкладка «Тексты»: что люди делают с текстами и шаблонность по неделям рядом с нормами живых, сиреневым где стало хуже.</li>
 <li>Шаблонность считает скрипт раз в неделю, в базу только числа. Частые цепочки только в локальный файл.</li>

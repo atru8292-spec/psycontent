@@ -31,7 +31,11 @@ const DEMO_ANSWERS = (now = Date.now()): ExitAnswer[] => {
     { id: 'e3', user_id: u(7), place: 'cooling', reasons: ['no_clients'], other_text: 'Выложила восемь постов, записей ноль', can_contact: false, created_at: at(4) },
     { id: 'e4', user_id: u(8), place: 'cooling', reasons: ['no_time', 'hard'], other_text: null, can_contact: false, created_at: at(6) },
     { id: 'e5', user_id: u(9), place: 'cooling', reasons: ['same'], other_text: null, can_contact: true, created_at: at(9) },
-    { id: 'e6', user_id: u(10), place: 'cooling', reasons: ['broken', 'other'], other_text: 'Карусель не скачивалась на айфоне', can_contact: false, created_at: at(13) },
+    { id: 'e6', user_id: u(10), place: 'cooling', reasons: ['broken'], other_text: 'Карусель не скачивалась на айфоне', can_contact: false, created_at: at(13) },
+    // «Где все застопорилось?»: 3+ дня и ни одного взятого текста
+    { id: 'e7', user_id: u(11), place: 'stuck', reasons: ['start'], other_text: null, can_contact: false, created_at: at(2) },
+    { id: 'e8', user_id: u(12), place: 'stuck', reasons: ['profile_long', 'busy'], other_text: 'Открыла профиль, увидела много вопросов и отложила на выходные', can_contact: true, created_at: at(5) },
+    { id: 'e9', user_id: u(13), place: 'stuck', reasons: ['first_bad'], other_text: null, can_contact: false, created_at: at(8) },
   ]
 }
 export function demoExitStats(): ExitStats { const a = DEMO_ANSWERS(); return { shown: 17, sent: a.length, dismissed: 5, answers: a } }
