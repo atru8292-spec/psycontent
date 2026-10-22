@@ -40,8 +40,10 @@ export async function GET() {
       tookThisSession: (recent.count || 0) > 0,
     })
     if (!d.show) return NextResponse.json({ show: false })
-    // показ отмечаем сразу: с этого момента 60 дней тишины, даже если человек не нажал ничего
-    serverTrack(user.id, 'exit_survey_shown', { place: 'cooling' })
+    // показ отмечаем сразу и дожидаемся записи: с этого момента 60 дней тишины. Не записалось: не показываем,
+    // иначе карточка всплывала бы на каждом заходе (reviewer 24.10)
+    const mark = await db.from('events').insert({ user_id: user.id, event: 'exit_survey_shown', props: { place: 'cooling' } })
+    if (mark.error) { console.warn('exit_survey_shown:', mark.error.message); return NextResponse.json({ show: false }) }
     return NextResponse.json({ show: true, place: 'cooling', paymentsOn: PRICING_FLAGS.paymentsOn })
   } catch (e: any) {
     console.warn('exit-survey GET:', e?.message)
@@ -54,10 +56,20 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   let body: any
   try { body = await req.json() } catch { return NextResponse.json({ error: 'bad_request' }, { status: 400 }) }
-  const place: ExitPlace = PLACES.includes(body?.place) ? body.place : 'cooling'
+  // пока в продукте есть только карточка на главной; delete и cancel примем, когда появятся их экраны
+  const place: ExitPlace = body?.place === undefined ? 'cooling' : body.place
+  if (!PLACES.includes(place)) return NextResponse.json({ error: 'bad_request' }, { status: 400 })
+  if (place !== 'cooling') return NextResponse.json({ error: 'not_available' }, { status: 400 })
+  // ответ только на свой показ: был показ за последние 2 суток и после него ответа еще нет (иначе можно накрутить)
+  const db = getSupabaseAdmin()
+  const shown = await db.from('events').select('created_at').eq('user_id', user.id).eq('event', 'exit_survey_shown')
+    .gte('created_at', new Date(Date.now() - 2 * DAY).toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if (shown.error || !shown.data) return NextResponse.json({ error: 'not_shown' }, { status: 409 })
+  const after = await db.from('exit_surveys').select('id', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', shown.data.created_at)
+  if (after.error || (after.count || 0) > 0) return NextResponse.json({ error: 'already' }, { status: 409 })
   const a = body?.action === 'pause' ? { reasons: ['pause' as const], other: null, contact: false } : cleanAnswer(body, PRICING_FLAGS.paymentsOn)
   if (!a.reasons.length && !a.other) return NextResponse.json({ error: 'empty' }, { status: 400 })
-  const { error } = await getSupabaseAdmin().from('exit_surveys')
+  const { error } = await db.from('exit_surveys')
     .insert({ user_id: user.id, place, reasons: a.reasons, other_text: a.other, can_contact: a.contact })
   if (error) {
     console.warn('exit_surveys insert:', error.message)

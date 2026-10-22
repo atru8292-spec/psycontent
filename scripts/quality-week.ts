@@ -53,7 +53,7 @@ function showChains(week: string, posts: WeekPost[]) {
     const { data, error } = await db.from('generated_posts')
       .select('id, user_id, format, content, plan, pipeline_version, feedback, is_favorite, published_at')
       .gte('created_at', w.from.toISOString()).lt('created_at', w.to.toISOString())
-      .neq('format', 'hooks').not('format', 'like', 'rewrite%').range(from, from + 999)
+      .neq('format', 'hooks').not('format', 'like', 'rewrite%').order('id').range(from, from + 999)
     if (error) throw new Error(`generated_posts: ${error.message}`)
     rows.push(...(data || []))
     if (!data || data.length < 1000) break
@@ -63,18 +63,26 @@ function showChains(week: string, posts: WeekPost[]) {
   // взяли: событие material_take с этим post (до сегодня), опубликовала или сохранила карусель
   const taken = new Set<string>(mine.filter(r => r.published_at).map(r => r.id))
   const adjusts = new Map<string, number>()
-  for (let i = 0; i < ids.length; i += 200) {
-    const part = ids.slice(i, i + 200)
+  // куски по 100 id: ответ PostgREST не больше 1000 строк, на 100 материалов событий взятия и правок меньше
+  const full = (r: { data: unknown[] | null }, what: string) => { if ((r.data || []).length >= 1000) console.warn(`${what}: ровно 1000 строк, часть могла обрезаться`) }
+  for (let i = 0; i < ids.length; i += 100) {
+    const part = ids.slice(i, i + 100)
     const [t, a, c] = await Promise.all([
       db.from('events').select('props').eq('event', 'material_take').in('props->>post', part),
       db.from('events').select('props').eq('event', 'material_adjust').in('props->>post', part),
       db.from('carousel_designs').select('post_id').gt('export_count', 0).in('post_id', part),
     ])
+    for (const [r, what] of [[t, 'material_take'], [a, 'material_adjust'], [c, 'carousel_designs']] as const) {
+      if (r.error) throw new Error(`${what}: ${r.error.message}`)
+      full(r, what)
+    }
     for (const e of t.data || []) taken.add(e.props?.post)
     for (const e of a.data || []) adjusts.set(e.props?.post, (adjusts.get(e.props?.post) || 0) + 1)
     for (const d of c.data || []) taken.add(d.post_id)
   }
   const errs = await db.from('events').select('user_id, props').eq('event', 'make_error').gte('created_at', w.from.toISOString()).lt('created_at', w.to.toISOString())
+  if (errs.error) throw new Error(`make_error: ${errs.error.message}`)
+  full(errs, 'make_error')
   const errorsByFormat: Record<string, number> = { all: 0 }
   for (const e of errs.data || []) {
     if (!allowed.has(e.user_id)) continue
@@ -82,7 +90,8 @@ function showChains(week: string, posts: WeekPost[]) {
     for (const f of String(e.props?.format || '').split(',').filter(Boolean)) errorsByFormat[f] = (errorsByFormat[f] || 0) + 1
   }
   const posts: WeekPost[] = mine.map(r => ({
-    id: r.id, userId: r.user_id, format: r.format || 'post', variant: r.plan?.prompt_hyp || r.pipeline_version || 'old',
+    id: r.id, userId: r.user_id, format: r.format || 'post', // вариант промпта есть только у простого пути; полная цепочка и старый путь идут своим pipeline_version
+    variant: r.pipeline_version === 'simple-1' && r.plan?.prompt_hyp ? r.plan.prompt_hyp : r.pipeline_version || 'old',
     text: r.content || '', taken: taken.has(r.id), adjusts: adjusts.get(r.id) || 0,
     verdict: r.feedback?.verdict || null, favorite: r.is_favorite === true,
   }))

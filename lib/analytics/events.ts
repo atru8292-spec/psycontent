@@ -75,6 +75,9 @@ export const EVENTS = {
 
 // События лендинга пишутся и без входа (user_id пустой, только session_id от track)
 export const isLandingEvent = (e: string) => e.startsWith('land_')
+// События, которые пишет только сервер (serverTrack): из браузера через /api/ev не принимаются, иначе человек
+// мог бы подделать свои счетчики «показали» и «ответили» в опросе
+export const SERVER_ONLY = new Set(['exit_survey_shown', 'exit_survey_sent'])
 
 export type EventName = keyof typeof EVENTS
 export const EVENT_NAMES = Object.keys(EVENTS) as EventName[]

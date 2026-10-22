@@ -59,12 +59,14 @@ export async function loadExitStats(o: AdminOpts): Promise<Loaded<ExitStats>> {
   const { data, error } = await q
   if (error) return { data: null, error: missing(error.code) ? 'no_migration' : 'failed' }
   const allowed = await allowedUsers(o)
-  const answers = ((data || []) as ExitAnswer[]).filter(a => !allowed || allowed.has(a.user_id))
+  // без списка людей не отделить служебных: лучше честная ошибка, чем цифры вместе со служебными
+  if (!allowed) return { data: null, error: 'failed' }
+  const answers = ((data || []) as ExitAnswer[]).filter(a => allowed.has(a.user_id))
   const count = async (event: string) => {
     let e = db.from('events').select('user_id').eq('event', event)
     if (from) e = e.gte('created_at', from)
     const r = await e.limit(5000)
-    return (r.data || []).filter((x: any) => !allowed || allowed.has(x.user_id)).length
+    return (r.data || []).filter((x: any) => allowed.has(x.user_id)).length
   }
   const [shown, dismissed] = await Promise.all([count('exit_survey_shown'), count('exit_survey_dismiss')])
   return { data: { shown, sent: answers.length, dismissed, answers }, error: null }

@@ -52,6 +52,7 @@ async function send(text: string) {
   const allowed = new Set((users.data || []).map((u: any) => u.user_id))
   const countEvent = async (event: string) => {
     const r = await db.from('events').select('user_id').eq('event', event).gte('created_at', y.from.toISOString()).lt('created_at', y.to.toISOString()).limit(5000)
+    if (r.error) console.warn(`сводка: ${event} не прочитались (${r.error.message}), в тексте будет 0`)
     return (r.data || []).filter((e: any) => allowed.has(e.user_id))
   }
   const [onb, errs, checks] = await Promise.all([countEvent('onb_done'), countEvent('make_error'), countEvent('shapka_done')])
@@ -60,7 +61,7 @@ async function send(text: string) {
     label: y.label, from: y.from, to: y.to, people: people.data || [], overview: overview.data,
     aiRubDay: costDay.data?.total_rub || 0, aiRubMonth: costMonth.data?.total_rub || 0,
     onboarded: new Set(onb.map((e: any) => e.user_id)).size, genErrors: errs.length, profileChecks: checks.length,
-    exits: (ex.error ? [] : ex.data || []).filter((e: any) => allowed.has(e.user_id)),
+    exits: (ex.error ? (console.warn(`сводка: опрос не прочитался (${ex.error.message})`), []) : ex.data || []).filter((e: any) => allowed.has(e.user_id)),
   }))
   console.log(text)
   if (!argv.includes('--print')) await send(text)

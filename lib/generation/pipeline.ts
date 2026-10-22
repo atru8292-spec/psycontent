@@ -173,7 +173,7 @@ export async function runText(ctx: GenContext, plan: Plan, req: GenRequest, rewr
     intent_card: INTENT_CARDS[plan.intent],
     format_card: FORMAT_CARDS[req.format],
     material_from_plan: materialFromPlan(ctx, plan, req),
-    plan_json: JSON.stringify(plan, null, 2),
+    plan_json: planJson(plan),
     last_openings: mv.last_openings,
     used_signature_phrases: mv.used_signature_phrases,
     used_details: mv.used_details,
@@ -266,7 +266,7 @@ function reviewVars(ctx: GenContext, plan: Plan, req: GenRequest, text: string, 
     intent_card: INTENT_CARDS[plan.intent],
     format_card: FORMAT_CARDS[req.format],
     material_from_plan: materialFromPlan(ctx, plan, req),
-    plan_json: JSON.stringify(plan, null, 2),
+    plan_json: planJson(plan),
     guard_findings_json: JSON.stringify(findings.filter(f => f.rule !== 'zaglushka')),
     text_after_autofix: text,
     edit_pairs: ctx.editPairs,
@@ -341,7 +341,7 @@ export async function runFix(ctx: GenContext, plan: Plan, req: GenRequest, text:
     intent_card: INTENT_CARDS[plan.intent],
     format_card: FORMAT_CARDS[req.format],
     material_from_plan: materialFromPlan(ctx, plan, req),
-    plan_json: JSON.stringify(plan, null, 2),
+    plan_json: planJson(plan),
     text,
     issues_json: JSON.stringify(issues, null, 2),
     edit_pairs: ctx.editPairs,
@@ -473,6 +473,9 @@ export async function coverTexts(ctx: GenContext, text: string): Promise<{ text:
 }
 
 // Поля для записи в generated_posts (миграция 20260930120000_generation_brain.sql).
+// план в промпт без служебного prompt_hyp (вариант промпта для аналитики, модели он не нужен)
+const planJson = (plan: Plan) => { const { prompt_hyp: _h, ...rest } = plan as Plan & { prompt_hyp?: string }; void _h; return JSON.stringify(rest, null, 2) }
+
 export function postFields(ctx: GenContext, plan: Plan, req: GenRequest, text: string) {
   return {
     format_code: req.format,
