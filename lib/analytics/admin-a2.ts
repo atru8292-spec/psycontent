@@ -8,7 +8,20 @@ import type { ExitPlace, ExitReason } from './exit-survey'
 import { computeWeek, demoWeekPosts, weekOf } from './quality-week'
 
 export type ExitAnswer = { id: string; user_id: string; place: ExitPlace; reasons: ExitReason[]; other_text: string | null; can_contact: boolean; created_at: string }
-export type ExitStats = { shown: number; sent: number; dismissed: number; answers: ExitAnswer[] }
+// Охват считается по каждому опросу отдельно: опрос при уходе (cooling, позже delete и cancel) и «Где застряли в
+// начале» (stuck). Общей суммы нет: это разные люди и разные вопросы (Арина 24.10)
+export type ExitReach = { shown: number; sent: number; dismissed: number }
+export type ExitStats = { leave: ExitReach; stuck: ExitReach; answers: ExitAnswer[] }
+const isStuck = (place: unknown) => place === 'stuck'
+// чистая функция для тестов: события показа и закрытия и ответы → охват по двум опросам
+export function splitReach(shown: { props?: any }[], dismissed: { props?: any }[], answers: ExitAnswer[]): { leave: ExitReach; stuck: ExitReach } {
+  const reach = (stuck: boolean): ExitReach => ({
+    shown: shown.filter(e => isStuck(e.props?.place) === stuck).length,
+    sent: answers.filter(a => isStuck(a.place) === stuck).length,
+    dismissed: dismissed.filter(e => isStuck(e.props?.place) === stuck).length,
+  })
+  return { leave: reach(false), stuck: reach(true) }
+}
 export type PersonExit = { answers: ExitAnswer[]; shownAt: string | null; dismissedAt: string | null }
 export type QualityRow = { week_start: string; format: string; variant: string; texts: number; metrics: Record<string, number> }
 
@@ -38,7 +51,12 @@ const DEMO_ANSWERS = (now = Date.now()): ExitAnswer[] => {
     { id: 'e9', user_id: u(13), place: 'stuck', reasons: ['first_bad'], other_text: null, can_contact: false, created_at: at(8) },
   ]
 }
-export function demoExitStats(): ExitStats { const a = DEMO_ANSWERS(); return { shown: 17, sent: a.length, dismissed: 5, answers: a } }
+export function demoExitStats(): ExitStats {
+  const a = DEMO_ANSWERS()
+  // демо-события: опрос при уходе показали 17 раз, закрыли 5; «Где застряли» показали 6 раз, закрыли 1
+  const ev = (n: number, place: string) => Array.from({ length: n }, () => ({ props: { place } }))
+  return { ...splitReach([...ev(17, 'cooling'), ...ev(6, 'stuck')], [...ev(5, 'cooling'), ...ev(1, 'stuck')], a), answers: a }
+}
 export function demoQuality(now = new Date(), tz = 'Asia/Barnaul'): QualityRow[] {
   const rows: QualityRow[] = []
   let monday = weekOf(now, tz).from
@@ -66,14 +84,20 @@ export async function loadExitStats(o: AdminOpts): Promise<Loaded<ExitStats>> {
   // без списка людей не отделить служебных: лучше честная ошибка, чем цифры вместе со служебными
   if (!allowed) return { data: null, error: 'failed' }
   const answers = ((data || []) as ExitAnswer[]).filter(a => allowed.has(a.user_id))
-  const count = async (event: string) => {
-    let e = db.from('events').select('user_id').eq('event', event)
+  const list = async (event: string) => {
+    let e = db.from('events').select('user_id, props').eq('event', event)
     if (from) e = e.gte('created_at', from)
     const r = await e.limit(5000)
-    return (r.data || []).filter((x: any) => allowed.has(x.user_id)).length
+    if (r.error) throw new Error(r.error.message)
+    return (r.data || []).filter((x: any) => allowed.has(x.user_id))
   }
-  const [shown, dismissed] = await Promise.all([count('exit_survey_shown'), count('exit_survey_dismiss')])
-  return { data: { shown, sent: answers.length, dismissed, answers }, error: null }
+  try {
+    const [shown, dismissed] = await Promise.all([list('exit_survey_shown'), list('exit_survey_dismiss')])
+    return { data: { ...splitReach(shown, dismissed, answers), answers }, error: null }
+  } catch (e: any) {
+    console.warn('admin exit events', e?.message)
+    return { data: null, error: 'failed' }
+  }
 }
 
 export async function loadPersonExit(o: AdminOpts, userId: string): Promise<Loaded<PersonExit>> {

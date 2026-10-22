@@ -54,4 +54,14 @@ assert.equal(decideStuck({ facts, stuckShown: false, stuckAnswered: false, tookT
 assert.equal(decideSurvey({ ...base, facts: fresh }, now).show, false)
 assert.deepEqual(cleanAnswer({ reasons: ['start', 'not_me', 'other'] }, false, 'stuck').reasons, ['start'])
 assert.ok(!visibleReasons(false).includes('other' as any))
+// охват кабинета: у каждого опроса свой, общей суммы нет
+import { splitReach, demoExitStats } from '../lib/analytics/admin-a2'
+const ans = (place: any) => ({ id: 'x', user_id: 'u', place, reasons: [], other_text: null, can_contact: false, created_at: '' })
+const r = splitReach([{ props: { place: 'cooling' } }, { props: { place: 'cooling' } }, { props: { place: 'stuck' } }], [{ props: { place: 'stuck' } }], [ans('cooling'), ans('stuck'), ans('stuck')])
+assert.deepEqual(r.leave, { shown: 2, sent: 1, dismissed: 0 })
+assert.deepEqual(r.stuck, { shown: 1, sent: 2, dismissed: 1 })
+const dm = demoExitStats()
+assert.equal(dm.leave.sent + dm.stuck.sent, dm.answers.length)
+assert.equal(dm.stuck.sent, dm.answers.filter(a => a.place === 'stuck').length)
+assert.ok(!('sent' in dm), 'общей суммы в данных нет')
 console.log('ok: опрос при уходе')

@@ -47,6 +47,7 @@ export const REASON_RU: Record<ExitReason, string> = {
 
 export const ADMIN_EXIT = {
   title: 'Почему уходят',
+  leave: 'Опрос при уходе',
   count: 'ответов за период',
   contact: 'можно написать',
   ownWords: 'Свои слова',

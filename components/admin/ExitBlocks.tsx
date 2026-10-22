@@ -5,7 +5,7 @@
 
 import { ADMIN_EXIT, REASON_RU } from '@/lib/analytics/exit-copy'
 import { visibleReasons, type ExitPlace } from '@/lib/analytics/exit-survey'
-import type { ExitStats, PersonExit, ExitAnswer } from '@/lib/analytics/admin-a2'
+import type { ExitReach, ExitStats, PersonExit, ExitAnswer } from '@/lib/analytics/admin-a2'
 import type { AdminOpts } from '@/lib/analytics/admin-types'
 import { plural } from '@/lib/analytics/definitions'
 import { PERIOD_RU } from '@/lib/analytics/admin-view'
@@ -30,30 +30,32 @@ export function ExitSummary({ d, error, o, tz, now }: { d: ExitStats | null; err
   // причины считаем от ответов, где назвали хоть что-то кроме паузы
   const real = leave.filter(a => !isPauseOnly(a))
   const own = d.answers.filter(a => a.other_text)
-  const aside = `${num(d.sent)} ${plural(d.sent, 'ответ', 'ответа', 'ответов')} · ${PERIOD_RU[o.period]}`
+  // охват у каждого опроса свой: общей суммы нет (Арина 24.10)
+  const Reach = ({ r, pause }: { r: ExitReach; pause?: number }) => (
+    <p className="text-[13px] text-brand-muted flex flex-wrap gap-x-4 gap-y-1 mb-3">
+      <span>показали <b className="font-semibold text-brand-text">{num(r.shown)}</b></span>
+      <span>ответили <b className="font-semibold text-brand-text">{num(r.sent)}</b></span>
+      {pause !== undefined && <span title={ADMIN_EXIT.pauses}>пауза <b className="font-semibold text-brand-text">{num(pause)}</b></span>}
+      <span>закрыли <b className="font-semibold text-brand-text">{num(r.dismissed)}</b></span>
+    </p>
+  )
+  const anything = d.answers.length || d.leave.shown || d.stuck.shown
 
   return (
-    <Section title={ADMIN_EXIT.title} aside={aside}>
-      <Card className="px-4 lg:px-5 py-3 flex flex-wrap items-baseline gap-x-6 gap-y-1">
-        <span>показали <b className="font-semibold">{num(d.shown)}</b></span>
-        <span>ответили <b className="font-semibold">{num(d.sent)}</b></span>
-        <span title={ADMIN_EXIT.pauses}>пауза <b className="font-semibold">{num(pauses)}</b></span>
-        <span>закрыли <b className="font-semibold">{num(d.dismissed)}</b></span>
-      </Card>
-      {!d.answers.length ? <Card className="p-5"><p className="text-brand-muted">{ADMIN_EXIT.empty}</p></Card> : (
+    <Section title={ADMIN_EXIT.title} aside={PERIOD_RU[o.period]}>
+      {!anything ? <Card className="p-5"><p className="text-brand-muted">{ADMIN_EXIT.empty}</p></Card> : (
         <Card className="grid lg:grid-cols-2 lg:divide-x divide-brand-border">
           <div className="p-4 lg:p-5 min-w-0">
-            <h3 className="font-semibold mb-3">{ADMIN_EXIT.reasons}</h3>
+            <h3 className="font-semibold mb-1">{ADMIN_EXIT.leave}</h3>
+            <Reach r={d.leave} pause={pauses} />
             {!leave.length ? <p className="text-brand-muted text-[13px]">Пока не отвечали</p>
               : !real.length ? <p className="text-brand-muted text-[13px]">Все ответившие отметили паузу</p>
               : <ReasonList list={real} place="cooling" />}
-            {stuck.length > 0 && (
+            {(d.stuck.shown > 0 || stuck.length > 0) && (
               <div className="mt-6 pt-5 border-t border-brand-border">
-                <div className="flex items-baseline justify-between gap-3 mb-3">
-                  <h3 className="font-semibold">{ADMIN_EXIT.stuck}</h3>
-                  <span className="text-[13px] text-brand-muted shrink-0">{num(stuck.length)} {plural(stuck.length, 'ответ', 'ответа', 'ответов')}</span>
-                </div>
-                <ReasonList list={stuck} place="stuck" />
+                <h3 className="font-semibold mb-1">{ADMIN_EXIT.stuck}</h3>
+                <Reach r={d.stuck} />
+                {stuck.length ? <ReasonList list={stuck} place="stuck" /> : <p className="text-brand-muted text-[13px]">Пока не отвечали</p>}
               </div>
             )}
           </div>
