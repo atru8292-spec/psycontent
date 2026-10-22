@@ -56,6 +56,12 @@ export const EVENTS = {
   error_shown: ['code', 'screen'],                   // клиент: показана плашка ошибки
   feature_open: ['feature'],                         // клиент: открыта функция из FEATURES
 
+  // ---- опрос при уходе (аналитика 2, lib/analytics/exit-survey.ts); свои слова человека сюда не попадают никогда ----
+  exit_survey_shown: ['place'],                      // сервер: карточку решили показать (place cooling|delete|cancel)
+  exit_survey_open: ['place'],                       // клиент: раскрыла карточку («Рассказать»)
+  exit_survey_sent: ['place', 'reasons', 'own', 'contact'], // сервер: ответ записан; reasons коды через запятую, own true|false (написала ли свои слова)
+  exit_survey_dismiss: ['place'],                    // клиент: «Не сейчас» или крестик
+
   // ---- лендинг (app/page.tsx): единственные события, которые сервер принимает без входа ----
   land_view: [],                                     // открыли главную, один раз за загрузку
   land_cta_click: ['place', 'plan'],                 // кнопка в регистрацию: place hero|how|pricing|final|header, plan free|calm|daily
