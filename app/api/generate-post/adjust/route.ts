@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     if (postRes.error || !postRes.data) return NextResponse.json({ error: 'Пост не найден' }, { status: 404 })
     // замеры: какая правка и к какому формату (код действия только латиницей, русские кнопки сводим к кодам)
     const ACTION_CODE: Record<string, string> = { 'теплее': 'warmer', 'короче': 'shorter', 'живее': 'livelier', 'без клише': 'no_cliche', hooks: 'other_hook', cover: 'cover', zahod_pick: 'zahod_pick' }
-    serverTrack(user.id, 'material_adjust', { action: ACTION_CODE[String(action)] || 'other', format: String(postRes.data.format || 'post').startsWith('reels') ? 'reels' : String(postRes.data.format || 'post') })
+    serverTrack(user.id, 'material_adjust', { action: ACTION_CODE[String(action)] || 'other', format: String(postRes.data.format || 'post').startsWith('reels') ? 'reels' : String(postRes.data.format || 'post'), post: postId })
 
     // Обложка к посту: плана не нужно (подходит и для поста из своего черновика)
     if (action === 'cover') {

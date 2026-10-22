@@ -32,7 +32,7 @@ export const EVENTS = {
 
   // ---- взяла текст в работу (главный сигнал ценности) ----
   material_take: ['how', 'format', 'post'],          // how copy|copy_caption|copy_text|share|zip|single|list|published, post = id материала
-  material_adjust: ['action', 'format'],             // «Поправить», «Другой заход», «Еще формат» (сервер, /api/generate-post/adjust и group)
+  material_adjust: ['action', 'format', 'post'],     // «Поправить», «Другой заход», «Еще формат» (сервер, /api/generate-post/adjust и group); post = id материала (с 24.10, для правок по тексту во вкладке «Тексты»)
 
   // ---- деньги и лимиты ----
   limit_hit: ['reason', 'plan', 'op'],               // сервер: canConsume отказал (lib/energy.ts)
