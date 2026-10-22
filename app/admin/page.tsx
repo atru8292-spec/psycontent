@@ -4,6 +4,8 @@ import { optsFrom, loadOverview, loadFunnel, loadPeople, loadLanding, type Landi
 import { FUNNEL_RU, type FunnelStep, type PersonRow, type AdminOpts } from '@/lib/analytics/admin-types'
 import { reasonText, share, plural } from '@/lib/analytics/definitions'
 import { PERIOD_RU, filterPeople } from '@/lib/analytics/admin-view'
+import { loadExitStats } from '@/lib/analytics/admin-a2'
+import { ExitSummary } from '@/components/admin/ExitBlocks'
 import { Card, Section, Note, RiskPill, StatusBadge, PageHead, RowLink, LoadError, href, rub, num, whenDay, hours } from '@/components/admin/ui'
 
 type SP = Promise<Record<string, string | string[] | undefined>>
@@ -13,7 +15,7 @@ export default async function AdminHome({ searchParams }: { searchParams: SP }) 
   const o = optsFrom(await searchParams)
   const tz = adminTz()
   const now = new Date()
-  const [ov, fu, pe, la] = await Promise.all([loadOverview(o), loadFunnel(o), loadPeople(o), loadLanding(o)])
+  const [ov, fu, pe, la, ex] = await Promise.all([loadOverview(o), loadFunnel(o), loadPeople(o), loadLanding(o), loadExitStats(o)])
   const err = ov.error || fu.error || pe.error
   const sub = `Воронка ${PERIOD_RU[o.period]}, плитки за свои сроки · ${o.includeInternal ? 'со служебными' : 'без служебных'}`
 
@@ -25,6 +27,7 @@ export default async function AdminHome({ searchParams }: { searchParams: SP }) 
           <Tiles d={ov.data} />
           <LandingRow d={la.data} />
           <Attention people={pe.data} o={o} tz={tz} now={now} />
+          <ExitSummary d={ex.data} error={ex.error} o={o} tz={tz} now={now} />
           <Funnel steps={fu.data} people={pe.data} o={o} tz={tz} now={now} empty={!pe.data.some(p => p.last_visit_at)} />
         </div>
       )}

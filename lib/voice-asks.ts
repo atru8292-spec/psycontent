@@ -60,3 +60,11 @@ export function markDismissed(postCount: number) {
   const s = readAsks()
   write({ ...s, dismissedAt: postCount, lastShownDay: today(), lastShownKey: null })
 }
+
+// Сегодня уже была другая просьба (опрос при уходе на главной): просьбу про голос сегодня не показываем,
+// одна просьба на день. Ничего не отмечает сделанным, завтра лестница идет как шла.
+export function markOtherAskToday() {
+  const s = readAsks()
+  if (s.lastShownDay === today()) return
+  write({ ...s, lastShownDay: today(), lastShownKey: null })
+}
