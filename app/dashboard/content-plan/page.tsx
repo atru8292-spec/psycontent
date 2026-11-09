@@ -38,13 +38,13 @@ type DayItem = {
 }
 
 // Кнопка дня по формату: глагол по делу
-const GO_TEXT: Record<string, string> = { carousel: 'Создать карусель', reels: 'Сделать рилс', stories: 'Сделать сторис' }
+const GO_TEXT: Record<string, string> = { carousel: 'Собрать карусель', reels: 'Сделать рилс', stories: 'Сделать сторис' }
 const goText = (f: string) => GO_TEXT[f] || 'Написать пост'
 
 const FORMAT_META: Record<string, { icon: any; label: string; color: string; bg: string }> = {
   post:     { icon: AlignLeft, label: 'Пост',     color: 'text-brand-accent', bg: 'bg-brand-soft' },
   carousel: { icon: Layers,    label: 'Карусель', color: 'text-brand-accent', bg: 'bg-brand-soft' },
-  reels:    { icon: Film,      label: 'Рилс',     color: 'text-brand-sage', bg: 'bg-brand-soft' },
+  reels:    { icon: Film,      label: 'Рилс',     color: 'text-brand-accent', bg: 'bg-brand-soft' },
   stories:  { icon: FileText,  label: 'Stories',  color: 'text-brand-muted', bg: 'bg-brand-soft' },
 }
 
@@ -471,10 +471,10 @@ export default function ContentPlan() {
           body: JSON.stringify({ userId: user.id, batch }),
         })
 
-        const data = await res.json()
+        // 504 от nginx приходит HTML-страницей: без разбора и без сырого текста ошибки, мягкая плашка с повтором
+        const data = await res.json().catch(() => null)
         if (data?.error === 'need_onboarding') { setNeedOnboarding(true); return }
-        if (data?.error === 'server_error') { setServerError(true); return }
-        if (!res.ok) throw new Error(data.error || 'Ошибка генерации')
+        if (!data || data?.error === 'server_error' || !res.ok) { setServerError(true); return }
         const tb = Number(data?.totalBatches)
         if (Number.isInteger(tb) && tb >= 1 && tb <= 30 && tb !== total) { total = tb; setTotalBatches(tb) }
 
@@ -512,6 +512,8 @@ export default function ContentPlan() {
     if (item.format_kod) params.append('fkod', item.format_kod)
     if (item.zadacha) params.append('rol', item.zadacha)
     if (item.reakciya) params.append('reakciya', item.reakciya)
+    // ситуация, ради которой тема в плане (у zh6 она в tip), уходит в генерацию деталью
+    if (item.format_kod && item.tip) params.append('sit', item.tip.slice(0, 300))
     router.push(`/dashboard/make?${params}`)
   }
 

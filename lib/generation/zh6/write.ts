@@ -292,6 +292,11 @@ const LABELS = (t: string) => (t.match(/^\s*(?:Слайд \d+|Текст на э
 
 export type Zh6Result = { text: string; format: FormatCode; intent: string; draft: string; cut: string[]; zh4?: any; zh6: { ustr: string; formatName: string; primery: string[]; nach: string; kon: string; priemy: string[]; mesta: Mesto[]; ostalos: Mesto[]; pravka: boolean; rol: string; samo: Samo; samoResult?: SamoResult; doSamo?: string } }
 
+// nginx на проде ждет ответа 120 с (proxy_read_timeout): писатель и правка мест вместе укладываются в 110 с,
+// правку с остатком меньше 15 с не начинаем (текст писателя уходит как есть, находки остаются в ostalos)
+const ZH6_DEADLINE_MS = 110000
+const ZH6_MIN_FIX_MS = 15000
+
 export async function zh6Write(ctx: GenContext, req: GenRequest): Promise<Zh6Result> {
   const s = ctx.settings
   const p = zh6Prompt(ctx, req)
@@ -299,6 +304,8 @@ export async function zh6Write(ctx: GenContext, req: GenRequest): Promise<Zh6Res
   const intent = req.intent || 'uznavanie'
   const rol = req.rol || (intent === 'priglashenie' ? 'zapis' : intent === 'kak_v_terapii' ? 'doverie' : 'ohvat')
   const samo = samoOf(req)
+  // общий бюджет запроса: nginx ждет 120 с, правки после писателя получают только остаток (ostatok)
+  const t0 = Date.now()
   const raw = stripServiceTags(await callModel({ system: p.system, user: p.user, effort: (process.env.ZH6_EFFORT as any) || 'low', verbosity: 'medium', maxTokens: 8000, timeoutMs: Number(process.env.GENERATION_WRITER_TIMEOUT_MS) || 100000, writer: true, userId: ctx.userId, operation: 'generate_post_zh6', knownNames: s.knownNames }))
   if (!raw.trim()) throw new Error('Empty model response')
   const draft = finalNet(raw)
@@ -315,10 +322,11 @@ export async function zh6Write(ctx: GenContext, req: GenRequest): Promise<Zh6Res
   const mestaOf = (t: string) => [...zh6Mesta(t, { sources, allowMat: allowMatOf(s) }), ...priemMesta(t), ...kodMesta(t), ...logikaMesta(t, s, { format6: p.format6.code })]
   const mesta = mestaOf(text)
   let pravka = false
-  if (mesta.length) {
+  const ostatok = ZH6_DEADLINE_MS - (Date.now() - t0)
+  if (mesta.length && ostatok >= ZH6_MIN_FIX_MS) {
     try {
       const list = mesta.map((m, i) => `${i + 1}. «${m.quote}»: ${m.why}`).join('\n')
-      const fixed = finalNet(stripServiceTags(await callModel({ system: REPAIR_SYSTEM, user: `<текст>\n${text}\n</текст>\n\n<места>\n${list}\n</места>`, effort: 'low', verbosity: 'medium', maxTokens: 6000, timeoutMs: 60000, writer: true, userId: ctx.userId, operation: 'generate_post_zh6_repair', knownNames: s.knownNames })))
+      const fixed = finalNet(stripServiceTags(await callModel({ system: REPAIR_SYSTEM, user: `<текст>\n${text}\n</текст>\n\n<места>\n${list}\n</места>`, effort: 'low', verbosity: 'medium', maxTokens: 6000, timeoutMs: Math.min(60000, ostatok), writer: true, userId: ctx.userId, operation: 'generate_post_zh6_repair', knownNames: s.knownNames })))
       const after = mestaOf(fixed)
       const dl = words(fixed).length / Math.max(1, words(text).length)
       // правку берем, если находок меньше, метки строк те же, длина почти та же и мат автора не пропал
@@ -511,6 +519,7 @@ const parseTemy = (s: AuthorSettings, raw: any, zhivye: string[]) => (Array.isAr
 
 export async function zh6Plan(s: AuthorSettings, o: { n: number; recent?: string[]; rotation?: number; userId?: string; zamena?: boolean }): Promise<{ temy: Zh6Tema[]; prompt: { system: string; user: string }; smesh: string[] }> {
   const p = temyPrompt(s, o)
+  const t0 = Date.now()
   const raw: any = await callJson({ system: p.system, user: p.user, effort: (process.env.ZH6_PLAN_EFFORT as any) || 'low', verbosity: 'medium', maxTokens: 8000, timeoutMs: 100000, writer: true, userId: o.userId || '', operation: 'topic_plan_zh6', knownNames: s.knownNames })
   const temy0: Zh6Tema[] = parseTemy(s, raw, p.zhivye)
   const dopusk = formatyAvtora(s)
@@ -520,16 +529,17 @@ export async function zh6Plan(s: AuthorSettings, o: { n: number; recent?: string
   // «со мной можно» у живых бывает: одна такая тема на план можно, вторая и дальше на замену
   let soMnoj = 0
   const plohie = temy.filter(t => t.pometki.some(x => x === 'коряво' || x === 'копия живой строки' || (x === 'со мной можно' && ++soMnoj > 1))).map(t => ({ n: t.n, why: t.pometki.join(', ') }))
-  if (plohie.length && o.zamena !== false) { try { temy = zapisPravila(await zh6PlanZamena(s, temy, plohie, [], o.userId || '')) } catch { /* замена не вышла: план как есть */ } }
+  const ostatok = ZH6_DEADLINE_MS - (Date.now() - t0)
+  if (plohie.length && o.zamena !== false && ostatok >= ZH6_MIN_FIX_MS) { try { temy = zapisPravila(await zh6PlanZamena(s, temy, plohie, [], o.userId || '', Math.min(60000, ostatok))) } catch { /* замена не вышла: план как есть */ } }
   return { temy, prompt: { system: p.system, user: p.user }, smesh }
 }
 
 // замена тем: повтор у другого автора или копия живой строки; одна замена на тему, формат и задача те же
-export async function zh6PlanZamena(s: AuthorSettings, temy: Zh6Tema[], zamena: { n: number; why: string }[], chuzhie: string[], userId = ''): Promise<Zh6Tema[]> {
+export async function zh6PlanZamena(s: AuthorSettings, temy: Zh6Tema[], zamena: { n: number; why: string }[], chuzhie: string[], userId = '', timeoutMs = 60000): Promise<Zh6Tema[]> {
   if (!zamena.length) return temy
   const p = temyPrompt(s, { n: zamena.length })
   const user = `${p.user}\n\n<замена>\nВ плане автора эти темы надо заменить новыми, в той же нише, с той же задачей и тем же форматом:\n${zamena.map(z => { const t = temy.find(x => x.n === z.n)!; return `${z.n}. «${t.tema}» (формат ${t.format}, задача ${t.zadacha}): ${z.why}` }).join('\n')}\nНе повторяй темы других авторов:\n${chuzhie.slice(0, 40).map(x => `- ${x}`).join('\n')}\nВерни JSON {"temy":[...]} только с замененными темами, n те же.\n</замена>`
-  const raw: any = await callJson({ system: p.system, user, effort: 'low', verbosity: 'medium', maxTokens: 4000, timeoutMs: 60000, writer: true, userId, operation: 'topic_plan_zh6_zamena', knownNames: s.knownNames })
+  const raw: any = await callJson({ system: p.system, user, effort: 'low', verbosity: 'medium', maxTokens: 4000, timeoutMs, writer: true, userId, operation: 'topic_plan_zh6_zamena', knownNames: s.knownNames })
   const nov: Zh6Tema[] = parseTemy(s, raw, p.zhivye)
   return odnoMnogotochie(temy.map(t => { const z = nov.find(x => x.n === t.n && zamena.some(y => y.n === t.n)); return z ? { ...t, tema: z.tema, situaciya: z.situaciya || t.situaciya, pometki: z.pometki } : t }))
 }

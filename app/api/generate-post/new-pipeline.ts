@@ -6,12 +6,11 @@ import { NextResponse, after } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildContext, intentFromBody, isSyncMode, toFormatCode } from '@/lib/generation/context'
 import { draft, refine, postFields, type GenRequest, type Plan } from '@/lib/generation/pipeline'
-import { finalNet } from '@/lib/generation/text-guard'
+import { finalNet, isReels, type FormatCode } from '@/lib/generation/text-guard'
 import { isSimpleMode, simpleWrite } from '@/lib/generation/simple'
-import { intentForFormat, cleanAds } from '@/lib/generation/group'
+import { intentForFormat, cleanAds, cleanHardAds } from '@/lib/generation/group'
 import { activeHyps } from '@/lib/generation/hypotheses'
 import { formatByCode } from '@/lib/generation/zh6/formaty'
-import { isReels, type FormatCode } from '@/lib/generation/text-guard'
 
 // ---------- zh6 (PROMPT_HYP=zh6): формат каталога, задача и реакция из плана ----------
 // zh6 пишет только простым путем (simpleWrite), поэтому при GENERATION_MODE=full его нет
@@ -72,8 +71,8 @@ export async function handleNewPipeline(args: {
     req.format = r.format
     // в Instagram без цен, скидок, отзывов и приглашения записаться (запрет рекламы в РФ). zh6 с задачей «запись»:
     // решение Арины 26.10 (CLAUDE.md, «Звать к себе можно в Instagram и Telegram одинаково, если задача материала запись»)
-    // в main еще не перенесено; zh6 зовет одной строкой в подписи по ее схеме, поэтому для него вырезку пропускаем
-    if (!(zh6On() && req.rol === 'zapis')) r.text = await cleanAds(ctx, req.format, r.text)
+    // в main еще не перенесено; у zh6 приглашение остается, а цена, скидка, «успей», дефицит мест и отзывы вырезаются
+    r.text = zh6On() && req.rol === 'zapis' ? await cleanHardAds(ctx, req.format, r.text) : await cleanAds(ctx, req.format, r.text)
     const plan: Plan = { intent: r.intent, topic_for_text: topic, reels_format: r.format.startsWith('reels') ? r.format : null }
     const postId = await savePost(db, {
       user_id: userId, topic, format: req.format, category: pillar || 'Своя тема', content: r.text,

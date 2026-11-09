@@ -4,13 +4,11 @@ import { generateWithAI } from '@/lib/openrouter'
 import { getSessionUser } from '@/lib/auth'
 import { isNewPipeline } from '@/lib/generation/context'
 import { activeHyps } from '@/lib/generation/hypotheses'
+import { isSimpleMode } from '@/lib/generation/simple'
 import { buildAuthorSettings } from '@/lib/generation/settings'
 import { loadMemory } from '@/lib/generation/memory'
 import { zh6Plan } from '@/lib/generation/zh6/write'
 import { formatByCode } from '@/lib/generation/zh6/formaty'
-
-// «Пока без видео» пишет edit-profile, «Категорически нет» старый онбординг, «не снимаю» прежняя проверка
-const noVideo = (v: unknown) => /без\s+видео|не\s+снима|категорически\s+нет/iu.test(String(v || ''))
 
 // ---------- zh6 (PROMPT_HYP=zh6 и новый мозг): план тем через zh6Plan, пачки по 10 дней ----------
 const ZH6_BATCH = 10
@@ -110,7 +108,7 @@ export async function POST(request: NextRequest) {
     const existingPlan = existingPlanRes.data?.plan || []
 
     // zh6: свой план пачками по 10 дней, остальные пользователи идут старым путем без изменений
-    if (activeHyps().has('zh6') && isNewPipeline(profile)) {
+    if (activeHyps().has('zh6') && isSimpleMode() && isNewPipeline(profile)) {
       const b = Number(batch)
       if (!Number.isInteger(b) || b < 1 || b > ZH6_TOTAL_BATCHES) return NextResponse.json({ error: 'bad_request' }, { status: 400 })
       return await zh6PlanBatch({ db: supabaseAdmin, userId, profile, batch: b, existingPlan: Array.isArray(existingPlan) ? existingPlan : [] })
@@ -310,7 +308,7 @@ JSON массив из ${daysCount} объектов:
 • Аудитория: ${audienceText}
 • Тон: ${profile.tone_verbal || 'теплый, но экспертный'}
 • Боли клиентов: ${clientPains}
-${noVideo(profile.video_attitude) ? '• ⚠️ НЕ использовать формат reels!' : ''}
+${profile.video_attitude === 'не снимаю' ? '• ⚠️ НЕ использовать формат reels!' : ''}
 
 ══════════════════════════════════════════════════════════════
 
@@ -320,7 +318,7 @@ ${noVideo(profile.video_attitude) ? '• ⚠️ НЕ использовать ф
 1. Каждый хук использует РАЗНЫЙ триггер (эмоция, FOMO, провокация, инсайт, соц.доказательство)
 2. Темы строго про боли клиента: ${clientPains}
 3. Чередуй ВСЕ 5 рубрик равномерно
-4. Чередуй форматы (post, carousel, ${noVideo(profile.video_attitude) ? 'stories' : 'reels, stories'})
+4. Чередуй форматы (post, carousel, ${profile.video_attitude === 'не снимаю' ? 'stories' : 'reels, stories'})
 5. Хуки живые, эмоциональные, на языке человека
 
 Верни ТОЛЬКО JSON массив. Без пояснений.`
@@ -338,7 +336,7 @@ ${noVideo(profile.video_attitude) ? '• ⚠️ НЕ использовать ф
     }
 
     const validPillars = ['Психообразование', 'Истории', 'Личное', 'Практика', 'Позиционирование']
-    const validFormats = noVideo(profile.video_attitude)
+    const validFormats = profile.video_attitude === 'не снимаю' 
       ? ['post', 'carousel', 'stories'] 
       : ['post', 'carousel', 'reels', 'stories']
 

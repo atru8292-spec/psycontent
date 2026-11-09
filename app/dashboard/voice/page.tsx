@@ -139,6 +139,9 @@ export default function VoicePage() {
   const [audience, setAudience] = useState('')
   const [booking, setBooking] = useState('')
   const [kod, setKod] = useState('')
+  // кодовое слово и звездочки читает только zh6: без него экран как в main (признак отдает /api/generate-post/formaty)
+  const [zh6Ui, setZh6Ui] = useState(false)
+  const [kodTouched, setKodTouched] = useState(false) // ошибку показываем после ухода из поля, не на первой букве
   const [matZvezdy, setMatZvezdy] = useState<boolean | null>(null)
   const [firstSession, setFirstSession] = useState('')
   const [position, setPosition] = useState('')
@@ -159,6 +162,10 @@ export default function VoicePage() {
       }
     } catch { /* блок просто не покажем */ }
   }
+
+  useEffect(() => {
+    fetch('/api/generate-post/formaty').then(r => r.ok ? r.json() : null).then(d => setZh6Ui(d?.zh6 === true)).catch(() => {})
+  }, [])
 
   useEffect(() => {
     const load = async () => {
@@ -287,11 +294,11 @@ export default function VoicePage() {
   }
 
   const kodTrim = kod.trim()
-  const kodBad = kodTrim.length === 1 || kodTrim.length > 40
+  const kodBad = zh6Ui && (kodTrim.length === 1 || kodTrim.length > 40)
 
   const saveSettings = async () => {
     if (!userId) return
-    if (kodBad) { setMessage('Кодовое слово нужно от 2 до 40 знаков. Поправь его, и сохраню.'); return }
+    if (kodBad) { setKodTouched(true); setMessage('В кодовом слове должно быть от 2 до 40 знаков. Поправь, и я сохраню.'); return }
     setSaving(true); setMessage(null); setSavedAt(false)
     const { error } = await supabase.from('onboarding_profiles').update({
       author_gender: gender,
@@ -306,7 +313,7 @@ export default function VoicePage() {
       character_text: character.trim() || null,
       story_bank: stories.filter(s => s.text.trim()).map(s => ({ text: s.text.trim(), level: s.level })),
     }).eq('user_id', userId)
-    const kodOk = error ? true : await saveExtra(userId, { kodovoe_slovo: kodTrim || null })
+    const kodOk = error || !zh6Ui ? true : await saveExtra(userId, { kodovoe_slovo: kodTrim || null })
     setSaving(false)
     if (error || !kodOk) setMessage('Не получилось сохранить. Попробуй еще раз чуть позже.')
     else setSavedAt(true)
@@ -374,10 +381,10 @@ export default function VoicePage() {
             <p className="text-xs text-brand-muted leading-relaxed">Мы за то, чтобы ты говорила как думаешь. Если в жизни ты можешь сказать «да пошло оно все», посты тоже могут. Никто тут не осудит.</p>
             <Choice value={profanity} onChange={v => { setProfanity(v); saveTone({ profanity: v }) }} options={[
               { v: 'no', label: 'Без мата' },
-              { v: 'light', label: 'Иногда, со звездочкой' },
+              { v: 'light', label: zh6Ui ? 'Иногда' : 'Иногда, со звездочкой' },
               { v: 'free', label: 'Как в жизни' },
             ]} />
-            {profanity && profanity !== 'no' && (
+            {zh6Ui && profanity && profanity !== 'no' && (
               <button type="button" role="switch" aria-checked={matZvezdy ?? profanity === 'light'} onClick={() => saveZvezdy(!(matZvezdy ?? profanity === 'light'))}
                 className="w-full min-h-11 flex items-center gap-3 text-left cursor-pointer">
                 <span className={`relative w-11 h-6 rounded-full transition shrink-0 ${(matZvezdy ?? profanity === 'light') ? 'bg-brand-accent' : 'bg-brand-border'}`}>
@@ -578,16 +585,16 @@ export default function VoicePage() {
 
           <div className="space-y-2">
             <p className="text-sm font-semibold text-brand-text">Как к тебе попасть</p>
-            <textarea value={booking} onChange={e => setBooking(e.target.value)} rows={2} placeholder="Например: написать в директ слово «встреча»" className={`${field} resize-y`} />
+            <textarea value={booking} onChange={e => setBooking(e.target.value)} rows={2} placeholder={zh6Ui ? 'Например: через директ, первая встреча онлайн' : 'Например: написать в директ слово «встреча»'} className={`${field} resize-y`} />
           </div>
 
-          <div className="space-y-2">
+          {zh6Ui && <div className="space-y-2">
             <label htmlFor="kod-slovo" className="block text-sm font-semibold text-brand-text">Кодовое слово, если есть</label>
-            <p id="kod-slovo-hint" className="text-xs text-brand-muted -mt-1">Его пишут тебе в директ, чтобы записаться. Нет слова, позову просто написать</p>
-            <input id="kod-slovo" value={kod} onChange={e => setKod(e.target.value)} maxLength={40} placeholder="Например: встреча"
-              aria-describedby="kod-slovo-hint" aria-invalid={kodBad || undefined} className={field} />
-            {kodBad && <p className="text-xs text-brand-text" role="status">Нужно хотя бы 2 знака</p>}
-          </div>
+            <p id="kod-slovo-hint" className="text-xs text-brand-muted -mt-1">Позову читателей написать это слово тебе в директ или в комментарии, так им проще записаться. Нет слова, позову просто написать тебе в директ.</p>
+            <input id="kod-slovo" value={kod} onChange={e => setKod(e.target.value)} onBlur={() => setKodTouched(true)} maxLength={40} placeholder="Например, встреча"
+              aria-describedby="kod-slovo-hint" aria-invalid={(kodTouched && kodBad) || undefined} className={field} />
+            {kodTouched && kodBad && <p className="text-xs text-brand-text" role="status">В кодовом слове должно быть от 2 до 40 знаков</p>}
+          </div>}
 
           <div className="space-y-2">
             <p className="text-sm font-semibold text-brand-text">Как проходит первая встреча</p>

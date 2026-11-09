@@ -110,7 +110,8 @@ export default function MakeFlow() {
     const reakciya = params.get('reakciya') || ''
     const code = (v: string) => (/^[a-z0-9_]{1,40}$/.test(v) ? v : undefined)
     if (!initialTopic || !(code(fkod) || code(rol) || code(reakciya))) { setPlan(null); return }
-    setPlan({ formatKod: code(fkod), forFormat: planFormat ? toMakeFormat(planFormat) : undefined, rol: code(rol), reakciya: code(reakciya) })
+    const sit = (params.get('sit') || '').trim().slice(0, 300)
+    setPlan({ formatKod: code(fkod), forFormat: planFormat ? toMakeFormat(planFormat) : undefined, rol: code(rol), reakciya: code(reakciya), ...(sit ? { situaciya: sit } : {}) })
   }, [params, initialTopic, planFormat])
   // мысль из демо на лендинге (как на старом экране: localStorage, 24 часа), стираем после первого готового формата
   const [seed, setSeed] = useState('')
@@ -274,7 +275,9 @@ export default function MakeFlow() {
     if (s.sozhe) { submitSample(s); return }
     const topic = s.text.length > 120 ? s.text.slice(0, 120).replace(/\s+\S*$/, '') : s.text
     setThought(topic)
-    runGroup({ topic, userDetail: s.text, goal: s.goal, mode: s.mode, voice: s.voice, ...(s.zh6 ? { zh6: s.zh6 } : {}) }, s.formats, false)
+    // ситуация дня из плана zh6 (подсказка под темой) идет деталью, пока в поле та же тема дня
+    const sit = plan?.situaciya && s.text.trim() === initialTopic.trim() ? plan.situaciya : ''
+    runGroup({ topic, userDetail: sit ? `${s.text}\n${sit}` : s.text, goal: s.goal, mode: s.mode, voice: s.voice, ...(s.zh6 ? { zh6: s.zh6 } : {}) }, s.formats, false)
   }
 
   // «Сделать так же»: скрины уменьшаем в браузере (до 1280 px, JPEG), оригинал на сервере только в памяти запроса

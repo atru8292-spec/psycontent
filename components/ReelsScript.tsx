@@ -22,7 +22,7 @@ const KIND: Record<string, { name: string; how: string }> = {
   reels_spisok: { name: 'Список', how: 'Говоришь в камеру по пунктам. Номер пункта добавь надписью в Instagram, когда начинаешь новый.' },
   reels_rol: { name: 'Играешь роль', how: 'Говоришь от лица персонажа с серьезным лицом, это шутка. Такие ролики чаще пересылают.' },
   reels_malysh: { name: 'Объясняю как маленькому', how: 'Говоришь в камеру ласково и медленно, как ребенку, про взрослую штуку. Серьезное лицо и детские слова, в этом весь эффект. Если в тексте есть «Рисую», рисуй на листе по ходу.' },
-  reels_bez_slov: { name: 'Без голоса, только надписи', how: 'Говорить не нужно. Сними себя за делом или что угодно рядом, звук убери или поставь музыку. Надписи ниже ставь поверх видео по очереди.' },
+  reels_bez_slov: { name: 'Только надписи', how: 'Говорить не нужно. Сними, как пьешь чай, идешь по улице или просто смотришь в камеру. Звук убери или поставь музыку, а надписи ниже наложи на видео по очереди.' },
   reels_scenka: { name: 'Сценка', how: 'Все роли играешь сама. Сними реплики каждого героя по очереди: для другой роли хватит повернуться, надеть очки или пересесть. Потом склей по порядку в CapCut или в Instagram.' },
   reels_doska: { name: 'Рисуешь и объясняешь', how: 'Говоришь и рисуешь схему на листе или доске по подсказкам ниже.' },
 }
@@ -163,19 +163,17 @@ export default function ReelsScript({ text, mark, format, postId, title }: {
           <p className="min-w-0 text-[13px] font-semibold text-brand-muted">{bezSlov && screens ? 'Что написать на экране' : 'Что сказать'}</p>
           <button type="button" onClick={copySpeech}
             className="min-h-11 -my-3 inline-flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-accent cursor-pointer shrink-0">
-            {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Скопировала' : 'Скопировать только текст'}
+            {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Скопировала' : 'Скопировать текст'}
           </button>
         </div>
 
         {screens ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
+            {/* номер на плашке уже говорит, что это следующая надпись, разделитель между ними не нужен */}
             {screens.map((g, i) => (
-              <div key={i} className="space-y-2">
-                {i > 0 && <MoreOnScreen />}
-                <div className="rounded-xl bg-brand-soft-2 px-4 py-3">
-                  {screens.length > 1 && <p className="mb-1 text-xs text-brand-muted">Экран {i + 1}</p>}
-                  {g.map((t, j) => <p key={j} className="text-[15px] leading-relaxed text-brand-text break-words">{mark(t)}</p>)}
-                </div>
+              <div key={i} className="rounded-xl bg-brand-soft-2 px-4 py-3">
+                {screens.length > 1 && <p className="mb-1 text-xs text-brand-muted">Надпись {i + 1}</p>}
+                {g.map((t, j) => <p key={j} className="text-[15px] leading-relaxed text-brand-text break-words">{mark(t)}</p>)}
               </div>
             ))}
           </div>
@@ -197,7 +195,7 @@ export default function ReelsScript({ text, mark, format, postId, title }: {
               if (l.role) {
                 const idx = roleOrder.indexOf(roleKey(l.role))
                 return (
-                  <p key={i} className={`text-[15px] leading-relaxed break-words ${idx % 2 === 1 ? 'pl-4 text-brand-text-secondary' : 'text-brand-text'}`}>
+                  <p key={i} className={`text-[15px] leading-relaxed break-words text-brand-text ${idx % 2 === 1 ? 'ml-3 pl-3 border-l-2 border-brand-border' : ''}`}>
                     <span className="mr-1.5 font-semibold text-brand-accent">{l.role}:</span>{withRemarks(l.text, mark)}
                   </p>
                 )
@@ -211,7 +209,7 @@ export default function ReelsScript({ text, mark, format, postId, title }: {
 
       {howTo.length > 0 && (
         <div className="rounded-xl bg-brand-soft/60 px-4 py-3 space-y-1.5">
-          <p className="flex items-center gap-1.5 text-[13px] font-semibold text-brand-muted"><Video className="w-3.5 h-3.5" /> На экране</p>
+          <p className="flex items-center gap-1.5 text-[13px] font-semibold text-brand-muted"><Video className="w-3.5 h-3.5" /> Как снять</p>
           {howTo.map((l, i) => (
             <p key={i} className="text-sm text-brand-text break-words">
               <span className="text-brand-muted">{HOW_TO[l.label!]}: </span>{mark(l.text)}

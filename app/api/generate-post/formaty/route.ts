@@ -36,7 +36,7 @@ export async function GET() {
       short: !!f.short,
       bezGolosa: bezGolosa(f),
     }))
-    return NextResponse.json({ formaty }, { headers: { 'Cache-Control': 'no-store' } })
+    return NextResponse.json({ formaty, zh6: true }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (e: any) {
     console.error('formaty error:', e?.message || e)
     return NextResponse.json({ error: 'server_error' }, { status: 500 })

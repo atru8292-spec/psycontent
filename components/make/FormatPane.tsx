@@ -116,7 +116,9 @@ export default function FormatPane({ item, onChange, onPublished, onMore }: {
       sendVoiceEvent({ action: 'copy', postId, generated: item.baseline, copied: text })
     }
     track('material_take', { how: 'copy', format: normFormat(code), ...(postId ? { post: postId } : {}) })
-    navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+    // служебная строка [смена] (смена надписи в беззвучном рилсе zh6) в Instagram не нужна, вместо нее пустая строка
+    const out = text.replace(/^[ \t]*\[\s*смена\s*\][ \t]*$/gimu, '').replace(/\n{3,}/g, '\n\n')
+    navigator.clipboard.writeText(out).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
       .catch(() => { setError('Не получилось скопировать. Нажми на текст и выдели вручную') })
   }
 
@@ -128,9 +130,11 @@ export default function FormatPane({ item, onChange, onPublished, onMore }: {
       const d = await r.json().catch(() => ({}))
       // zh6: правка сломала бы разметку, сервер вернул текст без изменений; текст не трогаем, говорим мягко
       if (r.status === 422 && d?.unchanged) {
-        setError(typeof d.error === 'string' && d.error.trim() ? d.error.trim().slice(0, 200) : 'Не получилось поправить так, чтобы ничего не сломать. Текст на месте')
+        setError(typeof d.error === 'string' && d.error.trim() ? d.error.trim().slice(0, 200) : 'Не вышло поправить аккуратно, поэтому оставила текст как был. Попробуй еще раз или другую кнопку.')
         return
       }
+      // zh6: «Другой заход» пишет целый текст и считается как текст; предел сказать словами сервера, не сырым кодом
+      if (r.status === 429 && d?.limit) { setError(typeof d.error === 'string' ? d.error.slice(0, 200) : 'Достигнут предел генераций'); return }
       if (!r.ok) throw new Error()
       if (action === 'hooks') { if (Array.isArray(d.hooks)) setHooks(d.hooks) }
       else if (typeof d.post === 'string') onChange({ text: d.post, baseline: d.post })
@@ -145,6 +149,10 @@ export default function FormatPane({ item, onChange, onPublished, onMore }: {
     sendVoiceEvent({ action: 'hook_pick', postId, before: first, after: h.text, hookType: h.hook_type })
     if (typeof h.full === 'string' && h.full.trim()) {
       onChange({ text: h.full, baseline: h.full, ...(typeof h.formatName === 'string' && h.formatName.trim() ? { formatName: h.formatName.trim().slice(0, 120) } : {}) })
+      // zh6: заход целиком ставим и в базу (сервер берет его из своей записи, текст с экрана не доверяем)
+      if (postId) fetch('/api/generate-post/adjust', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ postId, action: 'zahod_pick' }) })
+        .then(r => { if (!r.ok) setError('Заход на экране, но сохранить не вышло. Скопируй его сейчас или нажми «Другой заход» еще раз') })
+        .catch(() => setError('Заход на экране, но сохранить не вышло. Скопируй его сейчас или нажми «Другой заход» еще раз'))
     } else onChange({ text: replaceFirstLine(text, h.text), baseline: replaceFirstLine(item.baseline, h.text) })
     setHooks(null); setFixOpen(false)
   }
@@ -286,7 +294,7 @@ export default function FormatPane({ item, onChange, onPublished, onMore }: {
       <BottomSheet open={fixOpen} onClose={() => { setFixOpen(false); setHooks(null) }} title="Поправить">
         {hooks ? (
           <div className="space-y-2 pt-1">
-            <p className="text-[14px] text-brand-muted">{hooks.some(h => h.full) ? 'Выбери заход, я поставлю весь текст вместо текущего:' : 'Выбери первую строку, я поставлю ее вместо текущей:'}</p>
+            <p className="text-[14px] text-brand-muted">{hooks.some(h => h.full) ? 'Вот другой заход. Нажми на него, и я поставлю его целиком вместо этого текста.' : 'Выбери первую строку, я поставлю ее вместо текущей:'}</p>
             {hooks.map((h, i) => (
               <button key={i} type="button" onClick={() => pickHook(h)} className="w-full text-left px-4 py-3 rounded-xl border border-brand-border bg-white hover:border-brand-accent cursor-pointer">
                 <span className="block text-[15px] text-brand-text break-words">{h.text}</span>

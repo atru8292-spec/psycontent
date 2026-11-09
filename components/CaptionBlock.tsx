@@ -24,9 +24,9 @@ export default function CaptionBlock({ caption, title = 'Описание к п�
   return (
     <div className="rounded-xl border border-brand-soft px-4 py-3 space-y-1.5">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-brand-muted">{title}</p>
+        <p className="min-w-0 text-[13px] font-semibold text-brand-muted">{title}</p>
         <button type="button" onClick={copy}
-          className="inline-flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-accent cursor-pointer">
+          className="min-h-11 -my-3 shrink-0 inline-flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-accent cursor-pointer">
           {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Скопировала' : 'Скопировать описание'}
         </button>
       </div>

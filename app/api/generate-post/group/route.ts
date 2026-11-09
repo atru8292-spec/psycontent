@@ -24,7 +24,7 @@ import { isSimpleMode, simpleWrite, chooseIntent, chooseReelsFormat } from '@/li
 import { buildCore, coreFromRow, type ThoughtCore } from '@/lib/generation/core'
 import {
   GROUP_FORMATS, GOALS, GOAL_LABELS, GOAL_INTENTS, toGroupCode, intentForFormat, coreBlockFor, neighborsFor,
-  checkSet, rewritePhrases, stripAds, adPhrases, type GroupFormat, type Goal,
+  checkSet, rewritePhrases, stripAds, adPhrases, hardAdPhrases, stripHardAds, type GroupFormat, type Goal,
 } from '@/lib/generation/group'
 import { finalNet, type FormatCode } from '@/lib/generation/text-guard'
 import { savePost, zh6On, zh6FieldsFrom } from '../new-pipeline'
@@ -270,10 +270,11 @@ export async function POST(req: NextRequest) {
           const before = item.text
           // zh6 с задачей «запись»: приглашение в подписи оставляем (решение Арины 26.10), правим только повторы соседей
           const zapis6 = zh6 && item.req.rol === 'zapis'
-          if (zapis6) { iss.phrases = iss.phrases.filter(ph => !adPhrases(ph).length); if (!iss.phrases.length) return }
+          if (zapis6) { iss.phrases = iss.phrases.filter(ph => !adPhrases(ph).length || hardAdPhrases(ph).length > 0); if (!iss.phrases.length) return }
           item.text = await rewritePhrases(ctx, item.req.format, item.text, iss.phrases)
           // реклама в Instagram под жестким запретом: если перепись не помогла, вырезаем эти фразы кодом
-          if (!zapis6) item.text = stripAds(item.req.format, item.text)
+          // у «записи» zh6 приглашение остается, но цена, скидка, «успей», дефицит мест и отзывы вырезаются всегда
+          item.text = zapis6 ? stripHardAds(item.req.format, item.text) : stripAds(item.req.format, item.text)
           if (item.text !== before) fixed.set(k, iss.phrases.length)
         }))
 

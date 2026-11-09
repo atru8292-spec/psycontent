@@ -30,7 +30,7 @@ export type Zh6Format = { code: string; name: string; tip: 'reels' | 'post' | 'c
 // Что уходит в тело /api/generate-post/group как zh6: формат каталога для одного чипа и задача из плана
 export type Zh6Choice = { formatKod?: string; forFormat?: MakeFormat; rol?: string; reakciya?: string }
 // Формат и задача дня из плана тем (?fkod=&rol=&reakciya=), уходят один раз с темой этого дня
-export type PlanPick = { formatKod?: string; forFormat?: MakeFormat; rol?: string; reakciya?: string }
+export type PlanPick = { formatKod?: string; forFormat?: MakeFormat; rol?: string; reakciya?: string; situaciya?: string }
 
 // чипы, у которых есть выбор вида: тип формата каталога для каждого
 const PICK_TIP: Partial<Record<MakeFormat, Zh6Format['tip']>> = { reels: 'reels', carousel: 'carousel', post: 'post' }
@@ -40,9 +40,9 @@ const PICK_TITLE: Partial<Record<MakeFormat, string>> = { reels: 'Какой р�
 function formatHint(f: Zh6Format): string {
   const parts: string[] = []
   // голос и роли важны только рилсу: пост и карусель и так без голоса
-  if (f.tip === 'reels' && f.bezGolosa) parts.push('без голоса, только надписи')
-  else if (f.tip === 'reels' && f.scene) parts.push('сыграешь роли')
-  if (f.short) parts.push('коротко')
+  if (f.tip === 'reels' && f.bezGolosa) parts.push('только надписи')
+  else if (f.tip === 'reels' && f.scene) parts.push('все роли играешь сама')
+  if (f.short) parts.push(f.tip === 'post' ? 'пара абзацев, читается за минуту' : 'коротко')
   const t = parts.join(', ')
   return t ? t.charAt(0).toUpperCase() + t.slice(1) : ''
 }
@@ -353,13 +353,13 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
               return (
                 <div key={f.id} className={`h-11 inline-flex items-center rounded-full transition ${on ? 'bg-brand-soft border-[1.5px] border-brand-accent' : 'border border-brand-border'}`}>
                   <button type="button" aria-pressed={on} onClick={() => toggleFormat(f.id)}
-                    className={`h-full inline-flex items-center gap-1.5 text-[15px] text-brand-text cursor-pointer ${canPick ? 'pl-4 pr-1' : 'px-4'} ${on ? 'font-semibold' : ''}`}>
+                    className={`h-full inline-flex items-center gap-1.5 text-[15px] text-brand-text cursor-pointer ${canPick ? 'pl-4 pr-0' : 'px-4'} ${on ? 'font-semibold' : ''}`}>
                     {on ? <Check className="w-4 h-4 text-brand-accent" /> : <Plus className="w-4 h-4 text-brand-muted" />}
                     {f.label}
                   </button>
                   {canPick && (
                     <button type="button" onClick={() => openPick(f.id)} aria-label={`${PICK_TITLE[f.id] || 'Какой формат'}: выбрать`} aria-haspopup="dialog"
-                      className="h-full w-9 pr-1.5 inline-flex items-center justify-center rounded-r-full text-brand-muted hover:text-brand-text cursor-pointer">
+                      className="h-full w-11 pr-1 inline-flex items-center justify-center rounded-r-full text-brand-muted hover:text-brand-text cursor-pointer">
                       <ChevronDown className="w-4 h-4" />
                     </button>
                   )}
@@ -367,11 +367,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
               )
             })}
           </div>
-          <button type="button" onClick={() => setGoalOpen(true)} className="mt-2 h-11 inline-flex items-center gap-1 text-[15px] cursor-pointer">
-            <span className="text-brand-muted">Цель:</span>
-            <span className="text-brand-text">{(GOAL_OPTIONS.find(g => g.id === goal)?.label || 'Любая').toLowerCase()}</span>
-            <ChevronDown className="w-4 h-4 text-brand-muted" />
-          </button>
+          {/* выбранный вид стоит сразу под чипами: он про чип, а не про цель */}
           {choiceOn && choiceName && !sozhe && !link && (
             <div className="mt-2 min-h-11 flex items-center gap-2 pl-3 rounded-xl bg-brand-soft-2 text-brand-text">
               <p className="min-w-0 flex-1 py-2 text-[14px] leading-5 break-words">
@@ -383,6 +379,11 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
               </button>
             </div>
           )}
+          <button type="button" onClick={() => setGoalOpen(true)} className="mt-2 h-11 inline-flex items-center gap-1 text-[15px] cursor-pointer">
+            <span className="text-brand-muted">Цель:</span>
+            <span className="text-brand-text">{(GOAL_OPTIONS.find(g => g.id === goal)?.label || 'Любая').toLowerCase()}</span>
+            <ChevronDown className="w-4 h-4 text-brand-muted" />
+          </button>
           <button type="button" onClick={submit} disabled={busy || !formats.length || transcribing || (!!link && needText && !sozhe)}
             className={`mt-4 w-full h-[52px] rounded-2xl text-[16px] font-semibold transition cursor-pointer ${formats.length ? 'bg-brand-accent text-white hover:bg-brand-accent-hover disabled:opacity-60' : 'bg-brand-border text-brand-muted cursor-not-allowed'}`}>
             {!formats.length ? 'Выбери хотя бы один формат' : (sozhe || link) ? 'Сделать так же' : makeButtonText(formats)}
@@ -395,6 +396,12 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
       <BottomSheet open={!!pickFor} onClose={() => setPickFor(null)} title={pickFor ? PICK_TITLE[pickFor] : ''}>
         {pickFor && (
           <div role="radiogroup" aria-label="Формат">
+            {/* сервер берет один вид на запуск: если вид уже выбран у другого формата, честно говорим, что он сбросится */}
+            {choice && choice.forFormat !== pickFor && choiceName && (
+              <p className="pb-2 text-[13px] leading-5 text-brand-muted break-words">
+                {(MAKE_FORMATS.find(m => m.id === choice.forFormat)?.label || 'Другой формат')} тогда подберу сама. Вид пока выбирается для одного формата
+              </p>
+            )}
             {[{ code: null as string | null, name: 'Подбери сама', hint: 'Выберу под тему и твой голос' },
               ...tipFormats(pickFor).map(f => ({ code: f.code as string | null, name: f.name, hint: formatHint(f) }))].map(o => {
               const sel = currentPickCode(pickFor) === o.code
