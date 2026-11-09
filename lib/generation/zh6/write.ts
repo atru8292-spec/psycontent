@@ -534,3 +534,26 @@ export async function zh6PlanZamena(s: AuthorSettings, temy: Zh6Tema[], zamena: 
 }
 
 export { bankFormat }
+
+// ---------- «Поправить» для материалов zh6 (zh6-prod 10.11) ----------
+// Кнопки «Поправить» в продукте правят текст старыми промптами (pipeline.ts applyButton), они не знают ролей сценки
+// («Я:», «Психолог:», «Внутренний голос:»), экранов беззвучного рилса ([смена]) и разметки сторис. Для материала zh6
+// роут adjust зовет эту функцию: просьба кнопки и защита разметки. Если разметка сломалась, правку не берем.
+const POPRAVIT_SYSTEM = `Ты редактор текстов психолога. Перепиши текст по просьбе автора. Сохрани разметку целиком: метки строк («Текст на экране:», «Речь:», «Слайд N:», «Подпись:», «Экран N:», «Снять:», «Надпись:»), метки ролей в начале реплик («Я:», «Психолог:», «Клиент:» и любые другие), строки [смена] между надписями. Голос автора сохраняй: мат, иронию, резкость, обращение, один адресат и один род. Без тире и буквы «ё». Верни весь текст целиком, без пояснений.`
+const ROLI_STROK = (t: string) => [...new Set((t.match(/^\s*[А-ЯЁ][\p{L} ]{0,24}:/gmu) || []).map(x => x.trim()))].sort().join('|')
+const SMENY = (t: string) => (t.match(/^\s*\[смена\]\s*$/gmu) || []).length
+export function popravitGuard(before: string, after: string, allowMat: boolean): string {
+  if (!after.trim()) return 'пустой ответ'
+  if (LABELS(after) !== LABELS(before)) return 'сломаны метки строк'
+  if (ROLI_STROK(after) !== ROLI_STROK(before)) return 'сломаны роли или метки'
+  if (SMENY(after) !== SMENY(before)) return 'сломаны экраны надписи'
+  if (allowMat && hasMat(before) && !hasMat(after)) return 'пропал мат'
+  return ''
+}
+export async function zh6Popravit(ctx: GenContext, text: string, prosba: string): Promise<{ text: string; used: boolean; reason?: string }> {
+  const s = ctx.settings
+  const fixed = remarki(finalNet(stripServiceTags(await callModel({ system: POPRAVIT_SYSTEM, user: `<текст>\n${text}\n</текст>\n\n<просьба>\n${prosba}\n</просьба>`, effort: 'low', verbosity: 'medium', maxTokens: 6000, timeoutMs: 60000, writer: true, userId: ctx.userId, operation: 'adjust_zh6', knownNames: s.knownNames }))))
+  const out = allowMatOf(s) && matZvezdy(s) ? zvezdochki(fixed) : fixed
+  const why = popravitGuard(text, out, allowMatOf(s))
+  return why ? { text, used: false, reason: why } : { text: out, used: true }
+}
