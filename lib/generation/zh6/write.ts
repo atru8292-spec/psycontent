@@ -27,7 +27,12 @@ export const allowMatOf = (s: AuthorSettings) => !/^не использоват�
 
 // как автор пишет мат в своих текстах: со звездочкой в середине слова или целиком (замечание Арины 09.11: в одном
 // тексте то так, то так; одно правило по образцам автора, в темах так же)
-export const matZvezdy = (s: AuthorSettings) => /\p{L}[\*•]+\p{L}/u.test(s.samples.join('\n'))
+export const matZvezdy = (s: AuthorSettings) => {
+  // zh6-prod 10.11: сначала явный выбор психолога, потом «Иногда, со звездочкой» (profanity light), потом образцы
+  if (typeof s.matZvezdyVybor === 'boolean') return s.matZvezdyVybor
+  if (/^можно точечно/u.test(s.profanityRule || '')) return true
+  return /\p{L}[\*•]+\p{L}/u.test(s.samples.join('\n'))
+}
 // звездочка в середину матерного слова (автору, который пишет со звездочкой)
 export function zvezdochki(text: string): string {
   return text.replace(new RegExp(MAT.source, 'giu'), m => /[\*•]/.test(m) || m.length < 3 ? m : m.slice(0, 1) + '*' + m.slice(2))
@@ -106,11 +111,16 @@ function materialOf(s: AuthorSettings, topic: string, n: number): string {
 
 // устройство текста: по кругу, без трех последних у этого автора
 // формат каталога для текста: из запроса (план тем его поставил) или по кругу из подходящих автору этого типа
-export function chooseFormat6(fmt: string, voice: string[], mem: Zh6Memory, seed: string, want?: string | null): Format6 {
-  const byCode = want ? formatByCode(want) : undefined
-  if (byCode) return byCode
+// в кадре ли психолог: говорящая голова и сценки (роль, гайд, доска) снимаются в камеру; беззвучный рилс нет
+export const vKadre = (f: Format6) => f.for[0] === 'reels' && !bezGolosa(f)
+// подходит ли формат психологу: голос, и при «Пока без видео» без форматов, где он в кадре (zh6-prod 10.11)
+export const goditsya = (f: Format6, voice: string[], video = true) => goditsyaGolosu(f, voice) && (video || !vKadre(f))
+export function chooseFormat6(fmt: string, voice: string[], mem: Zh6Memory, seed: string, want?: string | null, video = true): Format6 {
   const tip = fmt === 'post_tg' ? 'post' : fmt
-  const ok = FORMATY.filter(f => f.for[0] === tip && goditsyaGolosu(f, voice))
+  // формат из плана берем, только если его тип совпадает с тем, что нажали (из плана сценка, а нажали «Пост», не берем)
+  const byCode = want ? formatByCode(want) : undefined
+  if (byCode && byCode.for.includes(tip) && (video || !vKadre(byCode))) return byCode
+  const ok = FORMATY.filter(f => f.for[0] === tip && goditsya(f, voice, video))
   const list = ok.filter(f => !(mem.ustr || []).slice(-3).includes(f.code))
   const pool = list.length ? list : ok.length ? ok : FORMATY.filter(f => f.for[0] === tip)
   return pool[(seedOf(seed) + (mem.ustr || []).length) % pool.length]
@@ -194,17 +204,27 @@ export function introOf(s: AuthorSettings): string {
 // развязки сценки «я и внутренний голос» по кругу (круг 3: во всех сценках одна схема с «так, стоп»)
 export const RAZVYAZKI = ['голос побеждает, и я делаю, как он сказал', 'я соглашаюсь с голосом и смеюсь над собой', 'обрыв на полуслове', 'вмешивается третий голос (мама, подруга, ребенок, кот)', 'голос сам устает и замолкает', 'я отвечаю голосу его же словами']
 
+// код формата для сохранения и экрана: тип каталога плюс то, что нажали (post_tg и stories не теряются)
+export function formatGen(f6: Format6, zaprosheno: FormatCode): FormatCode {
+  const c = formatCodeOf(f6)
+  if (c === 'post' && zaprosheno === 'post_tg') return 'post_tg'
+  return c
+}
+// счетчик материалов автора для ротации: полное число (memory.total из memory.ts), иначе 10 последних
+export const schetOf = (ctx: GenContext) => Number((ctx.memory as any)?.total ?? ctx.memory?.count ?? 0) || 0
+
 export type Zh6Prompt = { system: string; user: string; primery: Primer[]; ustr: string; fmt: string; nach: string; kon: string; format6: Format6 }
 export function zh6Prompt(ctx: GenContext, req: GenRequest): Zh6Prompt {
   const s = ctx.settings
   const mem = zh6MemOf(ctx)
   const voice = authorVoice(s)
   const seed = `${s.name || ''}|${req.topic}`
-  const fmt0 = isReels(req.format) ? 'reels' : req.format === 'post_tg' ? 'post_tg' : req.format === 'carousel' ? 'carousel' : 'post'
-  const f6 = chooseFormat6(fmt0, voice, mem, seed, req.formatKod)
-  const format = formatCodeOf(f6)
+  // сторис остаются сторис, пост для Telegram выбирает формат из постов, но остается постом Telegram (zh6-prod 10.11)
+  const fmt0 = isReels(req.format) ? 'reels' : req.format === 'post_tg' ? 'post_tg' : req.format === 'carousel' ? 'carousel' : req.format === 'stories' ? 'stories' : 'post'
+  const f6 = chooseFormat6(fmt0, voice, mem, seed, req.formatKod, s.snimaetVideo !== false)
+  const format = formatGen(f6, req.format)
   const fmt = f6.for[0] === 'reels' ? 'reels' : f6.for[0]
-  const n = (ctx.memory?.count || 0) + (mem.ustr || []).length
+  const n = schetOf(ctx) + (mem.ustr || []).length
   const smysl = req.intent && SMYSL[req.intent] ? req.intent : 'uznavanie'
   const primery = pickPrimery({ format, voice, smysl, allowMat: allowMatOf(s), seed: `${s.name || ''}|${n}`, exclude: mem.primery.slice(-9), count: s.samples.length >= 2 ? 2 : 3 })
   const rol = req.rol || (smysl === 'priglashenie' ? 'zapis' : smysl === 'kak_v_terapii' ? 'doverie' : 'ohvat')
@@ -212,7 +232,7 @@ export function zh6Prompt(ctx: GenContext, req: GenRequest): Zh6Prompt {
   const bylo = [...new Set(mem.priemy || [])].filter(k => PRIEMY[k] && !PRIEMY[k].vsegda).map(k => PRIEMY[k].name)
   const reak = reakciyaOf(req, rol)
   // представление в подписи: в приглашении всегда, иначе примерно каждый четвертый текст автора (Арина 09.11)
-  const nInt = (ctx.memory?.count || 0) + (mem.ustr || []).length
+  const nInt = schetOf(ctx) + (mem.ustr || []).length
   const intro = !bezGolosa(f6) && (rol === 'zapis' || nInt % 4 === 3) ? introOf(s) : ''
   const razv = f6.code === 'reels_scenka_vnutr_golos' ? RAZVYAZKI[(seedOf(seed) + (mem.ustr || []).length) % RAZVYAZKI.length] : ''
   const own = s.samples.slice(0, 3)
@@ -221,7 +241,7 @@ export function zh6Prompt(ctx: GenContext, req: GenRequest): Zh6Prompt {
     own.length ? `<тексты_автора>\n${SAMPLES_HEAD}\n\n${own.map((t, i) => `Текст ${i + 1}:\n${t.trim()}`).join('\n\n')}${golosAvtora(s.samples) ? `\n\nПосчитано по этим текстам: ${golosAvtora(s.samples)}. Держи примерно так же.` : ''}\n</тексты_автора>` : '',
     primery.length ? `<примеры>\n${PRIMERY_HEAD}\n\n${primeryBlock(primery)}\n</примеры>` : '',
     `<формат>\n${formatBlock(f6)}\n</формат>`,
-    `<задание>\nТема: ${req.topic}\n${req.userDetail ? `Деталь от автора: ${req.userDetail}\n` : ''}Что дать читателю: ${SMYSL[smysl]}.\n${rol === 'zapis' || bezGolosa(f6) ? '' : `Если формат не задает свой конец, закончи ${KONCY[kon]}.\n`}${REAKCII[reak]}\n${intro ? `В подписи представься одной строкой, только этими данными, ничего не добавляя (ни опыта, ни регалий, ни цифр): ${intro}.${rol === 'zapis' ? ' Сразу за представлением мягкое приглашение одной строкой.' : ''}\n` : ''}${razv ? `Развязка сценки в этот раз: ${razv}.\n` : ''}${fill(KONEC[rol], { booking: s.booking || 'как указано в профиле' })}${bylo.length ? `\nЭти приемы у автора уже были, второй раз не бери: ${bylo.join('; ')}.` : ''}\n</задание>`,
+    `<задание>\nТема: ${req.topic}\n${req.userDetail ? `Деталь от автора: ${req.userDetail}\n` : ''}Что дать читателю: ${SMYSL[smysl]}.\n${rol === 'zapis' || bezGolosa(f6) ? '' : `Если формат не задает свой конец, закончи ${KONCY[kon]}.\n`}${REAKCII[reak]}\n${intro ? `В подписи представься одной строкой, только этими данными, ничего не добавляя (ни опыта, ни регалий, ни цифр): ${intro}.${rol === 'zapis' ? ' Сразу за представлением мягкое приглашение одной строкой.' : ''}\n` : ''}${razv ? `Развязка сценки в этот раз: ${razv}.\n` : ''}${fill(KONEC[rol], { booking: [s.booking, s.kodovoeSlovo ? `кодовое слово «${s.kodovoeSlovo}»` : ''].filter(Boolean).join('; ') || 'как указано в профиле' })}${bylo.length ? `\nЭти приемы у автора уже были, второй раз не бери: ${bylo.join('; ')}.` : ''}\n</задание>`,
     (() => { const m = materialOf(s, req.topic, n); return m ? `<материал_автора>\n${m}\n</материал_автора>` : '' })(),
     req.coreBlock ? `<ядро>\n${req.coreBlock}\n</ядро>` : '',
     req.sampleBlock ? `<как_устроен_образец>\n${req.sampleBlock}\n</как_устроен_образец>` : '',
@@ -274,7 +294,7 @@ export type Zh6Result = { text: string; format: FormatCode; intent: string; draf
 export async function zh6Write(ctx: GenContext, req: GenRequest): Promise<Zh6Result> {
   const s = ctx.settings
   const p = zh6Prompt(ctx, req)
-  const format: FormatCode = formatCodeOf(p.format6)
+  const format: FormatCode = formatGen(p.format6, req.format)
   const intent = req.intent || 'uznavanie'
   const rol = req.rol || (intent === 'priglashenie' ? 'zapis' : intent === 'kak_v_terapii' ? 'doverie' : 'ohvat')
   const samo = samoOf(req)
@@ -290,7 +310,7 @@ export async function zh6Write(ctx: GenContext, req: GenRequest): Promise<Zh6Res
   const bylo = new Set(zh6MemOf(ctx).priemy || [])
   const priemMesta = (t: string): Mesto[] => priemyOf(t).filter(k => PRIEMY[k].vsegda || bylo.has(k)).map(k => ({ code: `priem_${k}`, quote: (t.match(PRIEMY[k].re) || [''])[0], why: `${PRIEMY[k].name}: у автора уже было или так не пишем, скажи по-другому` }))
   // кодовое слово только из профиля (ответ Арины 09.11): слово капсом в кавычках рядом с «напишите» или «комментарии»
-  const kodMesta = (t: string): Mesto[] => [...t.matchAll(/(?:слов[оа]\s+|напишите\s+|пишите\s+)[«"]?([А-ЯЁA-Z]{3,})[»"]?/gu)].filter(m => !String(s.booking || '').toUpperCase().includes(m[1])).map(m => ({ code: 'kodovoe_slovo', quote: m[0], why: 'кодового слова нет в профиле автора: напиши «напишите в комментариях, пришлю» или «напишите мне в директ», без придуманного слова' }))
+  const kodMesta = (t: string): Mesto[] => [...t.matchAll(/(?:слов[оа]\s+|напишите\s+|пишите\s+)[«"]?([А-ЯЁA-Z]{3,})[»"]?/gu)].filter(m => !`${s.booking || ''} ${s.kodovoeSlovo || ''}`.toUpperCase().includes(m[1])).map(m => ({ code: 'kodovoe_slovo', quote: m[0], why: 'кодового слова нет в профиле автора: напиши просто «напишите мне в директ», без придуманного слова и без обещания что-то прислать' }))
   const mestaOf = (t: string) => [...zh6Mesta(t, { sources, allowMat: allowMatOf(s) }), ...priemMesta(t), ...kodMesta(t), ...logikaMesta(t, s, { format6: p.format6.code })]
   const mesta = mestaOf(text)
   let pravka = false
@@ -343,7 +363,7 @@ export function temyZhivyeFor(s: AuthorSettings, r = 0): string[] {
 }
 
 // форматы каталога, подходящие голосу автора (без сторис: в плане их нет)
-export const formatyAvtora = (s: AuthorSettings) => FORMATY.filter(f => f.for[0] !== 'stories' && goditsyaGolosu(f, authorVoice(s)))
+export const formatyAvtora = (s: AuthorSettings) => FORMATY.filter(f => f.for[0] !== 'stories' && goditsya(f, authorVoice(s), s.snimaetVideo !== false))
 const formatLine = (f: Format6) => `- ${f.code}: ${f.name} (${f.for[0] === 'reels' ? 'рилс' : f.for[0] === 'post' ? 'пост' : 'карусель'}${f.talking_head ? ', говорящая голова' : ''}${f.short ? ', короткий' : ''}${f.scene ? ', сценка' : ''})`
 
 export function temyPrompt(s: AuthorSettings, o: { n: number; recent?: string[]; rotation?: number }): { system: string; user: string; zhivye: string[] } {
@@ -369,11 +389,13 @@ export function smeshatOshibki(temy: { format: string }[], dopusk: Format6[]): s
   if (fs.some(f => !f || !dopusk.includes(f))) out.push('формат не из списка автора')
   // круг 3 (09.11, Арина): говорящих голов как у живых, 3-4 на 10 тем, остальное не меньше четырех разных форматов
   const golov = fs.filter(f => f?.talking_head).length
+  const estGolovy = dopusk.some(f => f.talking_head)
+  const estScenki = dopusk.some(f => f.scene)
   if (golov > Math.ceil(temy.length * 0.4)) out.push('говорящих голов больше четырех')
-  if (temy.length >= 6 && golov < Math.floor(temy.length * 0.3)) out.push('говорящих голов меньше трех')
+  if (estGolovy && temy.length >= 6 && golov < Math.floor(temy.length * 0.3)) out.push('говорящих голов меньше трех')
   if (new Set(temy.map(t => t.format).filter(c => !formatByCode(c)?.talking_head)).size < Math.min(4, temy.length - golov)) out.push('других форматов меньше четырех')
   if (!fs.some(f => f?.short)) out.push('нет короткого')
-  if (!fs.some(f => f?.scene)) out.push('нет сценки')
+  if (estScenki && !fs.some(f => f?.scene)) out.push('нет сценки')
   return out
 }
 export function smeshat<T extends { format: string; zadacha?: string }>(temy: T[], dopusk: Format6[], seed: string): T[] {

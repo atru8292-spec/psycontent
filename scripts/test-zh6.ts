@@ -181,5 +181,25 @@ async function main() {
   assert.ok(!logikaMesta(ist, sI, { format6: 'carousel_odna_mysl' }).some(x => x.code === 'istoriya_ty'), 'в других каруселях «ты» можно')
   assert.ok(logikaMesta('Слайд 1: Ты разозлился.\nСлайд 2: А потом ты извинилась.', sI).some(x => x.code === 'rod'), 'род и в карусели')
   console.log('ok 10: «никогда» только на 4 приема, пометки художника, карусель-история в третьем лице, род в карусели')
+
+  // 11. zh6-prod шаг 2 внутри zh6: сторис и Telegram не теряются, виды рилсов, видео, порядок мата, формат из плана по типу
+  const Z6 = await import('../lib/generation/zh6/write')
+  const ctxP = (p: any) => ({ userId: '', settings: buildAuthorSettings({ ...p, voice_core: '', voice_samples: [] }, { rotation: 0 }), memory: mem() } as any)
+  assert.equal(Z6.zh6Prompt(ctxP(PERSONAS.H), { topic: 'т', format: 'post_tg' } as any).format6.for[0], 'post')
+  assert.equal(Z6.formatGen(formatByCode('post_udar')!, 'post_tg'), 'post_tg')
+  assert.equal(Z6.zh6Prompt(ctxP(PERSONAS.H), { topic: 'т', format: 'stories' } as any).format6.for[0], 'stories')
+  assert.equal(Z6.formatGen(formatByCode('reels_scenka_vnutr_golos')!, 'reels_monolog'), 'reels_scenka')
+  assert.equal(Z6.formatGen(formatByCode('reels_bez_slov')!, 'reels_monolog'), 'reels_bez_slov')
+  assert.equal(Z6.formatGen(formatByCode('reels_golova')!, 'reels_monolog'), 'reels_monolog')
+  const bezVideo = { ...PERSONAS.I, video_attitude: 'Пока без видео' }
+  assert.ok(!formatyAvtora(ctxP(bezVideo).settings).some(f => Z6.vKadre(f)), 'без видео нет форматов в кадре')
+  assert.ok(formatyAvtora(ctxP(bezVideo).settings).some(f => f.code === 'reels_bez_slov'), 'беззвучный рилс остается')
+  assert.ok(!Z6.vKadre(Z6.zh6Prompt(ctxP(bezVideo), { topic: 'т', format: 'reels_monolog' } as any).format6), 'рилс без видео выбран беззвучным')
+  assert.equal(Z6.zh6Prompt(ctxP(PERSONAS.I), { topic: 'т', format: 'post', formatKod: 'reels_scenka_vnutr_golos' } as any).format6.for[0], 'post', 'формат из плана другого типа не берется')
+  assert.equal(Z6.matZvezdy({ ...ctxP(PERSONAS.I).settings, matZvezdyVybor: false }), false)
+  assert.equal(Z6.matZvezdy(ctxP({ ...PERSONAS.I, profanity: 'light' }).settings), true, '«Иногда, со звездочкой»')
+  assert.equal(Z6.matZvezdy(ctxP(PERSONAS.I).settings), false, 'по образцам без звездочек')
+  assert.ok(ctxP({ ...PERSONAS.I, habits: { kodovoe_slovo: 'ЗЛОСТЬ' } }).settings.kodovoeSlovo === 'ЗЛОСТЬ')
+  console.log('ok 11: сторис и Telegram, виды рилсов, видео, мат по выбору, формат из плана по типу, кодовое слово из профиля')
 }
 main().then(() => console.log('zh6: все тесты прошли')).catch(e => { console.error(e); process.exit(1) })
