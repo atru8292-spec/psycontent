@@ -19,7 +19,7 @@ import { TEMY_SYSTEM } from '../lib/generation/zh6/prompt-temy'
 import { simpleWrite } from '../lib/generation/simple'
 import { buildAuthorSettings } from '../lib/generation/settings'
 import { KONTROL, ISKLYUCHIT_AVTOROV } from './zh6/data'
-import { PERSONAS } from './eval-data'
+import { PERSONAS6 as PERSONAS } from './zh6/personas'
 
 const mem = () => ({ count: 0, lastHookTypes: [], lastArcs: [], lastOpenings: [], lastEndings: [], lastRings: [], lastIntents: [], lastFormats: [], usedClientPhrases: [], usedDetails: [], usedSignaturePhrases: [], recentTopics: [], feedbackReasons: [] })
 const ctxOf = (p: any, samples: string[]) => ({ userId: '', settings: buildAuthorSettings({ ...p, voice_core: '', voice_samples: samples.map(text => ({ text, fit: true, source: 'pasted' })) }, { rotation: 0 }), memory: mem() } as any)
