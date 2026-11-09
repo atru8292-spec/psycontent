@@ -39,6 +39,12 @@ export type AuthorSettings = {
   intensity: string
   toneVerbal: string
   practiceFacts: string
+  // zh6 (10.11): поля только для PROMPT_HYP=zh6, старый генератор их не читает
+  approach?: string                 // метод (approaches) для представления «Я Захар, гештальт-терапевт»
+  blogAbout?: string                // про что блог (поля в базе нет, есть у тестовых авторов)
+  snimaetVideo?: boolean            // false при «Пока без видео» (edit-profile пишет video_attitude строкой)
+  matZvezdyVybor?: boolean | null   // явный выбор «ставить звездочки в мате» (onboarding_profiles.mat_zvezdy или habits)
+  kodovoeSlovo?: string             // кодовое слово для приглашения (onboarding_profiles.kodovoe_slovo или habits)
 }
 
 const arr = (v: unknown): string => (Array.isArray(v) ? v.filter(Boolean).join(', ') : v ? String(v) : '')
@@ -255,6 +261,11 @@ export function buildAuthorSettings(profile: any, opts?: { rotation?: number }):
       profile.client_tried ? `Что клиент пробовал до терапии: ${clip(String(profile.client_tried), 300)}` : '',
       profile.client_result ? `Что меняется после работы: ${clip(String(profile.client_result), 300)}` : '',
     ].filter(Boolean).join('\n'),
+    approach: arr(profile.approaches) || undefined,
+    blogAbout: profile.blog_about ? String(profile.blog_about) : undefined,
+    snimaetVideo: !/без\s+видео|не\s+снима/iu.test(String(profile.video_attitude || '')),
+    matZvezdyVybor: typeof profile.mat_zvezdy === 'boolean' ? profile.mat_zvezdy : typeof profile.habits?.mat_zvezdy === 'boolean' ? profile.habits.mat_zvezdy : null,
+    kodovoeSlovo: String(profile.kodovoe_slovo || profile.habits?.kodovoe_slovo || '').trim().replace(/^[«"]|[»"]$/g, '') || undefined,
   }
 }
 

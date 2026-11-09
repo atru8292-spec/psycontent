@@ -16,7 +16,9 @@ import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { isReels, type FormatCode } from './text-guard'
 
-export type Hyp = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'h7' | 'h8' | 'zh'
+// zh6 (ветка zh6-prod 10.11): свой генератор lib/generation/zh6/, simpleWrite сразу отдает в zh6Write; остальные гипотезы
+// при zh6 не действуют. Включается только переменной PROMPT_HYP=zh6, по умолчанию прод как раньше (zh+h7)
+export type Hyp = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'h7' | 'h8' | 'zh' | 'zh6'
 
 // По умолчанию (переменная пустая) zh+h7: этот вариант Арина в слепом чтении оценила выше живых текстов (релиз 2026-10).
 // PROMPT_HYP=h0 (или none) вернет базовый ПП без гипотез, любой другой список включает ровно его.
@@ -25,7 +27,7 @@ export function activeHyps(): Set<Hyp> {
   const raw = String(process.env.PROMPT_HYP || '').trim().toLowerCase()
   if (!raw) return new Set(DEFAULT_HYPS)
   if (raw === 'h0' || raw === 'none') return new Set()
-  return new Set(raw.split(/[\s,+]+/).filter((h): h is Hyp => /^(h[1-8]|zh)$/.test(h)))
+  return new Set(raw.split(/[\s,+]+/).filter((h): h is Hyp => /^(h[1-8]|zh6?)$/.test(h)))
 }
 
 // ---------- h3: короткий промпт ----------
