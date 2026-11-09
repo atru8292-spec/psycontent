@@ -30,7 +30,16 @@ type DayItem = {
   hook: string
   tip: string
   done?: boolean
+  // план zh6: формат каталога и задача дня (нет у старых планов)
+  format_kod?: string
+  format_name?: string
+  zadacha?: string
+  reakciya?: string
 }
+
+// Кнопка дня по формату: глагол по делу
+const GO_TEXT: Record<string, string> = { carousel: 'Создать карусель', reels: 'Сделать рилс', stories: 'Сделать сторис' }
+const goText = (f: string) => GO_TEXT[f] || 'Написать пост'
 
 const FORMAT_META: Record<string, { icon: any; label: string; color: string; bg: string }> = {
   post:     { icon: AlignLeft, label: 'Пост',     color: 'text-brand-accent', bg: 'bg-brand-soft' },
@@ -117,7 +126,7 @@ function ExportMenu({ plan }: { plan: DayItem[] }) {
     const text = plan.map(day =>
 `День ${day.day}
 Рубрика: ${day.pillar}
-Формат: ${day.format}
+Формат: ${day.format_name || day.format}
 Тема: ${day.topic}
 ${day.hook ? `Хук: ${day.hook}` : ''}
 ---`
@@ -134,7 +143,7 @@ ${day.hook ? `Хук: ${day.hook}` : ''}
     const rows = plan.map(day => [
       day.day,
       `"${day.pillar}"`,
-      `"${day.format}"`,
+      `"${(day.format_name || day.format).replace(/"/g, '""')}"`,
       `"${day.topic.replace(/"/g, '""')}"`,
       `"${(day.hook || '').replace(/"/g, '""')}"`,
       day.done ? 'Готово' : 'Не готово'
@@ -211,7 +220,7 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
   const pillar = getPillarMeta(item.pillar)
   const Icon = fmt.icon
 
-  const buttonText = item.format === 'carousel' ? 'Создать карусель' : 'Написать пост'
+  const buttonText = goText(item.format)
 
   return (
     <motion.div
@@ -244,9 +253,9 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
 
       {/* Формат */}
       <div className="px-5 pb-2 md:px-4">
-        <div className={`inline-flex items-center gap-2 px-3 py-1.5 md:gap-1.5 md:px-2 md:py-0.5 rounded-lg ${fmt.bg}`}>
-          <Icon className={`w-[18px] h-[18px] md:w-3.5 md:h-3.5 ${fmt.color}`} />
-          <span className={`text-[15px] md:text-xs font-semibold ${fmt.color}`}>{fmt.label}</span>
+        <div className={`max-w-full inline-flex items-center gap-2 px-3 py-1.5 md:gap-1.5 md:px-2 md:py-0.5 rounded-lg ${fmt.bg}`}>
+          <Icon className={`w-[18px] h-[18px] md:w-3.5 md:h-3.5 shrink-0 ${fmt.color}`} />
+          <span className={`min-w-0 text-[15px] md:text-xs font-semibold break-words ${fmt.color}`}>{item.format_name || fmt.label}</span>
         </div>
       </div>
 
@@ -301,7 +310,7 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
   const Icon = fmt.icon
 
   const isCarousel = item.format === 'carousel'
-  const buttonText = isCarousel ? 'Создать карусель' : 'Сгенерировать пост'
+  const buttonText = goText(item.format)
   const buttonClass = isCarousel
     ? 'bg-brand-accent hover:bg-brand-accent-hover shadow-brand-accent/20'
     : 'bg-brand-accent hover:bg-brand-accent-hover shadow-brand-accent/20'
@@ -323,12 +332,12 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
 
       <h3 className="text-[22px] md:text-lg font-bold text-brand-text mb-5 leading-snug">{item.topic}</h3>
 
-      <div className={`inline-flex items-center gap-2 px-4 py-2 md:gap-1.5 md:px-3 md:py-1.5 rounded-lg ${fmt.bg} mb-5`}>
-        <Icon className={`w-5 h-5 md:w-4 md:h-4 ${fmt.color}`} />
-        <span className={`text-[16px] md:text-sm font-semibold ${fmt.color}`}>{fmt.label}</span>
+      <div className={`max-w-full inline-flex items-center gap-2 px-4 py-2 md:gap-1.5 md:px-3 md:py-1.5 rounded-lg ${fmt.bg} mb-5`}>
+        <Icon className={`w-5 h-5 md:w-4 md:h-4 shrink-0 ${fmt.color}`} />
+        <span className={`min-w-0 text-[16px] md:text-sm font-semibold break-words ${fmt.color}`}>{item.format_name || fmt.label}</span>
       </div>
 
-      {isCarousel && (
+      {isCarousel && !item.format_name && (
         <div className="mb-5 p-4 md:p-3 bg-brand-soft rounded-xl border border-brand-border-soft">
           <p className="text-[16px] md:text-sm text-brand-text leading-relaxed">
             <strong>Карусель</strong>, это 8-10 слайдов с текстом. AI создаст хук, развитие мысли и призыв к действию.
@@ -370,6 +379,7 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
 // ============ BATCH CONFIG ============
 const BATCH_SIZE = 5
 const TOTAL_DAYS = 30
+// сколько пачек по умолчанию (старый план по 5 дней); план zh6 отдает свое число в totalBatches
 const TOTAL_BATCHES = Math.ceil(TOTAL_DAYS / BATCH_SIZE)
 
 // ============ MAIN PAGE ============
@@ -379,6 +389,7 @@ export default function ContentPlan() {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [currentBatch, setCurrentBatch] = useState(0)
+  const [totalBatches, setTotalBatches] = useState(TOTAL_BATCHES)
   const [error, setError] = useState<string | null>(null)
   const [needOnboarding, setNeedOnboarding] = useState(false)
   const [serverError, setServerError] = useState(false)
@@ -447,9 +458,11 @@ export default function ContentPlan() {
     setServerError(false)
     setPlan([])
     setCurrentBatch(0)
+    setTotalBatches(TOTAL_BATCHES)
 
     try {
-      for (let batch = 1; batch <= TOTAL_BATCHES; batch++) {
+      let total = TOTAL_BATCHES
+      for (let batch = 1; batch <= total; batch++) {
         setCurrentBatch(batch)
 
         const res = await fetch('/api/generate-content-plan', {
@@ -462,6 +475,8 @@ export default function ContentPlan() {
         if (data?.error === 'need_onboarding') { setNeedOnboarding(true); return }
         if (data?.error === 'server_error') { setServerError(true); return }
         if (!res.ok) throw new Error(data.error || 'Ошибка генерации')
+        const tb = Number(data?.totalBatches)
+        if (Number.isInteger(tb) && tb >= 1 && tb <= 30 && tb !== total) { total = tb; setTotalBatches(tb) }
 
         setPlan(data.plan)
 
@@ -493,6 +508,10 @@ export default function ContentPlan() {
 
     // Все форматы открываются в «Сделать»: без нового движка оно само отправит карусель на старую страницу
     params.append('format', item.format)
+    // план zh6: формат каталога и задача дня, «Сделать» отдаст их генерации с первым запуском
+    if (item.format_kod) params.append('fkod', item.format_kod)
+    if (item.zadacha) params.append('rol', item.zadacha)
+    if (item.reakciya) params.append('reakciya', item.reakciya)
     router.push(`/dashboard/make?${params}`)
   }
 
@@ -501,9 +520,10 @@ export default function ContentPlan() {
   const done = plan.filter(d => d.done).length
   const progressPercent = plan.length > 0 ? Math.round((done / plan.length) * 100) : 0
 
-  const genProgress = currentBatch > 0 ? Math.round((currentBatch / TOTAL_BATCHES) * 100) : 0
-  const currentDayStart = (currentBatch - 1) * BATCH_SIZE + 1
-  const currentDayEnd = Math.min(currentBatch * BATCH_SIZE, TOTAL_DAYS)
+  const genProgress = currentBatch > 0 ? Math.round((currentBatch / totalBatches) * 100) : 0
+  const batchSize = Math.ceil(TOTAL_DAYS / totalBatches)
+  const currentDayStart = (currentBatch - 1) * batchSize + 1
+  const currentDayEnd = Math.min(currentBatch * batchSize, TOTAL_DAYS)
 
   if (loading) {
     return (
@@ -625,9 +645,9 @@ export default function ContentPlan() {
 
                        <div className="max-w-md mx-auto px-4">
               <div className="flex justify-between text-[13px] md:text-xs text-brand-text-secondary mb-2">
-                {[1, 2, 3, 4, 5, 6].map(b => (
+                {Array.from({ length: totalBatches }, (_, i) => i + 1).map(b => (
                   <span key={b} className={currentBatch >= b ? 'text-brand-accent font-medium' : ''}>
-                    {(b-1)*5+1}-{b*5}
+                    {(b - 1) * batchSize + 1}-{Math.min(b * batchSize, TOTAL_DAYS)}
                   </span>
                 ))}
               </div>

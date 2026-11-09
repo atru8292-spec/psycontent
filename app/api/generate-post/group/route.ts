@@ -6,6 +6,9 @@
 //   {type:'done', groupId}                     | {type:'error', error}
 // Тело: { topic, userDetail?, formats: ['reels','carousel','post','post_tg','stories'], goal?, fromPostId?, editedText?,
 //   sample?: {kind:'link',url} | {kind:'text',text} | {kind:'screens',images:[data URL]} }  («Сделать так же», событие {type:'sample'})
+//   zh6?: { formatKod?, forFormat? (reels|carousel|post|post_tg|stories), rol?, reakciya? }  только при PROMPT_HYP=zh6:
+//   формат каталога, задача и реакция из плана, применяются только к формату forFormat (одному формату, если он один)
+// В событии format при zh6 еще formatName (имя формата каталога, например «Сценка: я и внутренний голос»).
 // fromPostId: «Сделать еще формат из этой мысли»: ядро берем у материала (только свой, по user_id); если текст
 // правили (editedText отличается от сохраненного), ядро сначала пересобираем из правленой версии.
 // Счет: каждый готовый формат как одна текстовая генерация (lib/energy.ts, kind text). Упавший не считаем.
@@ -21,10 +24,10 @@ import { isSimpleMode, simpleWrite, chooseIntent, chooseReelsFormat } from '@/li
 import { buildCore, coreFromRow, type ThoughtCore } from '@/lib/generation/core'
 import {
   GROUP_FORMATS, GOALS, GOAL_LABELS, GOAL_INTENTS, toGroupCode, intentForFormat, coreBlockFor, neighborsFor,
-  checkSet, rewritePhrases, stripAds, type GroupFormat, type Goal,
+  checkSet, rewritePhrases, stripAds, adPhrases, type GroupFormat, type Goal,
 } from '@/lib/generation/group'
 import { finalNet, type FormatCode } from '@/lib/generation/text-guard'
-import { savePost } from '../new-pipeline'
+import { savePost, zh6On, zh6FieldsFrom } from '../new-pipeline'
 import { serverTrack } from '@/lib/track-server'
 import {
   fetchTelegramPost, isInstagramUrl, isTelegramUrl, parseSample, sampleBlock, sourceLabel, overlap, sentencesWithChains, sentencesWithTrigrams,
@@ -65,6 +68,14 @@ export async function POST(req: NextRequest) {
   // правленый текст сравниваем целиком, без обрезки: иначе длинный материал всегда выглядел бы правленым
   const editedRaw = typeof body?.editedText === 'string' ? body.editedText.trim() : ''
   const editedText = editedRaw ? editedRaw.slice(0, 8000) : null
+
+  // zh6: поля плана для одного формата; цель «Записать» дает задачу «запись» всем форматам набора
+  const zh6 = zh6On()
+  const zb = zh6 && body?.zh6 && typeof body.zh6 === 'object' ? body.zh6 : null
+  const zh6For: GroupFormat | null = zb
+    ? ((GROUP_FORMATS as readonly unknown[]).includes(zb.forFormat) && formats.includes(zb.forFormat) ? zb.forFormat : formats.length === 1 ? formats[0] : null)
+    : null
+  const zh6Fields = zh6For ? zh6FieldsFrom(zb, toGroupCode(zh6For)) : {}
 
   // замеры (lib/analytics/events.ts): коды форматов через запятую и режим запуска, без текстов
   const fmtList = formats.join(',')
@@ -141,6 +152,7 @@ export async function POST(req: NextRequest) {
   if (fromPostId) serverTrack(userId, 'material_adjust', { action: 'more_format', format: fmtList })
   serverTrack(userId, 'make_start', {
     formats: fmtList, n: formats.length, voice: body?.voice === true,
+    ...(zh6Fields.formatKod ? { format_kod: zh6Fields.formatKod } : {}),
     ...(fromPostId ? {} : { mode: sample ? 'same' : body?.mode === 'topic' ? 'topic' : 'thought' }),
   })
 
@@ -214,11 +226,20 @@ export async function POST(req: NextRequest) {
             neighbors: neighborsFor(all, code),
             sampleBlock: skeleton ? sampleBlock(skeleton) : null,
           }
+          if (zh6) {
+            if (f === zh6For) Object.assign(greq, zh6Fields)
+            // явная цель на экране главнее задачи из плана
+            if (goal === 'zapis') greq.rol = 'zapis'
+          }
           try {
             let text: string, plan: Plan, version: string, draftText: string
+            let zh4: any = null, formatName = ''
             if (isSimpleMode()) {
-              const r = await simpleWrite(ctx, greq)
+              const r: Awaited<ReturnType<typeof simpleWrite>> & { zh4?: any; zh6?: { formatName?: string } } = await simpleWrite(ctx, greq)
+              // формат для сохранения из ответа: zh6 отдает reels_scenka, reels_bez_slov, post_tg, stories
               greq.format = r.format
+              zh4 = r.zh4 || null
+              formatName = typeof r.zh6?.formatName === 'string' ? r.zh6.formatName : ''
               text = r.text; draftText = r.text; version = 'simple-1'
               plan = { intent: r.intent, topic_for_text: greq.topic, reels_format: r.format.startsWith('reels') ? r.format : null }
             } else {
@@ -229,7 +250,7 @@ export async function POST(req: NextRequest) {
               text = r.text; plan = d.plan; version = PIPELINE_VERSION
             }
             send({ type: 'progress', format: f })
-            return { f, ok: true as const, req: greq, text, plan, version, draftText }
+            return { f, ok: true as const, req: greq, text, plan, version, draftText, zh4, formatName }
           } catch (e: any) {
             console.error('group format failed:', f, e?.message || e)
             serverTrack(userId, 'make_error', { code: 'format_failed', format: f })
@@ -247,9 +268,12 @@ export async function POST(req: NextRequest) {
           if (k < 0) return
           const item = okItems[k]
           const before = item.text
+          // zh6 с задачей «запись»: приглашение в подписи оставляем (решение Арины 26.10), правим только повторы соседей
+          const zapis6 = zh6 && item.req.rol === 'zapis'
+          if (zapis6) { iss.phrases = iss.phrases.filter(ph => !adPhrases(ph).length); if (!iss.phrases.length) return }
           item.text = await rewritePhrases(ctx, item.req.format, item.text, iss.phrases)
           // реклама в Instagram под жестким запретом: если перепись не помогла, вырезаем эти фразы кодом
-          item.text = stripAds(item.req.format, item.text)
+          if (!zapis6) item.text = stripAds(item.req.format, item.text)
           if (item.text !== before) fixed.set(k, iss.phrases.length)
         }))
 
@@ -277,7 +301,7 @@ export async function POST(req: NextRequest) {
             user_id: userId, topic: r.req.topic, format: r.req.format, category: 'Своя тема', content: r.text,
             ...postFields(ctx, r.plan, r.req, r.text), pipeline_version: r.version,
             draft_content: r.draftText, pipeline_status: 'ready',
-            check_result: { mode: 'group', set_fixed: fixed.get(okItems.indexOf(r)) || 0, ms_total: Date.now() - t0 },
+            check_result: { mode: 'group', set_fixed: fixed.get(okItems.indexOf(r)) || 0, ms_total: Date.now() - t0, ...(r.zh4 ? { zh4: r.zh4 } : {}) },
             group_id: groupId, core,
             // источник «так же»: тип, подпись и устройство, без чужого текста
             ...(skeleton && sample ? { sample_source: { kind: sample.kind, label: sourceLabel(sample), priem: skeleton.priem, steps: skeleton.steps, why: skeleton.why, format: skeleton.format, flags: skeleton.flags } } : {}),
@@ -286,6 +310,7 @@ export async function POST(req: NextRequest) {
           if (postId) await commitConsume(userId, OP, decision)
           send({
             type: 'format', format: r.f, ok: true, postId, code: r.req.format, intent: r.plan.intent, text: r.text,
+            ...(r.formatName ? { formatName: r.formatName } : {}),
             placeholders: r.text.match(PLACEHOLDER_RE) || [],
             overlap: leftovers.get(okItems.indexOf(r)) || [],
           })

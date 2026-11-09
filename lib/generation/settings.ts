@@ -263,7 +263,7 @@ export function buildAuthorSettings(profile: any, opts?: { rotation?: number }):
     ].filter(Boolean).join('\n'),
     approach: arr(profile.approaches) || undefined,
     blogAbout: profile.blog_about ? String(profile.blog_about) : undefined,
-    snimaetVideo: !/без\s+видео|не\s+снима/iu.test(String(profile.video_attitude || '')),
+    snimaetVideo: !/без\s+видео|не\s+снима|категорически\s+нет/iu.test(String(profile.video_attitude || '')),
     matZvezdyVybor: typeof profile.mat_zvezdy === 'boolean' ? profile.mat_zvezdy : typeof profile.habits?.mat_zvezdy === 'boolean' ? profile.habits.mat_zvezdy : null,
     kodovoeSlovo: String(profile.kodovoe_slovo || profile.habits?.kodovoe_slovo || '').trim().replace(/^[«"]|[»"]$/g, '') || undefined,
   }

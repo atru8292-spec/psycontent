@@ -62,6 +62,40 @@ function Choice<T extends string | number>({ value, options, onChange }: { value
   )
 }
 
+// Кодовое слово и звездочки в мате: колонки onboarding_profiles.kodovoe_slovo и mat_zvezdy. Пока миграции нет,
+// база отвечает «нет такой колонки», тогда пишем в habits (сливаем с тем, что там уже лежит) и ошибку не показываем
+type Extra = { kodovoe_slovo?: string | null; mat_zvezdy?: boolean | null }
+const isMissingColumn = (e: { code?: string; message?: string } | null) =>
+  !!e && (e.code === 'PGRST204' || e.code === '42703' || /kodovoe_slovo|mat_zvezdy/.test(String(e.message || '')))
+const asObj = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : {})
+
+async function saveExtra(userId: string, patch: Extra): Promise<boolean> {
+  const { error } = await supabase.from('onboarding_profiles').update(patch).eq('user_id', userId)
+  const { data, error: readErr } = await supabase.from('onboarding_profiles').select('habits').eq('user_id', userId).maybeSingle()
+  if (!error) {
+    // колонка есть: старое значение из habits убираем, иначе после очистки поля оно вернется при чтении
+    if (readErr) return true
+    const h = asObj(data?.habits)
+    if (!Object.keys(patch).some(k => k in h)) return true
+    const next = { ...h }
+    for (const k of Object.keys(patch)) delete next[k]
+    await supabase.from('onboarding_profiles').update({ habits: next }).eq('user_id', userId)
+    return true
+  }
+  if (!isMissingColumn(error) || readErr) return false
+  const next: Record<string, unknown> = { ...asObj(data?.habits) }
+  for (const [k, v] of Object.entries(patch)) { if (v === null || v === undefined) delete next[k]; else next[k] = v }
+  const { error: e2 } = await supabase.from('onboarding_profiles').update({ habits: next }).eq('user_id', userId)
+  return !e2
+}
+
+// чтение: колонка, иначе habits
+function readExtra(p: Record<string, any>): { kod: string; zvezdy: boolean | null } {
+  const h = asObj(p.habits)
+  const kod = typeof p.kodovoe_slovo === 'string' && p.kodovoe_slovo ? p.kodovoe_slovo : typeof h.kodovoe_slovo === 'string' ? h.kodovoe_slovo : ''
+  const zvezdy = typeof p.mat_zvezdy === 'boolean' ? p.mat_zvezdy : typeof h.mat_zvezdy === 'boolean' ? h.mat_zvezdy : null
+  return { kod, zvezdy }
+}
 const field = 'w-full px-4 py-3 rounded-xl border border-brand-border bg-white text-brand-text text-sm focus:outline-none focus:ring-2 focus:ring-brand-accent'
 
 export default function VoicePage() {
@@ -104,6 +138,8 @@ export default function VoicePage() {
   const [disclosure, setDisclosure] = useState<1 | 2 | 3 | null>(null)
   const [audience, setAudience] = useState('')
   const [booking, setBooking] = useState('')
+  const [kod, setKod] = useState('')
+  const [matZvezdy, setMatZvezdy] = useState<boolean | null>(null)
   const [firstSession, setFirstSession] = useState('')
   const [position, setPosition] = useState('')
   const [character, setCharacter] = useState('')
@@ -140,6 +176,9 @@ export default function VoicePage() {
         setDisclosure(p.disclosure ?? null)
         setAudience(p.audience || '')
         setBooking(p.booking_info || '')
+        const ex = readExtra(p)
+        setKod(ex.kod)
+        setMatZvezdy(ex.zvezdy)
         setFirstSession(p.first_session_info || '')
         setPosition(p.position_text || '')
         setCharacter(p.character_text || '')
@@ -239,8 +278,20 @@ export default function VoicePage() {
     setToneSaved(error ? 'Не сохранилось, попробуй еще раз' : 'Запомнила, следующие посты будут так')
   }
 
+  // звездочки сохраняются сразу, как мат и эмоции
+  const saveZvezdy = async (v: boolean) => {
+    if (!userId) return
+    setMatZvezdy(v); setToneSaved(null)
+    const ok = await saveExtra(userId, { mat_zvezdy: v })
+    setToneSaved(ok ? 'Запомнила, следующие посты будут так' : 'Не сохранилось, попробуй еще раз')
+  }
+
+  const kodTrim = kod.trim()
+  const kodBad = kodTrim.length === 1 || kodTrim.length > 40
+
   const saveSettings = async () => {
     if (!userId) return
+    if (kodBad) { setMessage('Кодовое слово нужно от 2 до 40 знаков. Поправь его, и сохраню.'); return }
     setSaving(true); setMessage(null); setSavedAt(false)
     const { error } = await supabase.from('onboarding_profiles').update({
       author_gender: gender,
@@ -255,8 +306,9 @@ export default function VoicePage() {
       character_text: character.trim() || null,
       story_bank: stories.filter(s => s.text.trim()).map(s => ({ text: s.text.trim(), level: s.level })),
     }).eq('user_id', userId)
+    const kodOk = error ? true : await saveExtra(userId, { kodovoe_slovo: kodTrim || null })
     setSaving(false)
-    if (error) setMessage('Не получилось сохранить. Попробуй еще раз чуть позже.')
+    if (error || !kodOk) setMessage('Не получилось сохранить. Попробуй еще раз чуть позже.')
     else setSavedAt(true)
   }
 
@@ -325,6 +377,18 @@ export default function VoicePage() {
               { v: 'light', label: 'Иногда, со звездочкой' },
               { v: 'free', label: 'Как в жизни' },
             ]} />
+            {profanity && profanity !== 'no' && (
+              <button type="button" role="switch" aria-checked={matZvezdy ?? profanity === 'light'} onClick={() => saveZvezdy(!(matZvezdy ?? profanity === 'light'))}
+                className="w-full min-h-11 flex items-center gap-3 text-left cursor-pointer">
+                <span className={`relative w-11 h-6 rounded-full transition shrink-0 ${(matZvezdy ?? profanity === 'light') ? 'bg-brand-accent' : 'bg-brand-border'}`}>
+                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all ${(matZvezdy ?? profanity === 'light') ? 'left-[22px]' : 'left-0.5'}`} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm text-brand-text">Ставить звездочки в мате</span>
+                  <span className="block text-xs text-brand-muted">Слово понятно, но не целиком: «п*здец»</span>
+                </span>
+              </button>
+            )}
           </div>
           <div className="space-y-2">
             <p className="text-sm font-semibold text-brand-text">Эмоции</p>
@@ -515,6 +579,14 @@ export default function VoicePage() {
           <div className="space-y-2">
             <p className="text-sm font-semibold text-brand-text">Как к тебе попасть</p>
             <textarea value={booking} onChange={e => setBooking(e.target.value)} rows={2} placeholder="Например: написать в директ слово «встреча»" className={`${field} resize-y`} />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="kod-slovo" className="block text-sm font-semibold text-brand-text">Кодовое слово, если есть</label>
+            <p id="kod-slovo-hint" className="text-xs text-brand-muted -mt-1">Его пишут тебе в директ, чтобы записаться. Нет слова, позову просто написать</p>
+            <input id="kod-slovo" value={kod} onChange={e => setKod(e.target.value)} maxLength={40} placeholder="Например: встреча"
+              aria-describedby="kod-slovo-hint" aria-invalid={kodBad || undefined} className={field} />
+            {kodBad && <p className="text-xs text-brand-text" role="status">Нужно хотя бы 2 знака</p>}
           </div>
 
           <div className="space-y-2">

@@ -119,7 +119,8 @@ export function chooseFormat6(fmt: string, voice: string[], mem: Zh6Memory, seed
   const tip = fmt === 'post_tg' ? 'post' : fmt
   // формат из плана берем, только если его тип совпадает с тем, что нажали (из плана сценка, а нажали «Пост», не берем)
   const byCode = want ? formatByCode(want) : undefined
-  if (byCode && byCode.for.includes(tip) && (video || !vKadre(byCode))) return byCode
+  // тип формата по главному назначению (for[0]): по нему formatCodeOf и разметка, иначе «перевод» для карусели ушел бы рилсом
+  if (byCode && byCode.for[0] === tip && (video || !vKadre(byCode))) return byCode
   const ok = FORMATY.filter(f => f.for[0] === tip && goditsya(f, voice, video))
   const list = ok.filter(f => !(mem.ustr || []).slice(-3).includes(f.code))
   const pool = list.length ? list : ok.length ? ok : FORMATY.filter(f => f.for[0] === tip)

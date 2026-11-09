@@ -2,6 +2,77 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
 import { getSessionUser } from '@/lib/auth'
+import { isNewPipeline } from '@/lib/generation/context'
+import { activeHyps } from '@/lib/generation/hypotheses'
+import { buildAuthorSettings } from '@/lib/generation/settings'
+import { loadMemory } from '@/lib/generation/memory'
+import { zh6Plan } from '@/lib/generation/zh6/write'
+import { formatByCode } from '@/lib/generation/zh6/formaty'
+
+// «Пока без видео» пишет edit-profile, «Категорически нет» старый онбординг, «не снимаю» прежняя проверка
+const noVideo = (v: unknown) => /без\s+видео|не\s+снима|категорически\s+нет/iu.test(String(v || ''))
+
+// ---------- zh6 (PROMPT_HYP=zh6 и новый мозг): план тем через zh6Plan, пачки по 10 дней ----------
+const ZH6_BATCH = 10
+const ZH6_TOTAL_BATCHES = 3
+const ZH6_PILLAR: Record<string, string> = { ohvat: 'Психообразование', doverie: 'Позиционирование', zapis: 'Практика' }
+// тип формата каталога в старых кодах дня плана (post|carousel|reels|stories), чтобы старые экраны не сломались
+const dayFormatOf = (kod: string): string => {
+  const t = formatByCode(kod)?.for[0]
+  return t === 'reels' || t === 'carousel' || t === 'stories' ? t : 'post'
+}
+
+async function zh6PlanBatch(args: { db: ReturnType<typeof getSupabaseAdmin>; userId: string; profile: any; batch: number; existingPlan: any[] }) {
+  const { db, userId, profile, existingPlan } = args
+  const batch = args.batch
+  const startDay = (batch - 1) * ZH6_BATCH + 1
+  const endDay = Math.min(batch * ZH6_BATCH, 30)
+  const settings = buildAuthorSettings(profile)
+  // анти-повтор только внутри своих тем: прошлые пачки этого плана и последние материалы автора (чужие темы не берем)
+  const memory = await loadMemory(db, userId, settings.signatures).catch(() => null)
+  const prev = batch > 1 ? existingPlan.filter((d: any) => Number(d?.day) < startDay).map((d: any) => String(d?.topic || '')).filter(Boolean) : []
+  const recent = [...new Set([...prev, ...(memory?.recentTopics || [])])].slice(0, 40)
+
+  let res: Awaited<ReturnType<typeof zh6Plan>>
+  try {
+    res = await zh6Plan(settings, { n: endDay - startDay + 1, recent, rotation: batch - 1, userId })
+  } catch (e: any) {
+    console.error('generate-content-plan zh6: plan failed', userId, e?.message || e)
+    return NextResponse.json({ error: 'server_error', message: 'Что-то пошло не так на нашей стороне. Попробуй через минуту.' }, { status: 500 })
+  }
+  const temy = res.temy.slice(0, endDay - startDay + 1)
+  if (!temy.length) {
+    console.error('generate-content-plan zh6: empty plan', userId)
+    return NextResponse.json({ error: 'server_error', message: 'Что-то пошло не так на нашей стороне. Попробуй через минуту.' }, { status: 500 })
+  }
+  // пометки кода в ответ не отдаем, только число в лог
+  const pometki = temy.reduce((n, t) => n + (t.pometki?.length || 0), 0)
+  if (pometki || res.smesh.length) console.info('generate-content-plan zh6: pometki', pometki, 'smesh', res.smesh.length)
+
+  const newDays = temy.map((t, i) => {
+    const kod = formatByCode(t.format)?.code || ''
+    return {
+      day: startDay + i,
+      pillar: ZH6_PILLAR[t.zadacha] || ZH6_PILLAR.ohvat,
+      topic: t.tema,
+      format: dayFormatOf(kod),
+      format_kod: kod,
+      format_name: kod ? formatByCode(kod)!.name : '',
+      zadacha: t.zadacha,
+      reakciya: t.reakciya || '',
+      hook: '',
+      tip: t.situaciya || '',
+      done: false,
+    }
+  })
+  const fullPlan = batch === 1 ? newDays : [...existingPlan.filter((d: any) => d.day < startDay), ...newDays]
+  const up = await db.from('content_plans').upsert({ user_id: userId, plan: fullPlan, generated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+  if (up.error) {
+    console.error('generate-content-plan zh6: save failed', userId, up.error.message)
+    return NextResponse.json({ error: 'server_error', message: 'Что-то пошло не так на нашей стороне. Попробуй через минуту.' }, { status: 500 })
+  }
+  return NextResponse.json({ plan: fullPlan, batch, complete: batch >= ZH6_TOTAL_BATCHES, totalBatches: ZH6_TOTAL_BATCHES })
+}
 
 function getSupabaseAdmin() {
   return createClient(
@@ -37,7 +108,14 @@ export async function POST(request: NextRequest) {
     if (!profile) return NextResponse.json({ error: 'need_onboarding', message: 'Сначала заполни профиль', redirect: '/onboarding' }, { status: 404 })
 
     const existingPlan = existingPlanRes.data?.plan || []
-    
+
+    // zh6: свой план пачками по 10 дней, остальные пользователи идут старым путем без изменений
+    if (activeHyps().has('zh6') && isNewPipeline(profile)) {
+      const b = Number(batch)
+      if (!Number.isInteger(b) || b < 1 || b > ZH6_TOTAL_BATCHES) return NextResponse.json({ error: 'bad_request' }, { status: 400 })
+      return await zh6PlanBatch({ db: supabaseAdmin, userId, profile, batch: b, existingPlan: Array.isArray(existingPlan) ? existingPlan : [] })
+    }
+
     const startDay = (batch - 1) * 5 + 1
     const endDay = Math.min(batch * 5, 30)
     const daysCount = endDay - startDay + 1
@@ -232,7 +310,7 @@ JSON массив из ${daysCount} объектов:
 • Аудитория: ${audienceText}
 • Тон: ${profile.tone_verbal || 'теплый, но экспертный'}
 • Боли клиентов: ${clientPains}
-${profile.video_attitude === 'не снимаю' ? '• ⚠️ НЕ использовать формат reels!' : ''}
+${noVideo(profile.video_attitude) ? '• ⚠️ НЕ использовать формат reels!' : ''}
 
 ══════════════════════════════════════════════════════════════
 
@@ -242,7 +320,7 @@ ${profile.video_attitude === 'не снимаю' ? '• ⚠️ НЕ исполь
 1. Каждый хук использует РАЗНЫЙ триггер (эмоция, FOMO, провокация, инсайт, соц.доказательство)
 2. Темы строго про боли клиента: ${clientPains}
 3. Чередуй ВСЕ 5 рубрик равномерно
-4. Чередуй форматы (post, carousel, ${profile.video_attitude === 'не снимаю' ? 'stories' : 'reels, stories'})
+4. Чередуй форматы (post, carousel, ${noVideo(profile.video_attitude) ? 'stories' : 'reels, stories'})
 5. Хуки живые, эмоциональные, на языке человека
 
 Верни ТОЛЬКО JSON массив. Без пояснений.`
@@ -260,7 +338,7 @@ ${profile.video_attitude === 'не снимаю' ? '• ⚠️ НЕ исполь
     }
 
     const validPillars = ['Психообразование', 'Истории', 'Личное', 'Практика', 'Позиционирование']
-    const validFormats = profile.video_attitude === 'не снимаю' 
+    const validFormats = noVideo(profile.video_attitude)
       ? ['post', 'carousel', 'stories'] 
       : ['post', 'carousel', 'reels', 'stories']
 
@@ -292,7 +370,8 @@ ${profile.video_attitude === 'не снимаю' ? '• ⚠️ НЕ исполь
     return NextResponse.json({ 
       plan: fullPlan,
       batch,
-      complete: batch >= 6
+      complete: batch >= 6,
+      totalBatches: 6,
     })
 
   } catch (error: any) {

@@ -6,6 +6,7 @@
 // Режим «так же»: в поле ссылка на чужой пост или выбраны скрины (раздел 5).
 
 import { useFeatureOpen, useTrackOnce } from '@/lib/analytics/hooks'
+import { track } from '@/lib/track'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Mic, Paperclip, Plus, Check, ChevronDown, ChevronRight, FileText, Link2, Image as ImageIcon, X, Loader2 } from 'lucide-react'
@@ -22,12 +23,46 @@ const URL_RE = /^\s*(?:https?:\/\/)?(?:www\.)?(?:t\.me|telegram\.me|instagram\.c
 
 export type SozheSource = { kind: 'link'; url: string } | { kind: 'screens'; files: File[] } | { kind: 'text'; text: string; label: string }
 // mode и voice только для замеров (make_start): тема взята готовой или своя мысль, надиктована ли
-export type ComposerSubmit = { text: string; formats: MakeFormat[]; goal: MakeGoal; sozhe?: SozheSource; about?: string; mode?: 'thought' | 'topic'; voice?: boolean }
+export type ComposerSubmit = { text: string; formats: MakeFormat[]; goal: MakeGoal; sozhe?: SozheSource; about?: string; mode?: 'thought' | 'topic'; voice?: boolean; zh6?: Zh6Choice }
+
+// Формат каталога zh6 (GET /api/generate-post/formaty). Пустой список: zh6 выключен, выбора формата нет совсем
+export type Zh6Format = { code: string; name: string; tip: 'reels' | 'post' | 'carousel'; scene?: boolean; short?: boolean; bezGolosa?: boolean }
+// Что уходит в тело /api/generate-post/group как zh6: формат каталога для одного чипа и задача из плана
+export type Zh6Choice = { formatKod?: string; forFormat?: MakeFormat; rol?: string; reakciya?: string }
+// Формат и задача дня из плана тем (?fkod=&rol=&reakciya=), уходят один раз с темой этого дня
+export type PlanPick = { formatKod?: string; forFormat?: MakeFormat; rol?: string; reakciya?: string }
+
+// чипы, у которых есть выбор вида: тип формата каталога для каждого
+const PICK_TIP: Partial<Record<MakeFormat, Zh6Format['tip']>> = { reels: 'reels', carousel: 'carousel', post: 'post' }
+const PICK_TITLE: Partial<Record<MakeFormat, string>> = { reels: 'Какой рилс', carousel: 'Какая карусель', post: 'Какой пост' }
+
+// короткая подсказка под именем формата в листе: что придется делать
+function formatHint(f: Zh6Format): string {
+  const parts: string[] = []
+  // голос и роли важны только рилсу: пост и карусель и так без голоса
+  if (f.tip === 'reels' && f.bezGolosa) parts.push('без голоса, только надписи')
+  else if (f.tip === 'reels' && f.scene) parts.push('сыграешь роли')
+  if (f.short) parts.push('коротко')
+  const t = parts.join(', ')
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : ''
+}
+
+// список форматов один на загрузку страницы: Composer пересоздается при «Назад», запрос не повторяем
+let formatyCache: Promise<Zh6Format[]> | null = null
+function loadFormaty(): Promise<Zh6Format[]> {
+  if (!formatyCache) {
+    formatyCache = fetch('/api/generate-post/formaty')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (Array.isArray(d?.formaty) ? d.formaty.filter((f: any) => f && typeof f.code === 'string' && typeof f.name === 'string') : []))
+      .catch(() => { formatyCache = null; return [] })
+  }
+  return formatyCache!
+}
 
 const readLS = (k: string) => { try { return localStorage.getItem(k) } catch { return null } }
 const writeLS = (k: string, v: string | null) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v) } catch {} }
 
-export default function Composer({ firstTime, topics, busy, onSubmit, initialText, initialFormats, askSampleText, onSampleCleared }: {
+export default function Composer({ firstTime, topics, busy, onSubmit, initialText, initialFormats, askSampleText, onSampleCleared, plan }: {
   firstTime: boolean
   topics: string[]
   busy: boolean
@@ -36,6 +71,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
   initialFormats?: MakeFormat[] // формат из плана (?format=) выбран заранее
   askSampleText?: boolean       // ссылка не открылась (закрытый канал, ошибка): просим вставить текст поста
   onSampleCleared?: () => void  // ссылку убрали или поменяли: просьба вставить текст больше не нужна
+  plan?: PlanPick | null        // формат и задача дня из плана, пока не ушли в первый запуск
 }) {
   const router = useRouter()
   const [text, setText] = useState(initialText || '')
@@ -56,6 +92,12 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
   const [hint, setHint] = useState<string | null>(null)
   const area = useRef<HTMLTextAreaElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
+  // выбор формата каталога zh6: один чип за раз (сервер принимает один formatKod на запуск)
+  const [formaty, setFormaty] = useState<Zh6Format[]>([])
+  const [pick, setPick] = useState<{ forFormat: MakeFormat; formatKod: string } | null>(null)
+  const [planKodOff, setPlanKodOff] = useState(false)
+  const [pickFor, setPickFor] = useState<MakeFormat | null>(null)
+  useEffect(() => { let on = true; loadFormaty().then(f => { if (on) setFormaty(f) }); return () => { on = false } }, [])
 
   // прошлый набор форматов и незаконченный черновик
   useEffect(() => {
@@ -143,6 +185,23 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
     } catch { setVideoState('error') }
   }
 
+  // формат и задача из плана действуют, пока в поле тема этого дня
+  const planOn = !!plan && !!text.trim() && text.trim() === (initialText || '').trim()
+  const planChoice = planOn && !planKodOff && plan?.formatKod && plan.forFormat ? { forFormat: plan.forFormat, formatKod: plan.formatKod } : null
+  const choice = pick || planChoice
+  const choiceOn = !!choice && formats.includes(choice.forFormat)
+  const choiceName = choice ? formaty.find(f => f.code === choice.formatKod)?.name : undefined
+  const fromPlan = !pick && !!planChoice
+  const tipFormats = (f: MakeFormat) => (PICK_TIP[f] ? formaty.filter(x => x.tip === PICK_TIP[f]) : [])
+  const openPick = (f: MakeFormat) => { setPickFor(f); track('feature_open', { feature: 'format_pick' }) }
+  const choosePick = (f: MakeFormat, code: string | null) => {
+    setPlanKodOff(true) // выбрала сама: формат из плана больше не подставляем
+    setPick(code ? { forFormat: f, formatKod: code } : null)
+    setPickFor(null)
+  }
+  const clearChoice = () => { if (pick) setPick(null); setPlanKodOff(true) }
+  const currentPickCode = (f: MakeFormat) => (choice && choice.forFormat === f ? choice.formatKod : null)
+
   const submit = () => {
     if (busy || !hasText || !formats.length || transcribing || (link && needText && !sozhe)) return
     writeLS(FORMATS_KEY, JSON.stringify(formats))
@@ -151,7 +210,14 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
     // тема: поле ровно как готовая тема (из адреса, карточки «Беру» или плана), иначе своя мысль
     const t = text.trim()
     const isTopic = !!t && (t === (initialText || '').trim() || topics.includes(t))
-    onSubmit({ text: link ? '' : t, formats, goal, sozhe, about: sozhe ? about.trim() : undefined, mode: isTopic ? 'topic' : 'thought', voice: usedVoice.current })
+    const zh6: Zh6Choice | undefined = (choiceOn || (planOn && (plan?.rol || plan?.reakciya)))
+      ? {
+          ...(choiceOn ? { formatKod: choice!.formatKod, forFormat: choice!.forFormat } : plan?.forFormat ? { forFormat: plan.forFormat } : {}),
+          ...(planOn && plan?.rol ? { rol: plan.rol } : {}),
+          ...(planOn && plan?.reakciya ? { reakciya: plan.reakciya } : {}),
+        }
+      : undefined
+    onSubmit({ text: link ? '' : t, formats, goal, sozhe, about: sozhe ? about.trim() : undefined, mode: isTopic ? 'topic' : 'thought', voice: usedVoice.current, zh6 })
   }
 
   const sourceLabel = screens.length
@@ -282,12 +348,22 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
           <div className="mt-2 flex flex-wrap gap-2">
             {MAKE_FORMATS.map(f => {
               const on = formats.includes(f.id)
+              // у рилса, карусели и поста можно выбрать вид, если zh6 включен и вид есть под голос автора
+              const canPick = on && !sozhe && !link && tipFormats(f.id).length > 0
               return (
-                <button key={f.id} type="button" aria-pressed={on} onClick={() => toggleFormat(f.id)}
-                  className={`h-11 px-4 inline-flex items-center gap-1.5 rounded-full text-[15px] cursor-pointer transition ${on ? 'bg-brand-soft border-[1.5px] border-brand-accent text-brand-text font-semibold' : 'border border-brand-border text-brand-text'}`}>
-                  {on ? <Check className="w-4 h-4 text-brand-accent" /> : <Plus className="w-4 h-4 text-brand-muted" />}
-                  {f.label}
-                </button>
+                <div key={f.id} className={`h-11 inline-flex items-center rounded-full transition ${on ? 'bg-brand-soft border-[1.5px] border-brand-accent' : 'border border-brand-border'}`}>
+                  <button type="button" aria-pressed={on} onClick={() => toggleFormat(f.id)}
+                    className={`h-full inline-flex items-center gap-1.5 text-[15px] text-brand-text cursor-pointer ${canPick ? 'pl-4 pr-1' : 'px-4'} ${on ? 'font-semibold' : ''}`}>
+                    {on ? <Check className="w-4 h-4 text-brand-accent" /> : <Plus className="w-4 h-4 text-brand-muted" />}
+                    {f.label}
+                  </button>
+                  {canPick && (
+                    <button type="button" onClick={() => openPick(f.id)} aria-label={`${PICK_TITLE[f.id] || 'Какой формат'}: выбрать`} aria-haspopup="dialog"
+                      className="h-full w-9 pr-1.5 inline-flex items-center justify-center rounded-r-full text-brand-muted hover:text-brand-text cursor-pointer">
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               )
             })}
           </div>
@@ -296,6 +372,17 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
             <span className="text-brand-text">{(GOAL_OPTIONS.find(g => g.id === goal)?.label || 'Любая').toLowerCase()}</span>
             <ChevronDown className="w-4 h-4 text-brand-muted" />
           </button>
+          {choiceOn && choiceName && !sozhe && !link && (
+            <div className="mt-2 min-h-11 flex items-center gap-2 pl-3 rounded-xl bg-brand-soft-2 text-brand-text">
+              <p className="min-w-0 flex-1 py-2 text-[14px] leading-5 break-words">
+                <span className="text-brand-muted">{fromPlan ? 'Формат из плана' : MAKE_FORMATS.find(m => m.id === choice!.forFormat)?.label}: </span>{choiceName}
+              </p>
+              <button type="button" onClick={clearChoice} aria-label="Убрать формат, подберу сама"
+                className="w-11 h-11 flex items-center justify-center rounded-full text-brand-muted hover:text-brand-text cursor-pointer shrink-0">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
           <button type="button" onClick={submit} disabled={busy || !formats.length || transcribing || (!!link && needText && !sozhe)}
             className={`mt-4 w-full h-[52px] rounded-2xl text-[16px] font-semibold transition cursor-pointer ${formats.length ? 'bg-brand-accent text-white hover:bg-brand-accent-hover disabled:opacity-60' : 'bg-brand-border text-brand-muted cursor-not-allowed'}`}>
             {!formats.length ? 'Выбери хотя бы один формат' : (sozhe || link) ? 'Сделать так же' : makeButtonText(formats)}
@@ -305,6 +392,28 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
       )}
 
       <VoiceSheet open={voiceOpen} rec={rec} onClose={() => setVoiceOpen(false)} onWriteText={() => { setVoiceOpen(false); rec.reset(); setTimeout(() => area.current?.focus(), 50) }} />
+      <BottomSheet open={!!pickFor} onClose={() => setPickFor(null)} title={pickFor ? PICK_TITLE[pickFor] : ''}>
+        {pickFor && (
+          <div role="radiogroup" aria-label="Формат">
+            {[{ code: null as string | null, name: 'Подбери сама', hint: 'Выберу под тему и твой голос' },
+              ...tipFormats(pickFor).map(f => ({ code: f.code as string | null, name: f.name, hint: formatHint(f) }))].map(o => {
+              const sel = currentPickCode(pickFor) === o.code
+              return (
+                <button key={o.code || 'auto'} type="button" role="radio" aria-checked={sel} onClick={() => choosePick(pickFor, o.code)}
+                  className="w-full min-h-[52px] py-2.5 flex items-start gap-3 text-left cursor-pointer">
+                  <span className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${sel ? 'border-brand-accent' : 'border-brand-border'}`}>
+                    {sel && <span className="w-2.5 h-2.5 rounded-full bg-brand-accent" />}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[16px] leading-[22px] text-brand-text break-words">{o.name}</span>
+                    {o.hint && <span className="block mt-0.5 text-[14px] leading-5 text-brand-muted break-words">{o.hint}</span>}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </BottomSheet>
       <BottomSheet open={goalOpen} onClose={() => setGoalOpen(false)} title="Цель">
         <div role="radiogroup" aria-label="Цель">
           {GOAL_OPTIONS.map(g => (

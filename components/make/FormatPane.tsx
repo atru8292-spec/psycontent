@@ -25,6 +25,7 @@ export type PaneItem = {
   text: string
   baseline: string        // последняя версия от сервиса (для обучения на правках)
   publishedAt: string | null
+  formatName?: string     // имя формата от генератора zh6 («Сценка: я и мой внутренний голос»), если пришло
 }
 
 const ADJUST = [
@@ -90,7 +91,8 @@ export default function FormatPane({ item, onChange, onPublished, onMore }: {
   const [editing, setEditing] = useState(false)
   const [fixOpen, setFixOpen] = useState(false)
   const [adjusting, setAdjusting] = useState<string | null>(null)
-  const [hooks, setHooks] = useState<{ hook_type: string; text: string; why: string }[] | null>(null)
+  // full и formatName приходят у материалов zh6: «Другой заход» там это весь новый текст, а не одна первая строка
+  const [hooks, setHooks] = useState<{ hook_type: string; text: string; why: string; full?: string; formatName?: string }[] | null>(null)
   const [reaction, setReaction] = useState<'mine' | 'not_like' | null>(null)
   const [notLikeOpen, setNotLikeOpen] = useState(false)
   const [reasons, setReasons] = useState<string[]>([])
@@ -124,6 +126,11 @@ export default function FormatPane({ item, onChange, onPublished, onMore }: {
     try {
       const r = await fetch('/api/generate-post/adjust', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ postId, action, text }) })
       const d = await r.json().catch(() => ({}))
+      // zh6: правка сломала бы разметку, сервер вернул текст без изменений; текст не трогаем, говорим мягко
+      if (r.status === 422 && d?.unchanged) {
+        setError(typeof d.error === 'string' && d.error.trim() ? d.error.trim().slice(0, 200) : 'Не получилось поправить так, чтобы ничего не сломать. Текст на месте')
+        return
+      }
       if (!r.ok) throw new Error()
       if (action === 'hooks') { if (Array.isArray(d.hooks)) setHooks(d.hooks) }
       else if (typeof d.post === 'string') onChange({ text: d.post, baseline: d.post })
@@ -133,10 +140,12 @@ export default function FormatPane({ item, onChange, onPublished, onMore }: {
     } finally { setAdjusting(null) }
   }
 
-  const pickHook = (h: { hook_type: string; text: string }) => {
+  const pickHook = (h: { hook_type: string; text: string; full?: string; formatName?: string }) => {
     const first = text.split('\n').find(l => l.trim()) || ''
     sendVoiceEvent({ action: 'hook_pick', postId, before: first, after: h.text, hookType: h.hook_type })
-    onChange({ text: replaceFirstLine(text, h.text), baseline: replaceFirstLine(item.baseline, h.text) })
+    if (typeof h.full === 'string' && h.full.trim()) {
+      onChange({ text: h.full, baseline: h.full, ...(typeof h.formatName === 'string' && h.formatName.trim() ? { formatName: h.formatName.trim().slice(0, 120) } : {}) })
+    } else onChange({ text: replaceFirstLine(text, h.text), baseline: replaceFirstLine(item.baseline, h.text) })
     setHooks(null); setFixOpen(false)
   }
 
@@ -168,6 +177,9 @@ export default function FormatPane({ item, onChange, onPublished, onMore }: {
             className="w-full px-3 py-2.5 rounded-xl border border-brand-border bg-white text-brand-text text-[16px] leading-relaxed focus:outline-none focus:border-brand-accent resize-y" />
         ) : (
           <>
+            {item.formatName && !code.startsWith('reels') && (
+              <p className="mb-3 text-[13px] leading-5 text-brand-muted break-words">{item.formatName}</p>
+            )}
             {parsed?.title && (
               <div className="mb-3">
                 <h3 className="text-lg font-bold text-brand-text leading-snug break-words">{parsed.title}</h3>
@@ -175,7 +187,7 @@ export default function FormatPane({ item, onChange, onPublished, onMore }: {
               </div>
             )}
             {code.startsWith('reels') ? (
-              <ReelsScript text={text} format={code} postId={postId} mark={t => t} />
+              <ReelsScript text={text} format={code} postId={postId} mark={t => t} title={item.formatName} />
             ) : code === 'stories' ? (
               <StoriesView text={text} />
             ) : (
@@ -274,7 +286,7 @@ export default function FormatPane({ item, onChange, onPublished, onMore }: {
       <BottomSheet open={fixOpen} onClose={() => { setFixOpen(false); setHooks(null) }} title="Поправить">
         {hooks ? (
           <div className="space-y-2 pt-1">
-            <p className="text-[14px] text-brand-muted">Выбери первую строку, я поставлю ее вместо текущей:</p>
+            <p className="text-[14px] text-brand-muted">{hooks.some(h => h.full) ? 'Выбери заход, я поставлю весь текст вместо текущего:' : 'Выбери первую строку, я поставлю ее вместо текущей:'}</p>
             {hooks.map((h, i) => (
               <button key={i} type="button" onClick={() => pickHook(h)} className="w-full text-left px-4 py-3 rounded-xl border border-brand-border bg-white hover:border-brand-accent cursor-pointer">
                 <span className="block text-[15px] text-brand-text break-words">{h.text}</span>
