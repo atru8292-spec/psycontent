@@ -128,8 +128,11 @@ export function chooseKrug(all: Record<string, string>, last: string[], seed: st
 // логика текста кодом (круг 4): один род у «ты», одно имя у одного персонажа, регалии в представлении
 const ROLI = /(?<![\p{L}])((?:[Кк]ошк|[Кк]от|[Сс]обак|[Пп]ес|[Пп]са|[Дд]очь|[Дд]очк|[Дд]оч|[Сс]ын|[Мм]ам|[Пп]ап|[Мм]уж|[Жж]ен|[Пп]одруг|[Дд]руг|[Кк]оллег|[Нн]ачальни|[Бб]абушк|[Бб]рат|[Сс]естр)\p{L}*)\s+([А-ЯЁ][а-яё]{2,})/gu
 
-export function logikaMesta(text: string, s: AuthorSettings): Mesto[] {
+export function logikaMesta(text: string, s: AuthorSettings, opts?: { format6?: string }): Mesto[] {
   const out: Mesto[] = []
+  // пометки для художника внутри текста («Нарисованный Миша», «(рисунок: ...)», «кадр:»)
+  const hud = text.match(/(?<![\p{L}])(?:нарисованн\p{L}*\s+[А-ЯЁ]?\p{L}+|\(?\s*(?:рисунок|картинка|кадр|иллюстрация)\s*:[^)\n]{0,60}\)?)/iu)
+  if (hud) out.push({ code: 'hudozhnik', quote: hud[0], why: 'пометка для художника внутри текста: напиши, что происходит, без указаний к картинке' })
   // «ты» в мужском и женском роде в одном тексте (у автора без родовых окончаний модель путает: «оказался ты» и «разозлилась»)
   const muzh = [...text.matchAll(/(?<![\p{L}])ты\s+(?:уже\s+|опять\s+|снова\s+|же\s+|сам\s+)?(\p{L}{2,}(?:л|лся))(?![\p{L}])/giu)]
   const zhen = [...text.matchAll(/(?<![\p{L}])ты\s+(?:уже\s+|опять\s+|снова\s+|же\s+|сама\s+)?(\p{L}{2,}(?:ла|лась))(?![\p{L}])/giu)]
@@ -138,6 +141,14 @@ export function logikaMesta(text: string, s: AuthorSettings): Mesto[] {
   const imena: Record<string, Set<string>> = {}
   for (const m of text.matchAll(ROLI)) { const r = m[1].toLowerCase().slice(0, 3); (imena[m[2]] = imena[m[2]] || new Set()).add(r) }
   for (const [n, r] of Object.entries(imena)) if (r.size > 1) out.push({ code: 'imya', quote: n, why: `имя ${n} у двух разных персонажей: у одного персонажа одно имя, лишних не добавляй` })
+  // карусель-история с персонажами: рассказчик говорит о героях в третьем лице, без слайда-лекции на «ты» посреди истории
+  if (opts?.format6 === 'carousel_istoriya_dialog') {
+    const slidy = text.split(/\n(?=\s*Слайд \d+\s*:)/u).filter(x => /^\s*Слайд/u.test(x))
+    for (const sl of slidy.slice(1, -1)) {
+      const bezRepl = sl.replace(/[«"„“][^»"”]*[»"”]/gu, ' ').replace(/^\s*Слайд \d+\s*:/u, '').split('\n').filter(l => !/^\s*[А-ЯЁ][\p{L} ]{0,20}:/u.test(l)).join(' ')
+      if (/(?<![\p{L}])(?:ты|тебя|тебе|тобой|твой|твоя|твои|твое)(?![\p{L}])/iu.test(bezRepl) && words(bezRepl).length > 12) { out.push({ code: 'istoriya_ty', quote: sl.trim().split('\n')[0].slice(0, 120), why: 'в карусели-истории рассказчик говорит о героях в третьем лице: этот слайд обращается к читателю на «ты» лекцией посреди истории, перескажи его через героев' }); break }
+    }
+  }
   // представление: только имя, метод и с чем работает из профиля, без опыта, регалий и цифр
   const podp = (text.match(/^\s*Подпись\s*:([\s\S]*)$/mu) || [])[1] || (/^\s*(?:Слайд|Текст на экране|Речь)/mu.test(text) ? '' : text.split(/\n\s*\n/).slice(-2).join('\n'))
   const reg = podp.match(/(?:\d+\s*(?:лет|год)\w*\s+(?:опыт|практик)|сертифицирован\p{L}*|кандидат\s+наук|член\s+\p{L}*\s*ассоциац\p{L}*|более\s+\d+\s+клиент\p{L}*)/iu)
@@ -148,16 +159,18 @@ export function logikaMesta(text: string, s: AuthorSettings): Mesto[] {
 // ремарки в сценках одинаково: «*смеется*» и «[смеется]» в круглые скобки (служебная строка [смена] не трогается)
 export const remarki = (t: string) => t.replace(/\*([а-яё][а-яё ,]{2,40})\*/giu, '($1)').replace(/\[(?!смена\])([а-яё][а-яё ,]{2,40})\]/giu, '($1)')
 
-// приемы, которые у автора не чаще одного раза (замечание Арины 4 и 5): у памяти автора свой список
+// приемы автора (zh6-prod 10.11, сверка со стоком: «со мной можно» у живых в 4 текстах из 178, «так, стоп» в 2, «если в
+// детстве» в 2): живые приемы не чаще раза у автора по памяти (около 10 последних материалов). «Никогда» (vsegda) только
+// на то, чего у живых 0: «может сохраняться», «в терапии я предлагаю / есть место», объявление термина, полуврачебный совет
 export const PRIEMY: Record<string, { re: RegExp; name: string; vsegda?: boolean }> = {
-  predstavte: { re: /представ(?:ьте|им|ляешь)[^.!?\n]{0,40}(?:разговор|консультаци|сесси)/iu, name: 'рамка «представьте разговор на консультации»', vsegda: true },
-  sobiratelnyy: { re: /собирательн\p{L}* (?:разговор|образ|случа)/iu, name: '«собирательный разговор»', vsegda: true },
+  predstavte: { re: /представ(?:ьте|им|ляешь)[^.!?\n]{0,40}(?:разговор|консультаци|сесси)/iu, name: 'рамка «представьте разговор на консультации»' },
+  sobiratelnyy: { re: /собирательн\p{L}* (?:разговор|образ|случа)/iu, name: '«собирательный разговор»' },
   rezhim: { re: /(?<![\p{L}])режим\p{L}* (?:удобн|хорош|понимающ|идеальн|заботлив)/iu, name: '«режим удобной / хорошей / понимающей»' },
   nazyvayu: { re: /я называю это|я это называю/iu, name: '«я называю это»' },
   detstvo: { re: /если в детстве/iu, name: 'объяснение «если в детстве X, то Y»' },
-  takstop: { re: /так,? стоп/iu, name: 'реплика-поворот «так, стоп»', vsegda: true },
+  takstop: { re: /так,? стоп/iu, name: 'реплика-поворот «так, стоп»' },
   vterapii: { re: /в терапии (?:важно|можно) (?:разобраться|задержаться)|в терапии я (?:предлагаю|бы предложил)|в терапии есть место/iu, name: 'реклама терапии посреди текста («в терапии я предлагаю...», «в терапии есть место...»)', vsegda: true },
-  somnoj: { re: /со мной (?:тоже )?можно (?:спорить|злиться|не соглашаться|быть)/iu, name: 'мысль «со мной можно спорить / злиться» (одинаковая у всех психологов)', vsegda: true },
+  somnoj: { re: /со мной (?:тоже )?можно (?:спорить|злиться|не соглашаться|быть)/iu, name: 'мысль «со мной можно спорить / злиться» (одинаковая у всех психологов)' },
   termin: { re: /(?:^|[.!?:]\s+|\n)Это (?:называется\s+)?(?:навязывание|газлайтинг|созависимост|проекци|триангуляци|обесценивани|контроль под видом|пассивн\p{L}* агресси)/iu, name: 'объявление термина посреди текста («это навязывание вины»)', vsegda: true },
   medsovet: { re: /(?:понемногу|постепенно)\s+(?:откладыва|сокраща|реже)\p{L}*[^.!?\n]{0,30}(?:провер|измер|пульс|давлен)|(?:реже|не)\s+(?:измеряйте|проверяйте)\s+(?:пульс|давление)/iu, name: 'совет, похожий на медицинский', vsegda: true },
   uchebnik: { re: /(?:может|могут) сохраняться|важно разобраться|важно понимать|важно помнить/iu, name: 'объяснение из учебника («может сохраняться», «важно разобраться»)', vsegda: true },
@@ -278,7 +291,7 @@ export async function zh6Write(ctx: GenContext, req: GenRequest): Promise<Zh6Res
   const priemMesta = (t: string): Mesto[] => priemyOf(t).filter(k => PRIEMY[k].vsegda || bylo.has(k)).map(k => ({ code: `priem_${k}`, quote: (t.match(PRIEMY[k].re) || [''])[0], why: `${PRIEMY[k].name}: у автора уже было или так не пишем, скажи по-другому` }))
   // кодовое слово только из профиля (ответ Арины 09.11): слово капсом в кавычках рядом с «напишите» или «комментарии»
   const kodMesta = (t: string): Mesto[] => [...t.matchAll(/(?:слов[оа]\s+|напишите\s+|пишите\s+)[«"]?([А-ЯЁA-Z]{3,})[»"]?/gu)].filter(m => !String(s.booking || '').toUpperCase().includes(m[1])).map(m => ({ code: 'kodovoe_slovo', quote: m[0], why: 'кодового слова нет в профиле автора: напиши «напишите в комментариях, пришлю» или «напишите мне в директ», без придуманного слова' }))
-  const mestaOf = (t: string) => [...zh6Mesta(t, { sources, allowMat: allowMatOf(s) }), ...priemMesta(t), ...kodMesta(t), ...logikaMesta(t, s)]
+  const mestaOf = (t: string) => [...zh6Mesta(t, { sources, allowMat: allowMatOf(s) }), ...priemMesta(t), ...kodMesta(t), ...logikaMesta(t, s, { format6: p.format6.code })]
   const mesta = mestaOf(text)
   let pravka = false
   if (mesta.length) {
@@ -481,7 +494,9 @@ export async function zh6Plan(s: AuthorSettings, o: { n: number; recent?: string
   const smesh = smeshatOshibki(temy0, dopusk)
   let temy = zapisPravila(peremeshat(odnoMnogotochie(smesh.length ? smeshat(temy0, dopusk, s.name || '') : temy0), `${s.name || ''}|${o.rotation || 0}`))
   // круг 4: темы с пометками «со мной можно», «коряво», «копия живой строки» на одну замену (один дешевый вызов)
-  const plohie = temy.filter(t => t.pometki.some(x => x === 'со мной можно' || x === 'коряво' || x === 'копия живой строки')).map(t => ({ n: t.n, why: t.pometki.join(', ') }))
+  // «со мной можно» у живых бывает: одна такая тема на план можно, вторая и дальше на замену
+  let soMnoj = 0
+  const plohie = temy.filter(t => t.pometki.some(x => x === 'коряво' || x === 'копия живой строки' || (x === 'со мной можно' && ++soMnoj > 1))).map(t => ({ n: t.n, why: t.pometki.join(', ') }))
   if (plohie.length && o.zamena !== false) { try { temy = zapisPravila(await zh6PlanZamena(s, temy, plohie, [], o.userId || '')) } catch { /* замена не вышла: план как есть */ } }
   return { temy, prompt: { system: p.system, user: p.user }, smesh }
 }

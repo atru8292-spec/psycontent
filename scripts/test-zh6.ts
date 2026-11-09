@@ -171,5 +171,15 @@ async function main() {
   assert.ok(/Захар/.test(introOf(sI)) && /Гештальт/.test(introOf(sI)) && !/\d/.test(introOf(sI)))
   assert.ok(pohozhie('Со мной можно злиться, даже когда бесит', 'На сессии со мной можно спорить'))
   console.log('ok 9: род, имя, регалии, ремарки, приглашение, реакция, представление, «со мной можно»')
+
+  // 10. zh6-prod: «никогда» только на то, чего у живых 0; живые приемы по памяти автора; пометки художника; карусель-история
+  const { PRIEMY } = await import('../lib/generation/zh6/write')
+  assert.deepEqual(Object.entries(PRIEMY).filter(([, v]) => v.vsegda).map(([k]) => k).sort(), ['medsovet', 'termin', 'uchebnik', 'vterapii'], 'никогда только на 4 приема')
+  assert.ok(logikaMesta('Слайд 1: Миша\nСлайд 2: Нарисованный Миша стоит у окна.', sI).some(x => x.code === 'hudozhnik'), 'пометка художника')
+  const ist = 'Слайд 1: Обложка\nСлайд 2: Миша приходит домой.\nМама: «Ты опять поздно».\nСлайд 3: Вот так тебе навешивают вину за злость, и ты потом еще долго оправдываешься перед всеми.\nСлайд 4: Конец.'
+  assert.ok(logikaMesta(ist, sI, { format6: 'carousel_istoriya_dialog' }).some(x => x.code === 'istoriya_ty'), 'лекция на «ты» в карусели-истории')
+  assert.ok(!logikaMesta(ist, sI, { format6: 'carousel_odna_mysl' }).some(x => x.code === 'istoriya_ty'), 'в других каруселях «ты» можно')
+  assert.ok(logikaMesta('Слайд 1: Ты разозлился.\nСлайд 2: А потом ты извинилась.', sI).some(x => x.code === 'rod'), 'род и в карусели')
+  console.log('ok 10: «никогда» только на 4 приема, пометки художника, карусель-история в третьем лице, род в карусели')
 }
 main().then(() => console.log('zh6: все тесты прошли')).catch(e => { console.error(e); process.exit(1) })
