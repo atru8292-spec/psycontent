@@ -1,19 +1,21 @@
 'use client'
-// Картинка карточки вида на «Сделать» (zh6). Два варианта на выбор Арины:
+// Картинка карточки вида на «Сделать» (zh6). Три варианта:
 //   a: схемы-иконки SVG в цветах сайта (линия шоколадом 2 px, заливки сиренью и шалфеем, без градиентов);
-//   b: позы Веры из готовых стикеров (public/vera/vid, обрезаны по прозрачным краям), где позы нет, схема из a.
-// В проде всегда VID_KARTINKI_PROD; в разработке можно переключить адресом ?kartinki=a|b.
+//   b: позы Веры из готовых стикеров (public/vera/vid, обрезаны по прозрачным краям), где позы нет, схема из a;
+//   c: картинки с Верой под каждую карточку (public/vera/vid-ikonki, файл reels-kamera.webp на ключ 'reels:kamera',
+//      auto.webp общий для всех «подобрать под тему»), на кремовом фоне; неизвестный ключ: схема из a.
+// В проде всегда VID_KARTINKI_PROD; в разработке можно переключить адресом ?kartinki=a|b|c.
 import { useEffect, useState } from 'react'
 
-export type Kartinki = 'a' | 'b'
-export const VID_KARTINKI_PROD: Kartinki = 'a' // поменять на выбор Арины
+export type Kartinki = 'a' | 'b' | 'c'
+export const VID_KARTINKI_PROD: Kartinki = 'c' // выбор Арины 10.11: картинки с Верой
 
 export function useVidKartinki(): Kartinki {
   const [k, setK] = useState<Kartinki>(VID_KARTINKI_PROD)
   useEffect(() => {
     if (process.env.NODE_ENV === 'production') return
     const q = new URLSearchParams(window.location.search).get('kartinki')
-    if (q === 'a' || q === 'b') setK(q)
+    if (q === 'a' || q === 'b' || q === 'c') setK(q)
   }, [])
   return k
 }
@@ -87,7 +89,27 @@ function Shema({ id }: { id: string }) {
   }
 }
 
+// вариант c: ключ карточки → файл в public/vera/vid-ikonki
+const IKONKI = new Set(['reels:kamera', 'reels:scenka', 'reels:nadpisi', 'reels:spisok', 'reels:otvet',
+  'carousel:spisok', 'carousel:istoriya', 'carousel:mysl', 'carousel:razbor',
+  'post:korotko', 'post:istoriya', 'post:otvet', 'post:spor'])
+const ikonkaOf = (id: string): string | undefined =>
+  /:auto$/.test(id) ? 'auto' : IKONKI.has(id) ? id.replace(':', '-') : undefined
+// кремовый фон картинок варианта c (средний цвет их краев), квадрат того же цвета, чтобы края не были видны
+const IKONKA_FON = '#FCF3E6'
+
 export default function VidKartinka({ id, k, size = 64 }: { id: string; k: Kartinki; size?: number }) {
+  const ikonka = k === 'c' ? ikonkaOf(id) : undefined
+  if (ikonka) {
+    // картинки разной пропорции (телефон, квадрат, лист): вписываем в квадрат целиком, без обрезки
+    return (
+      <span aria-hidden="true" className="shrink-0 rounded-xl overflow-hidden inline-flex items-center justify-center" style={{ width: size, height: size, background: IKONKA_FON }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={`/vera/vid-ikonki/${ikonka}.webp`} alt="" aria-hidden="true" width={size} height={size} loading="lazy"
+          className="block w-full h-full object-contain" />
+      </span>
+    )
+  }
   const vera = k === 'b' ? VERA[id] : undefined
   if (vera) {
     // eslint-disable-next-line @next/next/no-img-element
