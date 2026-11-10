@@ -225,7 +225,8 @@ export default function MakeFlow() {
             setItems(prev => prev.map(x => x.format === ev.format && x.status === 'pending'
               ? (ev.ok
                 ? { ...x, status: 'ready', code: ev.code, postId: ev.postId || null, text: ev.text, baseline: ev.text, overlap: Array.isArray(ev.overlap) ? ev.overlap : [],
-                    ...(typeof ev.formatName === 'string' && ev.formatName.trim() ? { formatName: ev.formatName.trim().slice(0, 120) } : {}) }
+                    ...(typeof ev.formatName === 'string' && ev.formatName.trim() ? { formatName: ev.formatName.trim().slice(0, 120) } : {}),
+                    ...(ev.vidZamenen === true ? { vidZamenen: true } : {}) }
                 : { ...x, status: 'failed', error: ev.error })
               : x))
             if (ev.ok && !opened) {

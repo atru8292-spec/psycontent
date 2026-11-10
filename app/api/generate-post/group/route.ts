@@ -6,7 +6,7 @@
 //   {type:'done', groupId}                     | {type:'error', error}
 // Тело: { topic, userDetail?, formats: ['reels','carousel','post','post_tg','stories'], goal?, fromPostId?, editedText?,
 //   sample?: {kind:'link',url} | {kind:'text',text} | {kind:'screens',images:[data URL]} }  («Сделать так же», событие {type:'sample'})
-//   zh6?: { formatKod?, forFormat? (reels|carousel|post|post_tg|stories), rol?, reakciya? }  только при PROMPT_HYP=zh6:
+//   zh6?: { vidy?: { [формат]: код вида }, formatKod?, forFormat? (reels|carousel|post|post_tg|stories), rol?, reakciya? }  только при PROMPT_HYP=zh6:
 //   формат каталога, задача и реакция из плана, применяются только к формату forFormat (одному формату, если он один)
 // В событии format при zh6 еще formatName (имя формата каталога, например «Сценка: я и внутренний голос»).
 // fromPostId: «Сделать еще формат из этой мысли»: ядро берем у материала (только свой, по user_id); если текст
@@ -28,6 +28,8 @@ import {
 } from '@/lib/generation/group'
 import { finalNet, type FormatCode } from '@/lib/generation/text-guard'
 import { savePost, zh6On, zh6FieldsFrom } from '../new-pipeline'
+import { formatyAvtora } from '@/lib/generation/zh6/write'
+import { vidyFrom } from '@/lib/generation/zh6/vidy'
 import { serverTrack } from '@/lib/track-server'
 import {
   fetchTelegramPost, isInstagramUrl, isTelegramUrl, parseSample, sampleBlock, sourceLabel, overlap, sentencesWithChains, sentencesWithTrigrams,
@@ -76,6 +78,9 @@ export async function POST(req: NextRequest) {
     ? ((GROUP_FORMATS as readonly unknown[]).includes(zb.forFormat) && formats.includes(zb.forFormat) ? zb.forFormat : formats.length === 1 ? formats[0] : null)
     : null
   const zh6Fields = zh6For ? zh6FieldsFrom(zb, toGroupCode(zh6For)) : {}
+  // вид каталога у каждого формата набора свой (zh6.vidy), каждый код проверяется по своему формату
+  const vidy: Partial<Record<GroupFormat, string>> = zb ? vidyFrom(zb, formats) : {}
+  const vidyList = Object.values(vidy)
 
   // замеры (lib/analytics/events.ts): коды форматов через запятую и режим запуска, без текстов
   const fmtList = formats.join(',')
@@ -152,7 +157,7 @@ export async function POST(req: NextRequest) {
   if (fromPostId) serverTrack(userId, 'material_adjust', { action: 'more_format', format: fmtList })
   serverTrack(userId, 'make_start', {
     formats: fmtList, n: formats.length, voice: body?.voice === true,
-    ...(zh6Fields.formatKod ? { format_kod: zh6Fields.formatKod } : {}),
+    ...(vidyList.length === 1 ? { format_kod: vidyList[0] } : vidyList.length > 1 ? { format_kod: 'neskolko' } : {}),
     ...(fromPostId ? {} : { mode: sample ? 'same' : body?.mode === 'topic' ? 'topic' : 'thought' }),
   })
 
@@ -226,8 +231,17 @@ export async function POST(req: NextRequest) {
             neighbors: neighborsFor(all, code),
             sampleBlock: skeleton ? sampleBlock(skeleton) : null,
           }
+          // вид, который выбрала она (или план); если он не подходит голосу автора или «Пока без видео», берем
+          // «подберу сама», а экрану честно говорим, что вид сменился (vidZamenen)
+          let vidZaproshen: string | undefined
           if (zh6) {
             if (f === zh6For) Object.assign(greq, zh6Fields)
+            delete greq.formatKod
+            const kod = vidy[f]
+            if (kod) {
+              vidZaproshen = kod
+              if (formatyAvtora(ctx.settings).some(x => x.code === kod)) greq.formatKod = kod
+            }
             // явная цель на экране главнее задачи из плана
             if (goal === 'zapis') greq.rol = 'zapis'
           }
@@ -250,7 +264,8 @@ export async function POST(req: NextRequest) {
               text = r.text; plan = d.plan; version = PIPELINE_VERSION
             }
             send({ type: 'progress', format: f })
-            return { f, ok: true as const, req: greq, text, plan, version, draftText, zh4, formatName }
+            const vidZamenen = !!vidZaproshen && zh4?.zh6?.ustr !== vidZaproshen
+            return { f, ok: true as const, req: greq, text, plan, version, draftText, zh4, formatName, vidZamenen }
           } catch (e: any) {
             console.error('group format failed:', f, e?.message || e)
             serverTrack(userId, 'make_error', { code: 'format_failed', format: f })
@@ -312,6 +327,7 @@ export async function POST(req: NextRequest) {
           send({
             type: 'format', format: r.f, ok: true, postId, code: r.req.format, intent: r.plan.intent, text: r.text,
             ...(r.formatName ? { formatName: r.formatName } : {}),
+            ...(r.vidZamenen ? { vidZamenen: true } : {}),
             placeholders: r.text.match(PLACEHOLDER_RE) || [],
             overlap: leftovers.get(okItems.indexOf(r)) || [],
           })

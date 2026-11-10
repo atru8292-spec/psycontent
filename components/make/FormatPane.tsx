@@ -15,6 +15,7 @@ import ReelsScript from '@/components/ReelsScript'
 import CaptionBlock, { splitCaption } from '@/components/CaptionBlock'
 import CarouselDesigner from '@/components/CarouselDesigner'
 import PostCover from '@/components/PostCover'
+import { zamenaKak } from './vid-hints'
 import BottomSheet from './BottomSheet'
 import { useDashboardMe } from '@/lib/dashboard-me'
 
@@ -26,6 +27,7 @@ export type PaneItem = {
   baseline: string        // последняя версия от сервиса (для обучения на правках)
   publishedAt: string | null
   formatName?: string     // имя формата от генератора zh6 («Сценка: я и мой внутренний голос»), если пришло
+  vidZamenen?: boolean    // zh6: выбранный вид не подошел голосу или «Пока без видео», генератор взял другой
 }
 
 const ADJUST = [
@@ -185,6 +187,7 @@ export default function FormatPane({ item, onChange, onPublished, onMore }: {
             className="w-full px-3 py-2.5 rounded-xl border border-brand-border bg-white text-brand-text text-[16px] leading-relaxed focus:outline-none focus:border-brand-accent resize-y" />
         ) : (
           <>
+            {item.vidZamenen && <p className="mb-2 text-[13px] leading-5 text-brand-muted break-words">{zamenaKak(item.formatName)}</p>}
             {item.formatName && !code.startsWith('reels') && (
               <p className="mb-3 text-[13px] leading-5 text-brand-muted break-words">{item.formatName}</p>
             )}

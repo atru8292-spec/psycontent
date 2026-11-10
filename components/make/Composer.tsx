@@ -14,6 +14,7 @@ import { useVoiceRecorder } from '@/lib/use-voice-recorder'
 import VoiceSheet, { VOICE_MAX, VOICE_NEAR } from './VoiceSheet'
 import BottomSheet from './BottomSheet'
 import VoiceTextarea from '@/components/VoiceTextarea'
+import { VID_HINTS, VID_TEXT } from './vid-hints'
 import { MAKE_FORMATS, DEFAULT_FORMATS, GOAL_OPTIONS, makeButtonText, type MakeFormat, type MakeGoal } from './formats'
 
 export const DRAFT_KEY = 'psycont_make_draft'
@@ -27,14 +28,18 @@ export type ComposerSubmit = { text: string; formats: MakeFormat[]; goal: MakeGo
 
 // Формат каталога zh6 (GET /api/generate-post/formaty). Пустой список: zh6 выключен, выбора формата нет совсем
 export type Zh6Format = { code: string; name: string; tip: 'reels' | 'post' | 'carousel'; scene?: boolean; short?: boolean; bezGolosa?: boolean }
-// Что уходит в тело /api/generate-post/group как zh6: формат каталога для одного чипа и задача из плана
-export type Zh6Choice = { formatKod?: string; forFormat?: MakeFormat; rol?: string; reakciya?: string }
+// Что уходит в тело /api/generate-post/group как zh6: вид каталога у каждого формата набора (vidy) и задача из плана
+// для формата дня (forFormat). Формата нет в vidy: генератор подберет вид сам.
+export type Zh6Choice = { vidy?: Partial<Record<MakeFormat, string>>; forFormat?: MakeFormat; rol?: string; reakciya?: string }
 // Формат и задача дня из плана тем (?fkod=&rol=&reakciya=), уходят один раз с темой этого дня
 export type PlanPick = { formatKod?: string; forFormat?: MakeFormat; rol?: string; reakciya?: string; situaciya?: string }
 
 // чипы, у которых есть выбор вида: тип формата каталога для каждого
 const PICK_TIP: Partial<Record<MakeFormat, Zh6Format['tip']>> = { reels: 'reels', carousel: 'carousel', post: 'post' }
-const PICK_TITLE: Partial<Record<MakeFormat, string>> = { reels: 'Какой рилс', carousel: 'Какая карусель', post: 'Какой пост' }
+const PICK_TITLE: Partial<Record<MakeFormat, string>> = { reels: 'Какой рилс?', carousel: 'Какая карусель?', post: 'Какой пост?' }
+// виды рилса в листе группами (их больше двадцати): группа по флагам каталога, у сценок в группе «Сценка:» в имени лишнее
+const REELS_GROUPS = ['Говоришь в камеру', 'Играешь сценку', 'Без голоса, только надписи'] as const
+const reelsGroup = (f: Zh6Format) => (f.bezGolosa ? REELS_GROUPS[2] : f.scene ? REELS_GROUPS[1] : REELS_GROUPS[0])
 
 // короткая подсказка под именем формата в листе: что придется делать
 function formatHint(f: Zh6Format): string {
@@ -92,11 +97,19 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
   const [hint, setHint] = useState<string | null>(null)
   const area = useRef<HTMLTextAreaElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
-  // выбор формата каталога zh6: один чип за раз (сервер принимает один formatKod на запуск)
+  // вид каталога zh6 у каждого отмеченного формата свой. В vidy только то, что она выбрала сама (null: «подберу сама»);
+  // формата нет в vidy: стоит вид из плана (для формата дня) или «подберу сама». Сняла отметку: выбор забываем.
   const [formaty, setFormaty] = useState<Zh6Format[]>([])
-  const [pick, setPick] = useState<{ forFormat: MakeFormat; formatKod: string } | null>(null)
+  const [vidy, setVidy] = useState<Partial<Record<MakeFormat, string | null>>>({})
   const [planKodOff, setPlanKodOff] = useState(false)
   const [pickFor, setPickFor] = useState<MakeFormat | null>(null)
+  // при открытии листа выбранный вид прокручиваем в середину: он может стоять ниже первого экрана
+  const sheetList = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!pickFor) return
+    const t = setTimeout(() => sheetList.current?.querySelector('[aria-checked="true"]')?.scrollIntoView({ block: 'center' }), 250)
+    return () => clearTimeout(t)
+  }, [pickFor])
   useEffect(() => { let on = true; loadFormaty().then(f => { if (on) setFormaty(f) }); return () => { on = false } }, [])
 
   // прошлый набор форматов и незаконченный черновик
@@ -149,10 +162,14 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
   useFeatureOpen('sozhe', !!link || screens.length > 0)
   const topic = topics.length ? topics[topicIdx % topics.length] : null
 
-  const toggleFormat = (f: MakeFormat) => setFormats(prev => {
-    const next = prev.includes(f) ? prev.filter(x => x !== f) : MAKE_FORMATS.map(m => m.id).filter(id => id === f || prev.includes(id))
-    return next
-  })
+  const toggleFormat = (f: MakeFormat) => {
+    if (formats.includes(f)) {
+      // сняла отметку: вид этого формата забываем, при новой отметке снова «подберу сама» (и вид из плана тоже не вернется)
+      setVidy(prev => { const n = { ...prev }; delete n[f]; return n })
+      if (plan?.forFormat === f) setPlanKodOff(true)
+    }
+    setFormats(prev => prev.includes(f) ? prev.filter(x => x !== f) : MAKE_FORMATS.map(m => m.id).filter(id => id === f || prev.includes(id)))
+  }
 
   const pasteLink = async () => {
     try {
@@ -187,20 +204,21 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
 
   // формат и задача из плана действуют, пока в поле тема этого дня
   const planOn = !!plan && !!text.trim() && text.trim() === (initialText || '').trim()
-  const planChoice = planOn && !planKodOff && plan?.formatKod && plan.forFormat ? { forFormat: plan.forFormat, formatKod: plan.formatKod } : null
-  const choice = pick || planChoice
-  const choiceOn = !!choice && formats.includes(choice.forFormat)
-  const choiceName = choice ? formaty.find(f => f.code === choice.formatKod)?.name : undefined
-  const fromPlan = !pick && !!planChoice
   const tipFormats = (f: MakeFormat) => (PICK_TIP[f] ? formaty.filter(x => x.tip === PICK_TIP[f]) : [])
+  // вид формата сейчас: свой выбор, иначе вид из плана для формата дня, иначе «подберу сама». Код без имени в каталоге
+  // (не подходит голосу или «Пока без видео») не показываем и не шлем: генератор подберет сам
+  const vidOf = (f: MakeFormat): { code: string | null; name?: string; fromPlan: boolean } => {
+    const own = f in vidy
+    const code = own ? vidy[f] ?? null : planOn && !planKodOff && plan?.forFormat === f && plan.formatKod ? plan.formatKod : null
+    const fmt = code ? tipFormats(f).find(x => x.code === code) : undefined
+    return fmt ? { code: fmt.code, name: fmt.name, fromPlan: !own } : { code: null, fromPlan: false }
+  }
+  const pickable = (f: MakeFormat) => formats.includes(f) && !sozhe && !link && tipFormats(f).length > 0
   const openPick = (f: MakeFormat) => { setPickFor(f); track('feature_open', { feature: 'format_pick' }) }
   const choosePick = (f: MakeFormat, code: string | null) => {
-    setPlanKodOff(true) // выбрала сама: формат из плана больше не подставляем
-    setPick(code ? { forFormat: f, formatKod: code } : null)
+    setVidy(prev => ({ ...prev, [f]: code }))
     setPickFor(null)
   }
-  const clearChoice = () => { if (pick) setPick(null); setPlanKodOff(true) }
-  const currentPickCode = (f: MakeFormat) => (choice && choice.forFormat === f ? choice.formatKod : null)
 
   const submit = () => {
     if (busy || !hasText || !formats.length || transcribing || (link && needText && !sozhe)) return
@@ -210,9 +228,15 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
     // тема: поле ровно как готовая тема (из адреса, карточки «Беру» или плана), иначе своя мысль
     const t = text.trim()
     const isTopic = !!t && (t === (initialText || '').trim() || topics.includes(t))
-    const zh6: Zh6Choice | undefined = (choiceOn || (planOn && (plan?.rol || plan?.reakciya)))
+    // вид у каждого отмеченного формата отдельно; задача и реакция из плана только формату дня
+    const out: Partial<Record<MakeFormat, string>> = {}
+    for (const f of formats) { const v = pickable(f) ? vidOf(f).code : null; if (v) out[f] = v }
+    const hasVidy = Object.keys(out).length > 0
+    const planTask = planOn && !!(plan?.rol || plan?.reakciya)
+    const zh6: Zh6Choice | undefined = hasVidy || planTask
       ? {
-          ...(choiceOn ? { formatKod: choice!.formatKod, forFormat: choice!.forFormat } : plan?.forFormat ? { forFormat: plan.forFormat } : {}),
+          ...(hasVidy ? { vidy: out } : {}),
+          ...(planOn && plan?.forFormat ? { forFormat: plan.forFormat } : {}),
           ...(planOn && plan?.rol ? { rol: plan.rol } : {}),
           ...(planOn && plan?.reakciya ? { reakciya: plan.reakciya } : {}),
         }
@@ -348,35 +372,36 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
           <div className="mt-2 flex flex-wrap gap-2">
             {MAKE_FORMATS.map(f => {
               const on = formats.includes(f.id)
-              // у рилса, карусели и поста можно выбрать вид, если zh6 включен и вид есть под голос автора
-              const canPick = on && !sozhe && !link && tipFormats(f.id).length > 0
               return (
-                <div key={f.id} className={`h-11 inline-flex items-center rounded-full transition ${on ? 'bg-brand-soft border-[1.5px] border-brand-accent' : 'border border-brand-border'}`}>
-                  <button type="button" aria-pressed={on} onClick={() => toggleFormat(f.id)}
-                    className={`h-full inline-flex items-center gap-1.5 text-[15px] text-brand-text cursor-pointer ${canPick ? 'pl-4 pr-0' : 'px-4'} ${on ? 'font-semibold' : ''}`}>
-                    {on ? <Check className="w-4 h-4 text-brand-accent" /> : <Plus className="w-4 h-4 text-brand-muted" />}
-                    {f.label}
-                  </button>
-                  {canPick && (
-                    <button type="button" onClick={() => openPick(f.id)} aria-label={`${PICK_TITLE[f.id] || 'Какой формат'}: выбрать`} aria-haspopup="dialog"
-                      className="h-full w-11 pr-1 inline-flex items-center justify-center rounded-r-full text-brand-muted hover:text-brand-text cursor-pointer">
-                      <ChevronDown className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
+                <button key={f.id} type="button" aria-pressed={on} onClick={() => toggleFormat(f.id)}
+                  className={`h-11 px-4 inline-flex items-center gap-1.5 rounded-full text-[15px] text-brand-text transition cursor-pointer ${on ? 'font-semibold bg-brand-soft border-[1.5px] border-brand-accent' : 'border border-brand-border'}`}>
+                  {on ? <Check className="w-4 h-4 text-brand-accent" /> : <Plus className="w-4 h-4 text-brand-muted" />}
+                  {f.label}
+                </button>
               )
             })}
           </div>
-          {/* выбранный вид стоит сразу под чипами: он про чип, а не про цель */}
-          {choiceOn && choiceName && !sozhe && !link && (
-            <div className="mt-2 min-h-11 flex items-center gap-2 pl-3 rounded-xl bg-brand-soft-2 text-brand-text">
-              <p className="min-w-0 flex-1 py-2 text-[14px] leading-5 break-words">
-                <span className="text-brand-muted">{fromPlan ? 'Формат из плана' : MAKE_FORMATS.find(m => m.id === choice!.forFormat)?.label}: </span>{choiceName}
-              </p>
-              <button type="button" onClick={clearChoice} aria-label="Убрать формат, подберу сама"
-                className="w-11 h-11 flex items-center justify-center rounded-full text-brand-muted hover:text-brand-text cursor-pointer shrink-0">
-                <X className="w-4 h-4" />
-              </button>
+          {/* вид у каждого отмеченного формата: строка под чипами, нажала и выбрала (только при zh6, иначе каталога нет) */}
+          {MAKE_FORMATS.some(f => pickable(f.id)) && (
+            <div className="mt-2 space-y-1.5">
+              {MAKE_FORMATS.filter(f => pickable(f.id)).map(f => {
+                const v = vidOf(f.id)
+                // «Карусель · Карусель: список признаков» читается дважды: приставку с именем формата в строке убираем
+                const name = v.name ? v.name.replace(new RegExp(`^${f.label}:\\s*`, 'iu'), '').replace(/^./u, c => c.toUpperCase()) : ''
+                return (
+                  <button key={f.id} type="button" onClick={() => openPick(f.id)} aria-haspopup="dialog"
+                    aria-label={`${PICK_TITLE[f.id] || f.label}: ${v.name || VID_TEXT.auto}. Выбрать`}
+                    className="w-full min-h-11 px-3 py-1.5 flex items-center gap-2 rounded-xl bg-brand-card border border-brand-border text-left cursor-pointer hover:border-brand-accent">
+                    {/* всегда в одну строку: каждая лишняя строка отодвигает главную кнопку, полное имя видно в листе */}
+                    <span className="min-w-0 flex-1 truncate text-[15px] leading-5">
+                      <span className="text-brand-muted">{f.label} · </span>
+                      {name ? <span className="text-brand-text">{name}</span> : <span className="text-brand-muted">{VID_TEXT.auto}</span>}
+                    </span>
+                    {v.fromPlan && <span className="shrink-0 px-2 rounded-full bg-brand-soft-2 text-[12px] leading-5 text-brand-text">{VID_TEXT.plan}</span>}
+                    <ChevronDown className="w-4 h-4 text-brand-muted shrink-0" />
+                  </button>
+                )
+              })}
             </div>
           )}
           <button type="button" onClick={() => setGoalOpen(true)} className="mt-2 h-11 inline-flex items-center gap-1 text-[15px] cursor-pointer">
@@ -395,29 +420,45 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
       <VoiceSheet open={voiceOpen} rec={rec} onClose={() => setVoiceOpen(false)} onWriteText={() => { setVoiceOpen(false); rec.reset(); setTimeout(() => area.current?.focus(), 50) }} />
       <BottomSheet open={!!pickFor} onClose={() => setPickFor(null)} title={pickFor ? PICK_TITLE[pickFor] : ''}>
         {pickFor && (
-          <div role="radiogroup" aria-label="Формат">
-            {/* сервер берет один вид на запуск: если вид уже выбран у другого формата, честно говорим, что он сбросится */}
-            {choice && choice.forFormat !== pickFor && choiceName && (
-              <p className="pb-2 text-[13px] leading-5 text-brand-muted break-words">
-                {(MAKE_FORMATS.find(m => m.id === choice.forFormat)?.label || 'Другой формат')} тогда подберу сама. Вид пока выбирается для одного формата
-              </p>
-            )}
-            {[{ code: null as string | null, name: 'Подбери сама', hint: 'Выберу под тему и твой голос' },
-              ...tipFormats(pickFor).map(f => ({ code: f.code as string | null, name: f.name, hint: formatHint(f) }))].map(o => {
-              const sel = currentPickCode(pickFor) === o.code
+          <div role="radiogroup" aria-label="Вид" ref={sheetList}>
+            {(() => {
+              const cur = vidOf(pickFor).code
+              const row = (o: { code: string | null; name: string; hint: string }, extra = '') => {
+                const sel = cur === o.code
+                return (
+                  <button key={o.code || 'auto'} type="button" role="radio" aria-checked={sel} onClick={() => choosePick(pickFor, o.code)}
+                    className={`w-full min-h-[52px] py-2.5 flex items-start gap-3 text-left cursor-pointer ${extra}`}>
+                    <span className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${sel ? 'border-brand-accent' : 'border-[#B9AE9C]'}`}>
+                      {sel && <span className="w-2.5 h-2.5 rounded-full bg-brand-accent" />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[16px] leading-[22px] text-brand-text break-words">{o.name}</span>
+                      {o.hint && <span className="block mt-0.5 text-[14px] leading-5 text-brand-muted break-words">{o.hint}</span>}
+                    </span>
+                  </button>
+                )
+              }
+              const opt = (f: Zh6Format, name = f.name) => ({ code: f.code as string | null, name, hint: VID_HINTS[f.code] || formatHint(f) })
+              const list = tipFormats(pickFor)
               return (
-                <button key={o.code || 'auto'} type="button" role="radio" aria-checked={sel} onClick={() => choosePick(pickFor, o.code)}
-                  className="w-full min-h-[52px] py-2.5 flex items-start gap-3 text-left cursor-pointer">
-                  <span className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${sel ? 'border-brand-accent' : 'border-brand-border'}`}>
-                    {sel && <span className="w-2.5 h-2.5 rounded-full bg-brand-accent" />}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[16px] leading-[22px] text-brand-text break-words">{o.name}</span>
-                    {o.hint && <span className="block mt-0.5 text-[14px] leading-5 text-brand-muted break-words">{o.hint}</span>}
-                  </span>
-                </button>
+                <>
+                  {/* «подбери сама» отделен линией, чтобы его не пролистнуть среди видов */}
+                  {row({ code: null, name: 'Подбери сама', hint: 'Выберу под тему и твой голос' }, 'border-b border-brand-border mb-1')}
+                  {pickFor === 'reels'
+                    ? REELS_GROUPS.map(g => {
+                        const items = list.filter(f => reelsGroup(f) === g)
+                        if (!items.length) return null
+                        return (
+                          <div key={g}>
+                            <p className="mt-4 mb-1 text-[13px] text-brand-muted">{g}</p>
+                            {items.map(f => row(opt(f, g === REELS_GROUPS[1] ? f.name.replace(/^Сценка:\s*/u, '').replace(/^./u, c => c.toUpperCase()) : f.name)))}
+                          </div>
+                        )
+                      })
+                    : list.map(f => row(opt(f, f.name.replace(new RegExp(`^${MAKE_FORMATS.find(m => m.id === pickFor)?.label || ''}:\\s*`, 'iu'), '').replace(/^./u, c => c.toUpperCase()))))}
+                </>
               )
-            })}
+            })()}
           </div>
         )}
       </BottomSheet>
@@ -426,7 +467,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
           {GOAL_OPTIONS.map(g => (
             <button key={String(g.id)} type="button" role="radio" aria-checked={goal === g.id} onClick={() => { setGoal(g.id); setGoalOpen(false) }}
               className="w-full h-[52px] flex items-center gap-3 text-left text-[16px] text-brand-text cursor-pointer">
-              <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${goal === g.id ? 'border-brand-accent' : 'border-brand-border'}`}>
+              <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${goal === g.id ? 'border-brand-accent' : 'border-[#B9AE9C]'}`}>
                 {goal === g.id && <span className="w-2.5 h-2.5 rounded-full bg-brand-accent" />}
               </span>
               {g.label}

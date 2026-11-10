@@ -8,6 +8,9 @@ import { formatByCode } from '@/lib/generation/zh6/formaty'
 
 const TIP: Record<string, string> = { reels_monolog: 'reels', reels_scenka: 'reels', reels_bez_slov: 'reels', post: 'post', post_tg: 'post_tg', carousel: 'carousel', stories: 'stories' }
 
+// постоянный массив, как useMemo в MakeFlow: новый массив на каждый рендер сбрасывал бы выбор форматов
+const REELS = ['reels' as const]
+
 export default function Preview({ data }: { data: any }) {
   const s = useSearchParams().get('s') || 'golova'
   const pane = (code: string, text: string, formatName?: string) => {
@@ -17,7 +20,7 @@ export default function Preview({ data }: { data: any }) {
   return (
     <main className="min-h-[100dvh] bg-brand-bg px-4 pt-4 pb-[calc(56px+88px)] lg:pb-8 max-w-2xl mx-auto">
       {s === 'composer' && (
-        <Composer firstTime={false} topics={[]} busy={false} onSubmit={() => {}} initialText={data.plan[1]?.tema} initialFormats={['reels']} plan={{ formatKod: data.plan[1]?.format, forFormat: 'reels', rol: data.plan[1]?.zadacha, reakciya: data.plan[1]?.reakciya }} />
+        <Composer firstTime={false} topics={[]} busy={false} onSubmit={s => { (window as any).__zh6Submit = s }} initialText={data.plan[1]?.tema} initialFormats={REELS} plan={{ formatKod: data.plan[1]?.format, forFormat: 'reels', rol: data.plan[1]?.zadacha, reakciya: data.plan[1]?.reakciya }} />
       )}
       {s === 'plan' && (
         <div className="space-y-2">

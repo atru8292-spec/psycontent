@@ -14,6 +14,7 @@ import { zh6Mesta, copyPieces } from '../lib/generation/zh6/checks'
 import { zh6Prompt, temaPometki, zh6Plan, smeshat, smeshatOshibki, formatyAvtora, odnoMnogotochie, pohozhie, zvezdochki, chooseKrug, samoGuard, priemyOf, temyZhivyeFor, peremeshat, logikaMesta, remarki, zapisPravila, reakciyaOf, introOf } from '../lib/generation/zh6/write'
 import { FORMATY, formatByCode, formatBlock } from '../lib/generation/zh6/formaty'
 import { KONCY } from '../lib/generation/zh6/prompt-tekst'
+import { vidyFrom } from '../lib/generation/zh6/vidy'
 import { TEKST_SYSTEM, FORMAT_CARDS, USTROJSTVA, KONEC, SAMPLES_HEAD, PRIMERY_HEAD } from '../lib/generation/zh6/prompt-tekst'
 import { TEMY_SYSTEM } from '../lib/generation/zh6/prompt-temy'
 import { simpleWrite } from '../lib/generation/simple'
@@ -201,5 +202,25 @@ async function main() {
   assert.equal(Z6.matZvezdy(ctxP(PERSONAS.I).settings), false, 'по образцам без звездочек')
   assert.ok(ctxP({ ...PERSONAS.I, habits: { kodovoe_slovo: 'ЗЛОСТЬ' } }).settings.kodovoeSlovo === 'ЗЛОСТЬ')
   console.log('ok 11: сторис и Telegram, виды рилсов, видео, мат по выбору, формат из плана по типу, кодовое слово из профиля')
+  {
+    // 12: вид у каждого формата набора свой (экран «Сделать», zh6.vidy)
+    const v = vidyFrom({ vidy: { reels: 'reels_scenka_ya_psiholog', carousel: 'carousel_spisok_priznakov', post: 'post_direkt', stories: 'post_udar' } }, ['reels', 'carousel', 'post', 'stories'])
+    assert.deepEqual(v, { reels: 'reels_scenka_ya_psiholog', carousel: 'carousel_spisok_priznakov', post: 'post_direkt' }, 'три вида сохраняются, чужой тип у сторис выкинут')
+    assert.deepEqual(vidyFrom({ vidy: { reels: 'carousel_odna_mysl', post: 'net_takogo' } }, ['reels', 'post']), {}, 'вид другого типа и выдуманный код не берем')
+    assert.deepEqual(vidyFrom({ vidy: { carousel: 'carousel_obzor' } }, ['reels']), {}, 'вид формата, который не отмечен, не берем')
+    assert.deepEqual(vidyFrom({ formatKod: 'reels_bez_slov', forFormat: 'reels' }, ['reels', 'post']), { reels: 'reels_bez_slov' }, 'старое поле formatKod понимаем')
+    assert.deepEqual(vidyFrom({ vidy: { post_tg: 'post_spor' } }, ['post_tg']), { post_tg: 'post_spor' }, 'Telegram берет виды поста')
+    assert.deepEqual(vidyFrom(null, ['reels']), {})
+    // без zh6 каталога нет: экран выбора не показывает, сервер vidy не читает (zh6On ложь)
+    const s = readFileSync(join(__dirname, '..', 'app', 'api', 'generate-post', 'group', 'route.ts'), 'utf8')
+    assert.ok(/const vidy[^\n]*= zb \? vidyFrom\(zb, formats\) : \{\}/.test(s) && /const zb = zh6 &&/.test(s), 'group читает vidy только при zh6')
+    assert.ok(/formatyAvtora\(ctx\.settings\)\.some\(x => x\.code === kod\)/.test(s) && /vidZamenen/.test(s), 'вид не под голос: подберу сама и честная пометка')
+    const c = readFileSync(join(__dirname, '..', 'components', 'make', 'Composer.tsx'), 'utf8')
+    assert.ok(!/для одного формата/.test(c), 'строки «один формат за раз» больше нет')
+    const hints = readFileSync(join(__dirname, '..', 'components', 'make', 'vid-hints.ts'), 'utf8')
+    for (const f of FORMATY.filter(x => ['reels', 'carousel', 'post'].includes(x.for[0]))) assert.ok(hints.includes(`  ${f.code}: '`), `подсказка к виду ${f.code}`)
+    assert.ok(!/[ёЁ—]/.test(hints), 'подсказки без ё и тире')
+  }
+  console.log('ok 12: вид у каждого формата набора свой, чужие и выдуманные коды выкидываются, подсказки ко всем видам')
 }
 main().then(() => console.log('zh6: все тесты прошли')).catch(e => { console.error(e); process.exit(1) })
