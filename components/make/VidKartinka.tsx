@@ -98,12 +98,14 @@ const ikonkaOf = (id: string): string | undefined =>
 // кремовый фон картинок варианта c (средний цвет их краев), квадрат того же цвета, чтобы края не были видны
 const IKONKA_FON = '#FCF3E6'
 
-export default function VidKartinka({ id, k, size = 64 }: { id: string; k: Kartinki; size?: number }) {
+// boxClass: размер квадрата классами (адаптивно), только для картинок варианта c; size тогда наибольший размер
+export default function VidKartinka({ id, k, size = 64, boxClass }: { id: string; k: Kartinki; size?: number; boxClass?: string }) {
   const ikonka = k === 'c' ? ikonkaOf(id) : undefined
   if (ikonka) {
     // картинки разной пропорции (телефон, квадрат, лист): вписываем в квадрат целиком, без обрезки
     return (
-      <span aria-hidden="true" className="shrink-0 rounded-xl overflow-hidden inline-flex items-center justify-center" style={{ width: size, height: size, background: IKONKA_FON }}>
+      <span aria-hidden="true" className={`shrink-0 rounded-xl overflow-hidden inline-flex items-center justify-center ${boxClass || ''}`}
+        style={{ ...(boxClass ? {} : { width: size, height: size }), background: IKONKA_FON }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={`/vera/vid-ikonki/${ikonka}.webp`} alt="" aria-hidden="true" width={size} height={size} loading="lazy"
           className="block w-full h-full object-contain" />

@@ -442,7 +442,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
                   {/* подберу под тему: первой, без шагов */}
                   <button type="button" role="radio" aria-checked={!cur.code && !cur.karta} onClick={() => choose(null)}
                     className={`w-full p-3 flex items-center gap-3 rounded-2xl border text-left cursor-pointer ${!cur.code && !cur.karta ? 'border-brand-accent bg-brand-soft/50' : 'border-brand-border bg-white'}`}>
-                    <VidKartinka id={`${tip}:auto`} k={kartinki} size={48} />
+                    <VidKartinka id={`${tip}:auto`} k={kartinki} size={48} boxClass="w-[72px] h-[72px]" />
                     <span className="min-w-0 flex-1">
                       <span className="block text-[16px] leading-[22px] font-semibold text-brand-text">{AUTO_TEXT[tip].title}</span>
                       <span className="block mt-0.5 text-[14px] leading-5 text-brand-muted">{AUTO_TEXT[tip].what}</span>
@@ -459,7 +459,8 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
                         {sel && <Check className="absolute top-3 right-3 w-5 h-5 text-brand-accent" aria-hidden="true" />}
                         <button type="button" role="radio" aria-checked={sel} onClick={() => choose(`g:${g.id}`)}
                           className="w-full p-3 pr-9 flex items-start gap-3 text-left cursor-pointer">
-                          <VidKartinka id={`${tip}:${g.id}`} k={kartinki} size={64} />
+                          {/* картинки с Верой крупнее: 96 px на телефоне, 112 px от 640 px, иначе деталей не разобрать */}
+                          <VidKartinka id={`${tip}:${g.id}`} k={kartinki} size={kartinki === 'c' ? 112 : 64} boxClass="w-24 h-24 sm:w-28 sm:h-28" />
                           <span className="min-w-0 flex-1">
                             <span className="block text-[16px] leading-[22px] font-semibold text-brand-text">{t.title}</span>
                             <span className="block mt-0.5 text-[14px] leading-5 text-brand-text-secondary">{t.what}</span>
