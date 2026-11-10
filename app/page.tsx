@@ -149,15 +149,21 @@ export default function Home() {
                     </div>
                     <p className={`mt-3 text-[17px] leading-[1.55] ${dark ? 'text-brand-bg' : 'text-brand-text'}`}>{s.text}</p>
                     {i === 0 && <p className="mt-4 hidden text-[15px] text-brand-muted lg:block">{HOW.step1Questions}</p>}
-                    {i === 1 && <p className="mt-4 hidden text-[15px] text-brand-muted lg:block">{HOW.step2Formats.map(f => f.label).join(' · ')}</p>}
                     {s.shot && <div className="mt-6 hidden justify-center lg:flex"><PhoneShot src={s.shot} alt={s.alt} w={s.w} h={s.h} /></div>}
                     {dark && (
                       <>
+                        {/* виды рилса картинками Веры из карточек «Сделать»: сетка 3+2, второй ряд по центру (designer-psycont) */}
+                        <p className="mt-4 text-[15px] leading-[1.5] text-brand-on-dark">{HOW.vidyLead}</p>
+                        <ul className="mt-3 grid min-w-0 grid-cols-6 gap-2 lg:gap-3">
+                          {HOW.vidy.map((v, n) => (
+                            <li key={v.src} className={`col-span-2 min-w-0 ${n === 3 ? 'col-start-2' : ''}`}>
+                              <Image src={v.src} alt={v.alt} width={350} height={625} sizes="(min-width:1024px) 104px, 93px" className="h-auto w-full rounded-[14px]" />
+                              <p className="mt-1.5 min-h-[16px] text-center text-[13px] leading-[1.2] text-brand-on-dark [text-wrap:balance]">{v.label}</p>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="mt-3 text-[14px] leading-[1.5] text-brand-on-dark-muted">{HOW.vidyNote}</p>
                         <p className="mt-4 text-[15px] text-brand-on-dark">{HOW.step3Note}</p>
-                        <figure className="mt-4 flex items-end gap-3 lg:mt-5">
-                          <Image src={s.vera} alt={s.alt} width={338} height={360} className="h-[110px] w-auto lg:h-[150px]" />
-                          <figcaption className="mb-2 text-[14px] text-brand-on-dark">{HERO.veraRole}</figcaption>
-                        </figure>
                         <CtaButton place="how" variant="light" className="mt-4 w-full lg:mt-5">{HOW.step3Link}</CtaButton>
                       </>
                     )}
