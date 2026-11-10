@@ -95,6 +95,13 @@ export const onbStepRu = (n: number) => ONB_STEP_RU[n] || `Вопрос ${n}`
 const fmts = (v: unknown) => String(v || '').split(',').filter(Boolean).map(formatRu).join(' + ')
 const sec = (ms: unknown) => (typeof ms === 'number' ? `${Math.round(ms / 1000)} с` : '')
 
+const AUTH_LINK_RU: Record<string, string> = {
+  signup: 'подтверждение почты',
+  email_change: 'смена почты',
+  magiclink: 'вход без пароля',
+  recovery: 'сброс пароля',
+}
+
 export function timelineLine(t: TimelineItem): { text: string; kind: TimelineKind } {
   if (t.type === 'material') return { text: `готов материал: ${formatRu(t.format)}`, kind: 'other' }
   if (t.type === 'published') return { text: `отметила «опубликовала»: ${formatRu(t.format)}`, kind: 'take' }
@@ -121,6 +128,8 @@ export function timelineLine(t: TimelineItem): { text: string; kind: TimelineKin
     case 'limit_hit': return { text: `уперлась в лимит (${p.reason})`, kind: 'trouble' }
     case 'paywall_view': return { text: 'видела тарифы', kind: 'other' }
     case 'plan_click': return { text: `нажала на тариф ${p.plan}`, kind: 'other' }
+    case 'auth_link_ok': return { text: `сработала ссылка из письма: ${AUTH_LINK_RU[String(p.kind)] || p.kind}`, kind: 'other' }
+    case 'auth_reset_done': return { text: 'сменила пароль по ссылке из письма', kind: 'other' }
     case 'error_shown': return { text: `показали ошибку${p.screen ? ` на экране «${SCREEN_RU[String(p.screen)] || p.screen}»` : ''}`, kind: 'trouble' }
     case 'feature_open': return { text: `открыла «${FEATURE_RU[String(p.feature)] || p.feature}»`, kind: 'other' }
     default: return { text: t.event, kind: 'other' }
