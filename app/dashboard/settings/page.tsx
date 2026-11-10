@@ -17,6 +17,7 @@ interface Summary {
   plan: { code: string; name: string; isUnlimited: boolean; deepAnalysis: boolean }
   energy: { balance: number; monthlyAllowance: number; nextRefill: string | null } | null
   textTrial: { remaining: number; cap: number } | null
+  newPipeline?: boolean | null
 }
 
 const ANCHORS = [
@@ -31,6 +32,8 @@ export default function SettingsPage() {
   const [summary, setSummary] = useState<Summary | null>(null)
   const [profile, setProfile] = useState<any>(null)
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  // новый кабинет (новый мозг у этого человека): zh6 архетип не читает, поэтому тест тут не предлагаем
+  const newPipe = summary?.newPipeline === true
 
   useEffect(() => {
     let on = true
@@ -86,7 +89,7 @@ export default function SettingsPage() {
 
           {/* Якорные чипы (десктоп) */}
           <div className="hidden sm:flex items-center gap-2 mt-5">
-            {ANCHORS.map((a) => (
+            {ANCHORS.filter((a) => a.id !== 'archetype' || !newPipe).map((a) => (
               <a
                 key={a.id}
                 href={`#${a.id}`}
@@ -115,8 +118,8 @@ export default function SettingsPage() {
 
         {status === 'ready' && (
           <div className="mt-8 space-y-12">
-            {/* ── Твой архетип ── */}
-            <section id="archetype" className="scroll-mt-20">
+            {/* ── Твой архетип ── (в новом кабинете спрятан: zh6 архетип не читает, тест и данные остаются) */}
+            {!newPipe && <section id="archetype" className="scroll-mt-20">
               <SectionTitle>Твой архетип</SectionTitle>
               {(() => {
                 const sel: ArchetypeSelection | null = getArchetypeSelectionFromProfile(profile)
@@ -159,7 +162,7 @@ export default function SettingsPage() {
                   </div>
                 )
               })()}
-            </section>
+            </section>}
 
             {/* ── Профиль практики ── */}
             <section id="voice" className="scroll-mt-20">
@@ -167,7 +170,7 @@ export default function SettingsPage() {
               <div className="rounded-3xl bg-brand-card border border-brand-border p-5 sm:p-6">
                 <h3 className="text-lg font-bold text-brand-text mb-1">Профиль практики</h3>
                 <p className="text-sm text-brand-muted leading-relaxed mb-4">
-                  Здесь факты о твоей работе: подход, ниша, форматы, клиент, площадки. Меняешь что угодно, и посты подстраиваются. Манеру и тон определяет тест-архетип выше.
+                  Здесь факты о твоей работе: подход, ниша, форматы, клиент, площадки. Меняешь что угодно, и посты подстраиваются.{newPipe ? '' : ' Манеру и тон определяет тест-архетип выше.'}
                 </p>
                 <button
                   onClick={() => router.push('/dashboard/edit-profile')}

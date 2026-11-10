@@ -331,7 +331,7 @@ function MakeContent() {
   const ownSamples = Array.isArray(profile?.voice_samples)
     ? profile.voice_samples.filter((x: any) => x?.fit !== false && x?.source !== 'live_voice').length : 0
   const currentAsk: AskKey | null = newGen && !!result && !generating && !checking && !editing && askSent === null
-    ? pickAsk({ postCount, hasGenericPhrase: !!genericPhrase && !!result?.includes(genericPhrase), archetypeIncomplete: isArchetypeIncomplete(profile), ownSamples })
+    ? pickAsk({ postCount, hasGenericPhrase: !!genericPhrase && !!result?.includes(genericPhrase), archetypeIncomplete: false, ownSamples }) // новый мозг (zh6) архетип не читает: просьбу пройти тест не показываем
     : null
   const showVoiceBar = newGen
     ? currentAsk === 'archetype'
