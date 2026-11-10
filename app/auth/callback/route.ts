@@ -9,7 +9,11 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const origin = publicOrigin(request)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/onboarding/intro'
+  // next только свой путь: «/...», но не «//...» и без обратной косой (иначе next=@evil.com или //evil.com
+  // увели бы на чужой домен после входа, ревью 10.11)
+  const rawNext = searchParams.get('next')
+  const next = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') && !rawNext.includes('\\')
+    ? rawNext : '/onboarding/intro'
 
   if (code) {
     const supabase = await createClient()

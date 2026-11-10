@@ -6,7 +6,10 @@ db.psycont.ru {
 	encode gzip
 	@api path /auth/v1/* /rest/v1/* /storage/v1/*
 	handle @api {
-		reverse_proxy api-gw:8000
+		reverse_proxy api-gw:8000 {
+			# настоящий IP посетителя для лимитов auth; заголовок от клиента перезаписывается
+			header_up X-Real-IP {remote_host}
+		}
 	}
 	handle {
 		respond "Not found" 404

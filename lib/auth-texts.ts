@@ -27,6 +27,22 @@ export function authErrorKind(err: Pick<AuthError, 'code' | 'message' | 'status'
   return 'other'
 }
 
+// Итог запроса письма. «sent» и для незнакомой почты: ответ не выдает, есть ли аккаунт.
+export type LinkResult = 'sent' | 'rate' | 'fail'
+export function linkResult(err: Pick<AuthError, 'code' | 'message' | 'status'> | null | undefined): LinkResult {
+  if (!err) return 'sent'
+  const k = authErrorKind(err)
+  if (k === 'rate_limit') return 'rate'
+  if ((err.status ?? 500) >= 500 || err.status === 0) return 'fail'
+  return 'sent'
+}
+// Сбой проверки ссылки, при котором токен не потрачен: лимит или сеть. Тогда не пишем «ссылка устарела».
+export function verifyRetryable(err: Pick<AuthError, 'code' | 'message' | 'status' | 'name'>): 'rate' | 'fail' | null {
+  if (authErrorKind(err) === 'rate_limit') return 'rate'
+  if ((err.status ?? 0) >= 500 || err.status === 0 || err.name === 'AuthRetryableFetchError') return 'fail'
+  return null
+}
+
 export const MIN_PASSWORD = 6
 // Повторно отправить письмо можно не раньше чем через минуту (у Supabase свой лимит, это мягкий барьер в интерфейсе)
 export const RESEND_COOLDOWN_S = 60
@@ -50,11 +66,10 @@ export const T = {
   forgotLink: 'Не помню пароль',
 
   shortPassword: 'В пароле нужно хотя бы 6 символов',
-  alreadyRegistered: 'На эту почту уже есть аккаунт. Попробуй войти.',
   badCredentials: 'Почта или пароль не подходят. Проверь и попробуй еще раз.',
   checkEmailTitle: 'Осталось подтвердить почту',
   checkEmail: (email: string) =>
-    `Мы отправили письмо на ${email}, открой его и нажми «Подтвердить почту», без этого войти не получится. Ссылка работает 1 час. Если письма нет через пару минут, загляни в спам.`,
+    `Мы отправили письмо на ${email}. Открой его и нажми «Подтвердить почту», без этого войти не получится. Ссылка работает 1 час. Если письма нет через пару минут, загляни в спам. А если аккаунт на эту почту у тебя уже был, нового письма не будет. Тогда просто войди или нажми «Не помню пароль».`,
   notConfirmed: 'Почта пока не подтверждена. Найди наше письмо и нажми в нем ссылку. Если письма нет или ссылка устарела, пришлем новое.',
   resendConfirm: 'Прислать письмо еще раз',
   resentConfirm: (email: string) =>

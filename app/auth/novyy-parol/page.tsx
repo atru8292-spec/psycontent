@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation'
 import { Check, Clock, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { track } from '@/lib/track'
-import { authErrorKind, MIN_PASSWORD, T } from '@/lib/auth-texts'
+import { authErrorKind, MIN_PASSWORD, T, verifyRetryable } from '@/lib/auth-texts'
 import { AuthShell, Notice, PasswordInput, StateIcon } from '@/components/auth/AuthShell'
 import RequestLinkForm from '@/components/auth/RequestLinkForm'
 
@@ -32,15 +32,14 @@ export default function NewPasswordPage() {
     const t = setTimeout(() => setShowSpinner(true), 300)
     const q = new URLSearchParams(window.location.search)
     const th = q.get('token_hash')
+    // Только по ссылке из письма. Без токена форма не открывается даже для вошедшего: иначе любой,
+    // кто сел за незакрытое устройство, сменил бы пароль без старого (ревью 10.11). Смена пароля из
+    // настроек, если понадобится, отдельно и через повторную проверку (reauthenticate).
     if (th && q.get('type') === 'recovery') {
       token.current = th
       setState('form')
     } else {
-      supabase.auth.getUser()
-        .then(({ data }) => {
-          if (data?.user) { setEmail(data.user.email || ''); setState('form') } else setState('expired')
-        })
-        .catch(() => setState('expired'))
+      setState('expired')
     }
     return () => clearTimeout(t)
   }, [])
@@ -53,6 +52,11 @@ export default function NewPasswordPage() {
     try {
       if (token.current && !verified.current) {
         const { data, error: vErr } = await supabase.auth.verifyOtp({ type: 'recovery', token_hash: token.current })
+        if (vErr) {
+          // лимит или сеть: токен не потрачен, форму оставляем
+          const r = verifyRetryable(vErr)
+          if (r) { setError(r === 'rate' ? T.rateLimit : T.generic); setSaving(false); return }
+        }
         if (vErr || !data?.session) { setSaving(false); setState('expired'); return }
         verified.current = true
         setEmail(data.user?.email || '')
@@ -91,6 +95,8 @@ export default function NewPasswordPage() {
         <div className="flex flex-col items-center text-center">
           <StateIcon><Check className="w-5 h-5" /></StateIcon>
           <h1 className="text-lg sm:text-xl font-bold text-brand-text">{T.newDoneTitle}</h1>
+          {/* видно, чей пароль сменен: если ссылка была от другого аккаунта, подмена не пройдет молча */}
+          {email && <p className="text-sm font-medium text-brand-text mt-1.5 break-all">{email}</p>}
           <button type="button" onClick={() => router.push('/dashboard')} className="btn-primary w-full py-3 text-sm mt-5">
             {T.newDoneButton}
           </button>

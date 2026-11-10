@@ -7,6 +7,7 @@
 // (почтовики открывают ссылки заранее и сжигали бы одноразовую ссылку). Переменные шаблона Go:
 // {{ .SiteURL }} (SITE_URL сервера, https://psycont.ru), {{ .TokenHash }}, {{ .NewEmail }} у смены почты.
 // Все стили инлайн: Mail.ru и часть почтовиков вырезают <style>. В <style> только мобильная подстройка.
+// HTML-комментарии (в том числе условные блоки для Outlook) gotrue вырезает при сборке письма, их не писать.
 
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -75,7 +76,7 @@ function build(l) {
   const paras = l.paragraphs.map((t, i) =>
     p(t, `font-family:${FONT};font-size:16px;line-height:24px;color:${C.text};${i < l.paragraphs.length - 1 ? 'padding-bottom:12px;' : ''}`)).join('\n')
   return `<!doctype html>
-<html lang="ru" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+<html lang="ru" xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -87,13 +88,11 @@ function build(l) {
 :root{color-scheme:light only;supported-color-schemes:light only}
 @media (max-width:480px){.wrap{padding:24px 12px !important}.card{padding:24px 20px !important}.btn{width:100% !important}.btn a{display:block !important;box-sizing:border-box !important;width:100% !important;min-width:0 !important}}
 </style>
-<!--[if mso]><style>table,td,p,a{font-family:Arial,Helvetica,sans-serif !important}</style><![endif]-->
 </head>
 <body style="margin:0;padding:0;background:${C.bg};-webkit-text-size-adjust:100%;">
 <div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:${C.bg};">${l.preheader}&#8203;&#847;&#8203;&#847;&#8203;&#847;&#8203;&#847;&#8203;&#847;&#8203;&#847;</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.bg}" style="background:${C.bg};">
 <tr><td class="wrap" align="center" style="padding:32px 16px;">
-<!--[if mso]><table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
 <tr><td align="center" style="padding:0 0 24px 0;">
 <a href="https://psycont.ru" style="text-decoration:none;"><img src="${LOGO}" width="160" height="43" alt="PsyCont" style="display:block;border:0;outline:none;width:160px;height:auto;"></a>
@@ -103,8 +102,7 @@ ${p(l.title, `font-family:${FONT};font-size:22px;line-height:30px;font-weight:70
 ${paras}
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" class="btn" style="margin-top:24px;">
 <tr><td align="center" bgcolor="${C.green}" style="background:${C.green};border-radius:16px;">
-<!--[if mso]><v:roundrect href="${l.href}" style="height:48px;v-text-anchor:middle;width:260px;" arcsize="33%" stroke="f" fillcolor="${C.green}"><w:anchorlock/><center style="color:#FFFFFF;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">${l.button}</center></v:roundrect><![endif]-->
-<!--[if !mso]><!--><a href="${l.href}" target="_blank" style="display:inline-block;min-width:164px;padding:14px 28px;font-family:${FONT};font-size:16px;line-height:20px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:16px;text-align:center;">${l.button}</a><!--<![endif]-->
+<a href="${l.href}" target="_blank" style="display:inline-block;min-width:164px;padding:14px 28px;font-family:${FONT};font-size:16px;line-height:20px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:16px;text-align:center;">${l.button}</a>
 </td></tr>
 </table>
 ${p(l.small, `font-family:${FONT};font-size:14px;line-height:20px;color:${C.muted};padding-top:20px;`)}
@@ -121,7 +119,6 @@ ${p(`Сделано в <a href="https://psycont.ru" style="color:${C.green};text
 ${p(l.why, `font-family:${FONT};font-size:12px;line-height:18px;color:${C.muted};padding-top:6px;`)}
 </td></tr>
 </table>
-<!--[if mso]></td></tr></table><![endif]-->
 </td></tr>
 </table>
 </body>

@@ -61,14 +61,29 @@ export async function GET(req: Request) {
   })
 
   // 4. Выдаём сессию: получаем одноразовый токен и подтверждаем его в куки-клиенте.
-  const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
-    type: 'magiclink',
-    email,
-  })
-  const tokenHash = linkData?.properties?.hashed_token
-  if (linkErr || !tokenHash) {
+  let { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({ type: 'magiclink', email })
+  if (linkErr || !linkData?.properties?.hashed_token) {
     return NextResponse.redirect(`${origin}/?error=yandex_link`)
   }
+
+  // Защита от захвата аккаунта заранее (ревью 10.11): кто-то мог зарегистрироваться по почте на этот адрес
+  // со своим паролем и не подтвердить его. Яндекс доказал, что почта принадлежит вошедшему, и вход ниже
+  // подтвердит аккаунт, поэтому чужой пароль сначала сбрасываем на случайный. Свой пароль хозяйка задаст
+  // через «Не помню пароль». У подтвержденных аккаунтов ничего не трогаем.
+  // Сброс гасит уже выданную ссылку, поэтому после него берем новую (проверено на новой базе 10.11).
+  const existing = linkData.user
+  if (existing && !existing.email_confirmed_at) {
+    const { error: resetErr } = await admin.auth.admin.updateUserById(existing.id, {
+      password: `${crypto.randomUUID()}${crypto.randomUUID()}`,
+      email_confirm: true,
+    })
+    if (resetErr) return NextResponse.redirect(`${origin}/?error=yandex_link`)
+    ;({ data: linkData, error: linkErr } = await admin.auth.admin.generateLink({ type: 'magiclink', email }))
+    if (linkErr || !linkData?.properties?.hashed_token) {
+      return NextResponse.redirect(`${origin}/?error=yandex_link`)
+    }
+  }
+  const tokenHash = linkData.properties.hashed_token
 
   const supabase = await createClient()
   const { error: otpErr } = await supabase.auth.verifyOtp({

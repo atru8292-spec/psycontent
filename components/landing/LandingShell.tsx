@@ -46,12 +46,11 @@ export default function LandingShell({ children }: { children: React.ReactNode }
     check.current.then(w => {
       if (!alive) return
       setWho(w)
+      // /?auth=login (ссылка «Войти» со страниц app/auth/*): гостю сразу открываем окно входа, параметр убираем всегда
+      const wantsLogin = new URLSearchParams(window.location.search).get('auth') === 'login'
+      if (wantsLogin) window.history.replaceState(null, '', window.location.pathname + window.location.hash)
       if (w === 'profile') router.replace('/dashboard')
-      // /?auth=login (ссылка «Войти» со страниц app/auth/*) сразу открывает окно входа, параметр убираем из адреса
-      else if (w === 'anon' && new URLSearchParams(window.location.search).get('auth') === 'login') {
-        setModal({ mode: 'login' })
-        window.history.replaceState(null, '', window.location.pathname + window.location.hash)
-      }
+      else if (w === 'anon' && wantsLogin) setModal({ mode: 'login' })
     })
     return () => { alive = false }
   }, [router])
