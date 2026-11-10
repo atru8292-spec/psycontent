@@ -5,7 +5,8 @@
 // 4) промпт: свои тексты автора раньше примеров, подписи примеров, в текстах промптов нет «ё» и длинных тире,
 //    в промптах нет цепочек из 4 слов из живых текстов банка и разборов;
 // 5) PROMPT_HYP=zh6 уводит simpleWrite в zh6Write, правка мест берется только если находок меньше и формат цел;
-// 6) план тем: JSON разбирается, пометки кодом.
+// 6) план тем: JSON разбирается, пометки кодом;
+// 13) пометка «История собирательная» в подписи у кабинета, сессии и первой встречи.
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
@@ -19,6 +20,9 @@ import { GRUPPY } from '../lib/generation/zh6/gruppy'
 import { TEKST_SYSTEM, FORMAT_CARDS, USTROJSTVA, KONEC, SAMPLES_HEAD, PRIMERY_HEAD } from '../lib/generation/zh6/prompt-tekst'
 import { TEMY_SYSTEM } from '../lib/generation/zh6/prompt-temy'
 import { simpleWrite } from '../lib/generation/simple'
+import { sobiratelnaya, SOBIR_LINE, SOBIR_VIDY } from '../lib/generation/zh6/text'
+import { checkSet } from '../lib/generation/group'
+import { splitCaption } from '../components/CaptionBlock'
 import { buildAuthorSettings } from '../lib/generation/settings'
 import { KONTROL, ISKLYUCHIT_AVTOROV } from './zh6/data'
 import { PERSONAS6 as PERSONAS } from './zh6/personas'
@@ -233,5 +237,27 @@ async function main() {
     assert.deepEqual(grupyFrom({ grupy: { reels: 'scenka', carousel: 'net', post_tg: 'spor' } }, ['reels', 'carousel', 'post_tg']), { reels: GRUPPY.reels[1].codes, post_tg: ['post_spor'] }, 'карточка без подвида: ее виды, чужая карточка выкинута')
   }
   console.log('ok 12: вид у каждого формата набора свой, чужие и выдуманные коды выкидываются, карточки видов покрывают каталог')
+
+  // 13. пометка собирательной истории кодом: только у трех видов, только в подпись, один раз
+  {
+    const rils = 'Текст на экране: Психолог: Что вы чувствуете?\n[смена]\nКлиентка: Ничего.\n\nПодпись: Иногда «ничего» это очень много.'
+    const r1 = sobiratelnaya(rils, 'reels_kabinet')
+    assert.ok(r1.endsWith(`Иногда «ничего» это очень много.\n${SOBIR_LINE}`), 'строка в конце подписи рилса')
+    assert.equal(splitCaption(r1).body, splitCaption(rils).body, 'надпись на экране не тронута')
+    assert.ok(splitCaption(r1).caption.endsWith(SOBIR_LINE), 'строка в описании к публикации')
+    assert.equal(sobiratelnaya(r1, 'reels_kabinet'), r1, 'второй раз не дописывается')
+    const scenka = 'Текст на экране: Первая встреча\nРечь:\nКлиентка: Да у меня все нормально.\nПсихолог: А что тогда привело?'
+    const r2 = sobiratelnaya(scenka, 'reels_scenka_pervaya_sessiya')
+    assert.ok(r2.endsWith(`\n\nПодпись: ${SOBIR_LINE}`) && splitCaption(r2).body === scenka, 'рилс без подписи: подпись из одной строки, речь не тронута')
+    const post = 'Клиентка села и спросила: «А можно сегодня не про маму?»\n\nЯ кивнула.'
+    assert.equal(sobiratelnaya(post, 'post_kabinet'), `${post}\n\n${SOBIR_LINE}`, 'пост: последней строкой')
+    for (const kod of ['reels_bez_slov', 'post_udar', 'reels_scenka_vnutr_golos', null, undefined]) assert.equal(sobiratelnaya(rils, kod as any), rils, `у ${kod} без пометки`)
+    for (const kod of SOBIR_VIDY) assert.ok(formatByCode(kod), `вид ${kod} есть в каталоге`)
+    assert.ok(!/[ёЁ—]/.test(SOBIR_LINE) && !priemyOf(SOBIR_LINE).length, 'строка без ё и тире и не ловится как прием')
+    // у двух материалов набора одна и та же строка: проверка набора не считает ее повтором соседа
+    const iss = checkSet([{ format: 'post', text: sobiratelnaya(post, 'post_kabinet') }, { format: 'reels_monolog', text: r1 }], '')
+    assert.ok(!iss.some(i => i.phrases.some(ph => ph.includes('собирательная'))), 'пометка не уходит на перепись как повтор')
+  }
+  console.log('ok 13: пометка «История собирательная» дописывается кодом в подпись только у кабинета, сессии и первой встречи')
 }
 main().then(() => console.log('zh6: все тесты прошли')).catch(e => { console.error(e); process.exit(1) })
