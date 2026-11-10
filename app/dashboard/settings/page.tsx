@@ -4,7 +4,7 @@ import MyCarouselDesign from '@/components/MyCarouselDesign'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Settings as SettingsIcon, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import TariffSection from '@/components/TariffSection'
 import { ARCHETYPES, ARCHETYPE_ACCENT, archetypeLabel, flexibleLine, getArchetypeSelectionFromProfile, type ArchetypeSelection } from '@/lib/archetypes'
@@ -63,19 +63,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-brand-bg">
       {/* Шапка */}
-      <nav className="sticky top-0 z-40 bg-brand-card/80 backdrop-blur border-b border-brand-border">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center gap-3">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="p-2 -ml-2 text-brand-muted hover:text-brand-text hover:bg-brand-soft rounded-2xl transition cursor-pointer"
-            aria-label="Назад в кабинет"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <SettingsIcon className="w-5 h-5 text-brand-sage" />
-          <span className="font-bold text-brand-text">Настройки</span>
-        </div>
-      </nav>
+      {/* своей шапки нет: шапка и меню у layout кабинета (на телефоне было две шапки с логотипом, LISHNEE-NA-SAYTE.md пункт 12) */}
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>

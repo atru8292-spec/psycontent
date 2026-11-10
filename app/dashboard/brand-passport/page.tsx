@@ -2,12 +2,11 @@
 
 import { useFeatureOpen, useTrackOnce } from '@/lib/analytics/hooks'
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion } from 'framer-motion'
 import {
-  Sparkles, ArrowLeft, Loader2, Target, RefreshCw, Download,
+  Sparkles, Loader2, Target, RefreshCw, Download,
   Heart, Layers, Volume2, Users, Star, Instagram, Send,
   LayoutGrid, MessageSquare, AlertTriangle, PenTool,
   ChevronDown, ChevronUp, Copy, Check, FileText, Map,
@@ -395,20 +394,7 @@ export default function BrandPassport() {
 
   return (
     <div className="min-h-screen bg-brand-bg">
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-brand-border">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="flex items-center gap-2 text-brand-text-secondary hover:text-brand-text transition cursor-pointer text-sm sm:text-base"
-          >
-            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-            Назад в кабинет
-          </button>
-          <div className="flex items-center gap-2">
-            <Image src="/brand/psycont-wordmark.svg" alt="PsyCont" width={104} height={28} className="h-6 w-auto" />
-          </div>
-        </div>
-      </nav>
+      {/* своей шапки нет: шапка и меню у layout кабинета (на телефоне было две шапки с логотипом, LISHNEE-NA-SAYTE.md пункт 12) */}
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <motion.div
