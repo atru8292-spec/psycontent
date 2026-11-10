@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     siteName: 'PsyCont',
     locale: 'ru_RU',
     type: 'website',
-    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'PsyCont. Ты помогаешь людям найти себя. PsyCont поможет им найти тебя' }],
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'PsyCont. Ты помогаешь людям разобраться в себе. С блогом поможет PsyCont' }],
   },
   twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION, images: ['/og.png'] },
   // Публичные страницы открыты для индексации; кабинет, онбординг и админка переопределяют это noindex в своих layout.
