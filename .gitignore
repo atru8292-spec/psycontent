@@ -43,3 +43,6 @@ _знания/мозг-генератора/test/karuseli/do/
 .claude/scheduled_tasks.lock
 .claude/skills/
 sk/
+
+# секреты переезда базы, никогда не коммитить
+_sekrety/
