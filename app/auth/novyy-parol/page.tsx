@@ -124,10 +124,8 @@ export default function NewPasswordPage() {
   return (
     <AuthShell>
       <h1 className="text-lg sm:text-xl font-bold text-brand-text">{T.newTitle}</h1>
-      <p className="text-sm text-brand-muted mt-1.5 leading-snug">
-        {T.newSubtitle}
-        {email && <>{' · '}<span className="font-medium text-brand-text break-all">{email}</span></>}
-      </p>
+      <p className="text-sm text-brand-muted mt-1.5 leading-snug">{T.newSubtitle}</p>
+      {email && <p className="text-sm font-medium text-brand-text mt-1 break-all">{email}</p>}
       <form onSubmit={save} className="mt-5">
         <PasswordInput value={password} onChange={setPassword} placeholder={T.newPlaceholder} autoComplete="new-password" readOnly={saving} />
         <p className="text-xs text-brand-muted mt-2 leading-relaxed">{T.newHint}</p>
