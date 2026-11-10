@@ -1,5 +1,6 @@
 'use client'
 
+import NewBrainRedirect from '@/components/dashboard/NewBrainRedirect'
 import { track } from '@/lib/track'
 import { normFormat } from '@/lib/analytics/events'
 import { useState, useEffect } from 'react'
@@ -39,7 +40,7 @@ const rewriteGoals = [
   { id: 'sales', label: 'Мягко продать услугу', icon: TrendingUp, desc: 'Добавить мягкую подводку к записи' },
 ]
 
-export default function RewriteGenerator() {
+function RewriteGeneratorOld() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
@@ -373,4 +374,9 @@ export default function RewriteGenerator() {
       </div>
     </div>
   )
+}
+
+// с новым мозгом этот генератор сведен в «Сделать» (LISHNEE-NA-SAYTE.md пункт 8)
+export default function RewriteGenerator() {
+  return <NewBrainRedirect to="/dashboard/make"><RewriteGeneratorOld /></NewBrainRedirect>
 }

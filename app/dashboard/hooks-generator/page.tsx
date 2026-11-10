@@ -1,5 +1,6 @@
 'use client'
 
+import NewBrainRedirect from '@/components/dashboard/NewBrainRedirect'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -151,7 +152,7 @@ const HOOK_EDUCATION = {
   ],
 }
 
-export default function HooksGeneratorPage() {
+function HooksGeneratorPageOld() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [topic, setTopic] = useState('')
@@ -670,4 +671,9 @@ export default function HooksGeneratorPage() {
       </div>
     </div>
   )
+}
+
+// с новым мозгом этот генератор сведен в «Сделать» (LISHNEE-NA-SAYTE.md пункт 8)
+export default function HooksGeneratorPage() {
+  return <NewBrainRedirect to="/dashboard/make"><HooksGeneratorPageOld /></NewBrainRedirect>
 }

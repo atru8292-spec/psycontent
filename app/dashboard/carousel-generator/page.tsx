@@ -1,5 +1,6 @@
 'use client'
 
+import NewBrainRedirect from '@/components/dashboard/NewBrainRedirect'
 import { track } from '@/lib/track'
 import { normFormat } from '@/lib/analytics/events'
 import { useState, useEffect, Suspense } from 'react'
@@ -754,7 +755,7 @@ function CarouselGeneratorContent() {
   )
 }
 
-export default function CarouselGeneratorPage() {
+function CarouselGeneratorPageOld() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-brand-bg flex items-center justify-center">
@@ -764,4 +765,9 @@ export default function CarouselGeneratorPage() {
       <CarouselGeneratorContent />
     </Suspense>
   )
+}
+
+// с новым мозгом этот генератор сведен в «Сделать» (LISHNEE-NA-SAYTE.md пункт 8)
+export default function CarouselGeneratorPage() {
+  return <NewBrainRedirect to="/dashboard/make?format=carousel"><CarouselGeneratorPageOld /></NewBrainRedirect>
 }
