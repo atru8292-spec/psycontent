@@ -13,8 +13,8 @@ const REELS = ['reels' as const]
 
 export default function Preview({ data }: { data: any }) {
   const s = useSearchParams().get('s') || 'golova'
-  const pane = (code: string, text: string, formatName?: string) => {
-    const item: PaneItem = { format: TIP[code] || 'post', code, postId: null, text, baseline: text, publishedAt: null, formatName }
+  const pane = (code: string, text: string, formatName?: string, vid?: string) => {
+    const item: PaneItem = { format: TIP[code] || 'post', code, postId: null, text, baseline: text, publishedAt: null, formatName, vid }
     return <FormatPane item={item} onChange={() => {}} onPublished={() => {}} onMore={() => {}} />
   }
   return (
@@ -33,7 +33,7 @@ export default function Preview({ data }: { data: any }) {
           ))}
         </div>
       )}
-      {['golova', 'scenka', 'bezslov', 'karusel', 'post', 'post_tg', 'stories'].includes(s) && data.materialy[s] && pane(data.materialy[s].format, data.materialy[s].text, data.materialy[s].formatName)}
+      {['golova', 'scenka', 'bezslov', 'karusel', 'post', 'post_tg', 'stories'].includes(s) && data.materialy[s] && pane(data.materialy[s].format, data.materialy[s].text, data.materialy[s].formatName, data.materialy[s].formatKod)}
       {s === 'popravit' && data.popravit && pane('reels_scenka', data.popravit.posle, 'Сценка: я и мой внутренний голос (после «Поправить»)')}
       {s === 'zhh7' && data.zhh7 && pane(data.zhh7.format, data.zhh7.text)}
     </main>

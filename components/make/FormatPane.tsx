@@ -28,6 +28,7 @@ export type PaneItem = {
   publishedAt: string | null
   formatName?: string     // имя формата от генератора zh6 («Сценка: я и мой внутренний голос»), если пришло
   vidZamenen?: boolean    // zh6: выбранный вид не подошел голосу или «Пока без видео», генератор взял другой
+  vid?: string            // zh6: код вида каталога (по нему блок «как снять» над рилсом)
 }
 
 const ADJUST = [
@@ -198,7 +199,7 @@ export default function FormatPane({ item, onChange, onPublished, onMore }: {
               </div>
             )}
             {code.startsWith('reels') ? (
-              <ReelsScript text={text} format={code} postId={postId} mark={t => t} title={item.formatName} />
+              <ReelsScript text={text} format={code} postId={postId} mark={t => t} title={item.formatName} vid={item.vid} />
             ) : code === 'stories' ? (
               <StoriesView text={text} />
             ) : (

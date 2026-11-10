@@ -8,8 +8,10 @@
 // [смена], потом «Подпись:»). Старые материалы (А:/Б:, «Экран N:», «Кадр:») показываются как раньше.
 import { track } from '@/lib/track'
 import { useState, type ReactNode } from 'react'
-import { Copy, Check, Video } from 'lucide-react'
+import { Copy, Check, Video, ChevronDown } from 'lucide-react'
 import CaptionBlock from './CaptionBlock'
+import { gruppaOf } from '@/lib/generation/zh6/gruppy'
+import { KARTY } from './make/vid-cards'
 
 type Line = { label: string | null; text: string; role?: string; smena?: boolean }
 
@@ -23,7 +25,7 @@ const KIND: Record<string, { name: string; how: string }> = {
   reels_rol: { name: 'Играешь роль', how: 'Говоришь от лица персонажа с серьезным лицом, это шутка. Такие ролики чаще пересылают.' },
   reels_malysh: { name: 'Объясняю как маленькому', how: 'Говоришь в камеру ласково и медленно, как ребенку, про взрослую штуку. Серьезное лицо и детские слова, в этом весь эффект. Если в тексте есть «Рисую», рисуй на листе по ходу.' },
   reels_bez_slov: { name: 'Только надписи', how: 'Говорить не нужно. Сними, как пьешь чай, идешь по улице или просто смотришь в камеру. Звук убери или поставь музыку, а надписи ниже наложи на видео по очереди.' },
-  reels_scenka: { name: 'Сценка', how: 'Все роли играешь сама. Сними реплики каждого героя по очереди: для другой роли хватит повернуться, надеть очки или пересесть. Потом склей по порядку в CapCut или в Instagram.' },
+  reels_scenka: { name: 'Сценка', how: 'Все роли твои. Сними реплики каждого героя по очереди: для другой роли хватит повернуться, надеть очки или пересесть. Потом склей по порядку в CapCut или в Instagram.' },
   reels_doska: { name: 'Рисуешь и объясняешь', how: 'Говоришь и рисуешь схему на листе или доске по подсказкам ниже.' },
 }
 
@@ -119,16 +121,21 @@ function MoreOnScreen() {
   )
 }
 
-export default function ReelsScript({ text, mark, format, postId, title }: {
+export default function ReelsScript({ text, mark, format, postId, title, vid }: {
   text: string
   mark: (s: string) => ReactNode
   format?: string
   postId?: string | null
   title?: string // имя формата от генератора («Сценка: я и мой внутренний голос»), если пришло
+  vid?: string   // zh6: код вида каталога; по нему карточка «как снять» та же, что в листе выбора на «Сделать»
 }) {
   const lines = parse(text, format)
   const kind = format ? KIND[format] : undefined
+  const kv = vid ? gruppaOf(vid) : null
+  const karta = kv && kv.tip === 'reels' ? KARTY.reels[kv.g.id] : undefined
+  const subName = karta && vid ? karta.sub?.[vid]?.[0] : undefined
   const [copied, setCopied] = useState(false)
+  const [kakOpen, setKakOpen] = useState(false)
   const bezSlov = format === 'reels_bez_slov'
   const screens = bezSlov ? screenGroups(lines) : null
 
@@ -152,7 +159,29 @@ export default function ReelsScript({ text, mark, format, postId, title }: {
 
   return (
     <div className="space-y-5">
-      {(kind || title) && (
+      {karta ? (
+        // zh6: тот же «как снять», что в карточке вида на «Сделать». Свернут в одну строку, чтобы сам текст был
+        // на первом экране; кремовый, не сиреневый: сиреневая только плашка, которую копируют
+        <div className="rounded-xl bg-brand-bg border border-brand-border">
+          <button type="button" aria-expanded={kakOpen} onClick={() => setKakOpen(o => !o)}
+            className="w-full min-h-11 px-4 py-2 flex items-center gap-2 text-left cursor-pointer">
+            <Video className="w-4 h-4 text-brand-muted shrink-0" />
+            <span className="min-w-0 flex-1 text-sm text-brand-text break-words">
+              <span className="font-semibold">Как снять</span>
+              <span className="text-brand-muted"> · {karta.title}{subName ? ` · ${subName.charAt(0).toLowerCase()}${subName.slice(1)}` : ''} · {karta.how.time}</span>
+            </span>
+            <ChevronDown className={`w-4 h-4 text-brand-muted shrink-0 transition ${kakOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {kakOpen && (
+            <div className="px-4 pb-3">
+              <ol className="list-decimal pl-5 space-y-1 text-sm text-brand-text marker:text-brand-muted">
+                {karta.how.steps.map((st, n) => <li key={n}>{st}</li>)}
+              </ol>
+              <p className="mt-1.5 text-[13px] text-brand-muted">Понадобится: {karta.how.need.charAt(0).toLowerCase()}{karta.how.need.slice(1)}</p>
+            </div>
+          )}
+        </div>
+      ) : (kind || title) && (
         <div className="rounded-xl bg-brand-soft/60 px-4 py-3">
           <p className="text-sm font-semibold text-brand-text break-words">{title || kind?.name}</p>
           {kind && <p className="text-sm text-brand-text-secondary">{kind.how}</p>}

@@ -14,7 +14,8 @@ import { zh6Mesta, copyPieces } from '../lib/generation/zh6/checks'
 import { zh6Prompt, temaPometki, zh6Plan, smeshat, smeshatOshibki, formatyAvtora, odnoMnogotochie, pohozhie, zvezdochki, chooseKrug, samoGuard, priemyOf, temyZhivyeFor, peremeshat, logikaMesta, remarki, zapisPravila, reakciyaOf, introOf } from '../lib/generation/zh6/write'
 import { FORMATY, formatByCode, formatBlock } from '../lib/generation/zh6/formaty'
 import { KONCY } from '../lib/generation/zh6/prompt-tekst'
-import { vidyFrom } from '../lib/generation/zh6/vidy'
+import { vidyFrom, grupyFrom } from '../lib/generation/zh6/vidy'
+import { GRUPPY } from '../lib/generation/zh6/gruppy'
 import { TEKST_SYSTEM, FORMAT_CARDS, USTROJSTVA, KONEC, SAMPLES_HEAD, PRIMERY_HEAD } from '../lib/generation/zh6/prompt-tekst'
 import { TEMY_SYSTEM } from '../lib/generation/zh6/prompt-temy'
 import { simpleWrite } from '../lib/generation/simple'
@@ -214,13 +215,23 @@ async function main() {
     // без zh6 каталога нет: экран выбора не показывает, сервер vidy не читает (zh6On ложь)
     const s = readFileSync(join(__dirname, '..', 'app', 'api', 'generate-post', 'group', 'route.ts'), 'utf8')
     assert.ok(/const vidy[^\n]*= zb \? vidyFrom\(zb, formats\) : \{\}/.test(s) && /const zb = zh6 &&/.test(s), 'group читает vidy только при zh6')
-    assert.ok(/formatyAvtora\(ctx\.settings\)\.some\(x => x\.code === kod\)/.test(s) && /vidZamenen/.test(s), 'вид не под голос: подберу сама и честная пометка')
+    assert.ok(/const avtora = formatyAvtora\(ctx\.settings\)/.test(s) && /avtora\.includes\(kod\)/.test(s) && /formatKody = iz/.test(s) && /vidZamenen/.test(s), 'вид не под голос: подберу сама и честная пометка')
     const c = readFileSync(join(__dirname, '..', 'components', 'make', 'Composer.tsx'), 'utf8')
     assert.ok(!/для одного формата/.test(c), 'строки «один формат за раз» больше нет')
-    const hints = readFileSync(join(__dirname, '..', 'components', 'make', 'vid-hints.ts'), 'utf8')
-    for (const f of FORMATY.filter(x => ['reels', 'carousel', 'post'].includes(x.for[0]))) assert.ok(hints.includes(`  ${f.code}: '`), `подсказка к виду ${f.code}`)
-    assert.ok(!/[ёЁ—]/.test(hints), 'подсказки без ё и тире')
+    // карточки видов: каждый вид каталога (рилс, карусель, пост) ровно в одной карточке своего типа, у карточки тексты,
+    // у подвидов карточки с несколькими видами имена; тексты без ё, тире и женского рода о психологе
+    const kart = readFileSync(join(__dirname, '..', 'components', 'make', 'vid-cards.ts'), 'utf8')
+    for (const f of FORMATY.filter(x => ['reels', 'carousel', 'post'].includes(x.for[0]))) {
+      const tip = f.for[0] as 'reels' | 'carousel' | 'post'
+      const v = GRUPPY[tip].filter(g => g.codes.includes(f.code))
+      assert.equal(v.length, 1, `вид ${f.code} ровно в одной карточке ${tip}`)
+      if (v[0].codes.length > 1) assert.ok(kart.includes(`${f.code}: ['`), `имя подвида ${f.code}`)
+    }
+    for (const tip of ['reels', 'carousel', 'post'] as const) for (const g of GRUPPY[tip]) for (const c of g.codes) assert.ok(formatByCode(c)?.for[0] === tip, `${c} есть в каталоге и тип ${tip}`)
+    assert.ok(!/[ёЁ—]/.test(kart), 'тексты карточек без ё и тире')
+    assert.ok(!/(?<![\p{L}])(сама|готова|сняла|сделала|играешь ты сама)(?![\p{L}])/u.test(kart), 'нейтральный род в карточках')
+    assert.deepEqual(grupyFrom({ grupy: { reels: 'scenka', carousel: 'net', post_tg: 'spor' } }, ['reels', 'carousel', 'post_tg']), { reels: GRUPPY.reels[1].codes, post_tg: ['post_spor'] }, 'карточка без подвида: ее виды, чужая карточка выкинута')
   }
-  console.log('ok 12: вид у каждого формата набора свой, чужие и выдуманные коды выкидываются, подсказки ко всем видам')
+  console.log('ok 12: вид у каждого формата набора свой, чужие и выдуманные коды выкидываются, карточки видов покрывают каталог')
 }
 main().then(() => console.log('zh6: все тесты прошли')).catch(e => { console.error(e); process.exit(1) })

@@ -29,7 +29,7 @@ import {
 import { finalNet, type FormatCode } from '@/lib/generation/text-guard'
 import { savePost, zh6On, zh6FieldsFrom } from '../new-pipeline'
 import { formatyAvtora } from '@/lib/generation/zh6/write'
-import { vidyFrom } from '@/lib/generation/zh6/vidy'
+import { vidyFrom, grupyFrom } from '@/lib/generation/zh6/vidy'
 import { serverTrack } from '@/lib/track-server'
 import {
   fetchTelegramPost, isInstagramUrl, isTelegramUrl, parseSample, sampleBlock, sourceLabel, overlap, sentencesWithChains, sentencesWithTrigrams,
@@ -80,6 +80,8 @@ export async function POST(req: NextRequest) {
   const zh6Fields = zh6For ? zh6FieldsFrom(zb, toGroupCode(zh6For)) : {}
   // вид каталога у каждого формата набора свой (zh6.vidy), каждый код проверяется по своему формату
   const vidy: Partial<Record<GroupFormat, string>> = zb ? vidyFrom(zb, formats) : {}
+  // карточка без подвида: генератор берет вид из ее видов (zh6.grupy)
+  const grupy: Partial<Record<GroupFormat, string[]>> = zb ? grupyFrom(zb, formats) : {}
   const vidyList = Object.values(vidy)
 
   // замеры (lib/analytics/events.ts): коды форматов через запятую и режим запуска, без текстов
@@ -234,13 +236,19 @@ export async function POST(req: NextRequest) {
           // вид, который выбрала она (или план); если он не подходит голосу автора или «Пока без видео», берем
           // «подберу сама», а экрану честно говорим, что вид сменился (vidZamenen)
           let vidZaproshen: string | undefined
+          let kartaZaproshena: string[] | undefined
           if (zh6) {
             if (f === zh6For) Object.assign(greq, zh6Fields)
             delete greq.formatKod
             const kod = vidy[f]
+            const avtora = formatyAvtora(ctx.settings).map(x => x.code)
             if (kod) {
               vidZaproshen = kod
-              if (formatyAvtora(ctx.settings).some(x => x.code === kod)) greq.formatKod = kod
+              if (avtora.includes(kod)) greq.formatKod = kod
+            } else if (grupy[f]?.length) {
+              const iz = grupy[f]!.filter(c => avtora.includes(c))
+              kartaZaproshena = grupy[f]
+              if (iz.length) greq.formatKody = iz
             }
             // явная цель на экране главнее задачи из плана
             if (goal === 'zapis') greq.rol = 'zapis'
@@ -264,7 +272,8 @@ export async function POST(req: NextRequest) {
               text = r.text; plan = d.plan; version = PIPELINE_VERSION
             }
             send({ type: 'progress', format: f })
-            const vidZamenen = !!vidZaproshen && zh4?.zh6?.ustr !== vidZaproshen
+            const vzyat = zh4?.zh6?.ustr
+            const vidZamenen = (!!vidZaproshen && vzyat !== vidZaproshen) || (!!kartaZaproshena && !kartaZaproshena.includes(vzyat))
             return { f, ok: true as const, req: greq, text, plan, version, draftText, zh4, formatName, vidZamenen }
           } catch (e: any) {
             console.error('group format failed:', f, e?.message || e)
@@ -328,6 +337,8 @@ export async function POST(req: NextRequest) {
             type: 'format', format: r.f, ok: true, postId, code: r.req.format, intent: r.plan.intent, text: r.text,
             ...(r.formatName ? { formatName: r.formatName } : {}),
             ...(r.vidZamenen ? { vidZamenen: true } : {}),
+            // код вида: по нему экран показывает «как снять» для этого вида
+            ...(typeof r.zh4?.zh6?.ustr === 'string' ? { vid: r.zh4.zh6.ustr } : {}),
             placeholders: r.text.match(PLACEHOLDER_RE) || [],
             overlap: leftovers.get(okItems.indexOf(r)) || [],
           })

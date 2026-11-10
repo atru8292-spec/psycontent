@@ -60,6 +60,8 @@ export type GenRequest = {
   // zh6 (10.11): только для PROMPT_HYP=zh6, старый генератор эти поля не читает. formatKod: код формата каталога
   // lib/generation/zh6/formaty.json; rol: задача материала в плане; reakciya: ожидаемая реакция зрителя; samo: самопроверка
   formatKod?: string | null
+  // zh6: виды карточки на «Сделать», если подвид не выбран (генератор берет вид только из них)
+  formatKody?: string[] | null
   rol?: 'ohvat' | 'doverie' | 'zapis'
   reakciya?: 'uznavanie' | 'podderzhka' | 'poziciya' | 'priglashenie'
   samo?: 'net' | 'vnutri' | 'shag'

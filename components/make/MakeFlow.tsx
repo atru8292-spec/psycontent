@@ -168,6 +168,7 @@ export default function MakeFlow() {
         format: toMakeFormat(String(r.format || 'post')), code: String(r.format || 'post'), postId: r.id,
         text: String(r.content || ''), baseline: String(r.content || ''), publishedAt: r.published_at || null, status: 'ready',
         ...(typeof r.check_result?.zh4?.zh6?.formatName === 'string' ? { formatName: String(r.check_result.zh4.zh6.formatName).slice(0, 120) } : {}),
+        ...(typeof r.check_result?.zh4?.zh6?.ustr === 'string' ? { vid: String(r.check_result.zh4.zh6.ustr).slice(0, 40) } : {}),
       }))
       setItems(list)
       setGroupId(one.data.group_id || null)
@@ -226,7 +227,8 @@ export default function MakeFlow() {
               ? (ev.ok
                 ? { ...x, status: 'ready', code: ev.code, postId: ev.postId || null, text: ev.text, baseline: ev.text, overlap: Array.isArray(ev.overlap) ? ev.overlap : [],
                     ...(typeof ev.formatName === 'string' && ev.formatName.trim() ? { formatName: ev.formatName.trim().slice(0, 120) } : {}),
-                    ...(ev.vidZamenen === true ? { vidZamenen: true } : {}) }
+                    ...(ev.vidZamenen === true ? { vidZamenen: true } : {}),
+                    ...(typeof ev.vid === 'string' && /^[a-z0-9_]{1,40}$/.test(ev.vid) ? { vid: ev.vid } : {}) }
                 : { ...x, status: 'failed', error: ev.error })
               : x))
             if (ev.ok && !opened) {

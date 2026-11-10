@@ -115,13 +115,16 @@ function materialOf(s: AuthorSettings, topic: string, n: number): string {
 export const vKadre = (f: Format6) => f.for[0] === 'reels' && !bezGolosa(f)
 // подходит ли формат психологу: голос, и при «Пока без видео» без форматов, где он в кадре (zh6-prod 10.11)
 export const goditsya = (f: Format6, voice: string[], video = true) => goditsyaGolosu(f, voice) && (video || !vKadre(f))
-export function chooseFormat6(fmt: string, voice: string[], mem: Zh6Memory, seed: string, want?: string | null, video = true): Format6 {
+export function chooseFormat6(fmt: string, voice: string[], mem: Zh6Memory, seed: string, want?: string | null, video = true, iz?: string[] | null): Format6 {
   const tip = fmt === 'post_tg' ? 'post' : fmt
   // формат из плана берем, только если его тип совпадает с тем, что нажали (из плана сценка, а нажали «Пост», не берем)
   const byCode = want ? formatByCode(want) : undefined
   // тип формата по главному назначению (for[0]): по нему formatCodeOf и разметка, иначе «перевод» для карусели ушел бы рилсом
   if (byCode && byCode.for[0] === tip && (video || !vKadre(byCode))) return byCode
-  const ok = FORMATY.filter(f => f.for[0] === tip && goditsya(f, voice, video))
+  const ok0 = FORMATY.filter(f => f.for[0] === tip && goditsya(f, voice, video))
+  // карточка на «Сделать» без подвида: только ее виды (если ни один не годится автору, подбираем как обычно)
+  const izKart = iz?.length ? ok0.filter(f => iz.includes(f.code)) : []
+  const ok = izKart.length ? izKart : ok0
   const list = ok.filter(f => !(mem.ustr || []).slice(-3).includes(f.code))
   const pool = list.length ? list : ok.length ? ok : FORMATY.filter(f => f.for[0] === tip)
   return pool[(seedOf(seed) + (mem.ustr || []).length) % pool.length]
@@ -222,7 +225,7 @@ export function zh6Prompt(ctx: GenContext, req: GenRequest): Zh6Prompt {
   const seed = `${s.name || ''}|${req.topic}`
   // сторис остаются сторис, пост для Telegram выбирает формат из постов, но остается постом Telegram (zh6-prod 10.11)
   const fmt0 = isReels(req.format) ? 'reels' : req.format === 'post_tg' ? 'post_tg' : req.format === 'carousel' ? 'carousel' : req.format === 'stories' ? 'stories' : 'post'
-  const f6 = chooseFormat6(fmt0, voice, mem, seed, req.formatKod, s.snimaetVideo !== false)
+  const f6 = chooseFormat6(fmt0, voice, mem, seed, req.formatKod, s.snimaetVideo !== false, req.formatKody)
   const format = formatGen(f6, req.format)
   const fmt = f6.for[0] === 'reels' ? 'reels' : f6.for[0]
   const n = schetOf(ctx) + (mem.ustr || []).length

@@ -14,7 +14,10 @@ import { useVoiceRecorder } from '@/lib/use-voice-recorder'
 import VoiceSheet, { VOICE_MAX, VOICE_NEAR } from './VoiceSheet'
 import BottomSheet from './BottomSheet'
 import VoiceTextarea from '@/components/VoiceTextarea'
-import { VID_HINTS, VID_TEXT } from './vid-hints'
+import { VID_TEXT } from './vid-hints'
+import { KARTY, AUTO_TEXT, KNOPKI } from './vid-cards'
+import VidKartinka, { useVidKartinki } from './VidKartinka'
+import { GRUPPY, gruppaOf, tipOf } from '@/lib/generation/zh6/gruppy'
 import { MAKE_FORMATS, DEFAULT_FORMATS, GOAL_OPTIONS, makeButtonText, type MakeFormat, type MakeGoal } from './formats'
 
 export const DRAFT_KEY = 'psycont_make_draft'
@@ -30,27 +33,13 @@ export type ComposerSubmit = { text: string; formats: MakeFormat[]; goal: MakeGo
 export type Zh6Format = { code: string; name: string; tip: 'reels' | 'post' | 'carousel'; scene?: boolean; short?: boolean; bezGolosa?: boolean }
 // Что уходит в тело /api/generate-post/group как zh6: вид каталога у каждого формата набора (vidy) и задача из плана
 // для формата дня (forFormat). Формата нет в vidy: генератор подберет вид сам.
-export type Zh6Choice = { vidy?: Partial<Record<MakeFormat, string>>; forFormat?: MakeFormat; rol?: string; reakciya?: string }
+export type Zh6Choice = { vidy?: Partial<Record<MakeFormat, string>>; grupy?: Partial<Record<MakeFormat, string>>; forFormat?: MakeFormat; rol?: string; reakciya?: string }
 // Формат и задача дня из плана тем (?fkod=&rol=&reakciya=), уходят один раз с темой этого дня
 export type PlanPick = { formatKod?: string; forFormat?: MakeFormat; rol?: string; reakciya?: string; situaciya?: string }
 
 // чипы, у которых есть выбор вида: тип формата каталога для каждого
 const PICK_TIP: Partial<Record<MakeFormat, Zh6Format['tip']>> = { reels: 'reels', carousel: 'carousel', post: 'post' }
 const PICK_TITLE: Partial<Record<MakeFormat, string>> = { reels: 'Какой рилс?', carousel: 'Какая карусель?', post: 'Какой пост?' }
-// виды рилса в листе группами (их больше двадцати): группа по флагам каталога, у сценок в группе «Сценка:» в имени лишнее
-const REELS_GROUPS = ['Говоришь в камеру', 'Играешь сценку', 'Без голоса, только надписи'] as const
-const reelsGroup = (f: Zh6Format) => (f.bezGolosa ? REELS_GROUPS[2] : f.scene ? REELS_GROUPS[1] : REELS_GROUPS[0])
-
-// короткая подсказка под именем формата в листе: что придется делать
-function formatHint(f: Zh6Format): string {
-  const parts: string[] = []
-  // голос и роли важны только рилсу: пост и карусель и так без голоса
-  if (f.tip === 'reels' && f.bezGolosa) parts.push('только надписи')
-  else if (f.tip === 'reels' && f.scene) parts.push('все роли играешь сама')
-  if (f.short) parts.push(f.tip === 'post' ? 'пара абзацев, читается за минуту' : 'коротко')
-  const t = parts.join(', ')
-  return t ? t.charAt(0).toUpperCase() + t.slice(1) : ''
-}
 
 // список форматов один на загрузку страницы: Composer пересоздается при «Назад», запрос не повторяем
 let formatyCache: Promise<Zh6Format[]> | null = null
@@ -103,6 +92,10 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
   const [vidy, setVidy] = useState<Partial<Record<MakeFormat, string | null>>>({})
   const [planKodOff, setPlanKodOff] = useState(false)
   const [pickFor, setPickFor] = useState<MakeFormat | null>(null)
+  // в листе раскрыто «Как снять» или «Выбрать точнее» у одной карточки (id карточки)
+  const [kakOpen, setKakOpen] = useState<string | null>(null)
+  const [tochOpen, setTochOpen] = useState<string | null>(null)
+  const kartinki = useVidKartinki()
   // при открытии листа выбранный вид прокручиваем в середину: он может стоять ниже первого экрана
   const sheetList = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -207,14 +200,24 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
   const tipFormats = (f: MakeFormat) => (PICK_TIP[f] ? formaty.filter(x => x.tip === PICK_TIP[f]) : [])
   // вид формата сейчас: свой выбор, иначе вид из плана для формата дня, иначе «подберу сама». Код без имени в каталоге
   // (не подходит голосу или «Пока без видео») не показываем и не шлем: генератор подберет сам
-  const vidOf = (f: MakeFormat): { code: string | null; name?: string; fromPlan: boolean } => {
+  // В vidy либо код вида, либо 'g:<карточка>' (карточка без подвида: генератор выберет вид внутри нее)
+  const vidOf = (f: MakeFormat): { code: string | null; karta: string | null; name?: string; fromPlan: boolean } => {
     const own = f in vidy
-    const code = own ? vidy[f] ?? null : planOn && !planKodOff && plan?.forFormat === f && plan.formatKod ? plan.formatKod : null
-    const fmt = code ? tipFormats(f).find(x => x.code === code) : undefined
-    return fmt ? { code: fmt.code, name: fmt.name, fromPlan: !own } : { code: null, fromPlan: false }
+    const val = own ? vidy[f] ?? null : planOn && !planKodOff && plan?.forFormat === f && plan.formatKod ? plan.formatKod : null
+    const tip = tipOf(f)
+    if (val && val.startsWith('g:') && tip) {
+      const id = val.slice(2)
+      return KARTY[tip][id] ? { code: null, karta: id, name: KARTY[tip][id].title, fromPlan: false } : { code: null, karta: null, fromPlan: false }
+    }
+    const fmt = val ? tipFormats(f).find(x => x.code === val) : undefined
+    if (!fmt || !tip) return { code: null, karta: null, fromPlan: false }
+    const g = gruppaOf(fmt.code)?.g.id || null
+    const sub = g ? KARTY[tip][g]?.sub?.[fmt.code]?.[0] : undefined
+    return { code: fmt.code, karta: g, name: sub || (g ? KARTY[tip][g]?.title : undefined) || fmt.name, fromPlan: !own }
   }
   const pickable = (f: MakeFormat) => formats.includes(f) && !sozhe && !link && tipFormats(f).length > 0
-  const openPick = (f: MakeFormat) => { setPickFor(f); track('feature_open', { feature: 'format_pick' }) }
+  // выбран подвид: сразу раскрываем «Выбрать точнее» у его карточки, чтобы выбор был виден
+  const openPick = (f: MakeFormat) => { const v = vidOf(f); setPickFor(f); setKakOpen(null); setTochOpen(v.code && v.karta ? v.karta : null); track('feature_open', { feature: 'format_pick' }) }
   const choosePick = (f: MakeFormat, code: string | null) => {
     setVidy(prev => ({ ...prev, [f]: code }))
     setPickFor(null)
@@ -230,12 +233,19 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
     const isTopic = !!t && (t === (initialText || '').trim() || topics.includes(t))
     // вид у каждого отмеченного формата отдельно; задача и реакция из плана только формату дня
     const out: Partial<Record<MakeFormat, string>> = {}
-    for (const f of formats) { const v = pickable(f) ? vidOf(f).code : null; if (v) out[f] = v }
-    const hasVidy = Object.keys(out).length > 0
+    const gr: Partial<Record<MakeFormat, string>> = {}
+    for (const f of formats) {
+      if (!pickable(f)) continue
+      const v = vidOf(f)
+      if (v.code) out[f] = v.code
+      else if (v.karta) gr[f] = v.karta
+    }
+    const hasVidy = Object.keys(out).length > 0 || Object.keys(gr).length > 0
     const planTask = planOn && !!(plan?.rol || plan?.reakciya)
     const zh6: Zh6Choice | undefined = hasVidy || planTask
       ? {
-          ...(hasVidy ? { vidy: out } : {}),
+          ...(Object.keys(out).length ? { vidy: out } : {}),
+          ...(Object.keys(gr).length ? { grupy: gr } : {}),
           ...(planOn && plan?.forFormat ? { forFormat: plan.forFormat } : {}),
           ...(planOn && plan?.rol ? { rol: plan.rol } : {}),
           ...(planOn && plan?.reakciya ? { reakciya: plan.reakciya } : {}),
@@ -386,8 +396,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
             <div className="mt-2 space-y-1.5">
               {MAKE_FORMATS.filter(f => pickable(f.id)).map(f => {
                 const v = vidOf(f.id)
-                // «Карусель · Карусель: список признаков» читается дважды: приставку с именем формата в строке убираем
-                const name = v.name ? v.name.replace(new RegExp(`^${f.label}:\\s*`, 'iu'), '').replace(/^./u, c => c.toUpperCase()) : ''
+                const name = v.name || ''
                 return (
                   <button key={f.id} type="button" onClick={() => openPick(f.id)} aria-haspopup="dialog"
                     aria-label={`${PICK_TITLE[f.id] || f.label}: ${v.name || VID_TEXT.auto}. Выбрать`}
@@ -420,42 +429,87 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
       <VoiceSheet open={voiceOpen} rec={rec} onClose={() => setVoiceOpen(false)} onWriteText={() => { setVoiceOpen(false); rec.reset(); setTimeout(() => area.current?.focus(), 50) }} />
       <BottomSheet open={!!pickFor} onClose={() => setPickFor(null)} title={pickFor ? PICK_TITLE[pickFor] : ''}>
         {pickFor && (
-          <div role="radiogroup" aria-label="Вид" ref={sheetList}>
+          <div role="radiogroup" aria-label="Вид" ref={sheetList} className="space-y-2.5 pb-2">
             {(() => {
-              const cur = vidOf(pickFor).code
-              const row = (o: { code: string | null; name: string; hint: string }, extra = '') => {
-                const sel = cur === o.code
-                return (
-                  <button key={o.code || 'auto'} type="button" role="radio" aria-checked={sel} onClick={() => choosePick(pickFor, o.code)}
-                    className={`w-full min-h-[52px] py-2.5 flex items-start gap-3 text-left cursor-pointer ${extra}`}>
-                    <span className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${sel ? 'border-brand-accent' : 'border-[#B9AE9C]'}`}>
-                      {sel && <span className="w-2.5 h-2.5 rounded-full bg-brand-accent" />}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[16px] leading-[22px] text-brand-text break-words">{o.name}</span>
-                      {o.hint && <span className="block mt-0.5 text-[14px] leading-5 text-brand-muted break-words">{o.hint}</span>}
-                    </span>
-                  </button>
-                )
-              }
-              const opt = (f: Zh6Format, name = f.name) => ({ code: f.code as string | null, name, hint: VID_HINTS[f.code] || formatHint(f) })
-              const list = tipFormats(pickFor)
+              const tip = tipOf(pickFor)
+              if (!tip) return null
+              const cur = vidOf(pickFor)
+              const avail = tipFormats(pickFor).map(x => x.code)
+              const isKak = tip === 'reels'
+              const choose = (val: string | null) => choosePick(pickFor, val)
               return (
                 <>
-                  {/* «подбери сама» отделен линией, чтобы его не пролистнуть среди видов */}
-                  {row({ code: null, name: 'Подбери сама', hint: 'Выберу под тему и твой голос' }, 'border-b border-brand-border mb-1')}
-                  {pickFor === 'reels'
-                    ? REELS_GROUPS.map(g => {
-                        const items = list.filter(f => reelsGroup(f) === g)
-                        if (!items.length) return null
-                        return (
-                          <div key={g}>
-                            <p className="mt-4 mb-1 text-[13px] text-brand-muted">{g}</p>
-                            {items.map(f => row(opt(f, g === REELS_GROUPS[1] ? f.name.replace(/^Сценка:\s*/u, '').replace(/^./u, c => c.toUpperCase()) : f.name)))}
+                  {/* подберу под тему: первой, без шагов */}
+                  <button type="button" role="radio" aria-checked={!cur.code && !cur.karta} onClick={() => choose(null)}
+                    className={`w-full p-3 flex items-center gap-3 rounded-2xl border text-left cursor-pointer ${!cur.code && !cur.karta ? 'border-brand-accent bg-brand-soft/50' : 'border-brand-border bg-white'}`}>
+                    <VidKartinka id={`${tip}:auto`} k={kartinki} size={48} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[16px] leading-[22px] font-semibold text-brand-text">{AUTO_TEXT[tip].title}</span>
+                      <span className="block mt-0.5 text-[14px] leading-5 text-brand-muted">{AUTO_TEXT[tip].what}</span>
+                    </span>
+                  </button>
+                  {GRUPPY[tip].map(g => {
+                    const t = KARTY[tip][g.id]
+                    const kody = g.codes.filter(c => avail.includes(c))
+                    if (!t || !kody.length) return null
+                    const sel = cur.karta === g.id
+                    const subs = kody
+                    return (
+                      <div key={g.id} className={`relative rounded-2xl border ${sel ? 'border-brand-accent bg-brand-soft/50' : 'border-brand-border bg-white'}`}>
+                        {sel && <Check className="absolute top-3 right-3 w-5 h-5 text-brand-accent" aria-hidden="true" />}
+                        <button type="button" role="radio" aria-checked={sel} onClick={() => choose(`g:${g.id}`)}
+                          className="w-full p-3 pr-9 flex items-start gap-3 text-left cursor-pointer">
+                          <VidKartinka id={`${tip}:${g.id}`} k={kartinki} size={64} />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-[16px] leading-[22px] font-semibold text-brand-text">{t.title}</span>
+                            <span className="block mt-0.5 text-[14px] leading-5 text-brand-text-secondary">{t.what}</span>
+                            {/* у Onest нет курсива: пример отделен линией слева, реплики сценки по строкам */}
+                            <span className="block mt-2 pl-2 border-l-2 border-[#DCCBF2] text-[13px] leading-[18px] text-brand-text-secondary whitespace-pre-line break-words">{t.example}</span>
+                          </span>
+                        </button>
+                        <div className="flex flex-wrap gap-x-1 px-2 pb-1 -mt-1">
+                          <button type="button" aria-expanded={kakOpen === g.id} onClick={() => setKakOpen(kakOpen === g.id ? null : g.id)}
+                            className={`min-h-11 px-2 inline-flex items-center gap-1 text-[14px] font-medium cursor-pointer ${kakOpen === g.id ? 'text-brand-accent' : 'text-brand-text-secondary'}`}>
+                            {isKak ? KNOPKI.kakSnyat : KNOPKI.kakVylozhit}<ChevronDown className={`w-4 h-4 transition ${kakOpen === g.id ? 'rotate-180' : ''}`} />
+                          </button>
+                          {/* «выбрать точнее» только у выбранной карточки: иначе на экране 8-10 одинаковых ссылок */}
+                          {subs.length > 1 && sel && (
+                            <button type="button" aria-expanded={tochOpen === g.id} onClick={() => setTochOpen(tochOpen === g.id ? null : g.id)}
+                              className="min-h-11 px-2 inline-flex items-center gap-1 text-[14px] font-medium text-brand-accent cursor-pointer">
+                              {KNOPKI.tochnee}<ChevronDown className={`w-4 h-4 transition ${tochOpen === g.id ? 'rotate-180' : ''}`} />
+                            </button>
+                          )}
+                        </div>
+                        {kakOpen === g.id && (
+                          <div className="px-4 pb-3">
+                            <ol className="list-decimal pl-5 space-y-1 text-[14px] leading-5 text-brand-text marker:text-brand-muted">
+                              {t.how.steps.map((st, n) => <li key={n}>{st}</li>)}
+                            </ol>
+                            <p className="mt-2 text-[13px] leading-[18px] text-brand-muted">{t.how.time} · {t.how.need}</p>
                           </div>
-                        )
-                      })
-                    : list.map(f => row(opt(f, f.name.replace(new RegExp(`^${MAKE_FORMATS.find(m => m.id === pickFor)?.label || ''}:\\s*`, 'iu'), '').replace(/^./u, c => c.toUpperCase()))))}
+                        )}
+                        {tochOpen === g.id && (
+                          <div className="px-2 pb-2 border-t border-brand-border mt-1 pt-1" role="radiogroup" aria-label={t.title}>
+                            {[{ code: `g:${g.id}`, name: KNOPKI.luboj, line: '' }, ...subs.map(c => ({ code: c, name: t.sub?.[c]?.[0] || formaty.find(x => x.code === c)?.name || c, line: t.sub?.[c]?.[1] || '' }))].map(o => {
+                              const on = o.code.startsWith('g:') ? sel && !cur.code : cur.code === o.code
+                              return (
+                                <button key={o.code} type="button" role="radio" aria-checked={on} onClick={() => choose(o.code)}
+                                  className="w-full min-h-11 py-2 px-1 flex items-start gap-3 text-left cursor-pointer">
+                                  <span className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${on ? 'border-brand-accent' : 'border-[#B9AE9C]'}`}>
+                                    {on && <span className="w-2.5 h-2.5 rounded-full bg-brand-accent" />}
+                                  </span>
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block text-[15px] leading-5 text-brand-text break-words">{o.name}</span>
+                                    {o.line && <span className="block mt-0.5 text-[13px] leading-[18px] text-brand-muted break-words">{o.line}</span>}
+                                  </span>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </>
               )
             })()}
