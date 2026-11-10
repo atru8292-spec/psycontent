@@ -7,7 +7,8 @@ import { getArchetypeContextFromProfile } from '@/lib/archetypes'
 import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { getSessionUser } from '@/lib/auth'
 import { isNewPipeline } from '@/lib/generation/context'
-import { handleNewPipeline } from './new-pipeline'
+import { handleNewPipeline, zh6On } from './new-pipeline'
+import { formatByCode } from '@/lib/generation/zh6/formaty'
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -258,7 +259,9 @@ export async function POST(req: NextRequest) {
     const fmtCode = String(format || 'post').startsWith('reels') ? 'reels' : String(format || 'post')
     trackCtx = { userId, format: fmtCode }
     const t0 = Date.now()
-    serverTrack(userId, 'make_start', { formats: fmtCode, n: 1, mode: body?.topic && !body?.customTopic ? 'topic' : 'thought' })
+    // zh6: код формата каталога из плана (только код [a-z0-9_], без текстов)
+    const fKod = zh6On() && typeof body?.formatKod === 'string' ? formatByCode(body.formatKod)?.code : undefined
+    serverTrack(userId, 'make_start', { formats: fmtCode, n: 1, mode: body?.topic && !body?.customTopic ? 'topic' : 'thought', ...(fKod ? { format_kod: fKod } : {}) })
 
     if (isNewPipeline(profile)) {
       const res = await handleNewPipeline({ db: supabase, userId, profile, body, topic: finalTopic, pillar })

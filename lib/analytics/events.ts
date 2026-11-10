@@ -26,7 +26,7 @@ export const EVENTS = {
   onb_first_click: [],                               // «Сделать пост и карусель» на финале
 
   // ---- создание (сервер) ----
-  make_start: ['formats', 'mode', 'voice', 'n'],     // запуск: коды форматов через запятую, mode thought|same|topic|draft
+  make_start: ['formats', 'mode', 'voice', 'n', 'format_kod'], // запуск: коды форматов через запятую, mode thought|same|topic|draft; format_kod код каталога zh6 (из плана или выбран вручную)
   make_done: ['formats', 'ms', 'n_ok'],              // готово: сколько форматов получилось
   make_error: ['code', 'format'],                    // код ошибки, который отдается на экран
 
@@ -93,6 +93,7 @@ export const FEATURES = [
   'carousel_design',  // оформление карусели
   'archetype_test',   // тест-архетип
   'passport',         // бренд-паспорт
+  'format_pick',      // zh6: открыла выбор формата каталога внутри чипа на «Сделать»
 ] as const
 export type Feature = typeof FEATURES[number]
 

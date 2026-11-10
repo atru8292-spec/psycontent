@@ -4,6 +4,10 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { extractOpening, findSignatures, ALL_FORMATS, type FormatCode } from './text-guard'
+import { activeHyps } from './hypotheses'
+
+// zh6: что было у автора в последних материалах zh6 (последние в конце, как ждет zh6MemOf в zh6/write.ts)
+export type Zh6Mem = { ustr: string[]; primery: string[]; kon: string[]; priemy: string[] }
 
 export type Memory = {
   count: number
@@ -19,6 +23,10 @@ export type Memory = {
   usedSignaturePhrases: string[]   // только последние 3 материала
   recentTopics: string[]
   feedbackReasons: string[]
+  // zh6 (только при PROMPT_HYP=zh6): память устройств и примеров из check_result.zh4.zh6 и полное число материалов
+  // автора для ротации (count старого смысла остается числом из последних 10, от него зависит старый генератор)
+  zh6?: Zh6Mem
+  total?: number
 }
 
 const emptyMemory = (): Memory => ({
@@ -34,20 +42,45 @@ const toFormat = (row: any): FormatCode => {
   return ALL_FORMATS.includes(f) ? f : 'post'
 }
 
+// zh6 из строк (от нового к старому): разворачиваем, чтобы последние были в конце; primery плоским списком
+export function zh6MemFromRows(rows: any[]): Zh6Mem {
+  const mem: Zh6Mem = { ustr: [], primery: [], kon: [], priemy: [] }
+  const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 80) : '')
+  const strs = (v: unknown) => (Array.isArray(v) ? v.map(str).filter(Boolean) : [])
+  for (const r of [...rows].reverse()) {
+    const z = r?.check_result?.zh4?.zh6
+    if (!z || typeof z !== 'object') continue
+    if (str(z.ustr)) mem.ustr.push(str(z.ustr))
+    if (str(z.kon)) mem.kon.push(str(z.kon))
+    mem.primery.push(...strs(z.primery))
+    mem.priemy.push(...strs(z.priemy))
+  }
+  return mem
+}
+
 export async function loadMemory(db: SupabaseClient, userId: string, signatures: string[]): Promise<Memory> {
-  const query = (cols: string) =>
+  const zh6 = activeHyps().has('zh6')
+  const base = (cols: string, opts?: { count: 'exact'; head: true }) =>
     db.from('generated_posts')
-      .select(cols)
+      .select(cols, opts)
       .eq('user_id', userId)
       .not('format', 'eq', 'hooks')
       .not('format', 'like', 'rewrite%')
-      .order('created_at', { ascending: false })
-      .limit(10)
+  const query = (cols: string) => base(cols).order('created_at', { ascending: false }).limit(10)
 
-  let res: any = await query(FULL_COLS)
+  // полное число материалов (без хуков и рерайтов, как счетчик ритма в контент-плане); не вышло, total нет
+  const totalP: Promise<number | undefined> = zh6
+    ? Promise.resolve(base('id', { count: 'exact', head: true })).then((r: any) => (r?.error || typeof r?.count !== 'number' ? undefined : r.count), () => undefined)
+    : Promise.resolve(undefined)
+
+  let res: any = await query(zh6 ? `${FULL_COLS}, check_result` : FULL_COLS)
+  if (res.error && zh6) res = await query(FULL_COLS)
   if (res.error) res = await query(BASE_COLS) // миграция еще не применена
   if (res.error || !Array.isArray(res.data)) return emptyMemory()
   const rows: any[] = res.data
+  const total = await totalP
+  let zh6Mem: Zh6Mem | undefined
+  if (zh6) { try { zh6Mem = zh6MemFromRows(rows) } catch { zh6Mem = undefined } }
 
   const uniq = <T,>(a: T[]) => Array.from(new Set(a.filter(Boolean)))
   const openings = rows.map(r => {
@@ -79,6 +112,8 @@ export async function loadMemory(db: SupabaseClient, userId: string, signatures:
     usedSignaturePhrases: uniq(sigRecent),
     recentTopics: uniq(rows.map(r => r.topic_for_text || r.topic)).slice(0, 10),
     feedbackReasons: uniq(feedback).slice(0, 8),
+    ...(zh6Mem ? { zh6: zh6Mem } : {}),
+    ...(typeof total === 'number' ? { total } : {}),
   }
 }
 

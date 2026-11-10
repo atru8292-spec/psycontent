@@ -12,7 +12,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, Check, Loader2, X, Film, Layers, AlignLeft, Send, Smartphone } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { topicsFor } from '@/lib/first-topic'
-import Composer, { DRAFT_KEY, type ComposerSubmit } from './Composer'
+import Composer, { DRAFT_KEY, type ComposerSubmit, type PlanPick } from './Composer'
 import FormatPane, { type PaneItem } from './FormatPane'
 import BottomSheet from './BottomSheet'
 import { MAKE_FORMATS, formatLabel, toMakeFormat, pluralMaterial, type MakeFormat } from './formats'
@@ -101,6 +101,18 @@ export default function MakeFlow() {
     }
     return planFormat ? [toMakeFormat(planFormat)] : undefined
   }, [planFormat, formatsParam])
+  // формат и задача дня из плана тем (?fkod=&rol=&reakciya=): уходят в zh6 один раз, с первым запуском этой темы.
+  // Снимаем после первого готового формата, чтобы при сбое повтор ушел с тем же планом
+  const [plan, setPlan] = useState<PlanPick | null>(null)
+  useEffect(() => {
+    const fkod = params.get('fkod') || ''
+    const rol = params.get('rol') || ''
+    const reakciya = params.get('reakciya') || ''
+    const code = (v: string) => (/^[a-z0-9_]{1,40}$/.test(v) ? v : undefined)
+    if (!initialTopic || !(code(fkod) || code(rol) || code(reakciya))) { setPlan(null); return }
+    const sit = (params.get('sit') || '').trim().slice(0, 300)
+    setPlan({ formatKod: code(fkod), forFormat: planFormat ? toMakeFormat(planFormat) : undefined, rol: code(rol), reakciya: code(reakciya), ...(sit ? { situaciya: sit } : {}) })
+  }, [params, initialTopic, planFormat])
   // мысль из демо на лендинге (как на старом экране: localStorage, 24 часа), стираем после первого готового формата
   const [seed, setSeed] = useState('')
   useEffect(() => {
@@ -155,6 +167,8 @@ export default function MakeFlow() {
       const list: Item[] = rows.map(r => ({
         format: toMakeFormat(String(r.format || 'post')), code: String(r.format || 'post'), postId: r.id,
         text: String(r.content || ''), baseline: String(r.content || ''), publishedAt: r.published_at || null, status: 'ready',
+        ...(typeof r.check_result?.zh4?.zh6?.formatName === 'string' ? { formatName: String(r.check_result.zh4.zh6.formatName).slice(0, 120) } : {}),
+        ...(typeof r.check_result?.zh4?.zh6?.ustr === 'string' ? { vid: String(r.check_result.zh4.zh6.ustr).slice(0, 40) } : {}),
       }))
       setItems(list)
       setGroupId(one.data.group_id || null)
@@ -211,11 +225,15 @@ export default function MakeFlow() {
             gotAny = true
             setItems(prev => prev.map(x => x.format === ev.format && x.status === 'pending'
               ? (ev.ok
-                ? { ...x, status: 'ready', code: ev.code, postId: ev.postId || null, text: ev.text, baseline: ev.text, overlap: Array.isArray(ev.overlap) ? ev.overlap : [] }
+                ? { ...x, status: 'ready', code: ev.code, postId: ev.postId || null, text: ev.text, baseline: ev.text, overlap: Array.isArray(ev.overlap) ? ev.overlap : [],
+                    ...(typeof ev.formatName === 'string' && ev.formatName.trim() ? { formatName: ev.formatName.trim().slice(0, 120) } : {}),
+                    ...(ev.vidZamenen === true ? { vidZamenen: true } : {}),
+                    ...(typeof ev.vid === 'string' && /^[a-z0-9_]{1,40}$/.test(ev.vid) ? { vid: ev.vid } : {}) }
                 : { ...x, status: 'failed', error: ev.error })
               : x))
             if (ev.ok && !opened) {
               opened = true
+              setPlan(null) // формат и задача из плана ушли вместе с этой темой, второй раз не шлем
               // мысль превратилась в текст: черновик и мысль из демо больше не нужны
               try { localStorage.removeItem(DRAFT_KEY); localStorage.removeItem('psycont_seed_thought') } catch {}
               setSeed('')
@@ -260,7 +278,9 @@ export default function MakeFlow() {
     if (s.sozhe) { submitSample(s); return }
     const topic = s.text.length > 120 ? s.text.slice(0, 120).replace(/\s+\S*$/, '') : s.text
     setThought(topic)
-    runGroup({ topic, userDetail: s.text, goal: s.goal, mode: s.mode, voice: s.voice }, s.formats, false)
+    // ситуация дня из плана zh6 (подсказка под темой) идет деталью, пока в поле та же тема дня
+    const sit = plan?.situaciya && s.text.trim() === initialTopic.trim() ? plan.situaciya : ''
+    runGroup({ topic, userDetail: sit ? `${s.text}\n${sit}` : s.text, goal: s.goal, mode: s.mode, voice: s.voice, ...(s.zh6 ? { zh6: s.zh6 } : {}) }, s.formats, false)
   }
 
   // «Сделать так же»: скрины уменьшаем в браузере (до 1280 px, JPEG), оригинал на сервере только в памяти запроса
@@ -335,7 +355,7 @@ export default function MakeFlow() {
           </div>
         )}
         <Composer key={composerKey} firstTime={firstTime} topics={topics} busy={busy} onSubmit={submit} askSampleText={askSampleText} onSampleCleared={() => setAskSampleText(false)}
-          initialText={initialTopic || restoreText || seed} initialFormats={initialFormats} />
+          initialText={initialTopic || restoreText || seed} initialFormats={initialFormats} plan={plan} />
       </div>
   )
 

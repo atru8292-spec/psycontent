@@ -135,6 +135,33 @@ export function adPhrases(text: string): string[] {
   return sentences(text).filter(s => AD_RE.test(s))
 }
 
+// zh6 с задачей «запись» (решение Арины 26.10): звать к себе можно, но цена, скидка, «успей», дефицит мест и отзывы
+// под запретом всегда. Это та же часть AD_RE без приглашения записаться; AD_RE и старый путь не меняются.
+const HARD_AD_RE = new RegExp([
+  `\\d[\\d\\s]*\\s?(?:₽|руб(?:л|\\.|${R})|р\\.)`,
+  `стои(?:т|мость)\\s+\\d[\\d\\s]*(?:₽|руб|р\\.|тыс)`,
+  `${L}скидк\\p{L}*\\s+(?:\\d|до\\s+\\d)|\\d+\\s?%\\s*скидк`,
+  `${L}успе(?:й|йте)${R}`,
+  `${L}отзыв(?:ы|ов|ами|ам)${R}|${L}отзыв\\p{L}*\\s+клиент`,
+  `${L}консультаци\\p{L}*\\s+стоит`,
+  `осталось\\s+\\d+\\s+мест`,
+].join('|'), 'iu')
+export function hardAdPhrases(text: string): string[] {
+  return sentences(text).filter(s => HARD_AD_RE.test(s))
+}
+export function stripHardAds(format: FormatCode, text: string): string {
+  if (!isInstagram(format)) return text
+  const ads = hardAdPhrases(text)
+  return ads.length ? applyCuts(text, ads, 1 / 2).text : text
+}
+// как cleanAds, но приглашение оставляет: переписываем и вырезаем только жесткую рекламу
+export async function cleanHardAds(ctx: GenContext, format: FormatCode, text: string): Promise<string> {
+  if (!isInstagram(format)) return text
+  const ads = hardAdPhrases(text)
+  if (!ads.length) return text
+  return stripHardAds(format, await rewritePhrases(ctx, format, text, ads))
+}
+
 // index: номер материала в items (соседи из прошлых запусков идут первыми, их не переписываем)
 export type SetIssue = { index: number; format: FormatCode; phrases: string[] }
 

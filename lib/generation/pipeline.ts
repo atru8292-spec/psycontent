@@ -57,6 +57,14 @@ export type GenRequest = {
   coreBlock?: string | null       // ядро мысли для этого формата (group.ts coreBlockFor), набор из одной мысли
   neighbors?: string | null       // что делают соседние форматы набора, «не начинай так же»
   sampleBlock?: string | null     // «Сделать так же»: устройство чужого поста без его слов (sample.ts sampleBlock)
+  // zh6 (10.11): только для PROMPT_HYP=zh6, старый генератор эти поля не читает. formatKod: код формата каталога
+  // lib/generation/zh6/formaty.json; rol: задача материала в плане; reakciya: ожидаемая реакция зрителя; samo: самопроверка
+  formatKod?: string | null
+  // zh6: виды карточки на «Сделать», если подвид не выбран (генератор берет вид только из них)
+  formatKody?: string[] | null
+  rol?: 'ohvat' | 'doverie' | 'zapis'
+  reakciya?: 'uznavanie' | 'podderzhka' | 'poziciya' | 'priglashenie'
+  samo?: 'net' | 'vnutri' | 'shag'
 }
 
 const LENGTH_LIMIT: Record<string, number> = { korotko: 400, sredne: 900, dlinno: 1800 }

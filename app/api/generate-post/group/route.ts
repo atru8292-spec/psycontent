@@ -6,6 +6,9 @@
 //   {type:'done', groupId}                     | {type:'error', error}
 // Тело: { topic, userDetail?, formats: ['reels','carousel','post','post_tg','stories'], goal?, fromPostId?, editedText?,
 //   sample?: {kind:'link',url} | {kind:'text',text} | {kind:'screens',images:[data URL]} }  («Сделать так же», событие {type:'sample'})
+//   zh6?: { vidy?: { [формат]: код вида }, formatKod?, forFormat? (reels|carousel|post|post_tg|stories), rol?, reakciya? }  только при PROMPT_HYP=zh6:
+//   формат каталога, задача и реакция из плана, применяются только к формату forFormat (одному формату, если он один)
+// В событии format при zh6 еще formatName (имя формата каталога, например «Сценка: я и внутренний голос»).
 // fromPostId: «Сделать еще формат из этой мысли»: ядро берем у материала (только свой, по user_id); если текст
 // правили (editedText отличается от сохраненного), ядро сначала пересобираем из правленой версии.
 // Счет: каждый готовый формат как одна текстовая генерация (lib/energy.ts, kind text). Упавший не считаем.
@@ -21,10 +24,12 @@ import { isSimpleMode, simpleWrite, chooseIntent, chooseReelsFormat } from '@/li
 import { buildCore, coreFromRow, type ThoughtCore } from '@/lib/generation/core'
 import {
   GROUP_FORMATS, GOALS, GOAL_LABELS, GOAL_INTENTS, toGroupCode, intentForFormat, coreBlockFor, neighborsFor,
-  checkSet, rewritePhrases, stripAds, type GroupFormat, type Goal,
+  checkSet, rewritePhrases, stripAds, adPhrases, hardAdPhrases, stripHardAds, type GroupFormat, type Goal,
 } from '@/lib/generation/group'
 import { finalNet, type FormatCode } from '@/lib/generation/text-guard'
-import { savePost } from '../new-pipeline'
+import { savePost, zh6On, zh6FieldsFrom } from '../new-pipeline'
+import { formatyAvtora } from '@/lib/generation/zh6/write'
+import { vidyFrom, grupyFrom } from '@/lib/generation/zh6/vidy'
 import { serverTrack } from '@/lib/track-server'
 import {
   fetchTelegramPost, isInstagramUrl, isTelegramUrl, parseSample, sampleBlock, sourceLabel, overlap, sentencesWithChains, sentencesWithTrigrams,
@@ -65,6 +70,19 @@ export async function POST(req: NextRequest) {
   // правленый текст сравниваем целиком, без обрезки: иначе длинный материал всегда выглядел бы правленым
   const editedRaw = typeof body?.editedText === 'string' ? body.editedText.trim() : ''
   const editedText = editedRaw ? editedRaw.slice(0, 8000) : null
+
+  // zh6: поля плана для одного формата; цель «Записать» дает задачу «запись» всем форматам набора
+  const zh6 = zh6On()
+  const zb = zh6 && body?.zh6 && typeof body.zh6 === 'object' ? body.zh6 : null
+  const zh6For: GroupFormat | null = zb
+    ? ((GROUP_FORMATS as readonly unknown[]).includes(zb.forFormat) && formats.includes(zb.forFormat) ? zb.forFormat : formats.length === 1 ? formats[0] : null)
+    : null
+  const zh6Fields = zh6For ? zh6FieldsFrom(zb, toGroupCode(zh6For)) : {}
+  // вид каталога у каждого формата набора свой (zh6.vidy), каждый код проверяется по своему формату
+  const vidy: Partial<Record<GroupFormat, string>> = zb ? vidyFrom(zb, formats) : {}
+  // карточка без подвида: генератор берет вид из ее видов (zh6.grupy)
+  const grupy: Partial<Record<GroupFormat, string[]>> = zb ? grupyFrom(zb, formats) : {}
+  const vidyList = Object.values(vidy)
 
   // замеры (lib/analytics/events.ts): коды форматов через запятую и режим запуска, без текстов
   const fmtList = formats.join(',')
@@ -141,6 +159,7 @@ export async function POST(req: NextRequest) {
   if (fromPostId) serverTrack(userId, 'material_adjust', { action: 'more_format', format: fmtList })
   serverTrack(userId, 'make_start', {
     formats: fmtList, n: formats.length, voice: body?.voice === true,
+    ...(vidyList.length === 1 ? { format_kod: vidyList[0] } : vidyList.length > 1 ? { format_kod: 'neskolko' } : {}),
     ...(fromPostId ? {} : { mode: sample ? 'same' : body?.mode === 'topic' ? 'topic' : 'thought' }),
   })
 
@@ -214,11 +233,35 @@ export async function POST(req: NextRequest) {
             neighbors: neighborsFor(all, code),
             sampleBlock: skeleton ? sampleBlock(skeleton) : null,
           }
+          // вид, который выбрала она (или план); если он не подходит голосу автора или «Пока без видео», берем
+          // «подберу сама», а экрану честно говорим, что вид сменился (vidZamenen)
+          let vidZaproshen: string | undefined
+          let kartaZaproshena: string[] | undefined
+          if (zh6) {
+            if (f === zh6For) Object.assign(greq, zh6Fields)
+            delete greq.formatKod
+            const kod = vidy[f]
+            const avtora = formatyAvtora(ctx.settings).map(x => x.code)
+            if (kod) {
+              vidZaproshen = kod
+              if (avtora.includes(kod)) greq.formatKod = kod
+            } else if (grupy[f]?.length) {
+              const iz = grupy[f]!.filter(c => avtora.includes(c))
+              kartaZaproshena = grupy[f]
+              if (iz.length) greq.formatKody = iz
+            }
+            // явная цель на экране главнее задачи из плана
+            if (goal === 'zapis') greq.rol = 'zapis'
+          }
           try {
             let text: string, plan: Plan, version: string, draftText: string
+            let zh4: any = null, formatName = ''
             if (isSimpleMode()) {
-              const r = await simpleWrite(ctx, greq)
+              const r: Awaited<ReturnType<typeof simpleWrite>> & { zh4?: any; zh6?: { formatName?: string } } = await simpleWrite(ctx, greq)
+              // формат для сохранения из ответа: zh6 отдает reels_scenka, reels_bez_slov, post_tg, stories
               greq.format = r.format
+              zh4 = r.zh4 || null
+              formatName = typeof r.zh6?.formatName === 'string' ? r.zh6.formatName : ''
               text = r.text; draftText = r.text; version = 'simple-1'
               plan = { intent: r.intent, topic_for_text: greq.topic, reels_format: r.format.startsWith('reels') ? r.format : null }
             } else {
@@ -229,7 +272,9 @@ export async function POST(req: NextRequest) {
               text = r.text; plan = d.plan; version = PIPELINE_VERSION
             }
             send({ type: 'progress', format: f })
-            return { f, ok: true as const, req: greq, text, plan, version, draftText }
+            const vzyat = zh4?.zh6?.ustr
+            const vidZamenen = (!!vidZaproshen && vzyat !== vidZaproshen) || (!!kartaZaproshena && !kartaZaproshena.includes(vzyat))
+            return { f, ok: true as const, req: greq, text, plan, version, draftText, zh4, formatName, vidZamenen }
           } catch (e: any) {
             console.error('group format failed:', f, e?.message || e)
             serverTrack(userId, 'make_error', { code: 'format_failed', format: f })
@@ -247,9 +292,13 @@ export async function POST(req: NextRequest) {
           if (k < 0) return
           const item = okItems[k]
           const before = item.text
+          // zh6 с задачей «запись»: приглашение в подписи оставляем (решение Арины 26.10), правим только повторы соседей
+          const zapis6 = zh6 && item.req.rol === 'zapis'
+          if (zapis6) { iss.phrases = iss.phrases.filter(ph => !adPhrases(ph).length || hardAdPhrases(ph).length > 0); if (!iss.phrases.length) return }
           item.text = await rewritePhrases(ctx, item.req.format, item.text, iss.phrases)
           // реклама в Instagram под жестким запретом: если перепись не помогла, вырезаем эти фразы кодом
-          item.text = stripAds(item.req.format, item.text)
+          // у «записи» zh6 приглашение остается, но цена, скидка, «успей», дефицит мест и отзывы вырезаются всегда
+          item.text = zapis6 ? stripHardAds(item.req.format, item.text) : stripAds(item.req.format, item.text)
           if (item.text !== before) fixed.set(k, iss.phrases.length)
         }))
 
@@ -277,7 +326,7 @@ export async function POST(req: NextRequest) {
             user_id: userId, topic: r.req.topic, format: r.req.format, category: 'Своя тема', content: r.text,
             ...postFields(ctx, r.plan, r.req, r.text), pipeline_version: r.version,
             draft_content: r.draftText, pipeline_status: 'ready',
-            check_result: { mode: 'group', set_fixed: fixed.get(okItems.indexOf(r)) || 0, ms_total: Date.now() - t0 },
+            check_result: { mode: 'group', set_fixed: fixed.get(okItems.indexOf(r)) || 0, ms_total: Date.now() - t0, ...(r.zh4 ? { zh4: r.zh4 } : {}) },
             group_id: groupId, core,
             // источник «так же»: тип, подпись и устройство, без чужого текста
             ...(skeleton && sample ? { sample_source: { kind: sample.kind, label: sourceLabel(sample), priem: skeleton.priem, steps: skeleton.steps, why: skeleton.why, format: skeleton.format, flags: skeleton.flags } } : {}),
@@ -286,6 +335,10 @@ export async function POST(req: NextRequest) {
           if (postId) await commitConsume(userId, OP, decision)
           send({
             type: 'format', format: r.f, ok: true, postId, code: r.req.format, intent: r.plan.intent, text: r.text,
+            ...(r.formatName ? { formatName: r.formatName } : {}),
+            ...(r.vidZamenen ? { vidZamenen: true } : {}),
+            // код вида: по нему экран показывает «как снять» для этого вида
+            ...(typeof r.zh4?.zh6?.ustr === 'string' ? { vid: r.zh4.zh6.ustr } : {}),
             placeholders: r.text.match(PLACEHOLDER_RE) || [],
             overlap: leftovers.get(okItems.indexOf(r)) || [],
           })

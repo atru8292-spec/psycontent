@@ -10,6 +10,7 @@ import { pickExamples, examplesText, LIVE_EXAMPLES } from './examples'
 import { relevantStories, storiesText } from './settings'
 import { pickReelsFormat, type GenContext, type GenRequest } from './pipeline'
 import { activeHyps, hypSystem, hypCall, pickVoiceExamples, voiceExamplesText, liveReelsMaxWords, hypReelsRule, H7_CUT_SYSTEM, pickLiveExamples, liveExamplesText, chooseMove, moveText } from './hypotheses'
+import { zh6Write } from './zh6/write'
 
 // Режим генерации: simple (по умолчанию с 01.10, выиграл слепое сравнение 4:2) или full (старая цепочка).
 export function isSimpleMode(): boolean {
@@ -167,6 +168,8 @@ export function captionTail(ctx: GenContext, format: FormatCode): string {
 }
 
 export async function simpleWrite(ctx: GenContext, req: GenRequest): Promise<{ text: string; format: FormatCode; intent: string; draft: string; cut: string[] }> {
+  // zh6: свой промпт, проверки и память (lib/generation/zh6/write.ts); без PROMPT_HYP=zh6 этот путь не включается
+  if (activeHyps().has('zh6')) return zh6Write(ctx, req)
   const s = ctx.settings
   const intent = chooseIntent(ctx, req)
   const format: FormatCode = req.format === 'reels_auto' ? chooseReelsFormat(ctx, intent) : req.format
