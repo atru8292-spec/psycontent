@@ -6,32 +6,28 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import {
-  Target, PenTool, Layers, Zap, FileText,
-  Wrench, Film, RefreshCcw, Search, History, Settings,
+  Target, PenTool, Zap, FileText,
+  Wrench, History, Settings,
   LogOut, User, ChevronRight, LayoutDashboard, PlusCircle, Lightbulb, AlignLeft,
 } from 'lucide-react'
 import { EnergyBadge, EnergyInfo } from '@/components/EnergyTariff'
 import { DashboardMeContext } from '@/lib/dashboard-me'
 import ScreenTracker from '@/components/analytics/ScreenTracker'
 
+// старое меню: карусели, хуки, рилс, рерайт и анализ конкурентов спрятаны (сведены в «Сделать», LISHNEE-NA-SAYTE.md
+// пункты 3 и 9); страницы открываются по прямой ссылке, старый «Сделать» сам ведет на карусели и рилс
 const navItems = [
   { icon: LayoutDashboard, label: 'Главная', href: '/dashboard', exact: true },
   { icon: Target, label: 'Паспорт бренда', href: '/dashboard/brand-passport' },
   { icon: PenTool, label: 'Сделать', href: '/dashboard/make' },
-  { icon: Layers, label: 'Карусели', href: '/dashboard/carousel-generator' },
-  { icon: Zap, label: 'Хуки', href: '/dashboard/hooks-generator' },
-  { icon: Film, label: 'Рилс-скрипты', href: '/dashboard/reels' },
   { icon: FileText, label: 'Контент-план', href: '/dashboard/content-plan' },
   { icon: Wrench, label: 'Исследование тем', href: '/dashboard/research' },
-  { icon: RefreshCcw, label: 'Переписать текст', href: '/dashboard/rewrite' },
-  { icon: Search, label: 'Анализ конкурентов', href: '/dashboard/competitor-analysis' },
   { icon: History, label: 'История постов', href: '/dashboard/post-history' },
 ]
 
 const bottomNavItems = [
   { icon: LayoutDashboard, label: 'Главная', href: '/dashboard', exact: true },
   { icon: PenTool, label: 'Сделать', href: '/dashboard/make' },
-  { icon: Zap, label: 'Хуки', href: '/dashboard/hooks-generator' },
   { icon: FileText, label: 'План', href: '/dashboard/content-plan' },
   { icon: History, label: 'История', href: '/dashboard/post-history' },
 ]
