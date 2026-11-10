@@ -6,11 +6,10 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import {
-  Target, PenTool, Zap, FileText,
+  Target, PenTool, FileText,
   Wrench, History, Settings,
   LogOut, User, ChevronRight, LayoutDashboard, PlusCircle, Lightbulb, AlignLeft,
 } from 'lucide-react'
-import { EnergyBadge, EnergyInfo } from '@/components/EnergyTariff'
 import { DashboardMeContext } from '@/lib/dashboard-me'
 import ScreenTracker from '@/components/analytics/ScreenTracker'
 
@@ -184,18 +183,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
         {/* Низ сайдбара */}
         <div className="border-t border-brand-border p-3 space-y-1 shrink-0">
-          {/* Энергия, всегда на глазах */}
-          {collapsed ? (
-            <Link href="/dashboard/settings#energy" title="Энергия и тариф" className="flex items-center justify-center py-2.5 rounded-2xl text-brand-muted hover:bg-brand-soft hover:text-brand-text transition">
-              <Zap className="w-[18px] h-[18px] text-brand-sage" />
-            </Link>
-          ) : (
-            <div className="flex items-center gap-1 px-1 pb-1">
-              <EnergyBadge data={energy} />
-              <EnergyInfo placement="sidebar" />
-            </div>
-          )}
-
+          {/* значок и подсказка энергии убраны (энергию как единицу счета убрали, LISHNEE-NA-SAYTE.md пункт 5) */}
           {!newMenu && <Link href="/dashboard/settings" className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-brand-muted hover:bg-brand-soft hover:text-brand-text transition group relative ${collapsed ? 'justify-center' : ''}`}>
             <Settings className="w-[18px] h-[18px] shrink-0" />
             {!collapsed && <span className="text-[13px] font-medium">Настройки</span>}
@@ -234,8 +222,6 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             className="h-6 w-auto"
           />
           <div className="flex items-center gap-2">
-            <EnergyBadge compact data={energy} />
-            <EnergyInfo placement="header" />
             {!newMenu && <Link href="/dashboard/settings" className="w-11 h-11 flex items-center justify-center text-brand-muted hover:text-brand-accent transition">
               <Settings className="w-5 h-5" />
             </Link>}
