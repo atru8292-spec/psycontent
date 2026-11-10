@@ -27,6 +27,10 @@ services:
       GOTRUE_MAILER_OTP_EXP: "3600"
       # повторное письмо одному человеку не чаще раза в минуту
       GOTRUE_SMTP_MAX_FREQUENCY: 60s
+      # общий лимит писем на весь сервер в час (по умолчанию 30, кончился бы на первой же волне регистраций)
+      GOTRUE_RATE_LIMIT_EMAIL_SENT: "100"
+      # настоящий IP посетителя для лимитов по IP: его ставит Caddy (header_up X-Real-IP), подделать снаружи нельзя
+      GOTRUE_RATE_LIMIT_HEADER: X-Real-IP
 
   storage:
     depends_on: !override

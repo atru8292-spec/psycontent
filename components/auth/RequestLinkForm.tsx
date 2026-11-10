@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { Loader2, Mail } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
-import { authErrorKind, T } from '@/lib/auth-texts'
+import { T } from '@/lib/auth-texts'
+import { requestLink } from './request-link'
 import { Notice, StateIcon, useCooldown } from './AuthShell'
 
 // Запросить письмо со ссылкой: сброс пароля (recovery) или повтор подтверждения почты (signup).
@@ -31,21 +31,14 @@ export default function RequestLinkForm({
   const cd = useCooldown()
 
   const send = async () => {
-    const addr = email.trim()
-    if (!addr) return
+    if (!email.trim()) return
     setError('')
     setLoading(true)
-    const { error: err } = kind === 'recovery'
-      ? await supabase.auth.resetPasswordForEmail(addr)
-      : await supabase.auth.resend({ type: 'signup', email: addr })
+    // любой ответ, кроме лимита и сбоя, показываем как «отправили»: ответ не выдает, есть ли аккаунт
+    const r = await requestLink(kind, email)
     setLoading(false)
-    // Для signup Supabase молчит о незнакомой почте, для recovery тоже: любую ошибку, кроме лимита и сбоя,
-    // показываем как «отправили», чтобы ответ не выдавал, есть ли аккаунт.
-    if (err) {
-      const k = authErrorKind(err)
-      if (k === 'rate_limit') { setError(T.rateLimit); return }
-      if (k === 'other' && (err.status ?? 500) >= 500) { setError(T.generic); return }
-    }
+    if (r === 'rate') { setError(T.rateLimit); return }
+    if (r === 'fail') { setError(T.generic); return }
     setSent(true)
     cd.start()
   }

@@ -9,6 +9,7 @@ import { X, Mail, Loader2 } from 'lucide-react'
 import { authErrorKind, MIN_PASSWORD, T } from '@/lib/auth-texts'
 import { Notice, PasswordInput, StateIcon, useCooldown } from '@/components/auth/AuthShell'
 import RequestLinkForm from '@/components/auth/RequestLinkForm'
+import { requestLink } from '@/components/auth/request-link'
 
 type Mode = 'login' | 'register' | 'forgot'
 
@@ -49,10 +50,12 @@ export default function AuthModal({
   const switchMode = (m: Mode) => { setMode(m); setError(''); setUnconfirmed(false); setResent(false); setAwaiting('') }
 
   const resendConfirm = async (addr: string) => {
+    setError('')
     setResending(true)
-    const { error: err } = await supabase.auth.resend({ type: 'signup', email: addr })
+    const r = await requestLink('signup', addr)
     setResending(false)
-    if (err && authErrorKind(err) === 'rate_limit') { setError(T.rateLimit); return }
+    if (r === 'rate') { setError(T.rateLimit); return }
+    if (r === 'fail') { setError(T.generic); return }
     setResent(true)
     cd.start()
   }
@@ -72,14 +75,14 @@ export default function AuthModal({
     try {
       if (mode === 'register') {
         const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
-        if (signUpError) {
+        // «Уже зарегистрирован» не показываем никогда (окно не должно выдавать чужие аккаунты):
+        // при включенном подтверждении Supabase эту ошибку не шлет, а если пришлет, экран тот же, что для новой почты.
+        if (signUpError && /already registered|already exists/i.test(signUpError.message)) {
+          setAwaiting(email.trim())
+          cd.start()
+        } else if (signUpError) {
           const k = authErrorKind(signUpError)
-          setError(
-            k === 'rate_limit' ? T.rateLimit
-              : k === 'weak_password' ? T.shortPassword
-              : /already registered/i.test(signUpError.message) ? T.alreadyRegistered
-              : T.generic,
-          )
+          setError(k === 'rate_limit' ? T.rateLimit : k === 'weak_password' ? T.shortPassword : T.generic)
         } else if (data.session) {
           router.push('/onboarding/intro')
         } else {
@@ -95,12 +98,14 @@ export default function AuthModal({
           if (k === 'not_confirmed') setUnconfirmed(true)
           else setError(k === 'bad_credentials' ? T.badCredentials : k === 'rate_limit' ? T.rateLimit : T.generic)
         } else if (data.user) {
-          const { data: profile } = await supabase
+          // Сбой чтения профиля не равен «профиля нет» (CLAUDE.md, PGRST116): при ошибке ведем в кабинет,
+          // guard в dashboard/layout сам отличит и покажет мягкий повтор, а не онбординг заново.
+          const { data: profile, error: profErr } = await supabase
             .from('onboarding_profiles')
             .select('user_id')
             .eq('user_id', data.user.id)
-            .single()
-          router.push(profile ? '/dashboard' : '/onboarding/intro')
+            .maybeSingle()
+          router.push(profile || profErr ? '/dashboard' : '/onboarding/intro')
         }
       }
     } catch {

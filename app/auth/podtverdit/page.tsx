@@ -13,8 +13,8 @@ import { Clock, Loader2, Mail } from 'lucide-react'
 import type { EmailOtpType } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { track } from '@/lib/track'
-import { T } from '@/lib/auth-texts'
-import { AuthShell, StateIcon } from '@/components/auth/AuthShell'
+import { T, verifyRetryable } from '@/lib/auth-texts'
+import { AuthShell, Notice, StateIcon } from '@/components/auth/AuthShell'
 import RequestLinkForm from '@/components/auth/RequestLinkForm'
 
 type Kind = 'signup' | 'email_change' | 'magiclink'
@@ -37,6 +37,7 @@ export default function ConfirmPage() {
   const [kind, setKind] = useState<Kind | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'verifying' | 'expired'>('loading')
+  const [error, setError] = useState('')
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search)
@@ -51,7 +52,13 @@ export default function ConfirmPage() {
     if (!kind || !token) return
     setState('verifying')
     try {
+      setError('')
       const { data, error } = await supabase.auth.verifyOtp({ type: FLOW[kind].otp, token_hash: token })
+      if (error) {
+        // лимит или сеть: токен не потрачен, кнопка остается
+        const r = verifyRetryable(error)
+        if (r) { setError(r === 'rate' ? T.rateLimit : T.generic); setState('ready'); return }
+      }
       if (error || !data?.session) { setState('expired'); return }
       track('auth_link_ok', { kind })
       router.replace(FLOW[kind].next)
@@ -93,6 +100,7 @@ export default function ConfirmPage() {
         <StateIcon><Mail className="w-5 h-5" /></StateIcon>
         <h1 className="text-lg sm:text-xl font-bold text-brand-text">{c.title}</h1>
         <p className="text-sm text-brand-muted mt-1.5 leading-relaxed">{c.text}</p>
+        {error && <div className="mt-3 w-full text-left"><Notice kind="error">{error}</Notice></div>}
         <button type="button" onClick={confirm} disabled={state === 'verifying'} autoFocus className="btn-primary w-full py-3 text-sm mt-5 disabled:opacity-50">
           {state === 'verifying' ? <><Loader2 className="w-4 h-4 animate-spin" /> {T.confirming}</> : c.button}
         </button>
