@@ -69,14 +69,14 @@ export default function Home() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString() }} />
       <Header />
       <main className="overflow-x-clip">
-        {/* 1. Первый экран, крем: для кого, заголовок с рукописным штрихом на «найти тебя», Вера вырезкой стоит на краю блока */}
+        {/* 1. Первый экран, крем: для кого, заголовок с рукописным штрихом на «С блогом», Вера вырезкой стоит на краю блока */}
         <section className={`${WRAP} pt-6 lg:grid lg:grid-cols-12 lg:gap-8 lg:pt-14`}>
           <div className="lg:col-span-8 lg:self-center lg:pb-24">
             <p className="text-[16px] leading-[1.4] text-brand-muted lg:text-[18px]">{HERO.eyebrow}</p>
             {/* каждое предложение с новой строки, чтобы два веса читались как два голоса: про нее и про нас */}
             <h1 className="mt-3 max-w-[760px] text-[30px] font-medium leading-[1.15] tracking-[-0.01em] text-brand-text [text-wrap:balance] min-[390px]:text-[31px] lg:mt-4 lg:text-[44px]">
-              <span className="block font-bold">{HERO.titleBold}</span>{HERO.title}{' '}
-              <span className="relative inline-block whitespace-nowrap">{HERO.titleMark}<HandUnderline draw /></span>
+              <span className="block font-bold">{HERO.titleBold}</span>
+              <span className="relative inline-block whitespace-nowrap">{HERO.titleMark}<HandUnderline draw /></span>{' '}{HERO.title}
             </h1>
             <p className="mt-5 max-w-[640px] text-[17px] leading-[1.55] text-brand-muted lg:mt-7 lg:max-w-[480px] lg:text-[20px]">{HERO.lead}</p>
             <div className="mt-6 flex flex-col gap-3 lg:mt-10 lg:flex-row lg:items-center lg:gap-4">
