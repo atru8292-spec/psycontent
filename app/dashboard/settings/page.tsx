@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Settings as SettingsIcon, ArrowRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { EnergyTariffPanel } from '@/components/EnergyTariff'
 import TariffSection from '@/components/TariffSection'
 import { ARCHETYPES, ARCHETYPE_ACCENT, archetypeLabel, flexibleLine, getArchetypeSelectionFromProfile, type ArchetypeSelection } from '@/lib/archetypes'
 import { ArchetypeGlyph, FlexibleGlyph } from '@/lib/archetype-glyphs'
@@ -23,7 +22,6 @@ const ANCHORS = [
   { id: 'archetype', label: 'Архетип' },
   { id: 'voice', label: 'Голос' },
   { id: 'tariff', label: 'Тариф' },
-  { id: 'energy', label: 'Энергия' },
 ]
 
 export default function SettingsPage() {
@@ -52,7 +50,7 @@ export default function SettingsPage() {
     return () => { on = false }
   }, [router])
 
-  // Якорный переход с #energy из бейджа в шапке
+  // Якорный переход по #tariff, #voice и т.п. (раздел «Энергия» убран, LISHNEE-NA-SAYTE.md пункт 6)
   useEffect(() => {
     if (status !== 'ready') return
     const hash = window.location.hash.replace('#', '')
@@ -82,7 +80,7 @@ export default function SettingsPage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl font-bold text-brand-text mb-1">Профиль</h1>
-          <p className="text-brand-muted">Твой голос, тариф и энергия в одном месте.</p>
+          <p className="text-brand-muted">Твой голос и тариф в одном месте.</p>
 
           {/* Якорные чипы (десктоп) */}
           <div className="hidden sm:flex items-center gap-2 mt-5">
@@ -200,12 +198,6 @@ export default function SettingsPage() {
             <section id="tariff" className="scroll-mt-20">
               <SectionTitle>Тариф</SectionTitle>
               <TariffSection currentCode={summary?.plan?.code} />
-            </section>
-
-            {/* ── Энергия ── */}
-            <section id="energy" className="scroll-mt-20">
-              <SectionTitle>Энергия</SectionTitle>
-              <EnergyTariffPanel data={summary} />
             </section>
           </div>
         )}
