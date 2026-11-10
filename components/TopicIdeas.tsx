@@ -260,8 +260,7 @@ export default function TopicIdeas({ embedded = false }: { embedded?: boolean })
           </h1>
           <Squiggle variant={0} width="55%" />
           <p className="text-brand-text-secondary max-w-xl mt-3">
-            Три блока контента: тренды Instagram/Telegram, актуальные научные исследования (2023-2026) и редкие цитаты. 
-            Все под твою нишу.
+            Три подборки под твою нишу: о чем сейчас говорят люди, свежие исследования и редкие цитаты.
           </p>
         </motion.div>
         )}
@@ -272,7 +271,7 @@ export default function TopicIdeas({ embedded = false }: { embedded?: boolean })
             <EmptyState
               variant={1}
               title="Темы из трендов и науки"
-              subtitle="Нажми кнопку, и AI пройдется по трендам Telegram и Яндекса, свежим исследованиям за 2024-2026 год и цитатам классиков. Все под твою нишу. Займет около минуты."
+              subtitle="Нажми кнопку, и сервис поищет в интернете, о чем сейчас говорят люди, что нового пишут в научных журналах и какие цитаты подойдут. Все под твою нишу и подход. Займет около минуты."
               actionLabel="Провести исследование"
               onAction={handleSearch}
             />
@@ -303,7 +302,7 @@ export default function TopicIdeas({ embedded = false }: { embedded?: boolean })
             <p className="text-brand-text-secondary mb-6">Ищем свежие тренды, исследования и цитаты в твоей нише</p>
             <div className="flex flex-col items-center gap-2 text-sm text-brand-text-secondary">
               {[
-                'Анализ трендов Telegram и Яндекс Wordstat...',
+                'Поиск тем, о которых говорят люди...',
                 'Поиск научных статей за 2023-2026 год...',
                 'Подбор цитат классиков и современников...',
                 'Генерация сильных хуков...',
