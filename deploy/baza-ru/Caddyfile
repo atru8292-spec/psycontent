@@ -1,0 +1,25 @@
+{
+	email atru8292@gmail.com
+}
+
+db.psycont.ru {
+	encode gzip
+	@api path /auth/v1/* /rest/v1/* /storage/v1/*
+	handle @api {
+		reverse_proxy api-gw:8000
+	}
+	handle {
+		respond "Not found" 404
+	}
+	header -server
+	log {
+		output stderr
+		format console
+	}
+}
+
+# Шаблоны писем для auth, только внутри сети Docker (порт 8088 не опубликован на хосте)
+:8088 {
+	root * /srv/email-templates
+	file_server
+}

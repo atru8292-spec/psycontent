@@ -39,6 +39,12 @@ export const EVENTS = {
   paywall_view: ['where'],                           // клиент: показан LimitNotice или блок тарифов
   plan_click: ['plan'],                              // клиент: нажала на тариф
 
+  // ---- вход по ссылкам из писем (app/auth/podtverdit, app/auth/novyy-parol) ----
+  // Пишутся только после того, как ссылка дала сессию: без входа /api/ev их не принимает.
+  // Запрос ссылки и протухшую ссылку не пишем (человек в этот момент не вошел), почта в события не идет.
+  auth_link_ok: ['kind'],                            // ссылка из письма сработала: kind signup|email_change|magiclink|recovery
+  auth_reset_done: [],                               // сохранила новый пароль
+
   // ---- ошибки и функции ----
   error_shown: ['code', 'screen'],                   // клиент: показана плашка ошибки
   feature_open: ['feature'],                         // клиент: открыта функция из FEATURES

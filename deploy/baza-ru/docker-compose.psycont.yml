@@ -1,0 +1,73 @@
+# PsyCont: урезанный стек. Лишние сервисы выключены через profiles,
+# Postgres и Studio наружу не открыты, API только через Caddy (HTTPS).
+services:
+  realtime:
+    profiles: ["off"]
+  imgproxy:
+    profiles: ["off"]
+  functions:
+    profiles: ["off"]
+  supavisor:
+    profiles: ["off"]
+
+  auth:
+    # Письма: русские шаблоны отдает Caddy внутри сети Docker (порт 8088 наружу не открыт),
+    # ссылки в письмах ведут на страницы сайта /auth/podtverdit и /auth/novyy-parol.
+    # SMTP (smtp.yandex.ru, noreply@psycont.ru) задается в .env: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS.
+    environment:
+      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: http://caddy:8088/confirmation.html
+      GOTRUE_MAILER_TEMPLATES_RECOVERY: http://caddy:8088/recovery.html
+      GOTRUE_MAILER_TEMPLATES_EMAIL_CHANGE: http://caddy:8088/email_change.html
+      GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: http://caddy:8088/magic_link.html
+      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: "Подтверди почту, и начнем"
+      GOTRUE_MAILER_SUBJECTS_RECOVERY: "Ссылка для нового пароля"
+      GOTRUE_MAILER_SUBJECTS_EMAIL_CHANGE: "Подтверди новую почту"
+      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: "Вход в PsyCont"
+      # срок ссылок из писем: 1 час (одно число на все письма)
+      GOTRUE_MAILER_OTP_EXP: "3600"
+      # повторное письмо одному человеку не чаще раза в минуту
+      GOTRUE_SMTP_MAX_FREQUENCY: 60s
+
+  storage:
+    depends_on: !override
+      db:
+        condition: service_healthy
+      rest:
+        condition: service_started
+    environment:
+      ENABLE_IMAGE_TRANSFORMATION: "false"
+
+  studio:
+    # Только для SSH-туннеля, снаружи не видно.
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  db:
+    # Только локально с сервера (бэкап, psql). Docker не пускает это мимо ufw наружу, т.к. 127.0.0.1.
+    ports:
+      - "127.0.0.1:5432:5432"
+    shm_size: 256mb
+
+  api-gw:
+    ports: !reset []
+
+  caddy:
+    container_name: supabase-caddy
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    depends_on:
+      api-gw:
+        condition: service_healthy
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./email-templates:/srv/email-templates:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
