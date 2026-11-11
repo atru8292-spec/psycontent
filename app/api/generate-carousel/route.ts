@@ -168,7 +168,7 @@ ${pillar ? `Рубрика: ${pillar}` : ''}
       slides = JSON.parse(jsonMatch[0])
     } catch (parseError) {
       console.error('JSON parse error:', parseError)
-      console.log('Raw response:', response)
+      console.log('Carousel response length:', String(response || '').length) // ответ модели в журнал не пишем (152-ФЗ)
       
       // Fallback: пробуем разбить по слайдам старым способом
       const slideTexts = response.split(/\[?Слайд\s*\d+\]?:?/i).filter(s => s.trim())

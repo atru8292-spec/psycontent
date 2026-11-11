@@ -209,7 +209,7 @@ ${archetypeContext}
 Хуки должны звучать в стиле и тоне ЭТОГО психолога, а не generic.
 ТОЛЬКО JSON массив.`
 
-    console.log('Generating hooks for topic:', topic)
+    console.log('Generating hooks, topic length:', String(topic || '').length) // текст темы в журнал не пишем (152-ФЗ)
 
     const response = await generateWithAI(`${HOOKS_SYSTEM_PROMPT}\n\n${ANTI_SLOP_RULES}`, userPrompt, { userId, operation: 'generate_hooks', knownNames: profile?.full_name ? [profile.full_name] : undefined })
 
@@ -221,7 +221,7 @@ ${archetypeContext}
       if (!jsonMatch) throw new Error('No JSON array found in response')
       hooks = JSON.parse(jsonMatch[0])
     } catch (parseError) {
-      console.error('Failed to parse hooks JSON:', response.substring(0, 500))
+      console.error('Failed to parse hooks JSON, response length:', response.length) // ответ модели собран из профиля, в журнал не пишем
       // Fallback: попробуем разбить на строки
       const lines = response
         .split('\n')
