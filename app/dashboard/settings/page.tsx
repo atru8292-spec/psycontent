@@ -4,9 +4,8 @@ import MyCarouselDesign from '@/components/MyCarouselDesign'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Settings as SettingsIcon, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { EnergyTariffPanel } from '@/components/EnergyTariff'
 import TariffSection from '@/components/TariffSection'
 import { ARCHETYPES, ARCHETYPE_ACCENT, archetypeLabel, flexibleLine, getArchetypeSelectionFromProfile, type ArchetypeSelection } from '@/lib/archetypes'
 import { ArchetypeGlyph, FlexibleGlyph } from '@/lib/archetype-glyphs'
@@ -17,13 +16,13 @@ interface Summary {
   plan: { code: string; name: string; isUnlimited: boolean; deepAnalysis: boolean }
   energy: { balance: number; monthlyAllowance: number; nextRefill: string | null } | null
   textTrial: { remaining: number; cap: number } | null
+  newPipeline?: boolean | null
 }
 
 const ANCHORS = [
   { id: 'archetype', label: 'Архетип' },
   { id: 'voice', label: 'Голос' },
   { id: 'tariff', label: 'Тариф' },
-  { id: 'energy', label: 'Энергия' },
 ]
 
 export default function SettingsPage() {
@@ -31,6 +30,8 @@ export default function SettingsPage() {
   const [summary, setSummary] = useState<Summary | null>(null)
   const [profile, setProfile] = useState<any>(null)
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  // новый кабинет (новый мозг у этого человека): zh6 архетип не читает, поэтому тест тут не предлагаем
+  const newPipe = summary?.newPipeline === true
 
   useEffect(() => {
     let on = true
@@ -52,7 +53,7 @@ export default function SettingsPage() {
     return () => { on = false }
   }, [router])
 
-  // Якорный переход с #energy из бейджа в шапке
+  // Якорный переход по #tariff, #voice и т.п. (раздел «Энергия» убран, _знания/lending-dogon/LISHNEE-NA-SAYTE.md пункт 6)
   useEffect(() => {
     if (status !== 'ready') return
     const hash = window.location.hash.replace('#', '')
@@ -65,28 +66,16 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-brand-bg">
       {/* Шапка */}
-      <nav className="sticky top-0 z-40 bg-brand-card/80 backdrop-blur border-b border-brand-border">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center gap-3">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="p-2 -ml-2 text-brand-muted hover:text-brand-text hover:bg-brand-soft rounded-2xl transition cursor-pointer"
-            aria-label="Назад в кабинет"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <SettingsIcon className="w-5 h-5 text-brand-sage" />
-          <span className="font-bold text-brand-text">Настройки</span>
-        </div>
-      </nav>
+      {/* своей шапки нет: шапка и меню у layout кабинета (на телефоне было две шапки с логотипом, _знания/lending-dogon/LISHNEE-NA-SAYTE.md пункт 12) */}
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl font-bold text-brand-text mb-1">Профиль</h1>
-          <p className="text-brand-muted">Твой голос, тариф и энергия в одном месте.</p>
+          <p className="text-brand-muted">Твой голос и тариф в одном месте.</p>
 
           {/* Якорные чипы (десктоп) */}
           <div className="hidden sm:flex items-center gap-2 mt-5">
-            {ANCHORS.map((a) => (
+            {ANCHORS.filter((a) => a.id !== 'archetype' || !newPipe).map((a) => (
               <a
                 key={a.id}
                 href={`#${a.id}`}
@@ -115,8 +104,8 @@ export default function SettingsPage() {
 
         {status === 'ready' && (
           <div className="mt-8 space-y-12">
-            {/* ── Твой архетип ── */}
-            <section id="archetype" className="scroll-mt-20">
+            {/* ── Твой архетип ── (в новом кабинете спрятан: zh6 архетип не читает, тест и данные остаются) */}
+            {!newPipe && <section id="archetype" className="scroll-mt-20">
               <SectionTitle>Твой архетип</SectionTitle>
               {(() => {
                 const sel: ArchetypeSelection | null = getArchetypeSelectionFromProfile(profile)
@@ -159,7 +148,7 @@ export default function SettingsPage() {
                   </div>
                 )
               })()}
-            </section>
+            </section>}
 
             {/* ── Профиль практики ── */}
             <section id="voice" className="scroll-mt-20">
@@ -167,7 +156,7 @@ export default function SettingsPage() {
               <div className="rounded-3xl bg-brand-card border border-brand-border p-5 sm:p-6">
                 <h3 className="text-lg font-bold text-brand-text mb-1">Профиль практики</h3>
                 <p className="text-sm text-brand-muted leading-relaxed mb-4">
-                  Здесь факты о твоей работе: подход, ниша, форматы, клиент, площадки. Меняешь что угодно, и посты подстраиваются. Манеру и тон определяет тест-архетип выше.
+                  Здесь факты о твоей работе: подход, ниша, форматы, клиент, площадки. Меняешь что угодно, и посты подстраиваются.{newPipe ? '' : ' Манеру и тон определяет тест-архетип выше.'}
                 </p>
                 <button
                   onClick={() => router.push('/dashboard/edit-profile')}
@@ -188,6 +177,19 @@ export default function SettingsPage() {
                   Открыть <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
+              {/* паспорт бренда: в новом меню на него не было входа (_знания/lending-dogon/LISHNEE-NA-SAYTE.md пункт 13) */}
+              <div className="rounded-3xl bg-brand-card border border-brand-border p-5 sm:p-6 mt-4">
+                <h3 className="text-lg font-bold text-brand-text mb-1">Паспорт бренда</h3>
+                <p className="text-sm text-brand-muted leading-relaxed mb-4">
+                  Кто ты в блоге, для кого пишешь и как звучишь, на одной странице. Его можно скачать в PDF.
+                </p>
+                <button
+                  onClick={() => router.push('/dashboard/brand-passport')}
+                  className="inline-flex items-center gap-2 text-brand-accent font-semibold text-sm rounded-2xl px-5 py-2.5 border border-brand-accent/40 hover:bg-brand-soft transition cursor-pointer"
+                >
+                  Открыть <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             </section>
 
             {/* ── Мое оформление каруселей ── */}
@@ -200,12 +202,6 @@ export default function SettingsPage() {
             <section id="tariff" className="scroll-mt-20">
               <SectionTitle>Тариф</SectionTitle>
               <TariffSection currentCode={summary?.plan?.code} />
-            </section>
-
-            {/* ── Энергия ── */}
-            <section id="energy" className="scroll-mt-20">
-              <SectionTitle>Энергия</SectionTitle>
-              <EnergyTariffPanel data={summary} />
             </section>
           </div>
         )}

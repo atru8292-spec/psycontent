@@ -8,7 +8,7 @@ import {
   PenTool, Layers, Zap, FileText,
   Wrench, Film, RefreshCcw, Search, History,
   CheckCircle2, Circle, ArrowRight, TrendingUp,
-  Star, Map,
+  Map,
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
 import { isArchetypeIncomplete } from '@/lib/profile-status'
@@ -20,14 +20,14 @@ const toolGroups = [
       { icon: PenTool,    title: 'Генератор постов',   desc: 'Пост за 30 секунд под твой голос',    href: '/dashboard/make',      badge: null,    soft: false },
       { icon: Layers,     title: 'Карусели',            desc: '8,10 слайдов с хуком и структурой',  href: '/dashboard/carousel-generator',  badge: null,    soft: false },
       { icon: Film,       title: 'Рилс-скрипты',        desc: 'Сценарии 30 и 60 сек',               href: '/dashboard/reels',               badge: null,    soft: false },
-      { icon: Zap,        title: 'Генератор хуков',     desc: '12 хуков для любого формата',        href: '/dashboard/hooks-generator',     badge: 'NEW',   soft: false },
+      { icon: Zap,        title: 'Генератор хуков',     desc: '12 хуков для любого формата',        href: '/dashboard/hooks-generator',     badge: null,    soft: false },
     ],
   },
   {
     label: 'Стратегия',
     items: [
       { icon: FileText,   title: 'Контент-план',        desc: '30 дней публикаций',                 href: '/dashboard/content-plan',        badge: null,    soft: false },
-      { icon: Map,        title: 'Карта бренда',        desc: 'Позиционирование и тон, PDF',               href: '/dashboard/brand-passport',      badge: null,    soft: true  },
+      { icon: Map,        title: 'Паспорт бренда',      desc: 'Позиционирование и тон, PDF',               href: '/dashboard/brand-passport',      badge: null,    soft: true  },
       { icon: Wrench,     title: 'Исследование тем',    desc: '30 трендовых тем под твою нишу',     href: '/dashboard/research',            badge: null,    soft: false },
       { icon: Search,     title: 'Анализ конкурентов',  desc: 'Разбор Reels/TikTok/YouTube',        href: '/dashboard/competitor-analysis', badge: null,    soft: false },
     ],
@@ -37,7 +37,6 @@ const toolGroups = [
     items: [
       { icon: RefreshCcw, title: 'Переписать текст',    desc: 'Превратим мысли в готовый пост',    href: '/dashboard/rewrite',             badge: null,    soft: true },
       { icon: History,    title: 'История постов',      desc: 'Все сгенерированные посты',           href: '/dashboard/post-history',        badge: null,    soft: true },
-      { icon: Star,       title: 'Портфолио отзывов',   desc: 'Соберите отзывы клиентов',           href: '#',                              badge: 'Скоро', soft: true },
     ],
   },
 ]
@@ -59,12 +58,15 @@ export default function Dashboard() {
   const [loading, setLoading]     = useState(true)
   const [checklist, setChecklist] = useState<string[]>([])
   const [stats, setStats]         = useState({ posts: 0, plan: false, passport: false })
+  // новый кабинет: zh6 архетип не читает, карточку теста не показываем (null пока не знаем, тоже не показываем)
+  const [newPipe, setNewPipe]     = useState<boolean | null>(null)
   const router = useRouter()
 
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
+      fetch('/api/me').then(r => (r.ok ? r.json() : null)).then(j => setNewPipe(j && typeof j.newPipeline === 'boolean' ? j.newPipeline : false)).catch(() => setNewPipe(false))
 
       const { data: prof, error: profErr } = await supabase
         .from('onboarding_profiles').select('*').eq('user_id', user.id).single()
@@ -163,7 +165,7 @@ export default function Dashboard() {
       </motion.div>
 
       {/* Настроить голос точнее: экспресс-юзеру после первого поста (апселл по горячим следам) */}
-      {stats.posts > 0 && isArchetypeIncomplete(profile) && (
+      {newPipe === false && stats.posts > 0 && isArchetypeIncomplete(profile) && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
           className="soft-panel mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -216,14 +218,14 @@ export default function Dashboard() {
               )
             })}
           </div>
-          {/* Карта бренда вне нумерации, по желанию */}
+          {/* Паспорт бренда вне нумерации, по желанию */}
           <div className="mt-3 pt-3 border-t border-brand-border">
             <p className="text-[10px] font-bold text-brand-muted uppercase tracking-widest mb-2">по желанию</p>
             <button onClick={() => router.push('/dashboard/brand-passport')}
               className="w-full flex items-center gap-3 p-3 rounded-2xl text-left bg-brand-bg hover:bg-brand-soft transition cursor-pointer">
               <Map className="w-4 h-4 text-brand-sage shrink-0" />
               <span className="min-w-0">
-                <span className="block text-sm text-brand-text">Карта бренда</span>
+                <span className="block text-sm text-brand-text">Паспорт бренда</span>
                 <span className="block text-xs text-brand-muted leading-snug">позиционирование и тон на одной странице, PDF</span>
               </span>
               <ArrowRight className="w-3.5 h-3.5 text-brand-muted ml-auto shrink-0" />

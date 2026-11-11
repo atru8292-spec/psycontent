@@ -50,7 +50,49 @@ const sentOf = (text: string, at: number) => {
   return text.slice(a, b).trim()
 }
 
-export function zh6Mesta(text: string, o: { sources: string[]; allowMat: boolean }): Mesto[] {
+// надпись на экране обрубками (11.11): «Текст на экране:» вместе со строками-продолжениями до следующей метки, две и
+// больше фраз, и все короче пяти слов («Вы отказали. Мама уже плохая мать.»: без ролика непонятно, кто кому отказал).
+// Фраза это кусок между . ! ? … и концом строки; точка внутри «» фразу не режет, фраза целиком в «» не считается
+// (ни обрубком, ни в подсчете). Беззвучные рилсы со сменами ([смена]) и рамкой «Психолог:», «Клиентка:» не проверяем:
+// там короткие надписи по очереди это устройство формата.
+const NEXT_LABEL = /^\s*(?:Слайд \d+|Текст на экране|Речь|Подпись|Надпись|Экран \d+|Снять|Стикер)\s*:/u
+const ROLE_LINE = /^\s*(?:Психолог|Терапевт|Клиент\p{L}*|Спустя[^:\n]{0,30}|Я|Внутренний голос|Критик)\s*:/u
+export function nadpisBlocks(text: string): string[] {
+  const lines = String(text || '').split('\n')
+  const out: string[] = []
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^\s*Текст на экране\s*:(.*)$/u)
+    if (!m) continue
+    const part = [m[1]]
+    for (let j = i + 1; j < lines.length && !NEXT_LABEL.test(lines[j]); j++) part.push(lines[j])
+    out.push(part.join('\n').trim())
+  }
+  return out.filter(Boolean)
+}
+export function frazyNadpisi(block: string): string[] {
+  const out: string[] = []
+  let cur = '', depth = 0
+  for (const ch of block) {
+    if (ch === '«' || ch === '“') depth++
+    else if ((ch === '»' || ch === '”') && depth > 0) depth--
+    if (ch === '\n' || (depth === 0 && /[.!?…]/u.test(ch))) { if (cur.trim()) out.push(cur.trim()); cur = ''; if (ch === '\n') depth = 0; continue }
+    cur += ch
+  }
+  if (cur.trim()) out.push(cur.trim())
+  return out
+}
+const slovNadpisi = (s: string) => (s.match(/[\p{L}\d]+(?:-[\p{L}\d]+)*/gu) || []).length
+export function nadpisObrubki(text: string): string[] {
+  return nadpisBlocks(text).filter(b => {
+    if (/\[смена\]/u.test(b) || b.split('\n').some(l => ROLE_LINE.test(l))) return false
+    const fr = frazyNadpisi(b).filter(f => !/^«[^«»]*»$|^“[^“”]*”$/u.test(f) && slovNadpisi(f) > 0)
+    return fr.length >= 2 && fr.every(f => slovNadpisi(f) < 5)
+  })
+}
+
+// nadpis: проверять ли надпись обрубками; false у беззвучных рилсов (bezGolosa: bez_slov, kabinet, ispoved): там короткие
+// строки надписи это устройство вида, а не обрубки (ревью 11.11). По умолчанию true.
+export function zh6Mesta(text: string, o: { sources: string[]; allowMat: boolean; nadpis?: boolean }): Mesto[] {
   const out: Mesto[] = []
   for (const p of copyPieces(text, o.sources)) out.push({ code: 'kopiya', quote: p, why: 'совпадает с чужим текстом, скажи это своими словами' })
   for (const x of neXaY(text)) out.push({ code: 'ne_x_a_y', quote: sentOf(text, x.at) || x.quote, why: 'схема «не X, а Y»: скажи прямо, что есть, без отрицания перед этим' })
@@ -63,6 +105,7 @@ export function zh6Mesta(text: string, o: { sources: string[]; allowMat: boolean
   }
   // круг 3: сбой модели посреди слова («побы scanло»): латиница внутри русского текста или слово из двух алфавитов
   for (const m of text.matchAll(/[\p{Script=Cyrillic}]+[A-Za-z]+[\p{Script=Cyrillic}]*|[\p{Script=Cyrillic}]+\s+[a-z]{3,}[\p{Script=Cyrillic}]+|(?<![\p{L}])[a-z]{3,}(?![\p{L}])/gu)) out.push({ code: 'sboj', quote: sentOf(text, m.index || 0), why: 'сбой: латиница или сломанное слово посреди русского текста, перепиши фразу нормально' })
+  if (o.nadpis !== false) for (const b of nadpisObrubki(text)) out.push({ code: 'nadpis_obrubki', quote: b, why: 'надпись на экране рублеными кусками, без ролика непонятно, о чем она; скажи одним целым предложением до 12 слов: кто что сделал или сказал и что из этого вышло' })
   const seen = new Set<string>()
   return out.filter(x => { const k = x.code + x.quote; if (seen.has(k)) return false; seen.add(k); return true })
 }

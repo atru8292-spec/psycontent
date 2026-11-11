@@ -5,12 +5,15 @@
 // 4) промпт: свои тексты автора раньше примеров, подписи примеров, в текстах промптов нет «ё» и длинных тире,
 //    в промптах нет цепочек из 4 слов из живых текстов банка и разборов;
 // 5) PROMPT_HYP=zh6 уводит simpleWrite в zh6Write, правка мест берется только если находок меньше и формат цел;
-// 6) план тем: JSON разбирается, пометки кодом.
+// 6) план тем: JSON разбирается, пометки кодом;
+// 13) пометка «История собирательная» в подписи у кабинета, сессии и первой встречи;
+// 14) надпись рилса обрубками ловится и уходит на правку мест, правило надписи одно (NADPIS).
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { PRIMERY, pickPrimery, hasMat } from '../lib/generation/zh6/primery'
-import { zh6Mesta, copyPieces } from '../lib/generation/zh6/checks'
+import { zh6Mesta, copyPieces, nadpisObrubki } from '../lib/generation/zh6/checks'
+import { NADPIS } from '../lib/generation/zh6/formaty'
 import { zh6Prompt, temaPometki, zh6Plan, smeshat, smeshatOshibki, formatyAvtora, odnoMnogotochie, pohozhie, zvezdochki, chooseKrug, samoGuard, priemyOf, temyZhivyeFor, peremeshat, logikaMesta, remarki, zapisPravila, reakciyaOf, introOf } from '../lib/generation/zh6/write'
 import { FORMATY, formatByCode, formatBlock } from '../lib/generation/zh6/formaty'
 import { KONCY } from '../lib/generation/zh6/prompt-tekst'
@@ -19,6 +22,9 @@ import { GRUPPY } from '../lib/generation/zh6/gruppy'
 import { TEKST_SYSTEM, FORMAT_CARDS, USTROJSTVA, KONEC, SAMPLES_HEAD, PRIMERY_HEAD } from '../lib/generation/zh6/prompt-tekst'
 import { TEMY_SYSTEM } from '../lib/generation/zh6/prompt-temy'
 import { simpleWrite } from '../lib/generation/simple'
+import { sobiratelnaya, SOBIR_LINE, SOBIR_VIDY } from '../lib/generation/zh6/text'
+import { checkSet } from '../lib/generation/group'
+import { splitCaption } from '../components/CaptionBlock'
 import { buildAuthorSettings } from '../lib/generation/settings'
 import { KONTROL, ISKLYUCHIT_AVTOROV } from './zh6/data'
 import { PERSONAS6 as PERSONAS } from './zh6/personas'
@@ -233,5 +239,107 @@ async function main() {
     assert.deepEqual(grupyFrom({ grupy: { reels: 'scenka', carousel: 'net', post_tg: 'spor' } }, ['reels', 'carousel', 'post_tg']), { reels: GRUPPY.reels[1].codes, post_tg: ['post_spor'] }, 'карточка без подвида: ее виды, чужая карточка выкинута')
   }
   console.log('ok 12: вид у каждого формата набора свой, чужие и выдуманные коды выкидываются, карточки видов покрывают каталог')
+
+  // 13. пометка собирательной истории кодом: только у трех видов, только в подпись, один раз
+  {
+    const rils = 'Текст на экране: Психолог: Что вы чувствуете?\n[смена]\nКлиентка: Ничего.\n\nПодпись: Иногда «ничего» это очень много.'
+    const r1 = sobiratelnaya(rils, 'reels_kabinet')
+    assert.ok(r1.endsWith(`Иногда «ничего» это очень много.\n${SOBIR_LINE}`), 'строка в конце подписи рилса')
+    assert.equal(splitCaption(r1).body, splitCaption(rils).body, 'надпись на экране не тронута')
+    assert.ok(splitCaption(r1).caption.endsWith(SOBIR_LINE), 'строка в описании к публикации')
+    assert.equal(sobiratelnaya(r1, 'reels_kabinet'), r1, 'второй раз не дописывается')
+    const scenka = 'Текст на экране: Первая встреча\nРечь:\nКлиентка: Да у меня все нормально.\nПсихолог: А что тогда привело?'
+    const r2 = sobiratelnaya(scenka, 'reels_scenka_pervaya_sessiya')
+    assert.ok(r2.endsWith(`\n\nПодпись: ${SOBIR_LINE}`) && splitCaption(r2).body === scenka, 'рилс без подписи: подпись из одной строки, речь не тронута')
+    const post = 'Клиентка села и спросила: «А можно сегодня не про маму?»\n\nЯ кивнула.'
+    assert.equal(sobiratelnaya(post, 'post_kabinet'), `${post}\n\n${SOBIR_LINE}`, 'пост: последней строкой')
+    for (const kod of ['reels_bez_slov', 'post_udar', 'reels_scenka_vnutr_golos', null, undefined]) assert.equal(sobiratelnaya(rils, kod as any), rils, `у ${kod} без пометки`)
+    for (const kod of SOBIR_VIDY) assert.ok(formatByCode(kod), `вид ${kod} есть в каталоге`)
+    assert.ok(!/[ёЁ—]/.test(SOBIR_LINE) && !priemyOf(SOBIR_LINE).length, 'строка без ё и тире и не ловится как прием')
+    // у двух материалов набора одна и та же строка: проверка набора не считает ее повтором соседа
+    const iss = checkSet([{ format: 'post', text: sobiratelnaya(post, 'post_kabinet') }, { format: 'reels_monolog', text: r1 }], '')
+    assert.ok(!iss.some(i => i.phrases.some(ph => ph.includes('собирательная'))), 'пометка не уходит на перепись как повтор')
+    // не задваивается, если модель в «Поправить» чуть изменила строку (ревью 11.11)
+    const count = (s: string) => (s.match(/собирательн/giu) || []).length
+    for (const v of ['История собирательная, совпадения случайны', 'история собирательная, совпадения случайны!', 'История собирательная.', 'История собирательная, все совпадения случайны.']) {
+      const x = sobiratelnaya(r1.replace(SOBIR_LINE, v), 'reels_kabinet')
+      assert.equal(count(x), 1, `одна строка после правки: ${v}`)
+      assert.equal(x, r1, `та же подпись после правки: ${v}`)
+    }
+    const p2 = sobiratelnaya(`${post}\n\nИстория собирательная, совпадения случайны`, 'post_kabinet')
+    assert.equal(p2, `${post}\n\n${SOBIR_LINE}`, 'пост: строка без точки заменяется своей')
+    // фраза автора со словами «история собирательная» внутри текста не вырезается (ревью 11.11)
+    for (const body of ['Это история собирательного образа, а не одной клиентки. Дальше текст.', 'Моя история собирательная по сути. Дальше.']) {
+      assert.equal(sobiratelnaya(body, 'post_kabinet'), `${body}\n\n${SOBIR_LINE}`, `тело не тронуто: ${body}`)
+    }
+    assert.equal(sobiratelnaya(SOBIR_LINE, 'post_kabinet'), SOBIR_LINE, 'текст из одной строки не становится пустым')
+    // не пропадает после проверки набора: в group/route.ts дописывание после rewritePhrases и stripAds, до сохранения
+    const gr = readFileSync(join(__dirname, '..', 'app', 'api', 'generate-post', 'group', 'route.ts'), 'utf8')
+    const iSob = gr.indexOf('sobiratelnaya(item.text')
+    assert.ok(iSob > gr.lastIndexOf('rewritePhrases(') && iSob > gr.lastIndexOf('stripAds(') && iSob < gr.indexOf('savePost(db'), 'в наборе строка возвращается после переписки и до сохранения')
+    // без строки после переписки она дописывается снова
+    assert.equal(sobiratelnaya(rils, 'reels_kabinet'), r1, 'потерянная строка возвращается')
+  }
+  console.log('ok 13: пометка «История собирательная» дописывается кодом в подпись только у кабинета, сессии и первой встречи')
+  {
+    // 14: надпись на экране обрубками (11.11)
+    const ob = (t: string) => zh6Mesta(t, { sources: [], allowMat: true }).filter(x => x.code === 'nadpis_obrubki')
+    const bad = 'Текст на экране: Вы отказали. Мама уже плохая мать.\nРечь: Вы сказали маме «нет», и через час она уже звонит тете.\nПодпись: Про отказы.'
+    const f = ob(bad)
+    assert.equal(f.length, 1, 'обрубки не пойманы')
+    assert.equal(f[0].quote, 'Вы отказали. Мама уже плохая мать.', 'место это сама надпись, без метки')
+    assert.ok(f[0].why && !/[ёЁ—–]/.test(f[0].why), 'причина для правки без ё и тире')
+    const ok = [
+      'Текст на экране: «Успокойся». Охуенный способ помочь.',
+      'Текст на экране: Я только спрошу, где он. В пятый раз.',
+      'Текст на экране: Ты отправила подруге фото готовой работы и получила: «Как же круто получилось!»',
+      'Текст на экране: Мама снова звонит в восемь утра, чтобы узнать, почему ты не приедешь.',
+      'Ты отказала маме. Она обиделась. Ты извинилась. Опять.',
+      'Текст на экране: Психолог: Что вы чувствуете?\nНичего.\n[смена]\nУстала.',
+    ]
+    for (const t of ok) assert.equal(ob(t).length, 0, `ложная находка: ${t}`)
+    // продолжение надписи на следующей строке до метки тоже в счет
+    assert.equal(nadpisObrubki('Текст на экране: Сказала нет.\nМама в слезах.\nРечь: дальше речь').length, 1, 'строка-продолжение')
+    // правило надписи одно: в разметке говорящих рилсов и в карточке, без старых «до 8/10 слов» и «резкое утверждение»
+    const rilsy = FORMATY.filter(x => x.for[0] === 'reels' && !['reels_bez_slov', 'reels_kabinet', 'reels_ispoved'].includes(x.code))
+    for (const x of rilsy) {
+      const b = formatBlock(x)
+      assert.ok(b.includes(NADPIS), `правило надписи в ${x.code}`)
+      assert.ok(!/(?:Надпись|надпись)[^\n.]{0,30}до \d+ слов|до [78] слов\n/u.test(b) && !/резкое утверждение, до/u.test(b), `старый предел надписи в ${x.code}`)
+    }
+    assert.ok(FORMAT_CARDS.reels.includes(NADPIS) && !/до 10 слов/.test(FORMAT_CARDS.reels), 'карточка рилса с тем же правилом')
+    assert.ok(!/[ёЁ—–]/.test(NADPIS))
+    // банк живых примеров: сколько надписей поймалось бы (для глаза, это не ошибка)
+    const bank = PRIMERY.filter(p => nadpisObrubki(p.text).length)
+    if (bank.length) console.log('  обрубки в банке примеров (для глаза):', bank.map(p => p.id).join(', '))
+    // находка уходит на ту же правку мест: писатель дал обрубки, правка дала целое предложение
+    const sent13: any[] = []
+    const r13 = [
+      'Текст на экране: Вы отказали. Мама уже плохая мать.\nРечь: Вы сказали маме, что не приедете, и через час она уже звонит тете и жалуется.\nПодпись: Про отказы.',
+      'Текст на экране: Вы сказали маме «нет», и она уже жалуется тете на плохую дочь.\nРечь: Вы сказали маме, что не приедете, и через час она уже звонит тете и жалуется.\nПодпись: Про отказы.',
+    ]
+    ;(globalThis as any).fetch = async (_u: string, init: any) => {
+      sent13.push(JSON.parse(init.body))
+      const content = r13[Math.min(sent13.length - 1, r13.length - 1)]
+      return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 10, completion_tokens: 10 } }), { status: 200 })
+    }
+    const w13: any = await simpleWrite(ctxOf(PERSONAS.H, []), { topic: 'отказ маме', format: 'reels_monolog', intent: 'uznavanie' } as any)
+    assert.equal(sent13.length, 2, 'писатель и правка мест')
+    assert.ok(/Вы отказали\. Мама уже плохая мать/.test(sent13[1].messages[1].content), 'надпись названа в местах правки')
+    assert.ok(w13.zh6.pravka && w13.zh6.mesta.some((m: any) => m.code === 'nadpis_obrubki') && !w13.zh6.ostalos.some((m: any) => m.code === 'nadpis_obrubki'), 'правка надписи не взята')
+    // беззвучные рилсы (ревью 11.11): короткие строки надписи у исповеди и беззвучного без [смена] это устройство вида, не обрубки
+    const ispoved = 'Текст на экране: Я опять сорвалась.\nКрикнула на сына.\nПотом плакала в ванной.\nУтром извинилась.\nИ снова.\nПодпись: Знакомо.'
+    const bezSlov = 'Текст на экране: Он не ответил. Я уже все решила.\nПодпись: Знакомо.'
+    for (const t of [ispoved, bezSlov]) {
+      assert.equal(ob(t).length, 1, 'сама строка без вида ловится, иначе тест ничего не проверяет')
+      assert.ok(!zh6Mesta(t, { sources: [], allowMat: true, nadpis: false }).some(x => x.code === 'nadpis_obrubki'), 'nadpis: false выключает находку')
+    }
+    for (const [kod, t] of [['reels_ispoved', ispoved], ['reels_bez_slov', bezSlov]] as const) {
+      ;(globalThis as any).fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: t } }], usage: { prompt_tokens: 10, completion_tokens: 10 } }), { status: 200 })
+      const w: any = await simpleWrite(ctxOf(PERSONAS.H, []), { topic: 'срываюсь на сына', format: 'reels_monolog', intent: 'uznavanie', formatKod: kod } as any)
+      assert.ok(!w.zh6.mesta.some((m: any) => m.code === 'nadpis_obrubki'), `${kod}: надпись не уходит на правку`)
+    }
+  }
+  console.log('ok 14: надпись обрубками ловится, цитата в кавычках, длинная фраза, пост и сцены сменами не ловятся, правило надписи одно')
 }
 main().then(() => console.log('zh6: все тесты прошли')).catch(e => { console.error(e); process.exit(1) })

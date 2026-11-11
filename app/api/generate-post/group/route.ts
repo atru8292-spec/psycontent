@@ -29,6 +29,7 @@ import {
 import { finalNet, type FormatCode } from '@/lib/generation/text-guard'
 import { savePost, zh6On, zh6FieldsFrom } from '../new-pipeline'
 import { formatyAvtora } from '@/lib/generation/zh6/write'
+import { sobiratelnaya } from '@/lib/generation/zh6/text'
 import { vidyFrom, grupyFrom } from '@/lib/generation/zh6/vidy'
 import { serverTrack } from '@/lib/track-server'
 import {
@@ -314,6 +315,13 @@ export async function POST(req: NextRequest) {
             ov = overlap(compareWith, item.text)
             if (ov.hit) leftovers.set(k, ov.chains.length ? ov.chains : sentencesWithTrigrams(item.text, compareWith))
           }))
+        }
+
+        // «История собирательная» (fix/sobiratelnaya): rewritePhrases и stripAds выше переписывают текст и могут ее потерять;
+        // дописываем снова по коду вида zh6 (zh4.zh6.ustr), второй раз она не задвоится (ревью 11.11)
+        for (const item of okItems) {
+          const kod = item.zh4?.zh6?.ustr
+          if (typeof kod === 'string') item.text = sobiratelnaya(item.text, kod)
         }
 
         for (const r of results) {

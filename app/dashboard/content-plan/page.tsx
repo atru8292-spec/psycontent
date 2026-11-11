@@ -337,14 +337,6 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
         <span className={`min-w-0 text-[16px] md:text-sm font-semibold break-words ${fmt.color}`}>{item.format_name || fmt.label}</span>
       </div>
 
-      {isCarousel && !item.format_name && (
-        <div className="mb-5 p-4 md:p-3 bg-brand-soft rounded-xl border border-brand-border-soft">
-          <p className="text-[16px] md:text-sm text-brand-text leading-relaxed">
-            <strong>Карусель</strong>, это 8-10 слайдов с текстом. AI создаст хук, развитие мысли и призыв к действию.
-          </p>
-        </div>
-      )}
-
       {item.hook && (
         <div className="mb-5">
           <p className="text-[13px] md:text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-2.5">Хук (первая строка)</p>

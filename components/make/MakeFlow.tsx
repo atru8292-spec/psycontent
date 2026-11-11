@@ -52,7 +52,8 @@ const TOAST_KEY = 'psycont_saved_toast_groups'
 
 // Ответ сервера человеческими словами: что случилось и что сохранилось
 function friendly(code?: string, message?: string): string {
-  if (code === 'text_limit') return 'На этот месяц тексты закончились, новые появятся в начале следующего. Твой голос и темы я запомнила, они никуда не денутся.'
+  // конец лимита: текст сервера (он знает тариф: пробные у бесплатного, месячные у платных, lib/energy.ts); запасной правдив для обоих
+  if (code === 'text_limit') return message || 'Сейчас материалы закончились, и собрать этот не получится. Голос и темы сохранились.'
   if (code === 'text_limit_partial' && message) return message
   if (code === 'sample_instagram') return 'Инстаграм не отдает текст по ссылке. Загрузи скрины или скопируй подпись'
   if (code === 'sample_closed') return 'Канал закрытый. Скопируй текст и вставь сюда'

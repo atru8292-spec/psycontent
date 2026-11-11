@@ -51,7 +51,6 @@ function LandingRow({ d }: { d: LandingStats | null }) {
         <>
           <span>заходы <b className="font-semibold">{num(d.views)}</b></span>
           <span>нажали кнопку <b className="font-semibold">{num(d.clicks)}</b></span>
-          <span>оставили мысль в демо <b className="font-semibold">{num(d.demo)}</b></span>
         </>
       ) : <span className="text-brand-muted text-[13px]">цифры не загрузились</span>}
     </Card>

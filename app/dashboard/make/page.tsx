@@ -54,8 +54,8 @@ const FORMAT_WORD: Record<string, string> = {
 // Ошибки модели и сервера показываем человеческим текстом: что случилось и что сохранилось
 function friendlyError(msg?: string): string {
   const m = String(msg || '')
-  if (/^Достигнут предел генераций/.test(m)) return 'Пробные тексты закончились. Твой голос и темы я запомнила, они никуда не денутся. Скоро здесь можно будет выбрать тариф.'
-  if (/^(Тема не указана|Не авторизован|Этот формат)/.test(m)) return m
+  if (/^(Достигнут предел генераций|Пробные материалы закончились)/.test(m)) return 'Пробные материалы закончились. Твой голос и темы я запомнила, они никуда не денутся. Скоро здесь можно будет выбрать тариф.'
+  if (/^(Тема не указана|Не авторизован|Этот формат|Материалы на этот месяц)/.test(m)) return m
   if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return 'Пропала связь. Проверь интернет и нажми еще раз: тема и детали на месте.'
   return 'Текст не дописался. Сбой у нас, не у тебя: тема и детали на месте. Попробуй еще раз через минуту.'
 }
@@ -331,7 +331,7 @@ function MakeContent() {
   const ownSamples = Array.isArray(profile?.voice_samples)
     ? profile.voice_samples.filter((x: any) => x?.fit !== false && x?.source !== 'live_voice').length : 0
   const currentAsk: AskKey | null = newGen && !!result && !generating && !checking && !editing && askSent === null
-    ? pickAsk({ postCount, hasGenericPhrase: !!genericPhrase && !!result?.includes(genericPhrase), archetypeIncomplete: isArchetypeIncomplete(profile), ownSamples })
+    ? pickAsk({ postCount, hasGenericPhrase: !!genericPhrase && !!result?.includes(genericPhrase), archetypeIncomplete: false, ownSamples }) // новый мозг (zh6) архетип не читает: просьбу пройти тест не показываем
     : null
   const showVoiceBar = newGen
     ? currentAsk === 'archetype'

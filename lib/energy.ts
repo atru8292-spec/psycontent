@@ -212,14 +212,19 @@ export async function canConsume(userId: string, operation: string, units = 1): 
     const cap = plan.fair_use_text_cap
     const count = await textCount(db, userId)
     if (cap !== null && cap !== undefined && count >= cap) {
-      return refuse({ ok: false, mode: 'text', operation, cost: 0, reason: 'text_limit', message: 'Достигнут предел генераций. Он обновится в начале месяца.' })
+      // у бесплатного «пробные» (витрина: 10 без срока), у платных лимит месячный по календарю (periodKey). Тексты copywriter-psycont 11.11:
+      // их же показывает новый «Сделать» (MakeFlow friendly), поэтому без глаголов от первого лица и без рода
+      const message = plan.code === 'free'
+        ? `Пробные материалы закончились, все ${cap} уже собраны. Чтобы писать дальше, нужен платный тариф. Оплата скоро появится, а голос и темы за это время никуда не денутся.`
+        : 'Материалы на этот месяц закончились, новые придут в начале следующего. Голос и темы сохранились.'
+      return refuse({ ok: false, mode: 'text', operation, cost: 0, reason: 'text_limit', message })
     }
     if (cap !== null && cap !== undefined && count + units > cap) {
       // число показываем только на бесплатном (там «N из 10» и так видно); у платных потолок скрытый
       const left = cap - count
       const message = plan.code === 'free'
-        ? `В этом месяце хватит еще на ${left} ${left % 10 === 1 && left % 100 !== 11 ? 'текст' : left % 10 >= 2 && left % 10 <= 4 && (left % 100 < 12 || left % 100 > 14) ? 'текста' : 'текстов'}. Убери лишние форматы, и я сделаю.`
-        : 'Столько форматов сразу сейчас не выйдет. Убери пару и нажми еще раз.'
+        ? `Пробных хватит еще на ${left} ${left % 10 === 1 && left % 100 !== 11 ? 'материал' : left % 10 >= 2 && left % 10 <= 4 && (left % 100 < 12 || left % 100 > 14) ? 'материала' : 'материалов'}, а форматов выбрано больше. Убери лишние и нажми еще раз.`
+        : 'На столько форматов материалов в этом месяце не хватит. Убери лишние и нажми еще раз.'
       return refuse({ ok: false, mode: 'text', operation, cost: 0, reason: 'text_limit_partial', message })
     }
     return { ok: true, mode: 'text', operation, cost: 0 }
@@ -237,8 +242,8 @@ export async function canConsume(userId: string, operation: string, units = 1): 
 
   if (op.requiresDeepAccess && !plan.deep_analysis && !trialLeft) {
     const message = plan.code === 'free'
-      ? 'Пробный разбор уже использован. Глубокий анализ доступен на тарифе Практика.'
-      : 'Глубокий анализ доступен на тарифе Практика.'
+      ? 'Пробный разбор конкурента уже был. Глубокий разбор есть на платном тарифе, оплату скоро подключим.'
+      : 'Глубокий разбор конкурента в твой тариф не входит. Он есть на тарифе выше.'
     return refuse({ ok: false, mode: 'blocked', operation, cost, reason: 'no_access', message })
   }
 
@@ -247,8 +252,8 @@ export async function canConsume(userId: string, operation: string, units = 1): 
   const balance = await getBalance(userId)
   if (balance < cost) {
     const message = plan.code === 'free'
-      ? 'Пробный разбор уже использован. Глубокий анализ доступен на тарифе Практика.'
-      : 'Не хватает энергии. Пополните баланс или перейдите на тариф выше.'
+      ? 'Пробный разбор конкурента уже был. Глубокий разбор есть на платном тарифе, оплату скоро подключим.'
+      : 'На разбор конкурента не хватает остатка на этот месяц. Он обновится в начале месяца, а еще можно перейти на тариф выше.'
     return refuse({ ok: false, mode: 'blocked', operation, cost, reason: 'insufficient', message, balance })
   }
   return { ok: true, mode: 'charge', operation, cost, balance }

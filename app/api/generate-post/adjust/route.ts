@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
         const decision = await canConsume(user.id, ZAHOD_OP, 1)
         if (!decision.ok) {
           await recordRefusal(user.id, ZAHOD_OP)
-          return NextResponse.json({ error: decision.message || 'Достигнут предел генераций', limit: true }, { status: 429 })
+          return NextResponse.json({ error: decision.message || 'Материалы закончились', limit: true }, { status: 429 })
         }
         // прошлый заход (если был) идет в память как уже показанный: следующий возьмет другие примеры и конец
         const prev = cr.zahod?.zh4?.zh6
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ hooks: [{ hook_type: 'zh6_zahod', text: first.trim(), why: '', full: r.text, formatName: r.zh6.formatName }] })
       }
       if (!(action in BUTTONS)) return NextResponse.json({ error: 'Неизвестное действие' }, { status: 400 })
-      const fixed = await zh6Popravit(ctx, current, BUTTONS[action])
+      const fixed = await zh6Popravit(ctx, current, BUTTONS[action], typeof zh4.zh6.ustr === 'string' ? zh4.zh6.ustr : null)
       if (!fixed.used) {
         console.info('adjust zh6: правка не взята:', fixed.reason || '')
         return NextResponse.json({ post: current, unchanged: true, error: 'Не вышло поправить аккуратно, поэтому оставила текст как был. Попробуй еще раз или другую кнопку.' }, { status: 422 })

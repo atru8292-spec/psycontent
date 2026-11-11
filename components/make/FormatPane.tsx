@@ -137,7 +137,7 @@ export default function FormatPane({ item, onChange, onPublished, onMore }: {
         return
       }
       // zh6: «Другой заход» пишет целый текст и считается как текст; предел сказать словами сервера, не сырым кодом
-      if (r.status === 429 && d?.limit) { setError(typeof d.error === 'string' ? d.error.slice(0, 200) : 'Достигнут предел генераций'); return }
+      if (r.status === 429 && d?.limit) { setError(typeof d.error === 'string' ? d.error.slice(0, 200) : 'Материалы закончились'); return }
       if (!r.ok) throw new Error()
       if (action === 'hooks') { if (Array.isArray(d.hooks)) setHooks(d.hooks) }
       else if (typeof d.post === 'string') onChange({ text: d.post, baseline: d.post })

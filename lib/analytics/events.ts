@@ -54,6 +54,7 @@ export const EVENTS = {
   land_cta_click: ['place', 'plan'],                 // кнопка в регистрацию: place hero|how|pricing|final|header, plan free|calm|daily
   land_demo_submit: [],                              // оставили мысль в демо (сама мысль в событие не идет); демо пока снято со страницы
   land_faq_open: ['q'],                              // открыли вопрос: короткий код вроде q_chatgpt, текст вопроса не идет
+  land_more_open: ['place'],                         // раскрыли свернутый текст: place compare_gpt|ex_nina|ex_taisiya|ex_zahar
 } as const satisfies Record<string, readonly string[]>
 
 // События лендинга пишутся и без входа (user_id пустой, только session_id от track)

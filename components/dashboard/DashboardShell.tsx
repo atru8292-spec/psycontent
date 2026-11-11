@@ -6,32 +6,27 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import {
-  Target, PenTool, Layers, Zap, FileText,
-  Wrench, Film, RefreshCcw, Search, History, Settings,
+  Target, PenTool, FileText,
+  Wrench, History, Settings,
   LogOut, User, ChevronRight, LayoutDashboard, PlusCircle, Lightbulb, AlignLeft,
 } from 'lucide-react'
-import { EnergyBadge, EnergyInfo } from '@/components/EnergyTariff'
 import { DashboardMeContext } from '@/lib/dashboard-me'
 import ScreenTracker from '@/components/analytics/ScreenTracker'
 
+// старое меню: карусели, хуки, рилс, рерайт и анализ конкурентов спрятаны (сведены в «Сделать», _знания/lending-dogon/LISHNEE-NA-SAYTE.md
+// пункты 3 и 9); страницы открываются по прямой ссылке, старый «Сделать» сам ведет на карусели и рилс
 const navItems = [
   { icon: LayoutDashboard, label: 'Главная', href: '/dashboard', exact: true },
   { icon: Target, label: 'Паспорт бренда', href: '/dashboard/brand-passport' },
   { icon: PenTool, label: 'Сделать', href: '/dashboard/make' },
-  { icon: Layers, label: 'Карусели', href: '/dashboard/carousel-generator' },
-  { icon: Zap, label: 'Хуки', href: '/dashboard/hooks-generator' },
-  { icon: Film, label: 'Рилс-скрипты', href: '/dashboard/reels' },
   { icon: FileText, label: 'Контент-план', href: '/dashboard/content-plan' },
   { icon: Wrench, label: 'Исследование тем', href: '/dashboard/research' },
-  { icon: RefreshCcw, label: 'Переписать текст', href: '/dashboard/rewrite' },
-  { icon: Search, label: 'Анализ конкурентов', href: '/dashboard/competitor-analysis' },
   { icon: History, label: 'История постов', href: '/dashboard/post-history' },
 ]
 
 const bottomNavItems = [
   { icon: LayoutDashboard, label: 'Главная', href: '/dashboard', exact: true },
   { icon: PenTool, label: 'Сделать', href: '/dashboard/make' },
-  { icon: Zap, label: 'Хуки', href: '/dashboard/hooks-generator' },
   { icon: FileText, label: 'План', href: '/dashboard/content-plan' },
   { icon: History, label: 'История', href: '/dashboard/post-history' },
 ]
@@ -188,18 +183,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
         {/* Низ сайдбара */}
         <div className="border-t border-brand-border p-3 space-y-1 shrink-0">
-          {/* Энергия, всегда на глазах */}
-          {collapsed ? (
-            <Link href="/dashboard/settings#energy" title="Энергия и тариф" className="flex items-center justify-center py-2.5 rounded-2xl text-brand-muted hover:bg-brand-soft hover:text-brand-text transition">
-              <Zap className="w-[18px] h-[18px] text-brand-sage" />
-            </Link>
-          ) : (
-            <div className="flex items-center gap-1 px-1 pb-1">
-              <EnergyBadge data={energy} />
-              <EnergyInfo placement="sidebar" />
-            </div>
-          )}
-
+          {/* значок и подсказка энергии убраны (энергию как единицу счета убрали, _знания/lending-dogon/LISHNEE-NA-SAYTE.md пункт 5) */}
           {!newMenu && <Link href="/dashboard/settings" className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-brand-muted hover:bg-brand-soft hover:text-brand-text transition group relative ${collapsed ? 'justify-center' : ''}`}>
             <Settings className="w-[18px] h-[18px] shrink-0" />
             {!collapsed && <span className="text-[13px] font-medium">Настройки</span>}
@@ -238,8 +222,6 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             className="h-6 w-auto"
           />
           <div className="flex items-center gap-2">
-            <EnergyBadge compact data={energy} />
-            <EnergyInfo placement="header" />
             {!newMenu && <Link href="/dashboard/settings" className="w-11 h-11 flex items-center justify-center text-brand-muted hover:text-brand-accent transition">
               <Settings className="w-5 h-5" />
             </Link>}

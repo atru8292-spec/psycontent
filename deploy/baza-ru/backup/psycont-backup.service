@@ -1,0 +1,10 @@
+[Unit]
+Description=PsyCont: ночной бэкап базы (pg_dump, storage, настройки, шифрование age)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/supabase/backup/backup.sh
+Nice=10
+IOSchedulingClass=idle
