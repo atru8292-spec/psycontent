@@ -12,7 +12,7 @@
 // (Mail.ru и Яндекс часто блокируют их по умолчанию) раскладка не прыгает, а облачко с приветствием остается.
 // Темная тема: держим светлую схему (color-scheme light only), кнопку и логотип защищаем от инверсии.
 
-import { writeFileSync, mkdirSync } from 'node:fs'
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const C = {
@@ -50,7 +50,7 @@ const LETTERS = {
     subject: 'Подтверди смену почты',
     preheader: 'Почту в аккаунте PsyCont меняют на {{ .NewEmail }}',
     title: 'Меняем почту в аккаунте',
-    body: [`В аккаунте PsyCont меняют почту на <strong style="font-weight:700;">{{ .NewEmail }}</strong>. Подтверди, и вход и письма переедут на этот адрес. Тексты, голос и настройки останутся на месте.`],
+    body: [`В аккаунте PsyCont меняют почту на <strong style="font-weight:700;">{{ .NewEmail }}</strong>. Подтверди, и вход, и письма переедут на этот адрес. Тексты, голос и настройки останутся на месте.`],
     button: 'Подтвердить смену',
     after: 'После этого входить в кабинет нужно будет по новой почте.',
     href: '{{ .SiteURL }}/auth/podtverdit?token_hash={{ .TokenHash }}&type=email_change',
@@ -169,3 +169,13 @@ for (const [name, l] of Object.entries(LETTERS)) {
   console.log(`${name}.html ${Buffer.byteLength(html)} байт`)
 }
 writeFileSync(join(out, 'subjects.json'), JSON.stringify(subjects, null, 2) + '\n')
+// Темы писем gotrue берет из переменных окружения, а не из subjects.json: сверяем с настройками сервера базы,
+// чтобы тема не разошлась с текстом письма (ревью 11.11)
+const compose = readFileSync(join(process.cwd(), 'deploy', 'baza-ru', 'docker-compose.psycont.yml'), 'utf8')
+const ENV = { confirmation: 'CONFIRMATION', recovery: 'RECOVERY', email_change: 'EMAIL_CHANGE', magic_link: 'MAGIC_LINK' }
+const stale = Object.entries(subjects).filter(([k, v]) => !compose.includes(`GOTRUE_MAILER_SUBJECTS_${ENV[k]}: "${v}"`))
+if (stale.length) {
+  console.error('ТЕМЫ НЕ СОВПАДАЮТ с deploy/baza-ru/docker-compose.psycont.yml, поправь там:')
+  for (const [k, v] of stale) console.error(`      GOTRUE_MAILER_SUBJECTS_${ENV[k]}: "${v}"`)
+  process.exit(1)
+}

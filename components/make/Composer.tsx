@@ -341,7 +341,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
           {/* Видела классный пост? */}
           <div className="mt-3 rounded-2xl bg-brand-soft p-3">
             <p className="text-[16px] leading-[22px] font-semibold text-brand-text">Видела классный пост?</p>
-            <p className="mt-0.5 text-[14px] leading-5 text-brand-text/80">Вставь ссылку или скрин. Сделаю так же, но про твое и так, как говоришь ты.</p>
+            <p className="mt-0.5 text-[14px] leading-5 text-brand-text/80">Вставь ссылку или скрин. Сделаю по тому же принципу, но про твое и так, как говоришь ты.</p>
             <div className="mt-2.5 flex gap-2">
               <button type="button" onClick={pasteLink} className="h-11 px-4 rounded-xl bg-white border border-brand-border-soft text-[15px] text-brand-text cursor-pointer">Вставить ссылку</button>
               <button type="button" onClick={() => fileInput.current?.click()} className="h-11 px-4 rounded-xl bg-white border border-brand-border-soft text-[15px] text-brand-text cursor-pointer">Скрин</button>

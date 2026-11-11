@@ -21,8 +21,8 @@ services:
       GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: http://caddy:8088/magic_link.html
       GOTRUE_MAILER_SUBJECTS_CONFIRMATION: "Подтверди почту, и начнем"
       GOTRUE_MAILER_SUBJECTS_RECOVERY: "Ссылка для нового пароля"
-      GOTRUE_MAILER_SUBJECTS_EMAIL_CHANGE: "Подтверди новую почту"
-      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: "Вход в PsyCont"
+      GOTRUE_MAILER_SUBJECTS_EMAIL_CHANGE: "Подтверди смену почты"
+      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: "Твоя ссылка для входа"
       # срок ссылок из писем: 1 час (одно число на все письма)
       GOTRUE_MAILER_OTP_EXP: "3600"
       # повторное письмо одному человеку не чаще раза в минуту
