@@ -37,9 +37,24 @@ async function main() {
   assert.deepEqual(await call(), [200, 'ok', 'no-store'])
   assert.equal(hits, before, 'в пределах 10 с база не спрашивается повторно')
   srv2.close()
-  delete process.env.NEXT_PUBLIC_SUPABASE_URL
+  // одновременные запросы при медленной базе ждут один поход в базу
+  let slowHits = 0
+  const srv3 = createServer((_q, s) => { slowHits++; setTimeout(() => { s.writeHead(200, { 'Content-Type': 'application/json' }); s.end('[]') }, 300) })
+  await new Promise<void>(r => srv3.listen(port, '127.0.0.1', () => r()))
   process.env.HEALTH_TTL_MS = '0'
+  const many = await Promise.all([GET(), GET(), GET(), GET()])
+  assert.ok(many.every(r => r.status === 200), 'все параллельные ответы ok')
+  assert.equal(slowHits, 1, 'четыре одновременных запроса дали один запрос к базе')
+  // TTL не числом не ломает кеш навсегда
+  process.env.HEALTH_TTL_MS = 'abc'
+  assert.equal((await GET()).status, 200, 'TTL не числом: работает с 10 с по умолчанию')
+  srv3.close()
+  // кривой адрес базы: fail 503, а не 500
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'не адрес'
+  process.env.HEALTH_TTL_MS = '0'
+  assert.deepEqual(await call(), [503, 'fail', 'no-store'], 'кривой адрес: fail 503')
+  delete process.env.NEXT_PUBLIC_SUPABASE_URL
   assert.deepEqual(await call(), [503, 'fail', 'no-store'], 'без настроек: fail 503')
-  console.log('ok: /api/health отдает только ok или fail, кеш 10 с работает')
+  console.log('ok: /api/health отдает только ok или fail, кеш 10 с и один запрос на одновременные обращения')
 }
 main().catch(e => { console.error(e); process.exit(1) })
