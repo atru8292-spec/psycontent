@@ -4,6 +4,20 @@
 
 db.psycont.ru {
 	encode gzip
+	# проверка живости для внешнего мониторинга (UptimeRobot, 11.11): маленький запрос в базу через PostgREST,
+	# наружу только «ok» 200 или «fail» 503, без данных и без ключа (запрос идет роли anon, как у сайта)
+	handle /health {
+		rewrite * /plans?select=code&limit=1
+		reverse_proxy rest:3000 {
+			@ok status 2xx
+			handle_response @ok {
+				respond "ok" 200
+			}
+			handle_response {
+				respond "fail" 503
+			}
+		}
+	}
 	@api path /auth/v1/* /rest/v1/* /storage/v1/*
 	handle @api {
 		reverse_proxy api-gw:8000 {
