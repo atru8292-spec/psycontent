@@ -3,7 +3,8 @@
 // Для каждой проверки: ловит пример из замечаний Арины 11.11, не ловит похожий живой случай; на корпусе живых
 // текстов (банки zh6 в репо и _знания основной папки, если есть) ни одного срабатывания.
 import assert from 'node:assert/strict'
-import { samopredstavlenie, podvodka, vopros3, vrachAbzac, scenkaDlinno, abstrakciya, kachestvoMesta, dazheVKonce, dazheTik, ramkaKabineta, oblozhkaDlinno } from '../lib/generation/zh6/kachestvo'
+import { samopredstavlenie, podvodka, vopros3, vrachAbzac, scenkaDlinno, abstrakciya, kachestvoMesta, dazheVKonce, dazheTik, ramkaKabineta, oblozhkaDlinno, podpisPereskaz } from '../lib/generation/zh6/kachestvo'
+import { PRIMERY } from '../lib/generation/zh6/primery'
 import { zh6MemFromRows } from '../lib/generation/memory'
 import { defaultAbout } from '../lib/carousel/server'
 import { korpus } from './zh6/kachestvo-kalibr'
@@ -90,5 +91,16 @@ assert.deepEqual(codes(oblozhkaDlinno('Слайд 1: 4 признака, что 
 assert.deepEqual(codes(oblozhkaDlinno('Слайд 1: Ты делаешь все за двоих\nА он не замечает, и это давно\nСлайд 2: текст', true)), [], 'подзаголовок строкой ниже')
 assert.deepEqual(codes(oblozhkaDlinno('Слайд 1: очень длинная обложка из многих лишних слов для проверки порога длины\nСлайд 2: x', false)), [], 'не карусель')
 console.log('ok 11: обложка')
+
+// 12. подпись пересказывает ролик: утренняя сценка 11.11 ловится, живые подписи банка нет (их всего 3, порог осторожный).
+// Надпись, повторяющая первую реплику, кодом не ловится: у трети живых рилсов так (только правило в NADPIS)
+const scenka = 'Текст на экране: Все знаю, а сил сделать нет\n\nРечь:\nКлиентка: Сохранила пост про отдых и опять открыла рабочую переписку.\nПсихолог: Ты ждешь от себя сил, которые уже потратила.\nКлиентка: Легла и ругала себя. Опять ничего для себя не сделала, а сил оставалось только лежать.\n\nПодпись: Можно знать, как себе помочь, и быть слишком уставшей даже для этого. Еще и ругать себя за усталость.'
+assert.deepEqual(codes(podpisPereskaz(scenka, { thought: 'Можно знать, как себе помочь, и быть слишком уставшей для этого', quote: '' })), ['podpis_pereskaz'], 'цепочка из мысли ядра')
+assert.deepEqual(codes(podpisPereskaz('Речь: Я стираю полотенца, он сидит с телефоном, полотенца опять закончились.\n\nПодпись: Полотенца он стирает редко, а закончившиеся полотенца замечает сразу и сидит с телефоном.')), ['podpis_pereskaz'], 'больше половины слов из речи')
+assert.deepEqual(codes(podpisPereskaz('Речь: Я стираю полотенца, он сидит с телефоном.\n\nПодпись: Сняла это после третьей клиентки за неделю с тем же вопросом. А у вас кто дома стирает?')), [], 'повод и вопрос зрителю')
+const zhivyePodpisi = PRIMERY.filter(x => /^\s*Подпись\s*:/m.test(x.text))
+assert.ok(zhivyePodpisi.length >= 3)
+for (const x of zhivyePodpisi) assert.deepEqual(codes(podpisPereskaz(x.text)), [], `живая подпись ${x.id}`)
+console.log(`ok 12: подпись, ${zhivyePodpisi.length} живых подписи без срабатываний`)
 
 console.log('все тесты качества zh6 прошли')

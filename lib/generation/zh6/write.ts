@@ -326,7 +326,9 @@ export async function zh6Write(ctx: GenContext, req: GenRequest): Promise<Zh6Res
   const kodMesta = (t: string): Mesto[] => [...t.matchAll(/(?:слов[оа]\s+|напишите\s+|пишите\s+)[«"]?([А-ЯЁA-Z]{3,})[»"]?/gu)].filter(m => !`${s.booking || ''} ${s.kodovoeSlovo || ''}`.toUpperCase().includes(m[1])).map(m => ({ code: 'kodovoe_slovo', quote: m[0], why: 'кодового слова нет в профиле автора: напиши просто «напишите мне в директ», без придуманного слова и без обещания что-то прислать' }))
   // качество (11.11): самопредставление по шаблону, подводка и вопросы-задания, оговорка про врача абзацем, длинная
   // сценка, противопоставление с абстракцией, тик «даже», рамка кабинета, обложка (kachestvo.ts, сверено на 391 живом тексте)
-  const mestaOf = (t: string) => [...zh6Mesta(t, { sources, allowMat: allowMatOf(s), nadpis: !bezGolosa(p.format6) }), ...priemMesta(t), ...kodMesta(t), ...logikaMesta(t, s, { format6: p.format6.code }), ...kachestvoMesta(t, { intro: p.intro, scene: !!p.format6.scene, format6: p.format6.code, carousel: p.format6.for[0] === 'carousel', prevDazhe: zh6MemOf(ctx).dazhe || [] })]
+  // мысль и фраза ядра для проверки подписи на пересказ (kachestvo.ts podpisPereskaz)
+  const coreMysl = { thought: (String(req.coreBlock || '').match(/^Мысль:\s*(.+)$/mu) || [])[1] || '', quote: (String(req.coreBlock || '').match(/^Фраза для цитаты[^:]*:\s*(.+)$/mu) || [])[1] || '' }
+  const mestaOf = (t: string) => [...zh6Mesta(t, { sources, allowMat: allowMatOf(s), nadpis: !bezGolosa(p.format6) }), ...priemMesta(t), ...kodMesta(t), ...logikaMesta(t, s, { format6: p.format6.code }), ...kachestvoMesta(t, { intro: p.intro, scene: !!p.format6.scene, format6: p.format6.code, carousel: p.format6.for[0] === 'carousel', prevDazhe: zh6MemOf(ctx).dazhe || [], core: coreMysl })]
   const mesta = mestaOf(text)
   let pravka = false
   const ostatok = ZH6_DEADLINE_MS - (Date.now() - t0)

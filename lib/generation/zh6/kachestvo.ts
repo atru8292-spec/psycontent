@@ -115,6 +115,28 @@ export function oblozhkaDlinno(text: string, carousel: boolean): Mesto[] {
   return n > OBLOZHKA_MAX ? [{ code: 'oblozhka', quote: m[1].trim(), why: `обложка ${n} слов: сократи до ${OBLOZHKA_MAX}, остальное можно отдать подзаголовку строкой ниже или следующему слайду` }] : []
 }
 
+// 10. Подпись пересказывает ролик или продолжает его сцену (11.11, решение Арины): больше половины значимых слов
+// подписи уже есть в речи или надписях, или в подписи цепочка из трех слов мысли ядра (core.thought, core.quote).
+// Живых подписей для калибровки мало (3 в банке zh6-primery), поэтому пороги осторожные.
+const STOP = new Set(['этого', 'этому', 'потом', 'когда', 'только', 'тоже', 'чтобы', 'очень', 'просто', 'можно', 'нужно', 'тебя', 'себя', 'тебе', 'себе', 'меня', 'всего', 'всех', 'всегда', 'иногда', 'сейчас', 'теперь', 'опять', 'снова', 'будто', 'вроде', 'этот', 'этой', 'такой', 'такая', 'какой', 'какая', 'который', 'которая', 'потому', 'почему', 'если', 'даже', 'хоть', 'хотя', 'было', 'будет', 'есть', 'быть', 'уже', 'еще', 'свой', 'своя', 'свои', 'твой', 'твоя', 'твои'])
+export const osnovy = (t: string) => new Set(slova(t).filter(w => w.length >= 4 && !STOP.has(w)).map(w => w.slice(0, 5)))
+const tri = (t: string) => { const w = slova(t); const out = new Set<string>(); for (let i = 0; i + 3 <= w.length; i++) if (w.slice(i, i + 3).some(x => x.length > 3)) out.add(w.slice(i, i + 3).join(' ')); return out }
+export function podpisPereskaz(text: string, core?: { thought?: string; quote?: string }): Mesto[] {
+  const pod = podpisOf(text).trim()
+  if (!pod) return []
+  const telo = bezPodpisi(text)
+  const p = osnovy(pod), t = osnovy(telo)
+  const obshie = [...p].filter(x => t.has(x)).length
+  const myslTri = core ? [...tri(`${core.thought || ''} . ${core.quote || ''}`)] : []
+  const triPod = tri(pod)
+  const izYadra = myslTri.find(x => triPod.has(x))
+  if (izYadra || (p.size >= 4 && obshie / p.size >= 0.5)) return [{ code: 'podpis_pereskaz', quote: pod.slice(0, 160), why: 'подпись пересказывает ролик или продолжает его сцену: дай то, чего в ролике нет (почему ты это сняла, как это у тебя в работе или жизни, или простой вопрос зрителю), без оценки ролика и без новых предметов' }]
+  return []
+}
+
+// Надпись, повторяющая первую реплику, кодом не ловится (11.11): у живых это частый прием (в разборе рилсов
+// надпись совпадает с первой фразой речи у трети роликов), поэтому только правило в NADPIS (formaty.ts).
+
 function frazaS(text: string, at: number): string {
   const a = Math.max(text.lastIndexOf('.', at - 1), text.lastIndexOf('!', at - 1), text.lastIndexOf('?', at - 1), text.lastIndexOf('\n', at - 1)) + 1
   const ends = ['.', '!', '?', '\n'].map(c => text.indexOf(c, at + 1)).filter(x => x >= 0)
@@ -124,7 +146,7 @@ function frazaS(text: string, at: number): string {
 
 // все проверки качества разом; intro: просили ли представиться в этот раз; scene: формат сценки; format6: код вида;
 // carousel: карусель; prevDazhe: «даже» в конце прошлых материалов автора (по порядку, последний в конце)
-export function kachestvoMesta(text: string, o: { intro: boolean; scene: boolean; format6?: string; carousel?: boolean; prevDazhe?: boolean[] }): Mesto[] {
+export function kachestvoMesta(text: string, o: { intro: boolean; scene: boolean; format6?: string; carousel?: boolean; prevDazhe?: boolean[]; core?: { thought?: string; quote?: string } }): Mesto[] {
   return [...samopredstavlenie(text, o), ...podvodka(text), ...vopros3(text), ...vrachAbzac(text), ...scenkaDlinno(text, o.scene), ...abstrakciya(text),
-    ...dazheTik(text, o.prevDazhe || []), ...ramkaKabineta(text, o.format6 || ''), ...oblozhkaDlinno(text, !!o.carousel)]
+    ...dazheTik(text, o.prevDazhe || []), ...ramkaKabineta(text, o.format6 || ''), ...oblozhkaDlinno(text, !!o.carousel), ...podpisPereskaz(text, o.core)]
 }
