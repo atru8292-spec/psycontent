@@ -3,7 +3,8 @@
 // Для каждой проверки: ловит пример из замечаний Арины 11.11, не ловит похожий живой случай; на корпусе живых
 // текстов (банки zh6 в репо и _знания основной папки, если есть) ни одного срабатывания.
 import assert from 'node:assert/strict'
-import { samopredstavlenie, podvodka, vopros3, vrachAbzac, scenkaDlinno, abstrakciya, kachestvoMesta } from '../lib/generation/zh6/kachestvo'
+import { samopredstavlenie, podvodka, vopros3, vrachAbzac, scenkaDlinno, abstrakciya, kachestvoMesta, dazheVKonce, dazheTik, ramkaKabineta, oblozhkaDlinno } from '../lib/generation/zh6/kachestvo'
+import { zh6MemFromRows } from '../lib/generation/memory'
 import { defaultAbout } from '../lib/carousel/server'
 import { korpus } from './zh6/kachestvo-kalibr'
 
@@ -48,10 +49,14 @@ assert.deepEqual(codes(abstrakciya('Отпуск закончился, а уст
 assert.deepEqual(codes(abstrakciya('Он ушел на работу, а я осталась дома с детьми.')), [], 'конкретное лицо')
 console.log('ok 6: абстракция')
 
-// 7. живые тексты: ни одного срабатывания
+// 7. живые тексты: ни одного срабатывания (жесткий режим: рамка кабинета у всех, «даже» как будто уже было дважды).
+// Обложку здесь не считаем: у трети живых каруселей обложка длиннее 9 слов, а правило «до 9» решение Арины 11.11
+// (длинные живые обложки не эталон для наших), его проверяет тест 11
 const live = korpus()
 assert.ok(live.length >= 200, `корпус ${live.length}`)
-const lozh = live.flatMap(z => kachestvoMesta(z.text, { intro: false, scene: z.scene }).map(m => `${z.id}: ${m.code}: ${m.quote.slice(0, 80)}`))
+const lozh = live.flatMap(z => kachestvoMesta(z.text, { intro: false, scene: z.scene, format6: 'post_kabinet', prevDazhe: [] }).map(m => `${z.id}: ${m.code}: ${m.quote.slice(0, 80)}`))
+const dazheLive = live.filter(z => dazheVKonce(z.text)).length
+assert.ok(dazheLive / live.length < 0.05, `«даже» в конце у ${dazheLive} живых`)
 assert.deepEqual(lozh, [], `ложные срабатывания на живых:\n${lozh.join('\n')}`)
 console.log(`ok 7: ${live.length} живых текстов без срабатываний`)
 
@@ -61,5 +66,29 @@ assert.equal(defaultAbout({ one_niche: 'Выгорание и стресс', blo
 assert.equal(defaultAbout({ blog_about: 'x'.repeat(90) }), 'Психолог')
 assert.ok(!/работаю с темой/.test(defaultAbout({ one_niche: 'Тревога' })))
 console.log('ok 8: строка о себе без шаблона')
+
+// 9. тик «даже» в конце: ловим, если было и в одном из двух прошлых материалов автора
+const sDazhe = 'Ты лежишь и думаешь о делах. Даже когда все уже сделано.'
+assert.ok(dazheVKonce(sDazhe) && dazheVKonce('Слайд 1: текст\n\nПодпись: Даже полежать хочется с пользой.'))
+assert.ok(!dazheVKonce('Даже не знаю, с чего начать. А закончу просто.'), '«даже» не в последней фразе')
+assert.deepEqual(codes(dazheTik(sDazhe, [false, true])), ['dazhe'])
+assert.deepEqual(codes(dazheTik(sDazhe, [true, false, false])), [], 'было три текста назад, не тик')
+assert.deepEqual(codes(dazheTik(sDazhe, [])), [], 'первый текст автора')
+const mem = zh6MemFromRows([{ content: 'Новый. Даже так.', check_result: { zh4: { zh6: { ustr: 'post_direkt' } } } }, { content: 'Старый. Просто так.', check_result: { zh4: { zh6: { ustr: 'post_kabinet' } } } }])
+assert.deepEqual(mem.dazhe, [false, true], 'память: по порядку, последний в конце')
+console.log('ok 9: тик «даже»')
+
+// 10. рамка консультации только в «Истории из кабинета»
+const kab = 'В такой собирательной истории женщина перечисляет дела. Вот на это я бы обратила внимание. В работе здесь я бы спросила: кто моет?'
+assert.deepEqual(codes(ramkaKabineta(kab, 'post_kabinet')), ['ramka_kabineta'])
+assert.deepEqual(codes(ramkaKabineta('Я бы спросила, что ты сейчас чувствуешь.', 'reels_golova')), [], 'другой формат')
+assert.deepEqual(codes(ramkaKabineta('Я спрашиваю: кто моет посуду? Она молчит.', 'post_kabinet')), [], 'прямо, без «я бы»')
+console.log('ok 10: рамка кабинета')
+
+// 11. обложка карусели до 9 слов (первая строка слайда 1, подзаголовок строкой ниже не считается)
+assert.deepEqual(codes(oblozhkaDlinno('Слайд 1: 4 признака, что дома ты уже делаешь все за двоих, а он считает, что тебя все устраивает\nСлайд 2: текст', true)), ['oblozhka'])
+assert.deepEqual(codes(oblozhkaDlinno('Слайд 1: Ты делаешь все за двоих\nА он не замечает, и это давно\nСлайд 2: текст', true)), [], 'подзаголовок строкой ниже')
+assert.deepEqual(codes(oblozhkaDlinno('Слайд 1: очень длинная обложка из многих лишних слов для проверки порога длины\nСлайд 2: x', false)), [], 'не карусель')
+console.log('ok 11: обложка')
 
 console.log('все тесты качества zh6 прошли')

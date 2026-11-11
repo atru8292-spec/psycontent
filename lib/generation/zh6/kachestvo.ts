@@ -83,6 +83,38 @@ export function abstrakciya(text: string): Mesto[] {
   return m ? [{ code: 'abstrakciya', quote: frazaS(text, m.index || 0), why: 'противопоставление сцены и абстракции: вместо отвлеченного слова скажи, что человек делает или чувствует, конкретно' }] : []
 }
 
+// 7. Тик «даже» в конце (11.11, решение Арины): «даже» в последней фразе текста или подписи чаще раза из трех по
+// последним материалам автора. prev: отметки прошлых материалов по порядку (memory.ts zh6MemFromRows, dazhe).
+const DAZHE = /(?<![\p{L}])даже(?![\p{L}])/iu
+const poslednyaya = (t: string) => { const f = frazy(t); return f.length ? f[f.length - 1] : '' }
+export function dazheVKonce(text: string): boolean {
+  return DAZHE.test(poslednyaya(bezPodpisi(text))) || DAZHE.test(poslednyaya(podpisOf(text)))
+}
+export function dazheTik(text: string, prev: boolean[]): Mesto[] {
+  if (!dazheVKonce(text) || !prev.slice(-2).some(Boolean)) return []
+  const q = DAZHE.test(poslednyaya(bezPodpisi(text))) ? poslednyaya(bezPodpisi(text)) : poslednyaya(podpisOf(text))
+  return [{ code: 'dazhe', quote: q, why: '«даже» в последней фразе уже было в прошлых текстах автора, это стало тиком: договори мысль без «даже» или оборви' }]
+}
+
+// 8. Рамка консультации в «Истории из кабинета» (11.11): «я бы обратила внимание», «я бы спросила», «в такой
+// собирательной истории». Психолог говорит о своей работе уверенно, без условного «я бы» и без пометки «собирательная».
+const RAMKA_RE = /(?<![\p{L}])я\s+бы\s+(?:обратил\p{L}*\s+внимание|спросил\p{L}*|предложил\p{L}*|заметил\p{L}*)|в\s+так(?:ой|их)\s+собирательн\p{L}*\s+истори\p{L}*|собирательн\p{L}*\s+истори\p{L}*/iu
+export function ramkaKabineta(text: string, format6: string): Mesto[] {
+  if (format6 !== 'post_kabinet') return []
+  const m = text.match(RAMKA_RE)
+  return m ? [{ code: 'ramka_kabineta', quote: frazaS(text, m.index || 0), why: 'рамка консультации («я бы обратила внимание», «собирательная история»): говори о своей работе прямо и уверенно, как о том, что видишь каждую неделю' }] : []
+}
+
+// 9. Обложка карусели длиннее 9 слов (11.11): первая строка слайда 1, подзаголовок строкой ниже не считается.
+export const OBLOZHKA_MAX = 9
+export function oblozhkaDlinno(text: string, carousel: boolean): Mesto[] {
+  if (!carousel) return []
+  const m = text.match(/^\s*Слайд\s*1\s*:\s*(.+)$/mu)
+  if (!m) return []
+  const n = slova(m[1]).length
+  return n > OBLOZHKA_MAX ? [{ code: 'oblozhka', quote: m[1].trim(), why: `обложка ${n} слов: сократи до ${OBLOZHKA_MAX}, остальное можно отдать подзаголовку строкой ниже или следующему слайду` }] : []
+}
+
 function frazaS(text: string, at: number): string {
   const a = Math.max(text.lastIndexOf('.', at - 1), text.lastIndexOf('!', at - 1), text.lastIndexOf('?', at - 1), text.lastIndexOf('\n', at - 1)) + 1
   const ends = ['.', '!', '?', '\n'].map(c => text.indexOf(c, at + 1)).filter(x => x >= 0)
@@ -90,7 +122,9 @@ function frazaS(text: string, at: number): string {
   return text.slice(a, b).replace(LABEL, '').trim()
 }
 
-// все проверки качества разом; intro: просили ли представиться в этот раз; scene: формат сценки
-export function kachestvoMesta(text: string, o: { intro: boolean; scene: boolean }): Mesto[] {
-  return [...samopredstavlenie(text, o), ...podvodka(text), ...vopros3(text), ...vrachAbzac(text), ...scenkaDlinno(text, o.scene), ...abstrakciya(text)]
+// все проверки качества разом; intro: просили ли представиться в этот раз; scene: формат сценки; format6: код вида;
+// carousel: карусель; prevDazhe: «даже» в конце прошлых материалов автора (по порядку, последний в конце)
+export function kachestvoMesta(text: string, o: { intro: boolean; scene: boolean; format6?: string; carousel?: boolean; prevDazhe?: boolean[] }): Mesto[] {
+  return [...samopredstavlenie(text, o), ...podvodka(text), ...vopros3(text), ...vrachAbzac(text), ...scenkaDlinno(text, o.scene), ...abstrakciya(text),
+    ...dazheTik(text, o.prevDazhe || []), ...ramkaKabineta(text, o.format6 || ''), ...oblozhkaDlinno(text, !!o.carousel)]
 }

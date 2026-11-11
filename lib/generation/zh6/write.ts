@@ -21,7 +21,7 @@ const seedOf = (s: string) => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0))
 const median = (xs: number[]) => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : 0 }
 
 // что помнит прогон или продукт про прошлые тексты автора: устройства и примеры (чтобы не повторять)
-export type Zh6Memory = { ustr: string[]; primery: string[]; nach?: string[]; kon?: string[]; priemy?: string[] }
+export type Zh6Memory = { ustr: string[]; primery: string[]; nach?: string[]; kon?: string[]; priemy?: string[]; dazhe?: boolean[] }
 export const zh6MemOf = (ctx: GenContext): Zh6Memory => ((ctx.memory as any)?.zh6 as Zh6Memory) || { ustr: [], primery: [] }
 
 export const allowMatOf = (s: AuthorSettings) => !/^не использовать/u.test(s.profanityRule || '')
@@ -326,7 +326,7 @@ export async function zh6Write(ctx: GenContext, req: GenRequest): Promise<Zh6Res
   const kodMesta = (t: string): Mesto[] => [...t.matchAll(/(?:слов[оа]\s+|напишите\s+|пишите\s+)[«"]?([А-ЯЁA-Z]{3,})[»"]?/gu)].filter(m => !`${s.booking || ''} ${s.kodovoeSlovo || ''}`.toUpperCase().includes(m[1])).map(m => ({ code: 'kodovoe_slovo', quote: m[0], why: 'кодового слова нет в профиле автора: напиши просто «напишите мне в директ», без придуманного слова и без обещания что-то прислать' }))
   // качество (11.11): самопредставление по шаблону, подводка и вопросы-задания, оговорка про врача абзацем, длинная
   // сценка, противопоставление с абстракцией (kachestvo.ts, проверены на 391 живом тексте без срабатываний)
-  const mestaOf = (t: string) => [...zh6Mesta(t, { sources, allowMat: allowMatOf(s) }), ...priemMesta(t), ...kodMesta(t), ...logikaMesta(t, s, { format6: p.format6.code }), ...kachestvoMesta(t, { intro: p.intro, scene: !!p.format6.scene })]
+  const mestaOf = (t: string) => [...zh6Mesta(t, { sources, allowMat: allowMatOf(s) }), ...priemMesta(t), ...kodMesta(t), ...logikaMesta(t, s, { format6: p.format6.code }), ...kachestvoMesta(t, { intro: p.intro, scene: !!p.format6.scene, format6: p.format6.code, carousel: p.format6.for[0] === 'carousel', prevDazhe: zh6MemOf(ctx).dazhe || [] })]
   const mesta = mestaOf(text)
   let pravka = false
   const ostatok = ZH6_DEADLINE_MS - (Date.now() - t0)

@@ -5,9 +5,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { extractOpening, findSignatures, ALL_FORMATS, type FormatCode } from './text-guard'
 import { activeHyps } from './hypotheses'
+import { dazheVKonce } from './zh6/kachestvo'
 
 // zh6: что было у автора в последних материалах zh6 (последние в конце, как ждет zh6MemOf в zh6/write.ts)
-export type Zh6Mem = { ustr: string[]; primery: string[]; kon: string[]; priemy: string[] }
+export type Zh6Mem = { ustr: string[]; primery: string[]; kon: string[]; priemy: string[]; dazhe?: boolean[] }
 
 export type Memory = {
   count: number
@@ -44,12 +45,14 @@ const toFormat = (row: any): FormatCode => {
 
 // zh6 из строк (от нового к старому): разворачиваем, чтобы последние были в конце; primery плоским списком
 export function zh6MemFromRows(rows: any[]): Zh6Mem {
-  const mem: Zh6Mem = { ustr: [], primery: [], kon: [], priemy: [] }
+  const mem: Zh6Mem = { ustr: [], primery: [], kon: [], priemy: [], dazhe: [] }
   const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 80) : '')
   const strs = (v: unknown) => (Array.isArray(v) ? v.map(str).filter(Boolean) : [])
   for (const r of [...rows].reverse()) {
     const z = r?.check_result?.zh4?.zh6
     if (!z || typeof z !== 'object') continue
+    // «даже» в последней фразе или подписи (11.11): тик ловит kachestvo.ts dazheTik
+    mem.dazhe!.push(dazheVKonce(String(r?.content || '')))
     if (str(z.ustr)) mem.ustr.push(str(z.ustr))
     if (str(z.kon)) mem.kon.push(str(z.kon))
     mem.primery.push(...strs(z.primery))
