@@ -49,6 +49,9 @@ PsyCont: папка /var/www/psycont, порт 3001, процесс pm2 «psycon
 - update.sh: git fetch, git reset --hard origin/main, npm install, npm run build, pm2 restart psycont; .env не в git и не трогается. Если сборка падает на next/font (Google Fonts), повторить один раз; второе падение или другая ошибка: стоп и к Арине.
 - Флаги на проде (11.11): PROMPT_HYP=zh6, NEW_GENERATION_PIPELINE=all (новый кабинет всем). Рядом рабочая копия .env.ru-rabochiy, ее держать в том же виде, что .env.
 
+СТОРОЖ БАЗЫ (11.11, сервер базы psycont@141.133.187.249, файлы в deploy/baza-ru/monitor): psycont-dbwatch.timer каждые 2 минуты проверяет контейнеры Supabase, pg_isready, db.psycont.ru через Caddy (200 с anon-ключом), память от 250 МБ и диск до 90%; после двух сбоев подряд письмо «PsyCont: сбой базы» на ALERT_TO (atru8292@gmail.com) через notify.py бэкапа (SMTP.bz), потом письмо «база снова работает». psycont-bootcheck.service при каждой загрузке пишет, штатно ли выключался сервер (в журнале прошлой загрузки «systemd[1]: Reached target poweroff/reboot.target») и сколько минут база была недоступна. Сторож ничего не перезапускает. Если сервер базы выключен целиком, сторож на нем молчит: внешней проверки пока нет (нужен второй сервер со своими доступами SMTP, решение Арины). Состояние в /var/lib/psycont-dbwatch, журнал `sudo journalctl -u psycont-dbwatch --since today`.
+- СБОЙ 11.11: сервер базы оборвался в 11:54:05 без штатного выключения (журнал кончается без «Reached target poweroff»; OOM, паники и зависаний ядра нет, памяти хватало) и загрузился в 12:09:26, контейнеры поднялись сами в 12:09:32. 15 минут база была недоступна, отсюда «ConnectTimeoutError db.psycont.ru» в psycont-error.log (запросы /api/ev в 11:55 молча не записались). В 11:06 был штатный выключатель через агент хостинга (qemu-ga guest-shutdown). Причина 11:54 на стороне хостинга (жесткий сброс в панели или сбой хоста), из журналов сервера ее не видно.
+
 ---
 
 ## Бренд

@@ -1,0 +1,12 @@
+[Unit]
+Description=PsyCont: письмо о перезагрузке сервера базы
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/supabase/monitor/bootcheck.sh
+TimeoutStartSec=5min
+
+[Install]
+WantedBy=multi-user.target

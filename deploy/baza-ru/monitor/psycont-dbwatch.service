@@ -1,0 +1,8 @@
+[Unit]
+Description=PsyCont: сторож базы (только проверка и письмо, без перезапусков)
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/supabase/monitor/dbwatch.sh
