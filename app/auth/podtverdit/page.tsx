@@ -87,7 +87,7 @@ export default function ConfirmPage() {
           />
         )}
         <p className="text-xs text-brand-muted text-center mt-4">
-          <Link href="/?auth=login" className="text-brand-accent font-medium hover:underline">{T.linkExpiredLogin}</Link>
+          <Link href="/?auth=login" className="text-brand-accent font-medium no-underline hover:text-brand-accent-hover">{T.linkExpiredLogin}</Link>
         </p>
       </AuthShell>
     )

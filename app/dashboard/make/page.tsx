@@ -688,8 +688,8 @@ function MakeContent() {
           <Squiggle variant={0} width="60%" />
           <p className="text-brand-text-secondary mt-3">
             {firstMode
-              ? 'Напиши или скажи мысль из практики, и я соберу из нее пост в твоем голосе'
-              : 'Тема и формат, остальное по желанию. Пишу в твоем голосе'}
+              ? 'Напиши или скажи мысль из практики, и я соберу из нее пост так, как говоришь ты'
+              : 'Тема и формат, остальное по желанию. Пишу так, как говоришь ты'}
           </p>
         </motion.div>
 
@@ -894,7 +894,7 @@ function MakeContent() {
               className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl text-base font-semibold transition cursor-pointer ${canGenerate && !generating ? 'bg-brand-accent text-white hover:bg-brand-accent-hover shadow-lg shadow-brand-accent/25' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
             >
               {generating ? (
-                <><Loader2 className="w-5 h-5 animate-spin" /> {firstMode ? 'Собираю пост в твоем голосе' : 'Пишу'}</>
+                <><Loader2 className="w-5 h-5 animate-spin" /> {firstMode ? 'Собираю пост так, как говоришь ты' : 'Пишу'}</>
               ) : (
                 <><Sparkles className="w-5 h-5" /> {firstMode ? 'Собрать пост' : hasDraft ? 'Доработать черновик' : !newGen && OLD_PAGES[selectedFormat] ? `Открыть ${selectedFormat === 'carousel' ? 'карусели' : 'Reels'}` : 'Сделать'}</>
               )}
@@ -971,10 +971,10 @@ function MakeContent() {
                     variant={0}
                     title={firstMode ? 'Твой пост появится здесь' : fromPlan ? 'Готово к записи' : 'Текст появится здесь'}
                     subtitle={firstMode
-                      ? 'Впиши мысль слева или возьми затравку, и я соберу пост в твоем голосе.'
+                      ? 'Впиши мысль слева или возьми затравку, и я соберу пост так, как говоришь ты.'
                       : fromPlan
                       ? 'Тема из твоего плана уже выбрана. Нажми «Сделать».'
-                      : 'Напиши тему, выбери формат, и я напишу в твоем голосе.'}
+                      : 'Напиши тему, выбери формат, и я напишу так, как говоришь ты.'}
                   />
                 </motion.div>
               )}
@@ -992,7 +992,7 @@ function MakeContent() {
                     <span className="w-2.5 h-2.5 rounded-full bg-brand-sage animate-bounce" style={{ animationDelay: '150ms' }} />
                     <span className="w-2.5 h-2.5 rounded-full bg-brand-sage animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
-                  <p className="font-semibold text-brand-text">Пишу {FORMAT_WORD[formatCode] || 'пост'} в твоем голосе</p>
+                  <p className="font-semibold text-brand-text">Пишу {FORMAT_WORD[formatCode] || 'пост'} так, как говоришь ты</p>
                   <p className="text-sm text-brand-text-secondary mt-1">Обычно 10-20 секунд</p>
                 </motion.div>
               )}

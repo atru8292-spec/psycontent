@@ -10,6 +10,7 @@ import {
   Heart, MapPin, Loader2, AlertTriangle
 } from 'lucide-react'
 import VoiceTextarea from '@/components/VoiceTextarea'
+import { syncEmailName } from '@/lib/auth-name'
 
 // Профиль практики (этап 5.5 шаг 2): только ФАКТЫ о работе. Стиль и личность теперь
 // целиком держит тест-архетип, поэтому стилевые вопросы (тон, ценности, суперсилы,
@@ -286,6 +287,8 @@ export default function EditProfile() {
       return
     }
 
+    // имя для писем входа («{имя}, привет!»), в фоне
+    void syncEmailName(profileData.full_name)
     setCompleted(true)
   }
 

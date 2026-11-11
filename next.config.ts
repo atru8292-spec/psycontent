@@ -20,6 +20,14 @@ const nextConfig: NextConfig = {
     contentDispositionType: 'inline',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
+  // Шрифт Onest и картинки для писем входа (scripts/email-templates.mjs) грузят почтовики с чужого адреса:
+  // без разрешения CORS Apple Mail и iOS не берут веб-шрифт и показывают Helvetica. Файлы и так публичные.
+  async headers() {
+    return [
+      { source: '/carousel/fonts/:file*', headers: [{ key: 'Access-Control-Allow-Origin', value: '*' }] },
+      { source: '/email/:file*', headers: [{ key: 'Access-Control-Allow-Origin', value: '*' }, { key: 'Cache-Control', value: 'public, max-age=604800' }] },
+    ]
+  },
 };
 
 export default nextConfig;
