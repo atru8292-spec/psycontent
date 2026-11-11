@@ -268,6 +268,11 @@ async function main() {
     }
     const p2 = sobiratelnaya(`${post}\n\nИстория собирательная, совпадения случайны`, 'post_kabinet')
     assert.equal(p2, `${post}\n\n${SOBIR_LINE}`, 'пост: строка без точки заменяется своей')
+    // фраза автора со словами «история собирательная» внутри текста не вырезается (ревью 11.11)
+    for (const body of ['Это история собирательного образа, а не одной клиентки. Дальше текст.', 'Моя история собирательная по сути. Дальше.']) {
+      assert.equal(sobiratelnaya(body, 'post_kabinet'), `${body}\n\n${SOBIR_LINE}`, `тело не тронуто: ${body}`)
+    }
+    assert.equal(sobiratelnaya(SOBIR_LINE, 'post_kabinet'), SOBIR_LINE, 'текст из одной строки не становится пустым')
     // не пропадает после проверки набора: в group/route.ts дописывание после rewritePhrases и stripAds, до сохранения
     const gr = readFileSync(join(__dirname, '..', 'app', 'api', 'generate-post', 'group', 'route.ts'), 'utf8')
     const iSob = gr.indexOf('sobiratelnaya(item.text')
