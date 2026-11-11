@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 // Кнопка «Войти с Яндекс ID» по правилам Яндекса (https://yandex.ru/dev/id/doc/ru/codes/buttons-design), решение
 // designer-psycont 10.11: ДОПОЛНИТЕЛЬНАЯ (белая с черной обводкой) скругленная версия, вариант login-with-yandex-5.svg
@@ -11,12 +11,18 @@ import { useState } from "react"
 // между ними менять нельзя. Одна кнопка на все места входа через Яндекс.
 export default function YandexIdButton({ href = "/auth/yandex/start" }: { href?: string }) {
   const [busy, setBusy] = useState(false)
+  // Вернулись с Яндекса кнопкой «Назад»: страница поднимается из кеша браузера со старым busy, снимаем блок
+  useEffect(() => {
+    const f = (e: PageTransitionEvent) => { if (e.persisted) setBusy(false) }
+    window.addEventListener("pageshow", f)
+    return () => window.removeEventListener("pageshow", f)
+  }, [])
   return (
     <a
       href={href}
       aria-label="Войти с Яндекс ID"
       aria-busy={busy || undefined}
-      onClick={() => setBusy(true)}
+      onClick={(e) => { if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) setBusy(true) }}
       className={`w-full h-12 flex items-center justify-center bg-white border border-black rounded-[21px] cursor-pointer transition-shadow duration-150 [@media(hover:hover)]:hover:shadow-[0_2px_10px_rgb(59_42_34/0.12)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent active:scale-[0.98] ${busy ? "pointer-events-none" : ""}`}
     >
       <svg width="223" height="48" viewBox="0 0 260 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" className="shrink-0">

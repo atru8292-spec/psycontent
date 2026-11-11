@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient } from '@/utils/supabase/server'
 import { publicOrigin } from '@/lib/origin'
+import { firstName } from '@/lib/first-name'
 
 // Шаг 2 входа через Яндекс. Яндекс вернул сюда ?code=...
 // Мы: меняем код на токен → узнаём email/имя → находим или заводим пользователя
@@ -56,8 +57,11 @@ export async function GET(req: Request) {
   await admin.auth.admin.createUser({
     email,
     email_confirm: true,
-    // imya: первое слово имени для писем входа («{имя}, привет!»), см. lib/auth-name.ts
-    user_metadata: fullName ? { full_name: fullName, imya: String(info.first_name || '').trim().split(/\s+/)[0].slice(0, 40) } : {},
+    // imya: имя для писем входа («{имя}, привет!»), то же правило, что у триггера базы (lib/first-name.ts)
+    user_metadata: {
+      ...(fullName ? { full_name: fullName } : {}),
+      ...(firstName(info.first_name) ? { imya: firstName(info.first_name) } : {}),
+    },
     app_metadata: { provider: 'yandex', providers: ['yandex'] },
   })
 
