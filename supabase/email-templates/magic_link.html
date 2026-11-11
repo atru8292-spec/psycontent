@@ -1,45 +1,76 @@
 <!doctype html>
-<html lang="ru" xmlns="http://www.w3.org/1999/xhtml">
+<html lang="ru">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="color-scheme" content="light only">
 <meta name="supported-color-schemes" content="light only">
-<title>Вход в PsyCont</title>
+<title>Твоя ссылка для входа</title>
 <style>
+@font-face{font-family:'Onest';font-style:normal;font-weight:400;src:url(https://psycont.ru/carousel/fonts/Onest_400Regular.ttf) format('truetype')}
+@font-face{font-family:'Onest';font-style:normal;font-weight:700;src:url(https://psycont.ru/carousel/fonts/Onest_700Bold.ttf) format('truetype')}
 :root{color-scheme:light only;supported-color-schemes:light only}
-@media (max-width:480px){.wrap{padding:24px 12px !important}.card{padding:24px 20px !important}.btn{width:100% !important}.btn a{display:block !important;box-sizing:border-box !important;width:100% !important;min-width:0 !important}}
+[data-ogsc] .btn-text{color:#FFFFFF !important}
+[data-ogsb] .btn-bg{background-color:#33472B !important}
+@media (max-width:480px){
+.wrap{padding:24px 12px !important}
+.card{padding:24px 20px !important}
+.h1{font-size:23px !important;line-height:30px !important}
+.small,.sig2,.foot{font-size:15px !important;line-height:22px !important}
+}
 </style>
 </head>
 <body style="margin:0;padding:0;background:#F5EFE4;-webkit-text-size-adjust:100%;">
-<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:#F5EFE4;">Одна кнопка, и ты в кабинете, пароль не нужен&#8203;&#847;&#8203;&#847;&#8203;&#847;&#8203;&#847;&#8203;&#847;&#8203;&#847;</div>
+<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:#F5EFE4;">Нажми кнопку, и откроется кабинет. Пароль не нужен&#8203;&#847;&#8203;&#847;&#8203;&#847;&#8203;&#847;&#8203;&#847;&#8203;&#847;</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#F5EFE4" style="background:#F5EFE4;">
-<tr><td class="wrap" align="center" style="padding:32px 16px;">
+<tr><td class="wrap" align="center" style="padding:40px 16px 32px 16px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
-<tr><td align="center" style="padding:0 0 24px 0;">
-<a href="https://psycont.ru" style="text-decoration:none;"><img src="https://psycont.ru/brand/psycont-wordmark.png" width="160" height="43" alt="PsyCont" style="display:block;border:0;outline:none;width:160px;height:auto;"></a>
+<tr><td align="center" style="padding:0 0 20px 0;">
+<a href="https://psycont.ru" style="text-decoration:none;"><img src="https://psycont.ru/email/wordmark-email.png" width="132" height="36" alt="PsyCont" style="display:block;border:0;outline:none;width:132px;height:36px;font-family:'Onest',Helvetica,Arial,sans-serif;font-size:18px;font-weight:700;color:#33472B;"></a>
 </td></tr>
-<tr><td class="card" bgcolor="#FFFFFF" style="background:#FFFFFF;border:1px solid #E3DACB;border-radius:24px;padding:32px 28px;">
-<p style="margin:0;font-family:'Onest',Arial,Helvetica,sans-serif;font-size:22px;line-height:30px;font-weight:700;color:#3B2A22;padding-bottom:12px;">Вход без пароля</p>
-<p style="margin:0;font-family:'Onest',Arial,Helvetica,sans-serif;font-size:16px;line-height:24px;color:#3B2A22;">Нажми кнопку, и откроется твой кабинет.</p>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" class="btn" style="margin-top:24px;">
-<tr><td align="center" bgcolor="#33472B" style="background:#33472B;border-radius:16px;">
-<a href="{{ .SiteURL }}/auth/podtverdit?token_hash={{ .TokenHash }}&type=magiclink" target="_blank" style="display:inline-block;min-width:164px;padding:14px 28px;font-family:'Onest',Arial,Helvetica,sans-serif;font-size:16px;line-height:20px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:16px;text-align:center;">Войти в PsyCont</a>
+<tr><td class="card" bgcolor="#FFFFFF" style="background:#FFFFFF;border:1px solid #E3DACB;border-radius:24px;padding:32px 36px;">
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+<td width="72" valign="bottom" style="width:72px;vertical-align:bottom;"><img src="https://psycont.ru/email/vera-privet.png" width="72" height="80" alt="" style="display:block;border:0;width:72px;height:80px;"></td>
+<td valign="middle" style="padding-left:12px;vertical-align:middle;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+<td bgcolor="#F4EEFA" style="background:#F4EEFA;border-radius:18px 18px 18px 4px;padding:10px 16px;font-family:'Onest',Helvetica,Arial,sans-serif;font-size:17px;line-height:24px;font-weight:700;color:#3B2A22;">{{ if .Data.imya }}{{ .Data.imya }}, привет!{{ else }}Привет!{{ end }}</td>
+</tr></table>
+</td>
+</tr></table>
+
+<p class="h1" style="margin:0;padding-top:20px;font-family:'Onest',Helvetica,Arial,sans-serif;font-size:26px;line-height:32px;font-weight:700;letter-spacing:-0.2px;color:#3B2A22;">Вход без пароля</p>
+<img src="https://psycont.ru/email/squiggle-lilac.png" width="96" height="10" alt="" style="display:block;border:0;width:96px;height:10px;margin:8px 0 18px 0;">
+<p style="margin:0;font-family:'Onest',Helvetica,Arial,sans-serif;font-size:17px;line-height:26px;color:#3B2A22;">Вот ссылка для входа, пароль вспоминать не нужно.</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;">
+<tr><td class="btn-bg" align="center" bgcolor="#33472B" style="background-color:#33472B;background-image:linear-gradient(#33472B,#33472B);border-radius:16px;">
+<a class="btn-text" href="{{ .SiteURL }}/auth/podtverdit?token_hash={{ .TokenHash }}&type=magiclink" target="_blank" style="display:block;padding:18px 24px;font-family:'Onest',Helvetica,Arial,sans-serif;font-size:17px;line-height:20px;font-weight:700;color:#FFFFFF;text-decoration:none;text-align:center;border-radius:16px;">Войти в кабинет</a>
 </td></tr>
 </table>
-<p style="margin:0;font-family:'Onest',Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;color:#6B6458;padding-top:20px;">Ссылка работает 1 час и открывается один раз. Если это не ты, просто проигнорируй письмо, без ссылки в аккаунт никто не войдет.</p>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px;">
+<tr><td align="center" bgcolor="#F4EEFA" style="background:#F4EEFA;border-radius:14px;padding:12px 16px;font-family:'Onest',Helvetica,Arial,sans-serif;font-size:15px;line-height:22px;color:#3B2A22;">Откроется кабинет, все твои тексты там.</td></tr>
+</table>
+
+<p class="small" style="margin:0;padding-top:20px;font-family:'Onest',Helvetica,Arial,sans-serif;font-size:14px;line-height:21px;color:#6B6458;">Ссылка работает 1 час и открывается один раз. Если это не ты, ничего не делай, без этой ссылки в аккаунт никто не войдет.</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;">
 <tr><td style="border-top:1px solid #E3DACB;padding-top:20px;">
-<p style="margin:0;font-family:'Onest',Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;color:#6B6458;padding-bottom:4px;">Если кнопка не нажимается, скопируй ссылку в браузер:</p>
-<p style="margin:0;font-family:'Onest',Arial,Helvetica,sans-serif;font-size:13px;line-height:18px;color:#33472B;word-break:break-all;"><a href="{{ .SiteURL }}/auth/podtverdit?token_hash={{ .TokenHash }}&type=magiclink" style="color:#33472B;text-decoration:underline;word-break:break-all;">{{ .SiteURL }}/auth/podtverdit?token_hash={{ .TokenHash }}&type=magiclink</a></p>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+<td width="36" valign="top" style="width:36px;vertical-align:top;"><img src="https://psycont.ru/email/icon.png" width="36" height="36" alt="" style="display:block;border:0;width:36px;height:36px;"></td>
+<td valign="top" style="padding-left:12px;vertical-align:top;">
+<p style="margin:0;font-family:'Onest',Helvetica,Arial,sans-serif;font-size:16px;line-height:22px;font-weight:700;color:#3B2A22;">Вера</p>
+<p class="sig2" style="margin:0;font-family:'Onest',Helvetica,Arial,sans-serif;font-size:14px;line-height:20px;color:#6B6458;">помогаю вести блог в PsyCont</p>
+</td>
+</tr></table>
 </td></tr>
 </table>
-<p style="margin:0;font-family:'Onest',Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;color:#3B2A22;padding-top:24px;">Команда PsyCont</p>
+
 </td></tr>
-<tr><td align="center" style="padding:24px 0 0 0;">
-<p style="margin:0;font-family:'Onest',Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:#6B6458;">Сделано в <a href="https://psycont.ru" style="color:#33472B;text-decoration:underline;">PsyCont</a> · psycont.ru</p>
-<p style="margin:0;font-family:'Onest',Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#6B6458;padding-top:6px;">Письмо пришло, потому что на psycont.ru запросили вход по этой почте.</p>
+<tr><td align="center" style="padding:20px 8px 0 8px;">
+<p class="foot" style="margin:0;font-family:'Onest',Helvetica,Arial,sans-serif;font-size:13px;line-height:20px;color:#6B6458;">Письмо пришло, потому что на psycont.ru попросили вход по этой почте.</p>
+<p class="foot" style="margin:0;padding-top:6px;font-family:'Onest',Helvetica,Arial,sans-serif;font-size:13px;line-height:20px;color:#6B6458;">Сделано в <a href="https://psycont.ru" style="color:#33472B;text-decoration:underline;">PsyCont</a></p>
 </td></tr>
 </table>
 </td></tr>

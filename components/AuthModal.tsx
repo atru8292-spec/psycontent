@@ -10,6 +10,7 @@ import { authErrorKind, MIN_PASSWORD, T } from '@/lib/auth-texts'
 import { Notice, PasswordInput, StateIcon, useCooldown } from '@/components/auth/AuthShell'
 import RequestLinkForm from '@/components/auth/RequestLinkForm'
 import { requestLink } from '@/components/auth/request-link'
+import YandexIdButton from '@/components/auth/YandexIdButton'
 
 type Mode = 'login' | 'register' | 'forgot'
 
@@ -172,7 +173,7 @@ export default function AuthModal({
               </button>
               {cd.left > 0 && <p className="text-xs text-brand-muted mt-2">{T.resendIn(cd.left)}</p>}
               <p className="text-center text-xs text-brand-muted mt-4">
-                <button onClick={() => switchMode('login')} className="text-brand-accent font-medium hover:underline cursor-pointer">
+                <button onClick={() => switchMode('login')} className="text-brand-accent font-medium no-underline hover:text-brand-accent-hover cursor-pointer">
                   {T.forgotBack}
                 </button>
               </p>
@@ -206,24 +207,15 @@ export default function AuthModal({
                     resendLabel={T.forgotResend}
                   />
                   <p className="text-center text-xs text-brand-muted mt-4">
-                    <button onClick={() => switchMode('login')} className="text-brand-accent font-medium hover:underline cursor-pointer">
+                    <button onClick={() => switchMode('login')} className="text-brand-accent font-medium no-underline hover:text-brand-accent-hover cursor-pointer">
                       {T.forgotBack}
                     </button>
                   </p>
                 </>
               ) : (
                 <>
-                  {/* Yandex Button */}
-                  <a
-                    href="/auth/yandex/start"
-                    className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl border border-brand-border hover:bg-brand-bg transition font-medium text-brand-text text-sm cursor-pointer mb-4 active:scale-[0.98]"
-                  >
-                    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
-                      <circle cx="12" cy="12" r="12" fill="#FC3F1D" />
-                      <path fill="#fff" d="M13.3 6.4h-1.2c-2.2 0-3.4 1.1-3.4 2.8 0 1.4.6 2.2 1.9 3.1l1 .7-2.9 4.3h1.8l3-4.5V6.4h-.2zm-.6 5.4l-.9-.5c-.9-.6-1.3-1-1.3-2 0-.9.6-1.5 1.8-1.5h.6v4z" />
-                    </svg>
-                    Войти через Яндекс
-                  </a>
+                  {/* Вход с Яндекс ID: официальная кнопка, одна на все места (components/auth/YandexIdButton.tsx) */}
+                  <div className="mb-4"><YandexIdButton /></div>
 
                   {/* Divider */}
                   <div className="flex items-center gap-3 mb-4">
@@ -294,13 +286,13 @@ export default function AuthModal({
                   <p className="text-center text-xs text-brand-muted mt-4">
                     {mode === 'register' ? (
                       <>{T.haveAccount}{' '}
-                        <button onClick={() => switchMode('login')} className="text-brand-accent font-medium hover:underline cursor-pointer">
+                        <button onClick={() => switchMode('login')} className="text-brand-accent font-medium no-underline hover:text-brand-accent-hover cursor-pointer">
                           {T.toLogin}
                         </button>
                       </>
                     ) : (
                       <>{T.noAccount}{' '}
-                        <button onClick={() => switchMode('register')} className="text-brand-accent font-medium hover:underline cursor-pointer">
+                        <button onClick={() => switchMode('register')} className="text-brand-accent font-medium no-underline hover:text-brand-accent-hover cursor-pointer">
                           {T.toRegister}
                         </button>
                       </>

@@ -56,7 +56,8 @@ export async function GET(req: Request) {
   await admin.auth.admin.createUser({
     email,
     email_confirm: true,
-    user_metadata: fullName ? { full_name: fullName } : {},
+    // imya: первое слово имени для писем входа («{имя}, привет!»), см. lib/auth-name.ts
+    user_metadata: fullName ? { full_name: fullName, imya: String(info.first_name || '').trim().split(/\s+/)[0].slice(0, 40) } : {},
     app_metadata: { provider: 'yandex', providers: ['yandex'] },
   })
 

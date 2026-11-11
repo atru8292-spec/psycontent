@@ -15,6 +15,7 @@ import { useVoiceRecorder } from '@/lib/use-voice-recorder'
 import VoiceSheet from '@/components/make/VoiceSheet'
 import { firstTopic } from '@/lib/first-topic'
 import { track } from '@/lib/track'
+import { syncEmailName } from '@/lib/auth-name'
 
 // Метки подхода = ровно ключи getApproachContext в generate-post (иначе стилевой блок
 // молча провалится в «Интегративный»). Матчинг там по includes в обе стороны.
@@ -256,6 +257,8 @@ export default function ExpressOnboarding() {
       return
     }
     try { sessionStorage.removeItem(STORE) } catch {}
+    // имя для писем входа («{имя}, привет!»), в фоне, без ожидания
+    if (!isPreview()) void syncEmailName(a.name)
     // тема дня по нише без модели: та же логика, что карточка «Не знаю, о чем писать» (lib/first-topic.ts)
     setTopic(firstTopic(niche, a.pain))
     track('onb_done')
@@ -343,7 +346,7 @@ export default function ExpressOnboarding() {
     body = (
       <div>
         <Vera src="/vera/privet.webp" h={120} w={93} tilt="-rotate-2" delay={!reduce} caption="Вера · помогаю вести блог">
-          <p className="text-[16px] leading-[22px]">Привет, я Вера. Пишу посты и карусели твоим голосом. Сначала пять коротких вопросов, это около минуты</p>
+          <p className="text-[16px] leading-[22px]">Привет, я Вера. Пишу посты и карусели так, как говоришь ты. Сначала пять коротких вопросов, это около минуты</p>
         </Vera>
         <button type="button" onClick={() => { if (!moving) go(1) }} className={`mt-8 ${green}`}>Начнем</button>
       </div>
