@@ -76,7 +76,7 @@ export async function buildCore(ctx: GenContext, args: {
       topic: args.topic,
       user_detail: thoughtSrc,
       intent_label: args.intentLabel,
-      author: [s.name ? `зовут ${s.name}` : '', 'психолог', s.niche ? `тема: ${s.niche}` : ''].filter(Boolean).join(', '),
+      author: [s.name ? `зовут ${s.name}` : '', 'психолог', s.niche ? `главная тема блога, это фон, не обязательная тема текста: ${s.niche}` : ''].filter(Boolean).join(', '),
       audience: s.clientPhrases ? `как говорят ее клиенты: ${s.clientPhrases}` : 'люди, которые читают блог психолога',
       stories: stories || 'нет',
     }),

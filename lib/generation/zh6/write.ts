@@ -68,7 +68,8 @@ const SMYSL: Record<string, string> = {
 function authorBlock(s: AuthorSettings): string {
   return [
     `Автор: ${s.name || 'психолог'}, пишет о себе в ${s.genderForms}. К читателю обращается ${s.address}.`,
-    s.niche ? `О чем блог: ${s.niche}${s.blogAbout ? `; ${s.blogAbout}` : ''}.` : '',
+    // ниша фоном (11.11): раньше «О чем блог: ниша» тянула каждый текст к нише, даже когда тема шире
+    s.niche ? `Главная тема блога: ${s.niche}${s.blogAbout ? `; ${s.blogAbout}` : ''}. Это взгляд автора, а не тема каждого текста: пиши о том, о чем тема задания, в той сфере жизни, которой она касается; слова ниши и портрет клиента не вставляй, если тема о них не просит.` : '',
     s.approach ? `Подход: ${s.approach}.` : '',
     s.intensity === 'hot' ? 'Говорит на эмоциях, резко, может капсом одно слово.' : s.intensity === 'calm' ? 'Говорит спокойно и бережно.' : s.intensity === 'live' ? 'Говорит живо, как в разговоре.' : '',
     matRule(s),
@@ -246,7 +247,7 @@ export function zh6Prompt(ctx: GenContext, req: GenRequest): Zh6Prompt {
     own.length ? `<тексты_автора>\n${SAMPLES_HEAD}\n\n${own.map((t, i) => `Текст ${i + 1}:\n${t.trim()}`).join('\n\n')}${golosAvtora(s.samples) ? `\n\nПосчитано по этим текстам: ${golosAvtora(s.samples)}. Держи примерно так же.` : ''}\n</тексты_автора>` : '',
     primery.length ? `<примеры>\n${PRIMERY_HEAD}\n\n${primeryBlock(primery)}\n</примеры>` : '',
     `<формат>\n${formatBlock(f6)}\n</формат>`,
-    `<задание>\nТема: ${req.topic}\n${req.userDetail ? `Деталь от автора: ${req.userDetail}\n` : ''}Что дать читателю: ${SMYSL[smysl]}.\n${rol === 'zapis' || bezGolosa(f6) ? '' : `Если формат не задает свой конец, закончи ${KONCY[kon]}.\n`}${REAKCII[reak]}\n${intro ? `В подписи представься одной строкой, только этими данными, ничего не добавляя (ни опыта, ни регалий, ни цифр): ${intro}.${rol === 'zapis' ? ' Сразу за представлением мягкое приглашение одной строкой.' : ''}\n` : ''}${razv ? `Развязка сценки в этот раз: ${razv}.\n` : ''}${fill(KONEC[rol], { booking: [s.booking, s.kodovoeSlovo ? `кодовое слово «${s.kodovoeSlovo}»` : ''].filter(Boolean).join('; ') || 'как указано в профиле' })}${bylo.length ? `\nЭти приемы у автора уже были, второй раз не бери: ${bylo.join('; ')}.` : ''}\n</задание>`,
+    `<задание>\nТема: ${req.topic}\n${req.userDetail ? `Деталь от автора: ${req.userDetail}\n` : ''}Что дать читателю: ${SMYSL[smysl]}.\n${rol === 'zapis' || bezGolosa(f6) ? '' : `Если формат не задает свой конец, закончи ${KONCY[kon]}.\n`}${REAKCII[reak]}\n${intro ? `В подписи можно представиться одной строкой своими словами, как сказал бы вслух, без формулы «я психолог, пишу о...» и без перечня тем; данные только эти, ничего не добавляя (ни опыта, ни регалий, ни цифр): ${intro}.${rol === 'zapis' ? ' Сразу за представлением мягкое приглашение одной строкой.' : ''}\n` : ''}${razv ? `Развязка сценки в этот раз: ${razv}.\n` : ''}${fill(KONEC[rol], { booking: [s.booking, s.kodovoeSlovo ? `кодовое слово «${s.kodovoeSlovo}»` : ''].filter(Boolean).join('; ') || 'как указано в профиле' })}${bylo.length ? `\nЭти приемы у автора уже были, второй раз не бери: ${bylo.join('; ')}.` : ''}\n</задание>`,
     (() => { const m = materialOf(s, req.topic, n); return m ? `<материал_автора>\n${m}\n</материал_автора>` : '' })(),
     req.coreBlock ? `<ядро>\n${req.coreBlock}\n</ядро>` : '',
     req.sampleBlock ? `<как_устроен_образец>\n${req.sampleBlock}\n</как_устроен_образец>` : '',
