@@ -10,7 +10,8 @@ import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { PRIMERY, pickPrimery, hasMat } from '../lib/generation/zh6/primery'
-import { zh6Mesta, copyPieces } from '../lib/generation/zh6/checks'
+import { zh6Mesta, copyPieces, nadpisObrubki } from '../lib/generation/zh6/checks'
+import { NADPIS } from '../lib/generation/zh6/formaty'
 import { zh6Prompt, temaPometki, zh6Plan, smeshat, smeshatOshibki, formatyAvtora, odnoMnogotochie, pohozhie, zvezdochki, chooseKrug, samoGuard, priemyOf, temyZhivyeFor, peremeshat, logikaMesta, remarki, zapisPravila, reakciyaOf, introOf } from '../lib/generation/zh6/write'
 import { FORMATY, formatByCode, formatBlock } from '../lib/generation/zh6/formaty'
 import { KONCY } from '../lib/generation/zh6/prompt-tekst'
@@ -233,5 +234,53 @@ async function main() {
     assert.deepEqual(grupyFrom({ grupy: { reels: 'scenka', carousel: 'net', post_tg: 'spor' } }, ['reels', 'carousel', 'post_tg']), { reels: GRUPPY.reels[1].codes, post_tg: ['post_spor'] }, 'карточка без подвида: ее виды, чужая карточка выкинута')
   }
   console.log('ok 12: вид у каждого формата набора свой, чужие и выдуманные коды выкидываются, карточки видов покрывают каталог')
+  {
+    // 13: надпись на экране обрубками (11.11)
+    const ob = (t: string) => zh6Mesta(t, { sources: [], allowMat: true }).filter(x => x.code === 'nadpis_obrubki')
+    const bad = 'Текст на экране: Вы отказали. Мама уже плохая мать.\nРечь: Вы сказали маме «нет», и через час она уже звонит тете.\nПодпись: Про отказы.'
+    const f = ob(bad)
+    assert.equal(f.length, 1, 'обрубки не пойманы')
+    assert.equal(f[0].quote, 'Вы отказали. Мама уже плохая мать.', 'место это сама надпись, без метки')
+    assert.ok(f[0].why && !/[ёЁ—–]/.test(f[0].why), 'причина для правки без ё и тире')
+    const ok = [
+      'Текст на экране: «Успокойся». Охуенный способ помочь.',
+      'Текст на экране: Я только спрошу, где он. В пятый раз.',
+      'Текст на экране: Ты отправила подруге фото готовой работы и получила: «Как же круто получилось!»',
+      'Текст на экране: Мама снова звонит в восемь утра, чтобы узнать, почему ты не приедешь.',
+      'Ты отказала маме. Она обиделась. Ты извинилась. Опять.',
+      'Текст на экране: Психолог: Что вы чувствуете?\nНичего.\n[смена]\nУстала.',
+    ]
+    for (const t of ok) assert.equal(ob(t).length, 0, `ложная находка: ${t}`)
+    // продолжение надписи на следующей строке до метки тоже в счет
+    assert.equal(nadpisObrubki('Текст на экране: Сказала нет.\nМама в слезах.\nРечь: дальше речь').length, 1, 'строка-продолжение')
+    // правило надписи одно: в разметке говорящих рилсов и в карточке, без старых «до 8/10 слов» и «резкое утверждение»
+    const rilsy = FORMATY.filter(x => x.for[0] === 'reels' && !['reels_bez_slov', 'reels_kabinet', 'reels_ispoved'].includes(x.code))
+    for (const x of rilsy) {
+      const b = formatBlock(x)
+      assert.ok(b.includes(NADPIS), `правило надписи в ${x.code}`)
+      assert.ok(!/(?:Надпись|надпись)[^\n.]{0,30}до \d+ слов|до [78] слов\n/u.test(b) && !/резкое утверждение, до/u.test(b), `старый предел надписи в ${x.code}`)
+    }
+    assert.ok(FORMAT_CARDS.reels.includes(NADPIS) && !/до 10 слов/.test(FORMAT_CARDS.reels), 'карточка рилса с тем же правилом')
+    assert.ok(!/[ёЁ—–]/.test(NADPIS))
+    // банк живых примеров: сколько надписей поймалось бы (для глаза, это не ошибка)
+    const bank = PRIMERY.filter(p => nadpisObrubki(p.text).length)
+    if (bank.length) console.log('  обрубки в банке примеров (для глаза):', bank.map(p => p.id).join(', '))
+    // находка уходит на ту же правку мест: писатель дал обрубки, правка дала целое предложение
+    const sent13: any[] = []
+    const r13 = [
+      'Текст на экране: Вы отказали. Мама уже плохая мать.\nРечь: Вы сказали маме, что не приедете, и через час она уже звонит тете и жалуется.\nПодпись: Про отказы.',
+      'Текст на экране: Вы сказали маме «нет», и она уже жалуется тете на плохую дочь.\nРечь: Вы сказали маме, что не приедете, и через час она уже звонит тете и жалуется.\nПодпись: Про отказы.',
+    ]
+    ;(globalThis as any).fetch = async (_u: string, init: any) => {
+      sent13.push(JSON.parse(init.body))
+      const content = r13[Math.min(sent13.length - 1, r13.length - 1)]
+      return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 10, completion_tokens: 10 } }), { status: 200 })
+    }
+    const w13: any = await simpleWrite(ctxOf(PERSONAS.H, []), { topic: 'отказ маме', format: 'reels_monolog', intent: 'uznavanie' } as any)
+    assert.equal(sent13.length, 2, 'писатель и правка мест')
+    assert.ok(/Вы отказали\. Мама уже плохая мать/.test(sent13[1].messages[1].content), 'надпись названа в местах правки')
+    assert.ok(w13.zh6.pravka && w13.zh6.mesta.some((m: any) => m.code === 'nadpis_obrubki') && !w13.zh6.ostalos.some((m: any) => m.code === 'nadpis_obrubki'), 'правка надписи не взята')
+  }
+  console.log('ok 13: надпись обрубками ловится, цитата в кавычках, длинная фраза, пост и сцены сменами не ловятся, правило надписи одно')
 }
 main().then(() => console.log('zh6: все тесты прошли')).catch(e => { console.error(e); process.exit(1) })
