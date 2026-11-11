@@ -42,6 +42,13 @@ PsyCont: папка /var/www/psycont, порт 3001, процесс pm2 «psycon
 
 Обновление боевого сайта после пуша: зайти на сервер и выполнить `bash /var/www/psycont/update.sh` (сам подтягивает код, ставит зависимости, пересобирает, перезапускает только psycont; при ошибке сборки сайт остаётся на старой рабочей версии).
 
+ВЫКАТКУ ДЕЛАЕТ CLAUDE САМ (решение Арины 11.11), ssh root@31.77.197.158. Правила:
+- можно: `bash /var/www/psycont/update.sh`, `pm2 restart psycont --update-env`, `pm2 status`, `pm2 logs psycont --nostream`, curl для проверки; чтение и правка /var/www/psycont/.env только после копии и проверки, что копия совпадает (`cmp`), права 600 на .env и копии;
+- нельзя: `pm2 restart all`, `pm2 delete`, перезагрузка сервера, apt и do-release-upgrade, любые команды про razbor-* (чужие процессы), удаление файлов, вывод секретов и значений из .env в чат (показывать можно только флаги NEW_GENERATION_PIPELINE и PROMPT_HYP);
+- если ssh спросит пароль или не пустит: остановиться и сказать Арине, ключ добавит она.
+- update.sh: git fetch, git reset --hard origin/main, npm install, npm run build, pm2 restart psycont; .env не в git и не трогается. Если сборка падает на next/font (Google Fonts), повторить один раз; второе падение или другая ошибка: стоп и к Арине.
+- Флаги на проде (11.11): PROMPT_HYP=zh6, NEW_GENERATION_PIPELINE=all (новый кабинет всем). Рядом рабочая копия .env.ru-rabochiy, ее держать в том же виде, что .env.
+
 ---
 
 ## Бренд
