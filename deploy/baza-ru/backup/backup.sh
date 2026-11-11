@@ -16,19 +16,12 @@ set -Eeuo pipefail
 umask 077
 
 HERE=/opt/supabase/backup
-# shellcheck disable=SC1091
-source "$HERE/backup.env"
-OUT=${BACKUP_DIR:-/var/backups/psycont}
-KEEP=${KEEP:-7}
-TS=$(date +%Y%m%d-%H%M)
-WORK=$(mktemp -d "$OUT/.work-XXXXXX")
-NAME="psycont-$TS.tar.age"
 STEP="подготовка"
-
+WORK=""
 fail() {
   local code=$?
   echo "БЭКАП НЕ СДЕЛАН на шаге «$STEP» (код $code)" >&2
-  rm -rf "$WORK"
+  [ -n "${WORK:-}" ] && rm -rf "$WORK"
   python3 "$HERE/notify.py" "Бэкап PsyCont не сделался" \
     "Ночной бэкап базы на сервере 141.133.187.249 упал на шаге «$STEP» (код $code), $(date '+%d.%m.%Y %H:%M') по Москве.
 Журнал: sudo journalctl -u psycont-backup --since today
@@ -36,6 +29,15 @@ fail() {
   exit "$code"
 }
 trap fail ERR
+# перехват стоит до чтения конфига и создания папки: любое падение (нет backup.env, нет папки копий) уходит письмом
+# shellcheck disable=SC1091
+source "$HERE/backup.env"
+OUT=${BACKUP_DIR:-/var/backups/psycont}
+KEEP=${KEEP:-7}
+TS=$(date +%Y%m%d-%H%M)
+NAME="psycont-$TS.tar.age"
+mkdir -p "$OUT"
+WORK=$(mktemp -d "$OUT/.work-XXXXXX")
 
 STEP="дамп базы"
 docker exec supabase-db pg_dump -U supabase_admin -d postgres -Fc -f /tmp/backup-db.dump
