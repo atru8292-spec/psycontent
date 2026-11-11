@@ -234,7 +234,7 @@ export async function POST(req: NextRequest) {
     }
     const userId = user.id
 
-    console.log('Generate post request:', { userId, topic, customTopic, format, pillar })
+    console.log('Generate post request:', { userId, topicLen: (topic || '').length, customTopicLen: (customTopic || '').length, format, pillar }) // тексты человека в журнал не пишем (152-ФЗ)
 
     const finalTopic = customTopic || topic
     if (!finalTopic) {

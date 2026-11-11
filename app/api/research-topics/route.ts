@@ -293,7 +293,7 @@ Block строго: "trend" (12 штук), "science" (10 штук), "quote" (8 �
     try {
       topics = safeParseJSON(result)
     } catch (e: any) {
-      console.error('RAW AI RESULT:', result)
+      console.error('research-topics: AI result not parsed, length:', String(result || '').length) // ответ модели в журнал не пишем
       throw new Error('Не удалось распарсить JSON от AI')
     }
 

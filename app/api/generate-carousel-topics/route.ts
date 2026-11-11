@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         topics = JSON.parse(response)
       }
     } catch (parseError) {
-      console.error('JSON parse error in topics:', parseError, 'Raw:', response)
+      console.error('JSON parse error in topics:', (parseError as any)?.message, 'response length:', String(response || '').length) // ответ модели в журнал не пишем
       throw new Error('Failed to parse AI response')
     }
 
