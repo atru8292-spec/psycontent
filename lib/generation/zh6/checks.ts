@@ -90,7 +90,9 @@ export function nadpisObrubki(text: string): string[] {
   })
 }
 
-export function zh6Mesta(text: string, o: { sources: string[]; allowMat: boolean }): Mesto[] {
+// nadpis: проверять ли надпись обрубками; false у беззвучных рилсов (bezGolosa: bez_slov, kabinet, ispoved): там короткие
+// строки надписи это устройство вида, а не обрубки (ревью 11.11). По умолчанию true.
+export function zh6Mesta(text: string, o: { sources: string[]; allowMat: boolean; nadpis?: boolean }): Mesto[] {
   const out: Mesto[] = []
   for (const p of copyPieces(text, o.sources)) out.push({ code: 'kopiya', quote: p, why: 'совпадает с чужим текстом, скажи это своими словами' })
   for (const x of neXaY(text)) out.push({ code: 'ne_x_a_y', quote: sentOf(text, x.at) || x.quote, why: 'схема «не X, а Y»: скажи прямо, что есть, без отрицания перед этим' })
@@ -103,7 +105,7 @@ export function zh6Mesta(text: string, o: { sources: string[]; allowMat: boolean
   }
   // круг 3: сбой модели посреди слова («побы scanло»): латиница внутри русского текста или слово из двух алфавитов
   for (const m of text.matchAll(/[\p{Script=Cyrillic}]+[A-Za-z]+[\p{Script=Cyrillic}]*|[\p{Script=Cyrillic}]+\s+[a-z]{3,}[\p{Script=Cyrillic}]+|(?<![\p{L}])[a-z]{3,}(?![\p{L}])/gu)) out.push({ code: 'sboj', quote: sentOf(text, m.index || 0), why: 'сбой: латиница или сломанное слово посреди русского текста, перепиши фразу нормально' })
-  for (const b of nadpisObrubki(text)) out.push({ code: 'nadpis_obrubki', quote: b, why: 'надпись на экране рублеными кусками, без ролика непонятно, о чем она; скажи одним целым предложением до 12 слов: кто что сделал или сказал и что из этого вышло' })
+  if (o.nadpis !== false) for (const b of nadpisObrubki(text)) out.push({ code: 'nadpis_obrubki', quote: b, why: 'надпись на экране рублеными кусками, без ролика непонятно, о чем она; скажи одним целым предложением до 12 слов: кто что сделал или сказал и что из этого вышло' })
   const seen = new Set<string>()
   return out.filter(x => { const k = x.code + x.quote; if (seen.has(k)) return false; seen.add(k); return true })
 }

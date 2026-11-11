@@ -72,9 +72,14 @@ export function neXaY(text: string): NeXaY[] {
 // в конец подписи. На экран рилса не идет: только в «Подпись:», у поста последней строкой. Модель ее не пишет и не правит
 export const SOBIR_LINE = 'История собирательная, совпадения случайны.'
 export const SOBIR_VIDY = ['post_kabinet', 'reels_kabinet', 'reels_scenka_pervaya_sessiya']
+// любая форма строки, которую могла чуть поменять модель в «Поправить» или переписке набора (без точки, с «ё», другой хвост)
+const SOBIR_RE = /[ \t]*История\s+собирательн[^\n.!?]*[.!?…]*/giu
 export function sobiratelnaya(text: string, kod?: string | null): string {
-  const t = String(text || '').replace(/\s+$/u, '')
-  if (!kod || !SOBIR_VIDY.includes(kod) || !t || t.includes(SOBIR_LINE)) return t
+  let t = String(text || '').replace(/\s+$/u, '')
+  if (!kod || !SOBIR_VIDY.includes(kod) || !t) return t
+  // старую строку убираем и ставим одну свою: так она не задвоится (ревью 11.11)
+  t = t.replace(SOBIR_RE, '').replace(/[ \t]+$/gmu, '').replace(/\n{3,}/gu, '\n\n').replace(/\s+$/u, '')
+  if (!t) return t
   if (/^\s*Подпись\s*:/mu.test(t)) return /^\s*Подпись\s*:\s*$/mu.test(t.split('\n').pop() || '') ? `${t} ${SOBIR_LINE}` : `${t}\n${SOBIR_LINE}`
   // рилс без подписи: подпись из одной строки, в надпись и речь не дописываем
   if (kod.startsWith('reels_')) return `${t}\n\nПодпись: ${SOBIR_LINE}`

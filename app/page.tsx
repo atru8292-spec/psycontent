@@ -247,7 +247,7 @@ export default function Home() {
                     </p>
                   </div>
                   <p className="mt-1 text-[15px] leading-[1.4] text-brand-muted lg:mt-3 lg:text-[18px]">{p.who}</p>
-                  <p className="mt-1 text-[14px] leading-[1.4] text-brand-text lg:hidden">{planPerks(p)[0]}</p>
+                  <p className="mt-1 text-[14px] leading-[1.4] text-brand-text lg:hidden">{planPerks(p)[0]}{p.price > 0 && <span className="text-brand-muted"> · {PRICING.soon.toLowerCase()}</span>}</p>
                   <ul className="mt-5 mb-6 hidden lg:block">
                     {planPerks(p).map(perk => <li key={perk} className="border-t border-brand-border py-3 text-[18px] text-brand-text">{perk}</li>)}
                   </ul>

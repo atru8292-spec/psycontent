@@ -322,7 +322,7 @@ export async function zh6Write(ctx: GenContext, req: GenRequest): Promise<Zh6Res
   const priemMesta = (t: string): Mesto[] => priemyOf(t).filter(k => PRIEMY[k].vsegda || bylo.has(k)).map(k => ({ code: `priem_${k}`, quote: (t.match(PRIEMY[k].re) || [''])[0], why: `${PRIEMY[k].name}: у автора уже было или так не пишем, скажи по-другому` }))
   // кодовое слово только из профиля (ответ Арины 09.11): слово капсом в кавычках рядом с «напишите» или «комментарии»
   const kodMesta = (t: string): Mesto[] => [...t.matchAll(/(?:слов[оа]\s+|напишите\s+|пишите\s+)[«"]?([А-ЯЁA-Z]{3,})[»"]?/gu)].filter(m => !`${s.booking || ''} ${s.kodovoeSlovo || ''}`.toUpperCase().includes(m[1])).map(m => ({ code: 'kodovoe_slovo', quote: m[0], why: 'кодового слова нет в профиле автора: напиши просто «напишите мне в директ», без придуманного слова и без обещания что-то прислать' }))
-  const mestaOf = (t: string) => [...zh6Mesta(t, { sources, allowMat: allowMatOf(s) }), ...priemMesta(t), ...kodMesta(t), ...logikaMesta(t, s, { format6: p.format6.code })]
+  const mestaOf = (t: string) => [...zh6Mesta(t, { sources, allowMat: allowMatOf(s), nadpis: !bezGolosa(p.format6) }), ...priemMesta(t), ...kodMesta(t), ...logikaMesta(t, s, { format6: p.format6.code })]
   const mesta = mestaOf(text)
   let pravka = false
   const ostatok = ZH6_DEADLINE_MS - (Date.now() - t0)
