@@ -53,7 +53,7 @@ export function roleFor(format: FormatCode): Role {
   if (isReels(format)) return { label: 'Рилс', take: ['scene', 'others_say', 'mechanism', 'quote'], entry: 'сцена в первой фразе или чужая фраза', finale: 'фраза для цитаты, без морали' }
   // карусель (11.11): без «шага или вопроса к себе» (из него выходили «Спроси себя») и без «кто я» на слайдах: имя, ник и
   // строку о себе на последнем слайде ставит оформление (lib/carousel), иначе на слайде два представления подряд
-  if (format === 'carousel') return { label: 'Карусель', take: ['mechanism', 'distinction'], entry: 'обложка с обещанием', finale: 'последний слайд договаривает мысль; о себе на слайдах не пиши, имя и ник ставит оформление' }
+  if (format === 'carousel') return { label: 'Карусель', take: ['mechanism', 'distinction'], entry: 'обложка с обещанием', finale: 'последний слайд по карточке формата; о себе на слайдах не пиши, имя и ник ставит оформление' }
   if (format === 'post_tg') return { label: 'Пост в Telegram', take: ['thought', 'author_detail'], entry: 'первая строка как в личном сообщении', finale: 'мысль вдогонку или вопрос под реакции; мягко позвать к себе можно только тут' }
   if (format === 'stories') return { label: 'Серия сторис', take: ['others_say', 'step', 'quote'], entry: 'вопрос или сцена', finale: 'стикер или ссылка на пост' }
   return { label: 'Пост в Instagram', take: ['author_detail', 'mechanism', 'distinction'], entry: 'своя деталь или наблюдение', finale: 'вопрос по желанию' }

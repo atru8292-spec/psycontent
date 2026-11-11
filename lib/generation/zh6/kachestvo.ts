@@ -37,7 +37,8 @@ export function podvodka(text: string): Mesto[] {
 // вопросов без подводки у живых обычное дело (рилсы, споры с собой), поэтому их не трогаем: ловим только три и больше
 // вопросов от пяти слов сразу после фразы, которая кончается двоеточием.
 export function vopros3(text: string): Mesto[] {
-  for (const a of abzacy(bezPodpisi(text))) {
+  for (const a0 of abzacy(bezPodpisi(text))) {
+    const a = a0.replace(/^\s*(?:Слайд \d+|Текст на экране|Речь|Надпись|Экран \d+)\s*:\s*/gmu, '')
     const k = a.search(/:\s+(?=[^\n]*\?)/u)
     if (k < 0 || /^\s*[А-ЯЁ][\p{L} ]{1,20}:\s/u.test(a.slice(Math.max(0, a.lastIndexOf('\n', k) + 1)))) continue
     const posle = frazy(a.slice(k + 1))
@@ -69,7 +70,7 @@ export function scenkaDlinno(text: string, scene: boolean): Mesto[] {
   const SLUZH = /^(?:Речь|Подпись|Текст на экране|Надпись|Слайд \d+|Экран \d+)$/u
   const repl = bezPodpisi(text).split('\n')
     .map(l => l.replace(/^\s*Речь\s*:\s*/u, ''))
-    .map(l => l.match(/^\s*([А-ЯЁ][\p{L}]+(?:\s[\p{L}]+){0,2}(?:\s*\([^)]{1,30}\))?)\s*:\s*\S/u))
+    .map(l => l.match(/^\s*([А-ЯЁ][\p{L}]*(?:\s[\p{L}]+){0,2}(?:\s*\([^)]{1,30}\))?)\s*:\s*\S/u))
     .filter((m): m is RegExpMatchArray => !!m && !SLUZH.test(m[1].trim()))
   if (repl.length <= SCENKA_MAX) return []
   return [{ code: 'scenka_dlinno', quote: `${repl.length} реплик`, why: `в сценке ${repl.length} реплик: оставь 5-6, одну линию; убери промежуточные вопросы психолога, поворот должен быть понятен зрителю без объяснения` }]
@@ -87,7 +88,10 @@ export function abstrakciya(text: string): Mesto[] {
 // последним материалам автора. prev: отметки прошлых материалов по порядку (memory.ts zh6MemFromRows, dazhe).
 const DAZHE = /(?<![\p{L}])даже(?![\p{L}])/iu
 const poslednyaya = (t: string) => { const f = frazy(t); return f.length ? f[f.length - 1] : '' }
-export function dazheVKonce(text: string): boolean {
+export function dazheVKonce(text0: string): boolean {
+  let text = text0
+  // старые карусели хранятся JSON-массивом слайдов
+  if (text.trim().startsWith('[')) { try { text = (JSON.parse(text) as any[]).map(s => String(s?.text || '')).join('\n') } catch { /* как есть */ } }
   return DAZHE.test(poslednyaya(bezPodpisi(text))) || DAZHE.test(poslednyaya(podpisOf(text)))
 }
 export function dazheTik(text: string, prev: boolean[]): Mesto[] {
@@ -127,10 +131,12 @@ export function podpisPereskaz(text: string, core?: { thought?: string; quote?: 
   const telo = bezPodpisi(text)
   const p = osnovy(pod), t = osnovy(telo)
   const obshie = [...p].filter(x => t.has(x)).length
-  const myslTri = core ? [...tri(`${core.thought || ''} . ${core.quote || ''}`)] : []
   const triPod = tri(pod)
-  const izYadra = myslTri.find(x => triPod.has(x))
-  if (izYadra || (p.size >= 4 && obshie / p.size >= 0.5)) return [{ code: 'podpis_pereskaz', quote: pod.slice(0, 160), why: 'подпись пересказывает ролик или продолжает его сцену: дай то, чего в ролике нет (почему ты это сняла, как это у тебя в работе или жизни, или простой вопрос зрителю), без оценки ролика и без новых предметов' }]
+  // ревью 11.11: порог выше, у рилса подпись почти всегда делит слова темы с телом. Ловим цепочку из фразы для
+  // цитаты, две цепочки из мысли ядра или 60% основ подписи в теле
+  const izQuote = core?.quote ? [...tri(core.quote)].some(x => triPod.has(x)) : false
+  const izMysli = core?.thought ? [...tri(core.thought)].filter(x => triPod.has(x)).length >= 2 : false
+  if (izQuote || izMysli || (p.size >= 4 && obshie / p.size >= 0.6)) return [{ code: 'podpis_pereskaz', quote: pod.slice(0, 160), why: 'подпись пересказывает ролик или продолжает его сцену: дай то, чего в ролике нет (почему ты это сняла, как это у тебя в работе или жизни, или простой вопрос зрителю), без оценки ролика и без новых предметов' }]
   return []
 }
 

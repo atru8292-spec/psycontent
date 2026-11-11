@@ -63,7 +63,7 @@ export function sameAsMine(d: Design, m: MyDesign | null): boolean {
 // он повторялся на каждой карусели и звучал анкетой. Берем описание блога своими словами из профиля, если оно короткое
 // (одна фраза до 70 знаков), иначе просто «Психолог». Свою строку психолог задает в «Мое оформление».
 export function defaultAbout(p: any): string {
-  const own = String(p?.blog_about || '').replace(/\s+/g, ' ').trim().split(/(?<=[.!?])\s/u)[0].replace(/[.。]+$/, '')
+  const own = String(p?.blog_about || '').replace(/\s+/g, ' ').trim().split(/(?<=[.!?])\s/u)[0].replace(/[.。]+$/, '').replace(/^я\s+психолог\p{L}*[,.\s]*/iu, '')
   if (own && own.length <= 70) return `Психолог. ${own.charAt(0).toUpperCase()}${own.slice(1)}`
   return 'Психолог'
 }

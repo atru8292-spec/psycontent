@@ -42,6 +42,8 @@ assert.deepEqual(codes(scenkaDlinno(repl(12), true)), ['scenka_dlinno'])
 assert.deepEqual(codes(scenkaDlinno(repl(6), true)), [], 'шесть реплик норма')
 assert.deepEqual(codes(scenkaDlinno(repl(12), false)), [], 'не сценка')
 assert.deepEqual(codes(scenkaDlinno('Речь: Клиентка: первая.\nПсихолог: вторая.\nКлиентка (смеется): третья.', true)), [], 'ремарка в скобках и метка Речь на одной строке')
+const ya = ['Речь:', ...Array.from({ length: 12 }, (_, i) => `${i % 2 ? 'Критик' : 'Я'}: реплика ${i + 1}.`)].join('\n')
+assert.deepEqual(codes(scenkaDlinno(ya, true)), ['scenka_dlinno'], 'метка «Я:» тоже реплика (ревью 11.11)')
 console.log('ok 5: длинная сценка')
 
 // 6. противопоставление с абстракцией
@@ -65,6 +67,7 @@ console.log(`ok 7: ${live.length} живых текстов без срабат�
 assert.equal(defaultAbout({ one_niche: 'Выгорание и стресс' }), 'Психолог')
 assert.equal(defaultAbout({ one_niche: 'Выгорание и стресс', blog_about: 'Пишу про усталость, которую не лечит отпуск.' }), 'Психолог. Пишу про усталость, которую не лечит отпуск')
 assert.equal(defaultAbout({ blog_about: 'x'.repeat(90) }), 'Психолог')
+assert.equal(defaultAbout({ blog_about: 'Я психолог, пишу про усталость.' }), 'Психолог. Пишу про усталость')
 assert.ok(!/работаю с темой/.test(defaultAbout({ one_niche: 'Тревога' })))
 console.log('ok 8: строка о себе без шаблона')
 
