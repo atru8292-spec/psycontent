@@ -59,12 +59,13 @@ export function sameAsMine(d: Design, m: MyDesign | null): boolean {
     normPair(d.font_pair) === m.fontPair && JSON.stringify(normOptions(d.options)) === JSON.stringify(m.options)
 }
 
-// Строка о себе для финала по умолчанию: «Психолог, работаю с ...» из одной ниши профиля
+// Строка о себе для финала, если своей нет (11.11, замечание Арины): шаблон «Психолог, работаю с темой: {ниша}» убран,
+// он повторялся на каждой карусели и звучал анкетой. Берем описание блога своими словами из профиля, если оно короткое
+// (одна фраза до 70 знаков), иначе просто «Психолог». Свою строку психолог задает в «Мое оформление».
 export function defaultAbout(p: any): string {
-  const niche = String(p?.one_niche || '').trim() || (Array.isArray(p?.niches) ? p.niches.filter(Boolean).join(', ') : '')
-  if (!niche) return 'Психолог'
-  const n = niche.replace(/\s+/g, ' ').replace(/[.。]+$/, '')
-  return /^(работаю|помогаю)/i.test(n) ? `Психолог, ${n.charAt(0).toLowerCase()}${n.slice(1)}` : `Психолог, работаю с темой: ${n.charAt(0).toLowerCase()}${n.slice(1)}`
+  const own = String(p?.blog_about || '').replace(/\s+/g, ' ').trim().split(/(?<=[.!?])\s/u)[0].replace(/[.。]+$/, '')
+  if (own && own.length <= 70) return `Психолог. ${own.charAt(0).toUpperCase()}${own.slice(1)}`
+  return 'Психолог'
 }
 
 export async function loadBranding(db: SupabaseClient, userId: string): Promise<Branding> {

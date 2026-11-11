@@ -13,6 +13,7 @@ import { TEMY_SYSTEM, TEMY_ZHIVYE_HEAD } from './prompt-temy'
 import { TEMY_ZHIVYE } from './temy-zhivye'
 import { pickPrimery, primeryBlock, authorVoice, bankFormat, hasMat, type Primer } from './primery'
 import { zh6Mesta, words, copyPieces, MAT, type Mesto } from './checks'
+import { kachestvoMesta } from './kachestvo'
 import { neXaY } from './text'
 
 const fill = (t: string, v: Record<string, string>) => t.replace(/\{\{(\w+)\}\}/g, (_m, k) => v[k] ?? '')
@@ -217,7 +218,7 @@ export function formatGen(f6: Format6, zaprosheno: FormatCode): FormatCode {
 // счетчик материалов автора для ротации: полное число (memory.total из memory.ts), иначе 10 последних
 export const schetOf = (ctx: GenContext) => Number((ctx.memory as any)?.total ?? ctx.memory?.count ?? 0) || 0
 
-export type Zh6Prompt = { system: string; user: string; primery: Primer[]; ustr: string; fmt: string; nach: string; kon: string; format6: Format6 }
+export type Zh6Prompt = { system: string; user: string; primery: Primer[]; ustr: string; fmt: string; nach: string; kon: string; format6: Format6; intro: boolean }
 export function zh6Prompt(ctx: GenContext, req: GenRequest): Zh6Prompt {
   const s = ctx.settings
   const mem = zh6MemOf(ctx)
@@ -252,7 +253,7 @@ export function zh6Prompt(ctx: GenContext, req: GenRequest): Zh6Prompt {
     ctx.editPairs ? `<как_автор_правит>\n${ctx.editPairs}\n</как_автор_правит>` : '',
   ].filter(Boolean).join('\n\n')
   const samo = samoOf(req)
-  return { system: samo === 'vnutri' ? `${TEKST_SYSTEM}\n\n${SAMO_VNUTRI}` : TEKST_SYSTEM, user, primery, ustr: f6.code, fmt, nach: '', kon, format6: f6 }
+  return { system: samo === 'vnutri' ? `${TEKST_SYSTEM}\n\n${SAMO_VNUTRI}` : TEKST_SYSTEM, user, primery, ustr: f6.code, fmt, nach: '', kon, format6: f6, intro: !!intro }
 }
 
 // ---------- самопроверка (идея Арины 09.11): внутри промпта писателя или отдельным шагом ----------
@@ -322,7 +323,9 @@ export async function zh6Write(ctx: GenContext, req: GenRequest): Promise<Zh6Res
   const priemMesta = (t: string): Mesto[] => priemyOf(t).filter(k => PRIEMY[k].vsegda || bylo.has(k)).map(k => ({ code: `priem_${k}`, quote: (t.match(PRIEMY[k].re) || [''])[0], why: `${PRIEMY[k].name}: у автора уже было или так не пишем, скажи по-другому` }))
   // кодовое слово только из профиля (ответ Арины 09.11): слово капсом в кавычках рядом с «напишите» или «комментарии»
   const kodMesta = (t: string): Mesto[] => [...t.matchAll(/(?:слов[оа]\s+|напишите\s+|пишите\s+)[«"]?([А-ЯЁA-Z]{3,})[»"]?/gu)].filter(m => !`${s.booking || ''} ${s.kodovoeSlovo || ''}`.toUpperCase().includes(m[1])).map(m => ({ code: 'kodovoe_slovo', quote: m[0], why: 'кодового слова нет в профиле автора: напиши просто «напишите мне в директ», без придуманного слова и без обещания что-то прислать' }))
-  const mestaOf = (t: string) => [...zh6Mesta(t, { sources, allowMat: allowMatOf(s) }), ...priemMesta(t), ...kodMesta(t), ...logikaMesta(t, s, { format6: p.format6.code })]
+  // качество (11.11): самопредставление по шаблону, подводка и вопросы-задания, оговорка про врача абзацем, длинная
+  // сценка, противопоставление с абстракцией (kachestvo.ts, проверены на 391 живом тексте без срабатываний)
+  const mestaOf = (t: string) => [...zh6Mesta(t, { sources, allowMat: allowMatOf(s) }), ...priemMesta(t), ...kodMesta(t), ...logikaMesta(t, s, { format6: p.format6.code }), ...kachestvoMesta(t, { intro: p.intro, scene: !!p.format6.scene })]
   const mesta = mestaOf(text)
   let pravka = false
   const ostatok = ZH6_DEADLINE_MS - (Date.now() - t0)
@@ -333,7 +336,9 @@ export async function zh6Write(ctx: GenContext, req: GenRequest): Promise<Zh6Res
       const after = mestaOf(fixed)
       const dl = words(fixed).length / Math.max(1, words(text).length)
       // правку берем, если находок меньше, метки строк те же, длина почти та же и мат автора не пропал
-      if (fixed.trim() && after.length < mesta.length && LABELS(fixed) === LABELS(text) && dl > 0.7 && dl < 1.3 && !(hasMat(text) && allowMatOf(s) && !hasMat(fixed))) { text = fixed; pravka = true }
+      // длинную сценку правка сокращает до 5-6 реплик, поэтому для нее нижний порог длины ниже
+      const minDl = mesta.some(m => m.code === 'scenka_dlinno') ? 0.45 : 0.7
+      if (fixed.trim() && after.length < mesta.length && LABELS(fixed) === LABELS(text) && dl > minDl && dl < 1.3 && !(hasMat(text) && allowMatOf(s) && !hasMat(fixed))) { text = fixed; pravka = true }
     } catch { /* правка не вышла: оставляем текст */ }
   }
   if (allowMatOf(s) && matZvezdy(s)) text = zvezdochki(text)
