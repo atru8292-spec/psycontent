@@ -4,7 +4,7 @@
 // План тем: один вызов, JSON, чистка и пометки кодом без платной замены.
 import { callModel, callJson } from '../ai'
 import { isReels, type FormatCode } from '../text-guard'
-import { finalNet, stripServiceTags } from './text'
+import { finalNet, stripServiceTags, sobiratelnaya } from './text'
 import type { GenContext, GenRequest } from '../pipeline'
 import type { AuthorSettings } from '../settings'
 import { TEKST_SYSTEM, KONEC, SAMPLES_HEAD, PRIMERY_HEAD, KONCY, REAKCII } from './prompt-tekst'
@@ -340,6 +340,8 @@ export async function zh6Write(ctx: GenContext, req: GenRequest): Promise<Zh6Res
   text = remarki(text)
   const ostalos = mestaOf(text)
   const priemy = priemyOf(text)
+  // пометка собирательной истории в конец подписи кодом, после всех проверок (они ее не видят и не правят)
+  text = sobiratelnaya(text, p.format6.code)
   const info = { ustr: p.ustr, formatName: p.format6.name, primery: p.primery.map(x => x.id), nach: p.nach, kon: p.kon, priemy }
   return { text, format, intent, draft, cut: [], zh4: { rol, zh6: info }, zh6: { ...info, mesta, ostalos, pravka, rol, samo, samoResult, doSamo } }
 }
@@ -564,10 +566,11 @@ export function popravitGuard(before: string, after: string, allowMat: boolean):
   if (allowMat && hasMat(before) && !hasMat(after)) return 'пропал мат'
   return ''
 }
-export async function zh6Popravit(ctx: GenContext, text: string, prosba: string): Promise<{ text: string; used: boolean; reason?: string }> {
+export async function zh6Popravit(ctx: GenContext, text: string, prosba: string, kod?: string | null): Promise<{ text: string; used: boolean; reason?: string }> {
   const s = ctx.settings
   const fixed = remarki(finalNet(stripServiceTags(await callModel({ system: POPRAVIT_SYSTEM, user: `<текст>\n${text}\n</текст>\n\n<просьба>\n${prosba}\n</просьба>`, effort: 'low', verbosity: 'medium', maxTokens: 6000, timeoutMs: 60000, writer: true, userId: ctx.userId, operation: 'adjust_zh6', knownNames: s.knownNames }))))
   const out = allowMatOf(s) && matZvezdy(s) ? zvezdochki(fixed) : fixed
   const why = popravitGuard(text, out, allowMatOf(s))
-  return why ? { text, used: false, reason: why } : { text: out, used: true }
+  // пометку собирательной истории модель могла выронить: код возвращает ее на место
+  return why ? { text, used: false, reason: why } : { text: sobiratelnaya(out, kod), used: true }
 }

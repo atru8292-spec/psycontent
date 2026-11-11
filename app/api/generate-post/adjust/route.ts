@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ hooks: [{ hook_type: 'zh6_zahod', text: first.trim(), why: '', full: r.text, formatName: r.zh6.formatName }] })
       }
       if (!(action in BUTTONS)) return NextResponse.json({ error: 'Неизвестное действие' }, { status: 400 })
-      const fixed = await zh6Popravit(ctx, current, BUTTONS[action])
+      const fixed = await zh6Popravit(ctx, current, BUTTONS[action], typeof zh4.zh6.ustr === 'string' ? zh4.zh6.ustr : null)
       if (!fixed.used) {
         console.info('adjust zh6: правка не взята:', fixed.reason || '')
         return NextResponse.json({ post: current, unchanged: true, error: 'Не вышло поправить аккуратно, поэтому оставила текст как был. Попробуй еще раз или другую кнопку.' }, { status: 422 })

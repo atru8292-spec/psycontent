@@ -58,12 +58,15 @@ export default function Dashboard() {
   const [loading, setLoading]     = useState(true)
   const [checklist, setChecklist] = useState<string[]>([])
   const [stats, setStats]         = useState({ posts: 0, plan: false, passport: false })
+  // новый кабинет: zh6 архетип не читает, карточку теста не показываем (null пока не знаем, тоже не показываем)
+  const [newPipe, setNewPipe]     = useState<boolean | null>(null)
   const router = useRouter()
 
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
+      fetch('/api/me').then(r => (r.ok ? r.json() : null)).then(j => setNewPipe(j && typeof j.newPipeline === 'boolean' ? j.newPipeline : false)).catch(() => setNewPipe(false))
 
       const { data: prof, error: profErr } = await supabase
         .from('onboarding_profiles').select('*').eq('user_id', user.id).single()
@@ -162,7 +165,7 @@ export default function Dashboard() {
       </motion.div>
 
       {/* Настроить голос точнее: экспресс-юзеру после первого поста (апселл по горячим следам) */}
-      {stats.posts > 0 && isArchetypeIncomplete(profile) && (
+      {newPipe === false && stats.posts > 0 && isArchetypeIncomplete(profile) && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
           className="soft-panel mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>

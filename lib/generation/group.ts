@@ -10,6 +10,7 @@ import { finalNet, isReels, LABEL_RE, type FormatCode } from './text-guard'
 import { applyCuts } from './simple'
 import type { ThoughtCore, CoreField } from './core'
 import type { GenContext } from './pipeline'
+import { SOBIR_LINE } from './zh6/text'
 
 // Что выбирает психолог на экране «Сделать». Рилс: вид выбирает код (reels_auto).
 export const GROUP_FORMATS = ['reels', 'carousel', 'post', 'post_tg', 'stories'] as const
@@ -92,6 +93,7 @@ export function neighborsFor(formats: FormatCode[], current: FormatCode): string
 
 // ---------- проверка набора ----------
 const norm = (s: string) => s.toLowerCase().replace(/ё/g, 'е').replace(/[^\p{L}\d ]+/gu, ' ').replace(/\s+/g, ' ').trim()
+const SOBIR_N = norm(SOBIR_LINE)
 const wordsOf = (s: string) => (s.match(/[\p{L}\d]+/gu) || []).length
 
 // Предложения материала без служебных меток.
@@ -179,7 +181,8 @@ export function checkSet(items: { format: FormatCode; text: string }[], quote: s
     if (fn && seenFirst.has(fn) && fn !== q) phrases.add(first)
     for (const s of sentences(it.text)) {
       const n = norm(s)
-      if (wordsOf(s) < 4 || !n || n === q || (q && q.includes(n))) continue
+      // пометка собирательной истории одинаковая у всех таких материалов набора, это не повтор соседа
+      if (wordsOf(s) < 4 || !n || n === q || (q && q.includes(n)) || n === SOBIR_N) continue
       if (seen.has(n) && seen.get(n) !== idx) phrases.add(s)
     }
     if (isInstagram(it.format)) for (const s of adPhrases(it.text)) phrases.add(s)
