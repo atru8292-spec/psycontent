@@ -13,7 +13,7 @@ services:
   auth:
     # Письма: русские шаблоны отдает Caddy внутри сети Docker (порт 8088 наружу не открыт),
     # ссылки в письмах ведут на страницы сайта /auth/podtverdit и /auth/novyy-parol.
-    # SMTP (smtp.yandex.ru, noreply@psycont.ru) задается в .env: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS.
+    # SMTP (SMTP.bz: connect.smtp.bz:587, noreply@psycont.ru) задается в .env: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS.
     environment:
       GOTRUE_MAILER_TEMPLATES_CONFIRMATION: http://caddy:8088/confirmation.html
       GOTRUE_MAILER_TEMPLATES_RECOVERY: http://caddy:8088/recovery.html
