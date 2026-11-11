@@ -161,7 +161,7 @@ body {
   }
 }
 
-/* Прорисовка рукописной линии под «найти тебя» на первом экране (HandUnderline draw). 600 мс, ease-out, задержка 200 мс,
+/* Прорисовка рукописной линии под «С блогом» на первом экране (HandUnderline draw). 600 мс, ease-out, задержка 200 мс,
    один раз. Только при включенном JS (scripting: enabled) и без prefers-reduced-motion, иначе линия сразу нарисована */
 @media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
   .ink-draw path {

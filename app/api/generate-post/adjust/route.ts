@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
         const decision = await canConsume(user.id, ZAHOD_OP, 1)
         if (!decision.ok) {
           await recordRefusal(user.id, ZAHOD_OP)
-          return NextResponse.json({ error: decision.message || 'Достигнут предел генераций', limit: true }, { status: 429 })
+          return NextResponse.json({ error: decision.message || 'Материалы закончились', limit: true }, { status: 429 })
         }
         // прошлый заход (если был) идет в память как уже показанный: следующий возьмет другие примеры и конец
         const prev = cr.zahod?.zh4?.zh6

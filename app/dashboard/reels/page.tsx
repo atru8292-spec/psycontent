@@ -1,5 +1,6 @@
 'use client'
 
+import NewBrainRedirect from '@/components/dashboard/NewBrainRedirect'
 import { track } from '@/lib/track'
 import { normFormat } from '@/lib/analytics/events'
 import { useState, useEffect } from 'react'
@@ -42,7 +43,7 @@ const defaultPillars = [
   { id: 'positioning', label: 'Позиционирование', topics: ['Чем я отличаюсь от других психологов', 'С кем мне не по пути', 'Мой взгляд на быстрые результаты', 'Почему я против «гарантий» в психологии', 'Мои принципы работы'] },
 ]
 
-export default function ReelsGenerator() {
+function ReelsGeneratorOld() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
@@ -416,4 +417,9 @@ export default function ReelsGenerator() {
       </div>
     </div>
   )
+}
+
+// с новым мозгом этот генератор сведен в «Сделать» (_знания/lending-dogon/LISHNEE-NA-SAYTE.md пункт 8)
+export default function ReelsGenerator() {
+  return <NewBrainRedirect to="/dashboard/make?format=reels"><ReelsGeneratorOld /></NewBrainRedirect>
 }

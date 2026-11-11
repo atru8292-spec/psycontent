@@ -21,11 +21,11 @@ type Note = {
 
 const NOTES: Note[] = [
   // Линейка с шагом 30 px: строки текста тоже по 30 px, сдвиг фона = верхний отступ, тогда линия ложится на 3-5 px ниже базовой линии строки
-  { paper: 'paper-lined rounded-[4px] [background-position:0_32px] lg:[background-position:0_48px]', pad: 'px-6 pt-8 pb-9 lg:px-10 lg:pt-12 lg:pb-16', rot: 'rotate-[-1deg]', grid: 'lg:col-span-6',
+  { paper: 'paper-lined rounded-[4px] [background-position:0_28px] lg:[background-position:0_48px]', pad: 'px-5 pt-7 pb-6 lg:px-10 lg:pt-12 lg:pb-16', rot: 'rotate-[-1deg]', grid: 'lg:col-span-6',
     holder: 'knopka-derevo', holderAt: '-top-6 left-1/2 w-[36px] -translate-x-1/2 rotate-[8deg] lg:w-[44px]', big: true },
-  { paper: 'paper-fold', pad: 'px-6 pt-8 pb-11 pr-9 lg:px-7 lg:pt-10 lg:pb-12', rot: 'rotate-[2.5deg]', grid: 'lg:col-span-3 lg:-ml-4 lg:mt-14',
+  { paper: 'paper-fold', pad: 'px-5 pt-7 pb-8 pr-8 lg:px-7 lg:pt-10 lg:pb-12', rot: 'rotate-[2deg] lg:rotate-[2.5deg]', grid: 'lg:col-span-3 lg:-ml-4 lg:mt-14',
     holder: 'skotch-kraft', holderAt: '-top-3 -left-4 w-[56px] rotate-[-32deg]' },
-  { paper: 'paper-torn', pad: 'px-6 pt-10 pb-8 lg:px-7', rot: 'rotate-[0.5deg]', grid: 'lg:col-span-3 lg:-ml-4 lg:mt-3',
+  { paper: 'paper-torn', pad: 'px-5 pt-8 pb-6 lg:px-7 lg:pt-10 lg:pb-8', rot: 'rotate-[0.5deg]', grid: 'lg:col-span-3 lg:-ml-4 lg:mt-3',
     holder: 'skrepka', holderAt: '-top-4 left-5 w-[44px] rotate-[-12deg]' },
   { paper: 'bg-brand-sage rounded-[6px]', pad: 'px-6 pt-8 pb-8 lg:px-8 lg:pt-10 lg:pb-10', rot: 'rotate-[1.2deg]', grid: 'lg:col-span-5 lg:col-start-2 lg:-mt-2',
     holder: 'knopka-derevo', holderAt: '-top-6 right-8 w-[36px] rotate-[12deg] lg:w-[40px]' },
@@ -59,17 +59,17 @@ export default function PainBoard() {
 
   return (
     <ul ref={list} aria-label={PAINS.title.replace(' ', ' ')}
-      className="mt-8 flex flex-col lg:mt-8 lg:grid lg:grid-cols-12 lg:items-start lg:gap-x-0 lg:gap-y-10 lg:pb-4">
+      className="mt-6 flex flex-col lg:mt-8 lg:grid lg:grid-cols-12 lg:items-start lg:gap-x-0 lg:gap-y-10 lg:pb-4">
       {PAINS.items.map((p, i) => {
         const n = NOTES[i % NOTES.length]
         // мобилка: ширина 88%, четные чуть левее, нечетные чуть правее; со второй заметки заход на предыдущую на 12 px
-        const mobile = `max-lg:w-[88%] ${i % 2 ? 'max-lg:ml-[10%]' : 'max-lg:ml-[2%]'} ${i ? 'max-lg:-mt-3' : ''}`
+        const mobile = `max-lg:w-[90%] ${i % 2 ? 'max-lg:ml-[8%]' : 'max-lg:ml-[2%]'} ${i ? 'max-lg:-mt-2' : ''}`
         return (
           <li key={p.head} className={`note-pin relative ${mobile} ${n.grid}`}>
             <div className={`note-shadow relative ${n.rot}`}>
               <div className={`text-brand-text ${n.paper} ${n.pad}`}>
-                <p className={`font-bold ${n.big ? 'text-[20px] leading-[30px] lg:text-[22px]' : 'text-[19px] leading-[1.2] lg:text-[21px]'}`}>{p.head}</p>
-                <p className={`text-[17px] ${n.big ? 'mt-0 leading-[30px]' : 'mt-3 leading-[1.5]'}`}>{p.text}</p>
+                <p className={`font-bold ${n.big ? 'text-[19px] leading-[30px] lg:text-[22px]' : 'text-[19px] leading-[1.25] lg:text-[21px]'}`}>{p.head}</p>
+                <p className={`text-[16px] lg:text-[17px] ${n.big ? 'mt-0 leading-[30px]' : 'mt-1.5 leading-[1.45] lg:mt-3 lg:leading-[1.5]'}`}>{p.text}</p>
               </div>
               <Dekor name={n.holder} className={`z-10 ${n.holderAt}`} />
             </div>

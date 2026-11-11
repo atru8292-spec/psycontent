@@ -212,7 +212,11 @@ export async function canConsume(userId: string, operation: string, units = 1): 
     const cap = plan.fair_use_text_cap
     const count = await textCount(db, userId)
     if (cap !== null && cap !== undefined && count >= cap) {
-      return refuse({ ok: false, mode: 'text', operation, cost: 0, reason: 'text_limit', message: 'Достигнут предел генераций. Он обновится в начале месяца.' })
+      // пробные у бесплатного без срока и не обновляются; у платных лимит месячный (тексты copywriter-psycont, 10.11)
+      const message = plan.code === 'free'
+        ? 'Пробные материалы закончились. Чтобы писать дальше, нужен платный тариф, оплату скоро подключим.'
+        : 'Материалы на этот месяц закончились. Новые появятся в начале следующего месяца.'
+      return refuse({ ok: false, mode: 'text', operation, cost: 0, reason: 'text_limit', message })
     }
     if (cap !== null && cap !== undefined && count + units > cap) {
       // число показываем только на бесплатном (там «N из 10» и так видно); у платных потолок скрытый
@@ -237,8 +241,8 @@ export async function canConsume(userId: string, operation: string, units = 1): 
 
   if (op.requiresDeepAccess && !plan.deep_analysis && !trialLeft) {
     const message = plan.code === 'free'
-      ? 'Пробный разбор уже использован. Глубокий анализ доступен на тарифе Практика.'
-      : 'Глубокий анализ доступен на тарифе Практика.'
+      ? 'Пробный разбор конкурента уже был. Глубокий разбор есть на платном тарифе, оплату скоро подключим.'
+      : 'Глубокий разбор конкурента в твой тариф не входит. Он есть на тарифе выше.'
     return refuse({ ok: false, mode: 'blocked', operation, cost, reason: 'no_access', message })
   }
 
@@ -247,8 +251,8 @@ export async function canConsume(userId: string, operation: string, units = 1): 
   const balance = await getBalance(userId)
   if (balance < cost) {
     const message = plan.code === 'free'
-      ? 'Пробный разбор уже использован. Глубокий анализ доступен на тарифе Практика.'
-      : 'Не хватает энергии. Пополните баланс или перейдите на тариф выше.'
+      ? 'Пробный разбор конкурента уже был. Глубокий разбор есть на платном тарифе, оплату скоро подключим.'
+      : 'На разбор конкурента не хватает остатка на этот месяц. Он обновится в начале месяца, а еще можно перейти на тариф выше.'
     return refuse({ ok: false, mode: 'blocked', operation, cost, reason: 'insufficient', message, balance })
   }
   return { ok: true, mode: 'charge', operation, cost, balance }
