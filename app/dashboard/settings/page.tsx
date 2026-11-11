@@ -50,7 +50,7 @@ export default function SettingsPage() {
     return () => { on = false }
   }, [router])
 
-  // Якорный переход по #tariff, #voice и т.п. (раздел «Энергия» убран, LISHNEE-NA-SAYTE.md пункт 6)
+  // Якорный переход по #tariff, #voice и т.п. (раздел «Энергия» убран, _знания/lending-dogon/LISHNEE-NA-SAYTE.md пункт 6)
   useEffect(() => {
     if (status !== 'ready') return
     const hash = window.location.hash.replace('#', '')
@@ -63,7 +63,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-brand-bg">
       {/* Шапка */}
-      {/* своей шапки нет: шапка и меню у layout кабинета (на телефоне было две шапки с логотипом, LISHNEE-NA-SAYTE.md пункт 12) */}
+      {/* своей шапки нет: шапка и меню у layout кабинета (на телефоне было две шапки с логотипом, _знания/lending-dogon/LISHNEE-NA-SAYTE.md пункт 12) */}
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
@@ -174,7 +174,7 @@ export default function SettingsPage() {
                   Открыть <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
-              {/* паспорт бренда: в новом меню на него не было входа (LISHNEE-NA-SAYTE.md пункт 13) */}
+              {/* паспорт бренда: в новом меню на него не было входа (_знания/lending-dogon/LISHNEE-NA-SAYTE.md пункт 13) */}
               <div className="rounded-3xl bg-brand-card border border-brand-border p-5 sm:p-6 mt-4">
                 <h3 className="text-lg font-bold text-brand-text mb-1">Паспорт бренда</h3>
                 <p className="text-sm text-brand-muted leading-relaxed mb-4">

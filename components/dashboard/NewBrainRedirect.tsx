@@ -1,6 +1,6 @@
 'use client'
 // Старые генераторы (карусели, рилс, хуки, рерайт) у кого включен новый мозг сведены в «Сделать»
-// (09-PUT-POLZOVATELYA.md раздел 9, LISHNEE-NA-SAYTE.md пункт 8): перекидываем туда, как анализ конкурентов.
+// (09-PUT-POLZOVATELYA.md раздел 9, _знания/lending-dogon/LISHNEE-NA-SAYTE.md пункт 8): перекидываем туда, как анализ конкурентов.
 // У старого мозга страница работает как раньше. Пока флаг из layout не пришел, старую страницу не показываем.
 import { useEffect, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'

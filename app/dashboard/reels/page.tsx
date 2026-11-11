@@ -419,7 +419,7 @@ function ReelsGeneratorOld() {
   )
 }
 
-// с новым мозгом этот генератор сведен в «Сделать» (LISHNEE-NA-SAYTE.md пункт 8)
+// с новым мозгом этот генератор сведен в «Сделать» (_знания/lending-dogon/LISHNEE-NA-SAYTE.md пункт 8)
 export default function ReelsGenerator() {
   return <NewBrainRedirect to="/dashboard/make?format=reels"><ReelsGeneratorOld /></NewBrainRedirect>
 }

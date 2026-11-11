@@ -673,7 +673,7 @@ function HooksGeneratorPageOld() {
   )
 }
 
-// с новым мозгом этот генератор сведен в «Сделать» (LISHNEE-NA-SAYTE.md пункт 8)
+// с новым мозгом этот генератор сведен в «Сделать» (_знания/lending-dogon/LISHNEE-NA-SAYTE.md пункт 8)
 export default function HooksGeneratorPage() {
   return <NewBrainRedirect to="/dashboard/make"><HooksGeneratorPageOld /></NewBrainRedirect>
 }

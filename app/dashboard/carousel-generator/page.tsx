@@ -767,7 +767,7 @@ function CarouselGeneratorPageOld() {
   )
 }
 
-// с новым мозгом этот генератор сведен в «Сделать» (LISHNEE-NA-SAYTE.md пункт 8)
+// с новым мозгом этот генератор сведен в «Сделать» (_знания/lending-dogon/LISHNEE-NA-SAYTE.md пункт 8)
 export default function CarouselGeneratorPage() {
   return <NewBrainRedirect to="/dashboard/make?format=carousel"><CarouselGeneratorPageOld /></NewBrainRedirect>
 }

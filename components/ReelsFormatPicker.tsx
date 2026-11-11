@@ -1,6 +1,6 @@
 // Список видов Reels для старого экрана «Сделать» (app/dashboard/make/page.tsx, без нового мозга).
 // Сам старый выбор с картинками (ReelsFormatPicker, ReelsScene, REELS_GROUPS) нигде не подключался и удален
-// (LISHNEE-NA-SAYTE.md пункт 15); файл уйдет целиком вместе со старым «Сделать».
+// (_знания/lending-dogon/LISHNEE-NA-SAYTE.md пункт 15); файл уйдет целиком вместе со старым «Сделать».
 
 export type ReelsMode = {
   id: string

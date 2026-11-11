@@ -13,7 +13,7 @@ import {
 import { DashboardMeContext } from '@/lib/dashboard-me'
 import ScreenTracker from '@/components/analytics/ScreenTracker'
 
-// старое меню: карусели, хуки, рилс, рерайт и анализ конкурентов спрятаны (сведены в «Сделать», LISHNEE-NA-SAYTE.md
+// старое меню: карусели, хуки, рилс, рерайт и анализ конкурентов спрятаны (сведены в «Сделать», _знания/lending-dogon/LISHNEE-NA-SAYTE.md
 // пункты 3 и 9); страницы открываются по прямой ссылке, старый «Сделать» сам ведет на карусели и рилс
 const navItems = [
   { icon: LayoutDashboard, label: 'Главная', href: '/dashboard', exact: true },
@@ -183,7 +183,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
         {/* Низ сайдбара */}
         <div className="border-t border-brand-border p-3 space-y-1 shrink-0">
-          {/* значок и подсказка энергии убраны (энергию как единицу счета убрали, LISHNEE-NA-SAYTE.md пункт 5) */}
+          {/* значок и подсказка энергии убраны (энергию как единицу счета убрали, _знания/lending-dogon/LISHNEE-NA-SAYTE.md пункт 5) */}
           {!newMenu && <Link href="/dashboard/settings" className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-brand-muted hover:bg-brand-soft hover:text-brand-text transition group relative ${collapsed ? 'justify-center' : ''}`}>
             <Settings className="w-[18px] h-[18px] shrink-0" />
             {!collapsed && <span className="text-[13px] font-medium">Настройки</span>}
