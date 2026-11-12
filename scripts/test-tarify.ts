@@ -37,6 +37,10 @@ async function main() {
   assert.equal(await usedForLimit(db, 'u1', 'free'), 9, 'пробный: счет за все месяцы, новый месяц не обнуляет')
   for (const code of ['start', 'practice', 'expert']) assert.equal(await usedForLimit(db, 'u1', code), 2, `${code}: только текущий месяц`)
   assert.equal(await usedForLimit(db, 'u3', 'free'), 0, 'новый человек: 0')
+  // база не ответила: ошибка, а не 0 (иначе лимит молча открыт); canConsume в этом случае отказывает server_error
+  const broken = { from() { const q: any = { select: () => q, eq: () => q, then: (res: any, rej: any) => Promise.resolve({ data: null, error: { code: 'PGRST000' } }).then(res, rej) }; return q } } as any
+  for (const code of ['free', 'start']) await assert.rejects(usedForLimit(broken, 'u1', code), /text_usage_counter/, `${code}: сбой чтения не дает 0`)
+  assert.match(readFileSync(join(__dirname, '..', 'lib', 'energy.ts'), 'utf8'), /reason: 'server_error'/, 'canConsume отказывает при сбое счетчика')
 
   // «Другой заход» тратит один материал: generate_post это текстовая операция, роут проверяет и списывает 1
   assert.equal(OPERATIONS.generate_post.kind, 'text')
@@ -45,7 +49,7 @@ async function main() {
   assert.match(adj, /canConsume\([^)]*ZAHOD_OP, 1\)/, '«Другой заход» проверяет лимит на 1 материал')
   assert.match(adj, /commitConsume\([^)]*ZAHOD_OP, decision\)/, '«Другой заход» списывает материал')
   const en = readFileSync(join(__dirname, '..', 'lib', 'energy.ts'), 'utf8')
-  assert.match(en, /const count = await usedForLimit\(db, userId, plan\.code\)/, 'решение о лимите считает через usedForLimit')
+  assert.match(en, /count = await usedForLimit\(db, userId, plan\.code\)/, 'решение о лимите считает через usedForLimit')
 
   // витрина: без подлимита каруселей, числа те же, что в миграции
   const { PLANS, planPerks } = await import('../lib/pricing')

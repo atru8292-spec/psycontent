@@ -131,12 +131,13 @@ async function textCount(db: SupabaseClient, userId: string): Promise<number> {
 // Сколько материалов засчитано против лимита тарифа (fix/tarify, 12.11). У бесплатного пробные «без срока»
 // (витрина lib/pricing.ts: 10 материалов без срока): складываем счетчик за все месяцы. У платных лимит месячный
 // по календарю: только текущий месяц. Сам счетчик пишется по месяцам как раньше (incrementText), таблица та же.
+// Ошибка чтения бросается: иначе при сбое базы сумма 0 и лимит молча открыт (ревью 12.11); canConsume отказывает.
 export async function usedForLimit(db: SupabaseClient, userId: string, planCode: string): Promise<number> {
-  if (planCode === 'free') {
-    const { data } = await db.from('text_usage_counter').select('count').eq('user_id', userId)
-    return (data || []).reduce((s: number, r: any) => s + (Number(r?.count) || 0), 0)
-  }
-  return textCount(db, userId)
+  let q = db.from('text_usage_counter').select('count').eq('user_id', userId)
+  if (planCode !== 'free') q = q.eq('period', periodKey())
+  const { data, error } = await q
+  if (error) throw new Error(`text_usage_counter: ${error.code || 'read_failed'}`)
+  return (data || []).reduce((s: number, r: any) => s + (Number(r?.count) || 0), 0)
 }
 
 async function incrementText(db: SupabaseClient, userId: string): Promise<void> {
@@ -221,8 +222,16 @@ export async function canConsume(userId: string, operation: string, units = 1): 
 
   if (op.kind === 'text') {
     const cap = plan.fair_use_text_cap
-    const count = await usedForLimit(db, userId, plan.code)
-    if (cap !== null && cap !== undefined && count >= cap) {
+    if (cap === null || cap === undefined) return { ok: true, mode: 'text', operation, cost: 0 }
+    let count: number
+    try {
+      count = await usedForLimit(db, userId, plan.code)
+    } catch (e: any) {
+      // счетчик не прочитался (сбой базы): не пускаем молча мимо лимита; новый «Сделать» покажет свой текст о сбое
+      console.warn('canConsume: счетчик материалов не прочитан', String(e?.message || '').slice(0, 60))
+      return { ok: false, mode: 'text', operation, cost: 0, reason: 'server_error', message: 'Не получилось проверить остаток материалов. Попробуй еще раз через минуту.' }
+    }
+    if (count >= cap) {
       // у бесплатного «пробные» (витрина: 10 без срока), у платных лимит месячный по календарю (periodKey). Тексты copywriter-psycont 11.11:
       // их же показывает новый «Сделать» (MakeFlow friendly), поэтому без глаголов от первого лица и без рода
       const message = plan.code === 'free'
@@ -354,8 +363,9 @@ export async function getAccountSummary(userId: string): Promise<AccountSummary>
   // Платным число скрыто (у них «Безлимит»), тарифу Тест — не показываем.
   let textTrial: AccountSummary['textTrial'] = null
   if (plan.code === 'free' && plan.fair_use_text_cap != null) {
-    const used = await usedForLimit(db, userId, plan.code)
-    textTrial = { remaining: Math.max(0, plan.fair_use_text_cap - used), cap: plan.fair_use_text_cap }
+    // сводка не должна падать из-за сбоя чтения счетчика: тогда остаток просто не показываем
+    const used = await usedForLimit(db, userId, plan.code).catch(() => null)
+    if (used !== null) textTrial = { remaining: Math.max(0, plan.fair_use_text_cap - used), cap: plan.fair_use_text_cap }
   }
 
   return {
