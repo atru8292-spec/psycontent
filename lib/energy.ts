@@ -128,6 +128,17 @@ async function textCount(db: SupabaseClient, userId: string): Promise<number> {
   return data?.count ?? 0
 }
 
+// Сколько материалов засчитано против лимита тарифа (fix/tarify, 12.11). У бесплатного пробные «без срока»
+// (витрина lib/pricing.ts: 10 материалов без срока): складываем счетчик за все месяцы. У платных лимит месячный
+// по календарю: только текущий месяц. Сам счетчик пишется по месяцам как раньше (incrementText), таблица та же.
+export async function usedForLimit(db: SupabaseClient, userId: string, planCode: string): Promise<number> {
+  if (planCode === 'free') {
+    const { data } = await db.from('text_usage_counter').select('count').eq('user_id', userId)
+    return (data || []).reduce((s: number, r: any) => s + (Number(r?.count) || 0), 0)
+  }
+  return textCount(db, userId)
+}
+
 async function incrementText(db: SupabaseClient, userId: string): Promise<void> {
   const current = await textCount(db, userId)
   await db.from('text_usage_counter').upsert(
@@ -210,7 +221,7 @@ export async function canConsume(userId: string, operation: string, units = 1): 
 
   if (op.kind === 'text') {
     const cap = plan.fair_use_text_cap
-    const count = await textCount(db, userId)
+    const count = await usedForLimit(db, userId, plan.code)
     if (cap !== null && cap !== undefined && count >= cap) {
       // у бесплатного «пробные» (витрина: 10 без срока), у платных лимит месячный по календарю (periodKey). Тексты copywriter-psycont 11.11:
       // их же показывает новый «Сделать» (MakeFlow friendly), поэтому без глаголов от первого лица и без рода
@@ -343,7 +354,7 @@ export async function getAccountSummary(userId: string): Promise<AccountSummary>
   // Платным число скрыто (у них «Безлимит»), тарифу Тест — не показываем.
   let textTrial: AccountSummary['textTrial'] = null
   if (plan.code === 'free' && plan.fair_use_text_cap != null) {
-    const used = await textCount(db, userId)
+    const used = await usedForLimit(db, userId, plan.code)
     textTrial = { remaining: Math.max(0, plan.fair_use_text_cap - used), cap: plan.fair_use_text_cap }
   }
 
