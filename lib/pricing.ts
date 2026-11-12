@@ -13,7 +13,6 @@ export type PricePlan = {
   yearPrice?: number       // рублей за год (год за 10 месяцев), показывается при PRICING_FLAGS.yearly
   promoFirstMonth?: number // цена первого месяца, показывается при PRICING_FLAGS.promo
   materials: number        // материалов в месяц, у пробного за все время
-  carousels: number        // из них каруселей. «С картинками» не писать: AI-картинки к каруселям еще не сделаны
   perMonth: boolean        // false: лимит на все время (пробный)
   who: string              // кому, одной строкой
   extra?: string[]         // пункты сверх чисел
@@ -26,15 +25,15 @@ export const PRICING_FLAGS = { promo: false, yearly: false, paymentsOn: false }
 
 export const PLANS: PricePlan[] = [
   {
-    id: 'trial', name: 'Пробный', price: 0, materials: 10, carousels: 1, perMonth: false,
+    id: 'trial', name: 'Пробный', price: 0, materials: 10, perMonth: false,
     who: 'Проверить, звучит ли как ты, и решить, нужно ли', extra: ['карта не нужна'], dbCodes: ['free'], track: 'free',
   },
   {
-    id: 'calm', name: 'Спокойный ритм', price: 1290, yearPrice: 12900, promoFirstMonth: 690, materials: 50, carousels: 6, perMonth: true,
+    id: 'calm', name: 'Спокойный ритм', price: 1290, yearPrice: 12900, promoFirstMonth: 690, materials: 50, perMonth: true,
     who: 'Если выкладываешь 2-3 раза в неделю', dbCodes: ['start'], track: 'calm',
   },
   {
-    id: 'daily', name: 'Каждый день', price: 2490, yearPrice: 24900, promoFirstMonth: 1290, materials: 150, carousels: 15, perMonth: true,
+    id: 'daily', name: 'Каждый день', price: 2490, yearPrice: 24900, promoFirstMonth: 1290, materials: 150, perMonth: true,
     who: 'Если ведешь блог почти каждый день и раскладываешь мысль на пять форматов', dbCodes: ['practice', 'expert'], track: 'daily',
   },
 ]
@@ -48,11 +47,14 @@ const plural = (n: number, one: string, few: string, many: string) => {
   return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many
 }
 
+// Подлимита каруселей нет (решение Арины 12.11, fix/tarify): вместо «из них N каруселей» одна строка про любые форматы,
+// текст copywriter-psycont. «С картинками» не писать: AI-картинки к каруселям еще не сделаны
+const FORMATS_LINE = 'посты, карусели, рилсы и сторис в любом сочетании'
+
 // Пункты карточки из чисел конфига, чтобы цифры жили в одном месте
 export function planPerks(p: PricePlan): string[] {
   const mats = `${p.materials} ${plural(p.materials, 'материал', 'материала', 'материалов')}${p.perMonth ? ' в месяц' : ', без срока'}`
-  const cars = `${p.perMonth ? 'из них ' : ''}${p.carousels} ${plural(p.carousels, 'карусель', 'карусели', 'каруселей')}`
-  return [mats, cars, ...(p.extra || [])]
+  return [mats, FORMATS_LINE, ...(p.extra || [])]
 }
 
 export const formatRub = (n: number) => `${n.toLocaleString('ru-RU').replace(/\s/g, ' ')} ₽`
