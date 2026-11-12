@@ -143,6 +143,11 @@ export async function POST(request: NextRequest) {
         let maskedStep = ''
         let sentLen = 0
         let usage: any = undefined
+        // modelDone: модель дописала шаг. После этого сбой отдачи клиенту (оборвал соединение) не освобождает шаг и
+        // не пишет сбой: иначе обрыв перед [DONE] давал повторять шаги 2-4 сколько угодно, а шаг 1 брать без списания
+        // (ревью 12.11). Отдача клиенту через send() никогда не бросает.
+        let modelDone = false
+        const send = (s: string) => { try { controller.enqueue(encoder.encode(s)) } catch { /* клиент ушел */ } }
 
         try {
           // Буферизованный разбор SSE: символы и дельты не теряются на стыках кусков.
@@ -156,7 +161,7 @@ export async function POST(request: NextRequest) {
                 const safe = safeRestoredPrefix(maskedStep, anonMap)
                 const toSend = safe.slice(sentLen)
                 if (toSend) {
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: toSend })}\n\n`))
+                  send(`data: ${JSON.stringify({ content: toSend })}\n\n`)
                   sentLen = safe.length
                 }
               }
@@ -165,10 +170,11 @@ export async function POST(request: NextRequest) {
             }
           }
 
+          modelDone = true
           // восстановленный текст шага (имена/контакты возвращены)
           stepText = deanonymize(maskedStep, anonMap)
           const tail = stepText.slice(sentLen)
-          if (tail) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: tail })}\n\n`))
+          if (tail) send(`data: ${JSON.stringify({ content: tail })}\n\n`)
 
           // запись реального расхода токенов LLM-шага
           await logAiUsage(user.id, 'competitor_deep', 'gpt-5.4', usage)
@@ -178,7 +184,10 @@ export async function POST(request: NextRequest) {
           if (stepNum === 1 && energyDecision && runId) {
             const paid = await commitConsume(user.id, 'competitor_deep', energyDecision)
             if (paid.ok) {
-              if (!(await runs.markPaid(runId, user.id))) console.warn('competitor_runs: оплата не отмечена')
+              // отметка после списания (до списания нельзя: продолжение без оплаты); при сбое повторяем, потом громко в журнал
+              let marked = false
+              for (let i = 0; i < 3 && !marked; i++) marked = await runs.markPaid(runId, user.id)
+              if (!marked) console.error('competitor_runs: ОПЛАЧЕНО, НО НЕ ОТМЕЧЕНО, поставить paid_at вручную, run', runId)
             } else {
               console.warn('competitor_deep: списание не прошло, продолжения не будет')
             }
@@ -204,13 +213,13 @@ export async function POST(request: NextRequest) {
             if (dbError) console.error('DB save error:', errTag(dbError))
           }
 
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-          controller.close()
+          send('data: [DONE]\n\n')
+          try { controller.close() } catch { /* уже закрыт */ }
 
         } catch (err) {
           console.error('Stream error:', errTag(err))
-          await onModelFail()
-          controller.error(err)
+          if (!modelDone) await onModelFail()
+          try { controller.error(err) } catch { /* уже закрыт */ }
         }
       }
     })

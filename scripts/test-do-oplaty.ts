@@ -241,6 +241,16 @@ async function main() {
     assert.ok(/if \(delivered\) await gate\.commit\(\)\n      \} else \{\n        await gate\.fail\(\)/.test(gp), 'generate-post: ответ новой цепочки с ошибкой пишет fail')
   }
 
+  // обрыв соединения после того, как модель дописала шаг, не освобождает шаг и не берет шаг 1 без списания (ревью 12.11)
+  {
+    const r = readFileSync(join(__dirname, '..', 'app', 'api', 'analyze-competitor', 'route.ts'), 'utf8')
+    const stream = r.slice(r.indexOf('new ReadableStream'))
+    assert.ok(!/controller\.enqueue\(/.test(stream.replace(/const send = [^\n]*\n/, '')), 'в потоке клиенту пишет только send(), он не бросает')
+    assert.match(stream, /modelDone = true[\s\S]*commitConsume/, 'modelDone ставится до списания')
+    assert.match(stream, /if \(!modelDone\) await onModelFail\(\)/, 'после готового шага обрыв не освобождает шаг')
+    assert.match(stream, /for \(let i = 0; i < 3 && !marked; i\+\+\) marked = await runs\.markPaid/, 'отметка оплаты повторяется')
+  }
+
   console.log('test-do-oplaty: ок')
 }
 
