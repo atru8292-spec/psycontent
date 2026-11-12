@@ -5,6 +5,7 @@ import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { buildProfileContext } from '@/lib/profile-context'
 import { getArchetypeContextFromProfile } from '@/lib/archetypes'
 import { getSessionUser } from '@/lib/auth'
+import { materialGate } from '@/lib/limit-gate'
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -152,6 +153,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Тема не указана' }, { status: 400 })
     }
 
+    // Лимит материалов (до оплаты, 12.11): 12 хуков одним ответом это один материал
+    const gate = await materialGate(userId, 'generate_hooks', 1)
+    if (!gate.ok) return gate.response
+
     const supabase = getSupabaseAdmin()
 
     const [profileRes, passportRes] = await Promise.all([
@@ -251,6 +256,7 @@ ${archetypeContext}
       console.error('Failed to save hooks to history:', saveError)
       // Не блокируем ответ — хуки всё равно отдаём
     }
+    await gate.commit()
 
     return NextResponse.json({ hooks })
   } catch (error: any) {

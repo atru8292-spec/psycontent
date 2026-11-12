@@ -6,6 +6,7 @@ import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { buildProfileContext } from '@/lib/profile-context'
 import { getSessionUser } from '@/lib/auth'
 import { recordEvent, maybeRebuildVoice } from '@/lib/generation/learning'
+import { materialGate } from '@/lib/limit-gate'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -162,6 +163,10 @@ export async function POST(req: NextRequest) {
     if (!sourceText) {
       return NextResponse.json({ error: 'Не указан текст' }, { status: 400 })
     }
+
+    // Лимит материалов (до оплаты, 12.11): проверка до модели, списание после записи
+    const gate = await materialGate(userId, 'rewrite_post', 1)
+    if (!gate.ok) return gate.response
     // замеры: свой черновик (режим draft), без текста
     const t0Track = Date.now()
     serverTrack(userId, 'make_start', { formats: String(format || 'post').startsWith('reels') ? 'reels' : String(format || 'post'), n: 1, mode: 'draft' })
@@ -236,6 +241,7 @@ ${sourceText}
       }).select('id').single()
       postId = ins.data?.id ?? null
     } catch (_) {}
+    if (typeof post === 'string' && post.trim()) await gate.commit()
 
     serverTrack(user.id, 'make_done', { formats: String(format).startsWith('reels') ? 'reels' : String(format), ms: Date.now() - t0Track, n_ok: 1 })
     return NextResponse.json({ post, postId })
