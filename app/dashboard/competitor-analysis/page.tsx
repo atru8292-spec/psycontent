@@ -111,6 +111,8 @@ export default function CompetitorAnalysisPage() {
     setCurrentAnalysisStep(0)
 
     let collectedAnalysis = ''
+    // id оплаченного шага 1 (заголовок X-Analysis-Id): без него сервер шаги 2-4 не пускает
+    let analysisId: string | null = null
 
     try {
       const token = await getToken()
@@ -118,7 +120,7 @@ export default function CompetitorAnalysisPage() {
       for (let stepNum = 1; stepNum <= 4; stepNum++) {
         setCurrentAnalysisStep(stepNum)
 
-        const res = await fetch('/api/analyze-competitor', {
+        const res: Response = await fetch('/api/analyze-competitor', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -130,6 +132,7 @@ export default function CompetitorAnalysisPage() {
             platform,
             step: stepNum,
             collectedAnalysis,
+            ...(stepNum > 1 && analysisId ? { analysisId } : {}),
           })
         })
 
@@ -142,6 +145,8 @@ export default function CompetitorAnalysisPage() {
           }
           throw new Error(errMsg)
         }
+
+        if (stepNum === 1) analysisId = res.headers.get('X-Analysis-Id')
 
         const reader = res.body!.getReader()
         const decoder = new TextDecoder()

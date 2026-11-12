@@ -3,14 +3,15 @@
 // «Мои тексты» под флагом нового мозга (задача sdelat-i-brend, раздел 6; спецификация designer-psycont, п. 7).
 // Одна мысль = одна карточка: материалы одного запуска сведены по group_id (старые без группы идут по одному).
 // Плашка формата открывает этот формат в результате «Сделать» (/dashboard/make?post=<id>&f=<формат>).
-// Хуки не показываем (отфильтрованы в запросе).
+// Хуки не показываем (отфильтрованы в запросе). Доработанный черновик (rewrite_*) это материал (12.11):
+// плашка показывает, что вышло (пост, карусель, рилс, сторис), на карточке метка «из черновика».
 
 import { useFeatureOpen, useTrackOnce } from '@/lib/analytics/hooks'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, Check, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { MAKE_FORMATS, formatLabel, toMakeFormat, type MakeFormat } from '@/components/make/formats'
+import { MAKE_FORMATS, NOT_MATERIAL_FORMAT, formatLabel, isRewriteFormat, toMakeFormat, type MakeFormat } from '@/components/make/formats'
 
 type Row = {
   id: string
@@ -25,7 +26,7 @@ type Row = {
   is_favorite?: boolean | null
   feedback?: { verdict?: string } | null
 }
-type Card = { key: string; title: string; date: string; motive: boolean; rows: Row[]; text: string }
+type Card = { key: string; title: string; date: string; motive: boolean; draft: boolean; rows: Row[]; text: string }
 
 const STATUS = [
   { id: 'all', label: 'Все' },
@@ -53,7 +54,7 @@ export default function MyTexts() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
       const { data, error } = await supabase.from('generated_posts').select('*')
-        .eq('user_id', user.id).neq('format', 'hooks').not('format', 'like', 'rewrite%')
+        .eq('user_id', user.id).neq('format', NOT_MATERIAL_FORMAT)
         .order('created_at', { ascending: false }).limit(400)
       if (!on) return
       if (error) { setFailed(true); setRows([]); return }
@@ -77,6 +78,7 @@ export default function MyTexts() {
         title: String(first.core?.thought || first.topic || (first.content || '').split('\n')[0] || 'Без темы'),
         date: sorted[sorted.length - 1].created_at,
         motive: rs.some(r => !!r.sample_source),
+        draft: rs.some(r => isRewriteFormat(r.format)),
         text: rs.map(r => `${r.topic || ''} ${r.content || ''} ${r.core?.thought || ''}`).join(' ').toLowerCase(),
       }
     }).sort((a, b) => b.date.localeCompare(a.date))
@@ -134,6 +136,7 @@ export default function MyTexts() {
               <div className="mt-1 flex items-center gap-2 text-[13px] text-brand-muted">
                 <span>{day(c.date)}</span>
                 {c.motive && <span className="px-2 py-0.5 rounded-full bg-brand-soft text-brand-text">по мотивам</span>}
+                {c.draft && <span className="px-2 py-0.5 rounded-full bg-brand-soft text-brand-text">из черновика</span>}
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {c.rows.map(r => {

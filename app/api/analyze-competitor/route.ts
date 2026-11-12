@@ -3,6 +3,13 @@ import { createClient } from '@supabase/supabase-js'
 import { canConsume, commitConsume, recordFailure, recordRefusal, logAiUsage, type Decision } from '@/lib/energy'
 import { anonymize, deanonymize, safeRestoredPrefix } from '@/lib/anonymize'
 import { iterateSSEData } from '@/lib/sse-stream'
+import { checkContinuation, hashTranscript, supabaseRunStore, RUN_TEXTS, type ContinuationStep } from '@/lib/competitor-run'
+import { errTag } from '@/lib/limit-gate'
+
+// Мягкий текст сбоя модели (12.11): сырой ответ OpenAI и текст исключения человеку не уходят.
+const SOFT_FAIL = 'Разбор не получился из-за сбоя. Попробуй еще раз через минуту.'
+const json = (body: Record<string, unknown>, status: number, headers?: Record<string, string>) =>
+  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...(headers || {}) } })
 
 export const maxDuration = 60
 
@@ -39,10 +46,10 @@ export async function POST(request: NextRequest) {
 
     // 2. Парсим тело
     const reqBody = await request.json()
-    const { url, transcript, platform, step, collectedAnalysis = '' } = reqBody
+    const { url, transcript, platform, step, collectedAnalysis = '', analysisId } = reqBody
 
     // 3. Валидация
-    if (!transcript || transcript.trim().length < 20) {
+    if (typeof transcript !== 'string' || transcript.trim().length < 20) {
       return new Response(JSON.stringify({ error: 'Транскрипция обязательна' }), { status: 400 })
     }
 
@@ -52,13 +59,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Энергия: один анализ = одно списание, делаем его на шаге 1 (шаги 2-4 — продолжение).
+    // Шаги 2-4 только с id оплаченного шага 1 этого же разбора (lib/competitor-run.ts, 12.11).
+    const runs = supabaseRunStore(supabaseAdmin)
     let energyDecision: Decision | null = null
+    let runId: string | null = null
+    let claimedStep: ContinuationStep | null = null
     if (stepNum === 1) {
       energyDecision = await canConsume(user.id, 'competitor_deep')
       if (!energyDecision.ok) {
         await recordRefusal(user.id, 'competitor_deep')
-        return new Response(JSON.stringify({ error: energyDecision.message }), { status: 402 })
+        return json({ error: energyDecision.message, code: energyDecision.reason || 'limit' }, 402)
       }
+      // строка разбора до модели: без нее продолжения не будет, поэтому и энергию не берем
+      runId = await runs.create(user.id, hashTranscript(transcript))
+      if (!runId) return json({ error: RUN_TEXTS.startFailed, code: 'run_start_failed' }, 503)
+    } else {
+      const check = await checkContinuation(runs, { runId: analysisId, userId: user.id, transcript, step: stepNum as ContinuationStep })
+      if (!check.ok) return json({ error: check.message, code: check.code, limit: check.status === 402 || check.status === 403 }, check.status)
+      runId = analysisId as string
+      claimedStep = stepNum as ContinuationStep
+    }
+    // модель упала: энергию не берем, факт в журнал, занятый шаг освобождаем (повтор с тем же id пройдет)
+    const onModelFail = async () => {
+      try { await recordFailure(user.id, 'competitor_deep') } catch (e) { console.warn('recordFailure:', errTag(e)) }
+      if (claimedStep && runId) await runs.releaseStep(runId, user.id, claimedStep)
     }
 
     // 4. Модель
@@ -77,27 +101,35 @@ export async function POST(request: NextRequest) {
     const { masked: maskedUserPrompt, map: anonMap } = anonymize(userPrompt)
 
     // 6. Запрос к OpenRouter
-    const openRouterRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        stream: true,
-        stream_options: { include_usage: true },
-        messages: [
-          { role: 'system', content: SYSTEM_BASE },
-          { role: 'user', content: maskedUserPrompt }
-        ]
+    // сеть до OpenAI упала (fetch бросил): тот же мягкий сбой, шаг освобождаем
+    let openRouterRes: Response
+    try {
+      openRouterRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          stream: true,
+          stream_options: { include_usage: true },
+          messages: [
+            { role: 'system', content: SYSTEM_BASE },
+            { role: 'user', content: maskedUserPrompt }
+          ]
+        })
       })
-    })
+    } catch (e) {
+      console.error('Competitor analysis fetch error:', errTag(e))
+      await onModelFail()
+      return json({ error: SOFT_FAIL, code: 'model_error' }, 502)
+    }
 
     if (!openRouterRes.ok) {
-      if (stepNum === 1 && energyDecision) await recordFailure(user.id, 'competitor_deep')
-      const errText = await openRouterRes.text()
-      return new Response(JSON.stringify({ error: `OpenRouter error: ${errText}` }), { status: 500 })
+      console.error('Competitor analysis model error:', openRouterRes.status)
+      await onModelFail()
+      return json({ error: SOFT_FAIL, code: 'model_error' }, 502)
     }
 
     // 7. Стримим ответ + на шаге 4 сохраняем в БД
@@ -111,6 +143,11 @@ export async function POST(request: NextRequest) {
         let maskedStep = ''
         let sentLen = 0
         let usage: any = undefined
+        // modelDone: модель дописала шаг. После этого сбой отдачи клиенту (оборвал соединение) не освобождает шаг и
+        // не пишет сбой: иначе обрыв перед [DONE] давал повторять шаги 2-4 сколько угодно, а шаг 1 брать без списания
+        // (ревью 12.11). Отдача клиенту через send() никогда не бросает.
+        let modelDone = false
+        const send = (s: string) => { try { controller.enqueue(encoder.encode(s)) } catch { /* клиент ушел */ } }
 
         try {
           // Буферизованный разбор SSE: символы и дельты не теряются на стыках кусков.
@@ -124,7 +161,7 @@ export async function POST(request: NextRequest) {
                 const safe = safeRestoredPrefix(maskedStep, anonMap)
                 const toSend = safe.slice(sentLen)
                 if (toSend) {
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: toSend })}\n\n`))
+                  send(`data: ${JSON.stringify({ content: toSend })}\n\n`)
                   sentLen = safe.length
                 }
               }
@@ -133,17 +170,27 @@ export async function POST(request: NextRequest) {
             }
           }
 
+          modelDone = true
           // восстановленный текст шага (имена/контакты возвращены)
           stepText = deanonymize(maskedStep, anonMap)
           const tail = stepText.slice(sentLen)
-          if (tail) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: tail })}\n\n`))
+          if (tail) send(`data: ${JSON.stringify({ content: tail })}\n\n`)
 
           // запись реального расхода токенов LLM-шага
           await logAiUsage(user.id, 'competitor_deep', 'gpt-5.4', usage)
 
           // успех шага 1 = анализ отработал → списываем энергию один раз за весь анализ
-          if (stepNum === 1 && energyDecision) {
-            await commitConsume(user.id, 'competitor_deep', energyDecision)
+          // оплачен = списание прошло; только тогда шаги 2-4 пустят по этому id
+          if (stepNum === 1 && energyDecision && runId) {
+            const paid = await commitConsume(user.id, 'competitor_deep', energyDecision)
+            if (paid.ok) {
+              // отметка после списания (до списания нельзя: продолжение без оплаты); при сбое повторяем, потом громко в журнал
+              let marked = false
+              for (let i = 0; i < 3 && !marked; i++) marked = await runs.markPaid(runId, user.id)
+              if (!marked) console.error('competitor_runs: ОПЛАЧЕНО, НО НЕ ОТМЕЧЕНО, поставить paid_at вручную, run', runId)
+            } else {
+              console.warn('competitor_deep: списание не прошло, продолжения не будет')
+            }
           }
 
           // Сохраняем в БД только на последнем шаге
@@ -163,16 +210,16 @@ export async function POST(request: NextRequest) {
                 analysis: fullAnalysis,
               })
 
-            if (dbError) console.error('DB save error:', dbError)
+            if (dbError) console.error('DB save error:', errTag(dbError))
           }
 
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-          controller.close()
+          send('data: [DONE]\n\n')
+          try { controller.close() } catch { /* уже закрыт */ }
 
         } catch (err) {
-          if (stepNum === 1 && energyDecision) await recordFailure(user.id, 'competitor_deep')
-          console.error('Stream error:', err)
-          controller.error(err)
+          console.error('Stream error:', errTag(err))
+          if (!modelDone) await onModelFail()
+          try { controller.error(err) } catch { /* уже закрыт */ }
         }
       }
     })
@@ -182,14 +229,12 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
+        ...(stepNum === 1 && runId ? { 'X-Analysis-Id': runId } : {}),
       }
     })
 
   } catch (error) {
-    console.error('Competitor analysis error:', error)
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Ошибка анализа' }),
-      { status: 500 }
-    )
+    console.error('Competitor analysis error:', errTag(error))
+    return json({ error: SOFT_FAIL, code: 'server_error' }, 500)
   }
 }

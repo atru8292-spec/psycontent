@@ -5,7 +5,7 @@ import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { buildProfileContext } from '@/lib/profile-context'
 import { getArchetypeContextFromProfile } from '@/lib/archetypes'
 import { getSessionUser } from '@/lib/auth'
-import { materialGate } from '@/lib/limit-gate'
+import { materialGate, errTag, softFailResponse } from '@/lib/limit-gate'
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -138,6 +138,8 @@ const HOOKS_SYSTEM_PROMPT = `Ты помогаешь психологу нахо
 export const maxDuration = 45
 
 export async function POST(req: NextRequest) {
+  // fail(): модель упала после проверки лимита, материал не списан, факт в журнал (12.11)
+  let gateFail: (() => Promise<void>) | null = null
   try {
     const reqBody = await req.json()
     const { topic } = reqBody
@@ -156,6 +158,7 @@ export async function POST(req: NextRequest) {
     // Лимит материалов (до оплаты, 12.11): 12 хуков одним ответом это один материал
     const gate = await materialGate(userId, 'generate_hooks', 1)
     if (!gate.ok) return gate.response
+    gateFail = gate.fail
 
     const supabase = getSupabaseAdmin()
 
@@ -260,10 +263,8 @@ ${archetypeContext}
 
     return NextResponse.json({ hooks })
   } catch (error: any) {
-    console.error('Generate hooks error:', error)
-    return NextResponse.json(
-      { error: error?.message || 'Ошибка генерации хуков' },
-      { status: 500 }
-    )
+    console.error('Generate hooks error:', errTag(error))
+    if (gateFail) await gateFail()
+    return softFailResponse()
   }
 }

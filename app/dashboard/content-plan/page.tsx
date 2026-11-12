@@ -16,6 +16,7 @@ import {
   Layers,
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
+import { NOT_MATERIAL_FORMAT } from '@/components/make/formats'
 import TopicIdeas from '@/components/TopicIdeas'
 import { useDashboardMe } from '@/lib/dashboard-me'
 import EmptyState from '@/components/EmptyState'
@@ -426,13 +427,12 @@ export default function ContentPlan() {
 
       const [planRes, countRes] = await Promise.all([
         supabase.from('content_plans').select('plan').eq('user_id', user.id).single(),
-        // Считаем материалы контента (посты/сторис/карусели/рилс). Исключаем служебное:
-        // хуки (format:'hooks') и рерайты (format:'rewrite_*'), это не самостоятельный материал.
+        // Считаем материалы (посты, сторис, карусели, рилс, доработанные черновики rewrite_*, 12.11).
+        // Хуки (format:'hooks') не материал на экране, их не считаем (components/make/formats.ts isMaterialFormat).
         supabase.from('generated_posts').select('id', { count: 'exact', head: true })
           .eq('user_id', user.id)
           .gte('created_at', monthStart)
-          .not('format', 'eq', 'hooks')
-          .not('format', 'like', 'rewrite%'),
+          .not('format', 'eq', NOT_MATERIAL_FORMAT),
       ])
 
       if (planRes.data?.plan) setPlan(planRes.data.plan)

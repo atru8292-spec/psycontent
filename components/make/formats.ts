@@ -12,8 +12,18 @@ export type MakeFormat = typeof MAKE_FORMATS[number]['id']
 export const DEFAULT_FORMATS: MakeFormat[] = ['post', 'carousel']
 export const formatLabel = (f: string) => MAKE_FORMATS.find(x => x.id === f)?.label || f
 
-// Код материала из базы (reels_monolog, post_tg...) в формат экрана
-export function toMakeFormat(code: string): MakeFormat {
+// Что в generated_posts считается материалом (12.11, решение Арины): все, кроме хуков. Черновик, доработанный
+// через «Есть свой черновик» (rewrite-post пишет format rewrite_post, rewrite_carousel, rewrite_reels, rewrite_stories),
+// это материал: он списывает лимит, поэтому виден в «Моих текстах» и считается в трекере ритма.
+// Хуки (format hooks) тоже списывают лимит, но экрана больше нет и материалом они не показываются.
+export const NOT_MATERIAL_FORMAT = 'hooks'
+export const REWRITE_PREFIX = 'rewrite_'
+export const isRewriteFormat = (code: string | null | undefined) => String(code || '').startsWith(REWRITE_PREFIX)
+export const isMaterialFormat = (code: string | null | undefined) => String(code || 'post') !== NOT_MATERIAL_FORMAT
+
+// Код материала из базы (reels_monolog, post_tg, rewrite_carousel...) в формат экрана
+export function toMakeFormat(raw: string): MakeFormat {
+  const code = isRewriteFormat(raw) ? raw.slice(REWRITE_PREFIX.length) : raw
   if (code.startsWith('reels')) return 'reels'
   if (code === 'post_tg' || code === 'carousel' || code === 'stories') return code
   return 'post'
