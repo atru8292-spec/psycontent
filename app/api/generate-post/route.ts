@@ -9,6 +9,7 @@ import { getSessionUser } from '@/lib/auth'
 import { isNewPipeline } from '@/lib/generation/context'
 import { handleNewPipeline, zh6On } from './new-pipeline'
 import { formatByCode } from '@/lib/generation/zh6/formaty'
+import { materialGate } from '@/lib/limit-gate'
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -261,10 +262,21 @@ export async function POST(req: NextRequest) {
     const t0 = Date.now()
     // zh6: код формата каталога из плана (только код [a-z0-9_], без текстов)
     const fKod = zh6On() && typeof body?.formatKod === 'string' ? formatByCode(body.formatKod)?.code : undefined
+    // Лимит материалов (до оплаты, 12.11): один раз на запрос, до любой модели и до записи.
+    // Списание (gate.commit) только после готового текста: в старом пути после insert, в новой цепочке
+    // когда она отдала post (вопрос плана needDetail без текста не списывает, ошибка модели тоже).
+    const gate = await materialGate(userId, 'generate_post', 1)
+    if (!gate.ok) return gate.response
+
     serverTrack(userId, 'make_start', { formats: fmtCode, n: 1, mode: body?.topic && !body?.customTopic ? 'topic' : 'thought', ...(fKod ? { format_kod: fKod } : {}) })
 
     if (isNewPipeline(profile)) {
       const res = await handleNewPipeline({ db: supabase, userId, profile, body, topic: finalTopic, pillar })
+      if (res.ok) {
+        let delivered = false
+        try { const data = await res.clone().json(); delivered = typeof data?.post === 'string' && data.post.trim().length > 0 } catch {}
+        if (delivered) await gate.commit()
+      }
       if (res.ok) serverTrack(userId, 'make_done', { formats: fmtCode, ms: Date.now() - t0, n_ok: 1 })
       else serverTrack(userId, 'make_error', { code: `http_${res.status}`, format: fmtCode })
       return res
@@ -344,6 +356,8 @@ ${platformInstruction}
     if (insertError) {
       console.warn('Failed to save post to DB:', insertError.message)
     }
+    // текст готов и отдается человеку: материал засчитан (даже если запись в историю не удалась)
+    await gate.commit()
 
     serverTrack(userId, 'make_done', { formats: fmtCode, ms: Date.now() - t0, n_ok: 1 })
     return NextResponse.json({ post })

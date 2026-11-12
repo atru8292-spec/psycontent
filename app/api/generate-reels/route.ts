@@ -5,6 +5,7 @@ import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { buildProfileContext } from '@/lib/profile-context'
 import { getArchetypeContextFromProfile } from '@/lib/archetypes'
 import { getSessionUser } from '@/lib/auth'
+import { materialGate } from '@/lib/limit-gate'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -117,6 +118,10 @@ export async function POST(req: NextRequest) {
     const finalTopic = customTopic || topic
     if (!finalTopic) return NextResponse.json({ error: 'Не указана тема видео' }, { status: 400 })
 
+    // Лимит материалов (до оплаты, 12.11): проверка до модели, списание после записи
+    const gate = await materialGate(userId, 'generate_reels', 1)
+    if (!gate.ok) return gate.response
+
     const supabase = getSupabaseAdmin()
 
     const [profileRes, passportRes] = await Promise.all([
@@ -206,6 +211,8 @@ ${getStyleInstruction(videoStyle)}
         category: pillar || 'Своя тема'
       })
     } catch (_) {}
+    // пустой ответ модели материалом не считаем
+    if (typeof script === 'string' && script.trim()) await gate.commit()
 
     return NextResponse.json({ script })
   } catch (error: any) {

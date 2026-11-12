@@ -7,6 +7,7 @@ import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { buildProfileContext } from '@/lib/profile-context'
 import { getArchetypeContextFromProfile } from '@/lib/archetypes'
 import { getSessionUser } from '@/lib/auth'
+import { materialGate } from '@/lib/limit-gate'
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -106,6 +107,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Тема не указана' }, { status: 400 })
     }
 
+    // Лимит материалов (до оплаты, 12.11): проверка до модели, списание после записи
+    const gate = await materialGate(userId, 'generate_carousel', 1)
+    if (!gate.ok) return gate.response
+
     const supabase = getSupabaseAdmin()
 
     const [profileRes, passportRes] = await Promise.all([
@@ -191,6 +196,7 @@ ${pillar ? `Рубрика: ${pillar}` : ''}
     if (insertError) {
       console.warn('Failed to save carousel:', insertError.message)
     }
+    await gate.commit()
 
     return NextResponse.json({ slides })
 
