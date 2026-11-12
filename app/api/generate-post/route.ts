@@ -9,7 +9,7 @@ import { getSessionUser } from '@/lib/auth'
 import { isNewPipeline } from '@/lib/generation/context'
 import { handleNewPipeline, zh6On } from './new-pipeline'
 import { formatByCode } from '@/lib/generation/zh6/formaty'
-import { materialGate } from '@/lib/limit-gate'
+import { materialGate, errTag, softFailResponse } from '@/lib/limit-gate'
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -224,6 +224,8 @@ const SYSTEM_PROMPT = `Ты пишешь посты за практикующе�
 export async function POST(req: NextRequest) {
   // для make_error в catch: кто и какой формат (до этого места ошибка значит не наш запуск)
   let trackCtx: { userId: string; format: string } | null = null
+  // fail(): модель упала после проверки лимита, материал не списан, факт в журнал (12.11)
+  let gateFail: (() => Promise<void>) | null = null
   try {
     const body = await req.json()
     const { topic, customTopic, format, pillar, platform } = body
@@ -267,6 +269,7 @@ export async function POST(req: NextRequest) {
     // когда она отдала post (вопрос плана needDetail без текста не списывает, ошибка модели тоже).
     const gate = await materialGate(userId, 'generate_post', 1)
     if (!gate.ok) return gate.response
+    gateFail = gate.fail
 
     serverTrack(userId, 'make_start', { formats: fmtCode, n: 1, mode: body?.topic && !body?.customTopic ? 'topic' : 'thought', ...(fKod ? { format_kod: fKod } : {}) })
 
@@ -276,6 +279,8 @@ export async function POST(req: NextRequest) {
         let delivered = false
         try { const data = await res.clone().json(); delivered = typeof data?.post === 'string' && data.post.trim().length > 0 } catch {}
         if (delivered) await gate.commit()
+      } else {
+        await gate.fail()
       }
       if (res.ok) serverTrack(userId, 'make_done', { formats: fmtCode, ms: Date.now() - t0, n_ok: 1 })
       else serverTrack(userId, 'make_error', { code: `http_${res.status}`, format: fmtCode })
@@ -363,15 +368,9 @@ ${platformInstruction}
     return NextResponse.json({ post })
 
   } catch (error: any) {
-    console.error('Generate post error:', error)
+    console.error('Generate post error:', errTag(error))
+    if (gateFail) await gateFail()
     if (trackCtx) serverTrack(trackCtx.userId, 'make_error', { code: 'server', format: trackCtx.format })
-
-    return NextResponse.json(
-      {
-        error: error?.message || 'Не удалось сгенерировать пост',
-        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
-      },
-      { status: 500 }
-    )
+    return softFailResponse()
   }
 }

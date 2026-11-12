@@ -5,7 +5,7 @@ import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { buildProfileContext } from '@/lib/profile-context'
 import { getArchetypeContextFromProfile } from '@/lib/archetypes'
 import { getSessionUser } from '@/lib/auth'
-import { materialGate } from '@/lib/limit-gate'
+import { materialGate, errTag, softFailResponse } from '@/lib/limit-gate'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -106,6 +106,8 @@ const SYSTEM_PROMPT = `Ты пишешь сценарии Reels за практ�
 Строго блоки в квадратных скобках. Без текста вне блоков, без предисловий.`
 
 export async function POST(req: NextRequest) {
+  // fail(): модель упала после проверки лимита, материал не списан, факт в журнал (12.11)
+  let gateFail: (() => Promise<void>) | null = null
   try {
     const reqBody = await req.json()
     const { topic, customTopic, videoLength, videoStyle, pillar } = reqBody
@@ -121,6 +123,7 @@ export async function POST(req: NextRequest) {
     // Лимит материалов (до оплаты, 12.11): проверка до модели, списание после записи
     const gate = await materialGate(userId, 'generate_reels', 1)
     if (!gate.ok) return gate.response
+    gateFail = gate.fail
 
     const supabase = getSupabaseAdmin()
 
@@ -213,10 +216,12 @@ ${getStyleInstruction(videoStyle)}
     } catch (_) {}
     // пустой ответ модели материалом не считаем
     if (typeof script === 'string' && script.trim()) await gate.commit()
+    else await gate.fail()
 
     return NextResponse.json({ script })
   } catch (error: any) {
-    console.error('Reels API error:', error)
-    return NextResponse.json({ error: `Не удалось сгенерировать скрипт: ${error?.message || error}` }, { status: 500 })
+    console.error('Reels API error:', errTag(error))
+    if (gateFail) await gateFail()
+    return softFailResponse()
   }
 }

@@ -7,7 +7,7 @@ import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { buildProfileContext } from '@/lib/profile-context'
 import { getArchetypeContextFromProfile } from '@/lib/archetypes'
 import { getSessionUser } from '@/lib/auth'
-import { materialGate } from '@/lib/limit-gate'
+import { materialGate, errTag, softFailResponse } from '@/lib/limit-gate'
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -92,6 +92,8 @@ const CAROUSEL_SYSTEM_PROMPT = `Ты собираешь карусели за п
 БЕЗ markdown, БЕЗ пояснений, ТОЛЬКО JSON массив.`
 
 export async function POST(req: NextRequest) {
+  // fail(): модель упала после проверки лимита, материал не списан, факт в журнал (12.11)
+  let gateFail: (() => Promise<void>) | null = null
   try {
     const body = await req.json()
     const { topic, pillar } = body
@@ -110,6 +112,7 @@ export async function POST(req: NextRequest) {
     // Лимит материалов (до оплаты, 12.11): проверка до модели, списание после записи
     const gate = await materialGate(userId, 'generate_carousel', 1)
     if (!gate.ok) return gate.response
+    gateFail = gate.fail
 
     const supabase = getSupabaseAdmin()
 
@@ -201,10 +204,8 @@ ${pillar ? `Рубрика: ${pillar}` : ''}
     return NextResponse.json({ slides })
 
   } catch (error: any) {
-    console.error('Generate carousel error:', error)
-    return NextResponse.json(
-      { error: error?.message || 'Не удалось сгенерировать карусель' },
-      { status: 500 }
-    )
+    console.error('Generate carousel error:', errTag(error))
+    if (gateFail) await gateFail()
+    return softFailResponse()
   }
 }

@@ -136,17 +136,39 @@ export async function usedForLimit(db: SupabaseClient, userId: string, planCode:
   return (data || []).reduce((s: number, r: any) => s + (Number(r?.count) || 0), 0)
 }
 
-// Сбой чтения не превращается в «было 0»: иначе upsert записал бы 1 поверх настоящего счетчика и обнулил лимит
-// (ревью 12.11). При сбое пропускаем запись и пишем в журнал только код; никогда не бросает, текст уже отдан.
-// Гонка двух одновременных списаний (чтение, потом запись) остается, лечится атомарным RPC до оплаты.
-async function incrementText(db: SupabaseClient, userId: string): Promise<void> {
-  const { data, error } = await db.from('text_usage_counter').select('count').eq('user_id', userId).eq('period', periodKey()).maybeSingle()
-  if (error) { console.warn('incrementText: счетчик не прочитан, запись пропущена', error.code || 'без кода'); return }
-  const { error: upErr } = await db.from('text_usage_counter').upsert(
-    { user_id: userId, period: periodKey(), count: (data?.count ?? 0) + 1 },
-    { onConflict: 'user_id,period' }
-  )
-  if (upErr) console.warn('incrementText: счетчик не записан', upErr.code || 'без кода')
+// Атомарный +1 к счетчику материалов (12.11): SQL-функция increment_text_usage (миграция 20261112100100) делает
+// insert ... on conflict do update set count = count + 1 одной операцией, параллельные списания не теряются.
+// Выкатка кода раньше миграции ничего не ломает: если функции нет (PGRST202 у PostgREST, 42883 у Postgres),
+// идем запасным путем (чтение и upsert, как было до 12.11; гонка там остается).
+// Запасной путь: сбой чтения не превращается в «было 0», иначе upsert записал бы 1 поверх настоящего счетчика
+// и обнулил лимит (ревью 12.11), запись пропускается. Никогда не бросает: текст уже отдан. В журнал только код.
+const NO_FUNCTION_CODES = new Set(['PGRST202', '42883'])
+export function isMissingFunction(err: any): boolean {
+  if (!err) return false
+  if (NO_FUNCTION_CODES.has(String(err.code || ''))) return true
+  // старые PostgREST отдают 404 без кода с текстом про schema cache
+  return /could not find the function|function .* does not exist/i.test(String(err.message || ''))
+}
+
+export async function incrementText(db: SupabaseClient, userId: string, period: string = periodKey()): Promise<void> {
+  try {
+    const { error } = await db.rpc('increment_text_usage', { p_user_id: userId, p_period: period })
+    if (!error) return
+    if (!isMissingFunction(error)) { console.warn('incrementText: счетчик не записан', error.code || 'без кода'); return }
+  } catch (e: any) {
+    console.warn('incrementText: rpc упал', String(e?.code || e?.name || 'без кода').slice(0, 40)); return
+  }
+  try {
+    const { data, error } = await db.from('text_usage_counter').select('count').eq('user_id', userId).eq('period', period).maybeSingle()
+    if (error) { console.warn('incrementText: счетчик не прочитан, запись пропущена', error.code || 'без кода'); return }
+    const { error: upErr } = await db.from('text_usage_counter').upsert(
+      { user_id: userId, period, count: (data?.count ?? 0) + 1 },
+      { onConflict: 'user_id,period' }
+    )
+    if (upErr) console.warn('incrementText: счетчик не записан', upErr.code || 'без кода')
+  } catch (e: any) {
+    console.warn('incrementText: запасной путь упал', String(e?.code || e?.name || 'без кода').slice(0, 40))
+  }
 }
 
 // Сколько проб этой операции тариф Free уже использовал (метка в истории энергии).

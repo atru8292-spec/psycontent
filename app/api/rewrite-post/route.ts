@@ -6,7 +6,7 @@ import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { buildProfileContext } from '@/lib/profile-context'
 import { getSessionUser } from '@/lib/auth'
 import { recordEvent, maybeRebuildVoice } from '@/lib/generation/learning'
-import { materialGate } from '@/lib/limit-gate'
+import { materialGate, errTag, softFailResponse } from '@/lib/limit-gate'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -146,11 +146,17 @@ const SYSTEM_PROMPT = `Ты ghostwriter для практикующего пси
 ═══════════════════════════════
 Выдай ТОЛЬКО готовый текст. Без предисловий, без "Вот ваш пост:", без кавычек.`
 
+const REWRITE_FORMATS = ['post', 'carousel', 'reels', 'stories']
+
 export async function POST(req: NextRequest) {
   let userIdForTrack: string | null = null
+  // fail(): модель упала после проверки лимита, материал не списан, факт в журнал (12.11)
+  let gateFail: (() => Promise<void>) | null = null
   try {
     const reqBody = await req.json()
-    const { sourceText, format, goal } = reqBody
+    const { sourceText, goal } = reqBody
+    // формат из тела только из списка: код пишется в generated_posts как rewrite_<формат> и показывается материалом
+    const format = REWRITE_FORMATS.includes(reqBody?.format) ? String(reqBody.format) : 'post'
 
     // userId берём ТОЛЬКО из проверенной сессии в куках, не из тела запроса.
     const user = await getSessionUser()
@@ -167,6 +173,7 @@ export async function POST(req: NextRequest) {
     // Лимит материалов (до оплаты, 12.11): проверка до модели, списание после записи
     const gate = await materialGate(userId, 'rewrite_post', 1)
     if (!gate.ok) return gate.response
+    gateFail = gate.fail
     // замеры: свой черновик (режим draft), без текста
     const t0Track = Date.now()
     serverTrack(userId, 'make_start', { formats: String(format || 'post').startsWith('reels') ? 'reels' : String(format || 'post'), n: 1, mode: 'draft' })
@@ -242,12 +249,14 @@ ${sourceText}
       postId = ins.data?.id ?? null
     } catch (_) {}
     if (typeof post === 'string' && post.trim()) await gate.commit()
+    else await gate.fail()
 
     serverTrack(user.id, 'make_done', { formats: String(format).startsWith('reels') ? 'reels' : String(format), ms: Date.now() - t0Track, n_ok: 1 })
     return NextResponse.json({ post, postId })
   } catch (error: any) {
-    console.error('Rewrite API error:', error)
+    console.error('Rewrite API error:', errTag(error))
+    if (gateFail) await gateFail()
     serverTrack(userIdForTrack, 'make_error', { code: 'server', format: 'post' })
-    return NextResponse.json({ error: `Не удалось переписать текст: ${error?.message || String(error)}` }, { status: 500 })
+    return softFailResponse()
   }
 }
