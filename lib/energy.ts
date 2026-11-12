@@ -123,10 +123,6 @@ function periodKey(): string {
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`
 }
 
-async function textCount(db: SupabaseClient, userId: string): Promise<number> {
-  const { data } = await db.from('text_usage_counter').select('count').eq('user_id', userId).eq('period', periodKey()).maybeSingle()
-  return data?.count ?? 0
-}
 
 // Сколько материалов засчитано против лимита тарифа (fix/tarify, 12.11). У бесплатного пробные «без срока»
 // (витрина lib/pricing.ts: 10 материалов без срока): складываем счетчик за все месяцы. У платных лимит месячный
@@ -140,12 +136,17 @@ export async function usedForLimit(db: SupabaseClient, userId: string, planCode:
   return (data || []).reduce((s: number, r: any) => s + (Number(r?.count) || 0), 0)
 }
 
+// Сбой чтения не превращается в «было 0»: иначе upsert записал бы 1 поверх настоящего счетчика и обнулил лимит
+// (ревью 12.11). При сбое пропускаем запись и пишем в журнал только код; никогда не бросает, текст уже отдан.
+// Гонка двух одновременных списаний (чтение, потом запись) остается, лечится атомарным RPC до оплаты.
 async function incrementText(db: SupabaseClient, userId: string): Promise<void> {
-  const current = await textCount(db, userId)
-  await db.from('text_usage_counter').upsert(
-    { user_id: userId, period: periodKey(), count: current + 1 },
+  const { data, error } = await db.from('text_usage_counter').select('count').eq('user_id', userId).eq('period', periodKey()).maybeSingle()
+  if (error) { console.warn('incrementText: счетчик не прочитан, запись пропущена', error.code || 'без кода'); return }
+  const { error: upErr } = await db.from('text_usage_counter').upsert(
+    { user_id: userId, period: periodKey(), count: (data?.count ?? 0) + 1 },
     { onConflict: 'user_id,period' }
   )
+  if (upErr) console.warn('incrementText: счетчик не записан', upErr.code || 'без кода')
 }
 
 // Сколько проб этой операции тариф Free уже использовал (метка в истории энергии).

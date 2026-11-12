@@ -101,6 +101,8 @@ async function main() {
       assert.equal(g.ok, false, 'база недоступна: помощник не пускает')
       if (!g.ok) assert.notEqual(g.response.status, 200)
     } catch (e: any) {
+      // провал самой проверки не глотаем (ревью 12.11: раньше catch съедал и AssertionError)
+      if (e?.code === 'ERR_ASSERTION') throw e
       // если canConsume бросил раньше счетчика (чтение плана), роут уйдет в свой catch с 500: тоже не 200
       assert.ok(e, 'сбой базы не дает 200')
     } finally { console.warn = origWarn }
