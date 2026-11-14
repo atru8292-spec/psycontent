@@ -568,7 +568,7 @@ export default function ContentPlan() {
             Контент-план
           </div>
           <h1 className="text-[26px] md:text-4xl font-bold text-brand-text mb-2 leading-tight">
-            30 дней контента для&nbsp;твоего блога
+            Темы на 30 дней для&nbsp;твоего блога
           </h1>
           <Squiggle variant={1} width="55%" />
           <p className="text-[16px] md:text-base text-brand-text-secondary leading-relaxed mt-3">
