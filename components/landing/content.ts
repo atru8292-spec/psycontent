@@ -4,10 +4,7 @@
 // Перечисление «пост, карусель или рилс» стоит только в подзаголовке первого экрана (и в пустых «Моих текстах» кабинета).
 // Цены и пункты тарифов не здесь: lib/pricing.ts.
 
-// Почта для связи и юридические страницы: пока пусто, строки в подвале скрыты
-export const CONTACT_EMAIL = ''
-export const PRIVACY_URL = ''
-export const OFFER_URL = ''
+// Реквизиты, почта и ссылки на оферту и политику: lib/rekvizity.ts и components/site/SiteFooter.tsx
 
 export const HERO = {
   // Заголовок в два веса: первая строка жирным, вторая medium; рукописный штрих на titleMark (то, что уходит с ее плеч)
@@ -134,9 +131,6 @@ export const FINAL = {
 
 export const FOOTER = {
   slogan: 'Посты, в которых клиент узнает себя',
-  mailLabel: 'Есть вопрос? Пиши:',
-  privacy: 'Политика конфиденциальности',
-  offer: 'Оферта',
 }
 
 export const HEADER = {

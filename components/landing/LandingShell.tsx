@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { track } from '@/lib/track'
 import AuthModal from '@/components/AuthModal'
+import { T } from '@/lib/auth-texts'
 
 type Who = 'unknown' | 'anon' | 'noprofile' | 'profile'
 type Place = 'hero' | 'how' | 'pricing' | 'final' | 'header'
@@ -51,10 +52,14 @@ export default function LandingShell({ children }: { children: React.ReactNode }
       if (!alive) return
       setWho(w)
       // /?auth=login (ссылка «Войти» со страниц app/auth/*): гостю сразу открываем окно входа, параметр убираем всегда
-      const wantsLogin = new URLSearchParams(window.location.search).get('auth') === 'login'
-      if (wantsLogin) window.history.replaceState(null, '', window.location.pathname + window.location.hash)
+      const q = new URLSearchParams(window.location.search)
+      const wantsLogin = q.get('auth') === 'login'
+      // /?auth=register&nado=soglasie: вход через Яндекс без аккаунта и без галочки согласия (app/auth/yandex/callback)
+      const wantsRegister = q.get('auth') === 'register'
+      if (wantsLogin || wantsRegister) window.history.replaceState(null, '', window.location.pathname + window.location.hash)
       if (w === 'profile') router.replace('/dashboard')
       else if (w === 'anon' && wantsLogin) setModal({ mode: 'login' })
+      else if (w === 'anon' && wantsRegister) setModal({ mode: 'register', note: q.get('nado') === 'soglasie' ? T.yandexNeedConsent : undefined })
     })
     return () => { alive = false }
   }, [router])

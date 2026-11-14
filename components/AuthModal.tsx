@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
@@ -11,6 +11,8 @@ import { Notice, PasswordInput, StateIcon, useCooldown } from '@/components/auth
 import RequestLinkForm from '@/components/auth/RequestLinkForm'
 import { requestLink } from '@/components/auth/request-link'
 import YandexIdButton from '@/components/auth/YandexIdButton'
+import Link from 'next/link'
+import { OFFER_PATH, PRIVACY_PATH, CONSENT_PATH, CONSENT_VERSION } from '@/lib/rekvizity'
 
 type Mode = 'login' | 'register' | 'forgot'
 
@@ -40,12 +42,18 @@ export default function AuthModal({
   const [unconfirmed, setUnconfirmed] = useState(false)
   const [resent, setResent] = useState(false)
   const [resending, setResending] = useState(false)
+  // согласие на обработку данных: только в режиме регистрации, заранее не отмечено, при каждом открытии окна сбрасывается
+  const [agree, setAgree] = useState(false)
+  const [consentErr, setConsentErr] = useState(false)
+  const agreeRef = useRef<HTMLInputElement>(null)
+  // нажали «Создать аккаунт» или Яндекс без галочки: подсказка прямо под галочкой и фокус на нее
+  const noConsent = () => { setConsentErr(true); agreeRef.current?.focus() }
   const cd = useCooldown()
   const router = useRouter()
 
   // при каждом открытии начинаем с того режима, с которым открыли («Войти» или «Попробовать»)
   useEffect(() => {
-    if (isOpen) { setMode(initialMode); setAwaiting(''); setError(''); setUnconfirmed(false); setResent(false) }
+    if (isOpen) { setMode(initialMode); setAwaiting(''); setError(''); setUnconfirmed(false); setResent(false); setAgree(false); setConsentErr(false) }
   }, [isOpen, initialMode])
 
   const switchMode = (m: Mode) => { setMode(m); setError(''); setUnconfirmed(false); setResent(false); setAwaiting('') }
@@ -67,6 +75,10 @@ export default function AuthModal({
     setUnconfirmed(false)
     setResent(false)
 
+    if (mode === 'register' && !agree) {
+      noConsent()
+      return
+    }
     if (password.length < MIN_PASSWORD) {
       setError(T.shortPassword)
       return
@@ -75,7 +87,11 @@ export default function AuthModal({
 
     try {
       if (mode === 'register') {
-        const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email, password,
+          // отметка согласия: дата и версия политики, остаются в аккаунте
+          options: { data: { soglasie_pd: new Date().toISOString(), soglasie_ver: CONSENT_VERSION } },
+        })
         // «Уже зарегистрирован» не показываем никогда (окно не должно выдавать чужие аккаунты):
         // при включенном подтверждении Supabase эту ошибку не шлет, а если пришлет, экран тот же, что для новой почты.
         if (signUpError && /already registered|already exists/i.test(signUpError.message)) {
@@ -215,7 +231,28 @@ export default function AuthModal({
               ) : (
                 <>
                   {/* Вход с Яндекс ID: официальная кнопка, одна на все места (components/auth/YandexIdButton.tsx) */}
-                  <div className="mb-4"><YandexIdButton /></div>
+                  {mode === 'register' && (
+                    <div className="mb-4">
+                      <label className={`flex cursor-pointer items-start gap-3 rounded-2xl border bg-brand-bg px-3.5 py-3 text-left ${consentErr ? 'border-[1.5px] border-brand-accent' : 'border-brand-border'}`}>
+                        <input ref={agreeRef} type="checkbox" checked={agree} aria-invalid={consentErr || undefined} aria-describedby={consentErr ? 'soglasie-err' : undefined}
+                          onChange={e => { setAgree(e.target.checked); if (e.target.checked) setConsentErr(false) }}
+                          className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-brand-accent" />
+                        <span className="text-[13px] leading-[1.45] text-brand-text">
+                          Даю{' '}
+                          <Link href={CONSENT_PATH} target="_blank" className="font-medium text-brand-accent underline underline-offset-2">согласие на обработку персональных данных</Link>
+                          {' '}по{' '}
+                          <Link href={PRIVACY_PATH} target="_blank" className="font-medium text-brand-accent underline underline-offset-2">политике конфиденциальности</Link>
+                        </span>
+                      </label>
+                      {consentErr && <p id="soglasie-err" role="alert" className="mt-1.5 px-1 text-[13px] font-medium text-brand-text">{T.needConsent}</p>}
+                    </div>
+                  )}
+                  <div className="mb-4">
+                    <YandexIdButton
+                      href={mode === 'register' && agree ? '/auth/yandex/start?soglasie=1' : '/auth/yandex/start'}
+                      guard={() => { if (mode === 'register' && !agree) { noConsent(); return false } return true }}
+                    />
+                  </div>
 
                   {/* Divider */}
                   <div className="flex items-center gap-3 mb-4">
@@ -282,6 +319,12 @@ export default function AuthModal({
                       ) : mode === 'register' ? T.submitRegister : T.submitLogin}
                     </button>
                   </form>
+                  {mode === 'register' && (
+                    <p className="mt-3 text-center text-xs leading-relaxed text-brand-muted">
+                      Создавая аккаунт, ты принимаешь{' '}
+                      <Link href={OFFER_PATH} target="_blank" className="font-medium text-brand-accent underline underline-offset-2">оферту</Link>
+                    </p>
+                  )}
 
                   <p className="text-center text-xs text-brand-muted mt-4">
                     {mode === 'register' ? (

@@ -4,7 +4,7 @@ import { track } from '@/lib/track'
 import { useFeatureOpen, useTrackOnce } from '@/lib/analytics/hooks'
 import { useEffect, useRef, useState } from 'react'
 import { Check, X } from 'lucide-react'
-import { PLANS, PLAN_COMMON_LINE, formatRub, planPerks, planForDbCode, type PricePlan } from '@/lib/pricing'
+import { PLANS, PLAN_COMMON_LINE, formatRub, planPerks, planForDbCode, startLine, type PricePlan } from '@/lib/pricing'
 
 // Витрина тарифов в настройках. Цены и пункты из lib/pricing.ts (тот же источник, что у лендинга).
 // Только показ и захват внимания, НИКАКИХ записей в БД и смены плана (план меняет только сервер,
@@ -49,6 +49,7 @@ export default function TariffSection({ currentCode }: { currentCode?: string })
               <p className="text-lg font-bold text-brand-text leading-tight">{plan.name}</p>
               <p className={`text-sm font-semibold mt-0.5 ${isCurrent ? 'text-brand-accent' : 'text-brand-text'}`}>{plan.price ? `${formatRub(plan.price)} в месяц` : 'бесплатно'}</p>
               <p className="text-xs text-brand-muted mt-1.5 leading-snug">{plan.who}</p>
+              <p className="text-[13px] text-brand-text mt-2.5 leading-snug">{plan.what} {startLine(plan)}</p>
 
               <ul className="mt-4 space-y-2 flex-1">
                 {planPerks(plan).map((perk, i) => (

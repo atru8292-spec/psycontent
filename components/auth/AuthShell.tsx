@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Eye, EyeOff, Shield } from 'lucide-react'
 import { RESEND_COOLDOWN_S, T } from '@/lib/auth-texts'
+import { LegalLine } from '@/components/site/SiteFooter'
 
 // Оболочка страниц входа по ссылке из письма (designer-psycont, 10.11): без шапки кабинета,
 // на мобилке карточка прижата к верху (центр прыгает при открытой клавиатуре), на десктопе по центру.
@@ -17,6 +18,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
       <div className="bg-brand-card border border-brand-border rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-sm min-w-0">
         {children}
       </div>
+      <LegalLine className="mt-6 w-full max-w-md px-2 text-center [&_p]:justify-center" />
     </main>
   )
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { LegalLine } from '@/components/site/SiteFooter'
 import { supabase } from '@/lib/supabase'
 import {
   Target, PenTool, FileText,
@@ -233,6 +234,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
         <ScreenTracker />
         <DashboardMeContext.Provider value={{ me: energy, loaded: meLoaded, typing }}>{children}</DashboardMeContext.Provider>
+        {/* реквизиты и ссылки на оферту и политику под содержимым каждой страницы кабинета (ЮKassa проверяет ИНН на каждой странице) */}
+        <LegalLine className={`mx-auto w-full max-w-3xl px-4 pt-10 md:px-6 ${pathname.startsWith('/dashboard/edit-profile') ? 'pb-32' : 'pb-6 max-lg:pb-24'}`} />
       </main>
 
       {/* ─── Нижняя навигация (мобилка) ─── */}

@@ -9,7 +9,8 @@ import { useEffect, useState } from "react"
 // тянулась на всю ширину (ширина по правилам не ограничена, боковые отступы больше ширины значка): фон #FFFFFF,
 // обводка 1px #000000, скругление 24 из 56 пропорционально = 21px. Цвет, обводку, текст, значок и отступы
 // между ними менять нельзя. Одна кнопка на все места входа через Яндекс.
-export default function YandexIdButton({ href = "/auth/yandex/start" }: { href?: string }) {
+// guard: проверка перед уходом на Яндекс (при регистрации: отмечено ли согласие на обработку данных). Вернула false, переход отменяется.
+export default function YandexIdButton({ href = "/auth/yandex/start", guard }: { href?: string; guard?: () => boolean }) {
   const [busy, setBusy] = useState(false)
   // Вернулись с Яндекса кнопкой «Назад»: страница поднимается из кеша браузера со старым busy, снимаем блок
   useEffect(() => {
@@ -22,7 +23,7 @@ export default function YandexIdButton({ href = "/auth/yandex/start" }: { href?:
       href={href}
       aria-label="Войти с Яндекс ID"
       aria-busy={busy || undefined}
-      onClick={(e) => { if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) setBusy(true) }}
+      onClick={(e) => { if (guard && !guard()) { e.preventDefault(); return } if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) setBusy(true) }}
       className={`w-full h-12 flex items-center justify-center bg-white border border-black rounded-[21px] cursor-pointer transition-shadow duration-150 [@media(hover:hover)]:hover:shadow-[0_2px_10px_rgb(59_42_34/0.12)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent active:scale-[0.98] ${busy ? "pointer-events-none" : ""}`}
     >
       <svg width="223" height="48" viewBox="0 0 260 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" className="shrink-0">

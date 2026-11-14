@@ -15,6 +15,7 @@ export type PricePlan = {
   materials: number        // материалов в месяц, у пробного за все время
   perMonth: boolean        // false: лимит на все время (пробный)
   who: string              // кому, одной строкой
+  what: string             // что входит, одной-двумя фразами (нужно и для ЮKassa: описание услуги у каждого тарифа)
   extra?: string[]         // пункты сверх чисел
   dbCodes: string[]        // какие коды из таблицы plans показываются как этот тариф («Ты здесь» в настройках)
   track: 'free' | 'calm' | 'daily' // код для события land_cta_click
@@ -26,20 +27,27 @@ export const PRICING_FLAGS = { promo: false, yearly: false, paymentsOn: false }
 export const PLANS: PricePlan[] = [
   {
     id: 'trial', name: 'Пробный', price: 0, materials: 10, perMonth: false,
-    who: 'Проверить, звучит ли как ты, и решить, нужно ли', extra: ['карта не нужна'], dbCodes: ['free'], track: 'free',
+    who: 'Проверить, звучит ли как ты, и решить, нужно ли',
+    what: '10 материалов, чтобы проверить сервис целиком: тексты твоим голосом из одной мысли, план тем на месяц и оформление каруселей.', extra: ['карта не нужна'], dbCodes: ['free'], track: 'free',
   },
   {
     id: 'calm', name: 'Спокойный ритм', price: 1290, yearPrice: 12900, promoFirstMonth: 690, materials: 50, perMonth: true,
-    who: 'Если выкладываешь 2-3 раза в неделю', dbCodes: ['start'], track: 'calm',
+    who: 'Если выкладываешь 2-3 раза в неделю',
+    what: 'Месяц доступа ко всему сервису: 50 материалов твоим голосом, план тем и оформление каруселей.', dbCodes: ['start'], track: 'calm',
   },
   {
     id: 'daily', name: 'Каждый день', price: 2490, yearPrice: 24900, promoFirstMonth: 1290, materials: 150, perMonth: true,
-    who: 'Если ведешь блог почти каждый день и раскладываешь мысль на пять форматов', dbCodes: ['practice', 'expert'], track: 'daily',
+    who: 'Если ведешь блог почти каждый день и раскладываешь мысль на пять форматов',
+    what: 'Месяц доступа ко всему сервису: 150 материалов твоим голосом, план тем и оформление каруселей.', dbCodes: ['practice', 'expert'], track: 'daily',
   },
 ]
 
 // Что есть во всех тарифах: голос и правки текста. Остаток материалов на следующий месяц НЕ переносится, не обещать
 export const PLAN_COMMON_LINE = 'Во всех тарифах PsyCont учится твоему голосу, а тексты можно править.'
+// Как человек получает услугу (требование ЮKassa): строка у каждого платного тарифа на лендинге и в Профиле, то же в оферте
+export const AFTER_PAY_LINE = 'После оплаты тариф включается в кабинете сразу.'
+export const TRIAL_START_LINE = 'Включается в кабинете сразу после регистрации.'
+export const startLine = (p: PricePlan) => (p.price > 0 ? AFTER_PAY_LINE : TRIAL_START_LINE)
 export const MATERIAL_NOTE = 'Материал это один пост, одна карусель, один рилс или одна серия сторис. Если собрать из одной мысли пост и карусель, это два материала.'
 
 const plural = (n: number, one: string, few: string, many: string) => {
