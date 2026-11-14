@@ -120,8 +120,8 @@ export default function MyTexts() {
         </div>
       ) : !cards.length ? (
         <div className="mt-10 text-center px-2">
-          <p className="text-[16px] leading-6 text-brand-text">Здесь будет все, что сделаешь. Одна мысль хранится вместе со всеми форматами из нее</p>
-          <button type="button" onClick={() => router.push('/dashboard/make')} className="mt-4 h-12 px-6 rounded-2xl bg-brand-accent text-white font-semibold cursor-pointer">Сделать первый</button>
+          <p className="text-[16px] leading-6 text-brand-text">Здесь будут твои тексты. Напиши мысль хоть в пару строк, а PsyCont сделает из нее пост, карусель или рилс</p>
+          <button type="button" onClick={() => router.push('/dashboard/make')} className="mt-4 h-12 px-6 rounded-2xl bg-brand-accent text-white font-semibold cursor-pointer">Сделать первый текст</button>
         </div>
       ) : !shown.length ? (
         <div className="mt-10 text-center">

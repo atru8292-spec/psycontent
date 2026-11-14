@@ -346,9 +346,9 @@ export default function ExpressOnboarding() {
     body = (
       <div>
         <Vera src="/vera/privet.webp" h={120} w={93} tilt="-rotate-2" delay={!reduce} caption="Вера · помогаю вести блог">
-          <p className="text-[16px] leading-[22px]">Привет, я Вера. Пишу посты и карусели так, как говоришь ты. Сначала пять коротких вопросов, это около минуты</p>
+          <p className="text-[16px] leading-[22px]">Расскажи о своей практике. Пять коротких вопросов, минута, один можно наговорить голосом. Остальное берет PsyCont</p>
         </Vera>
-        <button type="button" onClick={() => { if (!moving) go(1) }} className={`mt-8 ${green}`}>Начнем</button>
+        <button type="button" onClick={() => { if (!moving) go(1) }} className={`mt-8 ${green}`}>Получить первый пост</button>
       </div>
     )
   } else if (step === 1) {
