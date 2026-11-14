@@ -105,10 +105,10 @@ export default function MyTexts() {
           className="min-w-0 flex-1 bg-transparent text-[16px] text-brand-text placeholder:text-brand-muted focus:outline-none" />
       </label>
 
-      <div className="-mx-4 px-4 mt-3 flex gap-2 overflow-x-auto snap-x [scrollbar-width:none]" role="group" aria-label="Статус">
+      <div className="-mx-4 px-4 scroll-px-4 mt-3 flex gap-2 overflow-x-auto snap-x [scrollbar-width:none]" role="group" aria-label="Статус">
         {STATUS.map(s => <button key={s.id} type="button" aria-pressed={status === s.id} onClick={() => setStatus(s.id)} className={chip(status === s.id)}>{s.label}</button>)}
       </div>
-      <div className="-mx-4 px-4 mt-2 flex gap-2 overflow-x-auto snap-x [scrollbar-width:none]" role="group" aria-label="Формат">
+      <div className="-mx-4 px-4 scroll-px-4 mt-2 flex gap-2 overflow-x-auto snap-x [scrollbar-width:none]" role="group" aria-label="Формат">
         {MAKE_FORMATS.map(f => <button key={f.id} type="button" aria-pressed={fmt === f.id} onClick={() => setFmt(fmt === f.id ? null : f.id)} className={chip(fmt === f.id)}>{f.label}</button>)}
       </div>
 
@@ -120,8 +120,8 @@ export default function MyTexts() {
         </div>
       ) : !cards.length ? (
         <div className="mt-10 text-center px-2">
-          <p className="text-[16px] leading-6 text-brand-text">Здесь будет все, что сделаешь. Одна мысль хранится вместе со всеми форматами из нее</p>
-          <button type="button" onClick={() => router.push('/dashboard/make')} className="mt-4 h-12 px-6 rounded-2xl bg-brand-accent text-white font-semibold cursor-pointer">Сделать первый</button>
+          <p className="text-[16px] leading-6 text-brand-text">Здесь будут твои тексты. Напиши мысль хоть в пару строк, а PsyCont сделает из нее пост, карусель или рилс</p>
+          <button type="button" onClick={() => router.push('/dashboard/make')} className="mt-4 h-12 px-6 rounded-2xl bg-brand-accent text-white font-semibold cursor-pointer">Сделать первый текст</button>
         </div>
       ) : !shown.length ? (
         <div className="mt-10 text-center">

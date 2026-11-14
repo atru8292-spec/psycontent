@@ -61,7 +61,8 @@ const DEKOR = {
 export type DekorName = keyof typeof DEKOR
 
 // Вырезка из public/dekor. Ширина 40-120 px по CSS, крупнее вырезки мылятся.
-export function Dekor({ name, className = '' }: { name: keyof typeof DEKOR; className?: string }) {
+// inline: вырезка стоит в потоке (бант над заголовком финала), иначе поверх блока
+export function Dekor({ name, className = '', inline = false }: { name: keyof typeof DEKOR; className?: string; inline?: boolean }) {
   const { w, h } = DEKOR[name]
-  return <Image src={`/dekor/${name}.webp`} alt="" aria-hidden width={w} height={h} sizes="120px" className={`pointer-events-none absolute h-auto select-none ${className}`} />
+  return <Image src={`/dekor/${name}.webp`} alt="" aria-hidden width={w} height={h} sizes="120px" className={`pointer-events-none h-auto select-none ${inline ? '' : 'absolute'} ${className}`} />
 }
