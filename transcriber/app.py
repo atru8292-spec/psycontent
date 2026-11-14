@@ -41,7 +41,9 @@ async def lifespan(_app: FastAPI):
     global model
     if not TOKEN:
         raise RuntimeError("WHISPER_SERVICE_TOKEN не задан, сервис не стартует без токена")
-    cpu_threads = os.cpu_count() or 2
+    # WHISPER_THREADS: сколько потоков CPU отдать модели. На общем сервере ставим меньше числа ядер,
+    # чтобы расшифровка не мешала соседним процессам (сайт и чужие проекты).
+    cpu_threads = int(os.environ.get("WHISPER_THREADS", "0") or 0) or os.cpu_count() or 2
     log.info("Загружаю модель Whisper %s (%s), потоков CPU: %d", MODEL_SIZE, COMPUTE_TYPE, cpu_threads)
     model = WhisperModel(MODEL_SIZE, device="cpu", compute_type=COMPUTE_TYPE, cpu_threads=cpu_threads)
     log.info("Модель загружена, воркеров: 1")

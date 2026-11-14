@@ -5,16 +5,29 @@ Wants=network-online.target
 
 [Service]
 Type=simple
+User=psycont-voice
+Group=psycont-voice
 WorkingDirectory=/opt/psycont-transcriber
 EnvironmentFile=/opt/psycont-transcriber/.env
-# --workers 1 обязателен: каждый воркер грузит свою копию модели в RAM, на 2 ядрах
-# несколько воркеров = смерть по памяти. НЕ поднимать. Параллелизм закрыт очередью в коде.
-ExecStart=/opt/psycont-transcriber/venv/bin/uvicorn app:app --host 0.0.0.0 --port 8090 --workers 1
+# Модель и ее кэш лежат внутри папки сервиса
+Environment=HF_HOME=/opt/psycont-transcriber/cache
+# Слушает ТОЛЬКО 127.0.0.1: сервис стоит на одном сервере с сайтом, запись голоса в сеть не выходит, порт наружу закрыт.
+# --workers 1 обязателен: каждый воркер грузит свою копию модели в память. Параллелизм закрыт очередью в коде.
+ExecStart=/opt/psycont-transcriber/venv/bin/uvicorn app:app --host 127.0.0.1 --port 8090 --workers 1
 Restart=always
 RestartSec=5
+# Ограничения, чтобы расшифровка не мешала сайту и соседним проектам на том же сервере:
+# не больше двух ядер из четырех, память до 2 ГБ, пониженный приоритет.
+CPUQuota=200%
+MemoryHigh=1500M
+MemoryMax=2G
+Nice=10
 # Ужесточение процесса. PrivateTmp: временное аудио в изолированном /tmp, стирается со службой.
 NoNewPrivileges=true
 PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/psycont-transcriber/cache
 
 [Install]
 WantedBy=multi-user.target
