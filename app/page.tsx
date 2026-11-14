@@ -239,13 +239,13 @@ export default function Home() {
           <div id="pricing" className={`${WRAP} scroll-mt-20`}>
             <h2 className={H2}>{PRICING.title}</h2>
             <p className={`mt-3 max-w-[640px] text-brand-muted ${TEXT}`}><span className="font-semibold text-brand-text">{PRICING.leadBold}</span> {PRICING.lead}</p>
-            <div className="mt-5 grid gap-3 lg:mt-12 lg:grid-cols-3 lg:items-start lg:gap-6">
+            <div className="mt-5 grid gap-3 lg:mt-12 lg:grid-cols-3 lg:items-stretch lg:gap-6">
               {PLANS.map((p, i) => (
                 <div key={p.id} className={`flex flex-col rounded-3xl px-4 py-3.5 lg:p-8 ${PLAN_CARD[i]}`}>
                   {/* мобилка (решение Арины 11.11): название, цена, «для кого» и мелкой строкой материалы, одна общая кнопка под тарифами; десктоп: столбиком со списком и своими кнопками */}
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 lg:block">
+                  <div>
                     <h3 className="text-[18px] font-semibold text-brand-text">{p.name}</h3>
-                    <p className="flex items-baseline gap-2 lg:mt-3">
+                    <p className="mt-1 flex items-baseline gap-2 lg:mt-3">
                       <span className="text-[30px] font-bold leading-none text-brand-text lg:text-[40px]">{formatRub(p.price)}</span>
                       {p.perMonth && <span className="text-[16px] text-brand-muted lg:text-[17px]">{PRICING.perMonth}</span>}
                     </p>
