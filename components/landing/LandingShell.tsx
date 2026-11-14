@@ -17,9 +17,12 @@ type Ctx = {
   who: Who
   start: (place: Place, plan?: Plan, opts?: { note?: string }) => void
   login: () => void
+  // кнопка первого экрана ушла за верх экрана: только тогда шапка показывает свою (на первом экране кнопка одна)
+  heroCtaGone: boolean
+  setHeroCtaGone: (v: boolean) => void
 }
 
-const LandingCtx = createContext<Ctx>({ who: 'unknown', start: () => {}, login: () => {} })
+const LandingCtx = createContext<Ctx>({ who: 'unknown', start: () => {}, login: () => {}, heroCtaGone: false, setHeroCtaGone: () => {} })
 export const useLanding = () => useContext(LandingCtx)
 
 export default function LandingShell({ children }: { children: React.ReactNode }) {
@@ -27,6 +30,7 @@ export default function LandingShell({ children }: { children: React.ReactNode }
   const [who, setWho] = useState<Who>('unknown')
   const [modal, setModal] = useState<{ mode: 'login' | 'register'; note?: string } | null>(null)
   const viewed = useRef(false)
+  const [heroCtaGone, setHeroCtaGone] = useState(false)
 
   // Кто зашел. Пока проверка идет, клик ждет ее, чтобы вошедшему не открылась регистрация.
   // Ошибка чтения профиля считается «не знаем» (как без входа: окно входа само разведет), а не «нет профиля».
@@ -66,7 +70,7 @@ export default function LandingShell({ children }: { children: React.ReactNode }
   const login = useCallback(() => setModal({ mode: 'login' }), [])
 
   return (
-    <LandingCtx.Provider value={{ who, start, login }}>
+    <LandingCtx.Provider value={{ who, start, login, heroCtaGone, setHeroCtaGone }}>
       {children}
       <AuthModal isOpen={!!modal} onClose={() => setModal(null)} initialMode={modal?.mode || 'register'} contextNote={modal?.note} />
     </LandingCtx.Provider>
@@ -87,4 +91,21 @@ export function CtaButton({ place, plan, variant = 'primary', className = '', ch
       {children}
     </button>
   )
+}
+
+// Кнопка первого экрана. Пока она на экране, кнопка в шапке скрыта; ушла вверх за шапку, шапка показывает свою.
+export function HeroCta({ className = '', children }: { className?: string; children: React.ReactNode }) {
+  const { setHeroCtaGone } = useLanding()
+  const box = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = box.current
+    if (!el || typeof IntersectionObserver === 'undefined') { setHeroCtaGone(true); return }
+    const io = new IntersectionObserver(es => {
+      const e = es[es.length - 1]
+      setHeroCtaGone(!e.isIntersecting && e.boundingClientRect.top < 0)
+    }, { rootMargin: '-56px 0px 0px 0px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [setHeroCtaGone])
+  return <div ref={box} className={className}><CtaButton place="hero" className="w-full lg:w-auto">{children}</CtaButton></div>
 }

@@ -1,5 +1,6 @@
 'use client'
-// Шапка лендинга: липкая, низкая. Кнопка тут вторичная: основная на первом экране.
+// Шапка лендинга: липкая, низкая. Кнопка тут вторичная и появляется, только когда кнопка первого экрана ушла за верх
+// (invisible, а не hidden: место остается, «Войти» не прыгает, скрытую кнопку не достать табом).
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -7,7 +8,7 @@ import { useLanding, CtaButton } from './LandingShell'
 import { HEADER } from './content'
 
 export default function Header() {
-  const { login } = useLanding()
+  const { login, heroCtaGone } = useLanding()
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 8)
@@ -26,7 +27,7 @@ export default function Header() {
           <button type="button" onClick={login} className="h-11 rounded-xl px-3 text-[16px] text-brand-text transition-colors hover:bg-brand-card focus-visible:outline-2 focus-visible:outline-brand-accent cursor-pointer">
             {HEADER.login}
           </button>
-          <CtaButton place="header" variant="secondary" className="!h-11 !px-4 !text-[15px]">
+          <CtaButton place="header" variant="secondary" className={`!h-11 !px-4 !text-[15px] ${heroCtaGone ? '' : 'invisible'}`}>
             <span className="sm:hidden">{HEADER.ctaShort}</span>
             <span className="hidden sm:inline">{HEADER.cta}</span>
           </CtaButton>

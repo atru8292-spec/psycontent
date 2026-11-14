@@ -6,7 +6,7 @@
 // один «бумажный» прием (components/landing/Paper.tsx), декор только вырезками из public/dekor, 3 предмета на страницу.
 import type { Metadata } from 'next'
 import Image from 'next/image'
-import LandingShell, { CtaButton } from '@/components/landing/LandingShell'
+import LandingShell, { CtaButton, HeroCta } from '@/components/landing/LandingShell'
 import Header from '@/components/landing/Header'
 import ReelCard from '@/components/landing/ReelCard'
 import Faq from '@/components/landing/Faq'
@@ -69,35 +69,34 @@ export default function Home() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString() }} />
       <Header />
       <main className="overflow-x-clip">
-        {/* 1. Первый экран, крем: для кого, заголовок с рукописным штрихом на «С блогом», Вера вырезкой стоит на краю блока */}
-        <section className={`${WRAP} pt-6 lg:grid lg:grid-cols-12 lg:gap-8 lg:pt-14`}>
+        {/* 1. Первый экран, крем: заголовок в два веса с рукописным штрихом на «блогерскую часть», одна кнопка
+            (кнопка шапки скрыта, пока эта на экране). На 375 и 390 заголовок, подзаголовок и кнопка видны без прокрутки. Вера ниже кнопки */}
+        <section className={`${WRAP} pt-5 lg:grid lg:grid-cols-12 lg:gap-8 lg:pt-14`}>
           <div className="lg:col-span-8 lg:self-center lg:pb-24">
-            <p className="text-[16px] leading-[1.4] text-brand-muted lg:text-[18px]">{HERO.eyebrow}</p>
-            {/* каждое предложение с новой строки, чтобы два веса читались как два голоса: про нее и про нас */}
-            <h1 className="mt-3 max-w-[760px] text-[30px] font-medium leading-[1.15] tracking-[-0.01em] text-brand-text [text-wrap:balance] min-[390px]:text-[31px] lg:mt-4 lg:text-[44px]">
+            <h1 className="max-w-[780px] text-[30px] font-medium leading-[1.15] tracking-[-0.01em] text-brand-text min-[390px]:text-[31px] lg:text-[44px]">
               <span className="block font-bold">{HERO.titleBold}</span>
               <span className="relative inline-block whitespace-nowrap">{HERO.titleMark}<HandUnderline draw /></span>{' '}{HERO.title}
             </h1>
-            <p className="mt-5 max-w-[640px] text-[17px] leading-[1.55] text-brand-muted lg:mt-7 lg:max-w-[480px] lg:text-[20px]">{HERO.lead}</p>
-            <div className="mt-6 flex flex-col gap-3 lg:mt-10 lg:flex-row lg:items-center lg:gap-4">
-              <CtaButton place="hero" className="w-full lg:w-auto">{HERO.cta}</CtaButton>
+            <p className="mt-4 max-w-[640px] text-[16px] leading-[1.5] text-brand-muted min-[390px]:text-[17px] lg:mt-7 lg:max-w-[520px] lg:text-[20px]">{HERO.lead}</p>
+            <div className="mt-5 flex flex-col gap-2.5 lg:mt-10 lg:flex-row lg:items-center lg:gap-4">
+              <HeroCta>{HERO.cta}</HeroCta>
               <p className="text-[15px] text-brand-muted">{HERO.note}</p>
             </div>
           </div>
-          <figure className="relative z-10 mt-8 flex items-end justify-end gap-3 lg:col-span-4 lg:mt-0 lg:flex-col lg:items-end lg:gap-4 lg:pt-16">
-            {/* Реплика-наклейка с хвостиком к Вере; она же подпись роли. Мобилка: слева от Веры, десктоп: над ней */}
-            <figcaption className="relative mb-24 min-w-0 max-w-[260px] flex-1 rotate-[-1.5deg] rounded-2xl border border-brand-border-soft bg-brand-card px-4 py-3 text-[16px] leading-[1.45] text-brand-text lg:mr-20 lg:mb-0 lg:max-w-[240px] lg:flex-none lg:rotate-[-2deg]">
+          <figure className="relative z-10 mt-5 flex items-end justify-end gap-3 lg:col-span-4 lg:mt-0 lg:flex-col lg:items-end lg:gap-4 lg:pt-16">
+            {/* Реплика-наклейка с хвостиком к Вере. Мобилка: слева от Веры, десктоп: над ней */}
+            <figcaption className="relative mb-12 min-w-0 max-w-[230px] flex-1 rotate-[-1.5deg] rounded-2xl border border-brand-border-soft bg-brand-card px-3.5 py-2.5 text-[15px] leading-[1.4] text-brand-text lg:mr-20 lg:mb-0 lg:max-w-[240px] lg:flex-none lg:rotate-[-2deg] lg:px-4 lg:py-3 lg:text-[16px] lg:leading-[1.45]">
               {HERO.veraSays}
               <span aria-hidden className="absolute -right-[7px] bottom-6 h-3.5 w-3.5 rotate-45 border-t border-r border-brand-border-soft bg-brand-card lg:hidden" />
               <span aria-hidden className="absolute -bottom-[7px] right-10 hidden h-3.5 w-3.5 rotate-45 border-r border-b border-brand-border-soft bg-brand-card lg:block" />
             </figcaption>
             <Image src="/vera/privet.webp" alt="Вера машет рукой" width={278} height={360} priority
-              className="-mb-4 h-[200px] w-auto shrink-0 lg:-mb-6 lg:h-[330px]" />
+              className="-mb-3 h-[150px] w-auto shrink-0 lg:-mb-6 lg:h-[330px]" />
           </figure>
         </section>
 
-        {/* 2. Боли на шоколаде: доска с заметками на разной бумаге и разных держателях, на мобилке столбиком, заметки прикалываются при прокрутке */}
-        <section className="bg-brand-text pt-9 pb-9 lg:pt-24 lg:pb-16">
+        {/* 2. Проблема на шоколаде: одна заметка в линейку на деревянной кнопке и рядом что берет PsyCont (components/landing/PainBoard.tsx) */}
+        <section className="bg-brand-text pt-9 pb-10 lg:pt-24 lg:pb-20">
           <div className={WRAP}>
             <h2 className={`${H2} max-w-[560px] !text-brand-bg`}>{PAINS.title}</h2>
             <PainBoard />
@@ -109,7 +108,11 @@ export default function Home() {
         <section className={`bg-brand-card ${SECTION}`}>
           <div className={WRAP}>
             <h2 className={H2}>{WHY.title}</h2>
-            <p className={`mt-2 max-w-[720px] text-brand-text lg:mt-3 ${TEXT}`}>{WHY.lead}</p>
+            {/* на десктопе карточки рядом («слева, справа»), на мобилке друг под другом («сверху, ниже»); оба текста лежат в HTML */}
+            <p className={`mt-2 max-w-[720px] text-brand-text lg:mt-3 ${TEXT}`}>
+              <span className="lg:hidden">{WHY.leadMobile}</span>
+              <span className="hidden lg:inline">{WHY.lead}</span>
+            </p>
             <p className="mt-3 inline-flex rounded-full bg-brand-bg px-3 py-1 text-[14px] text-brand-muted lg:mt-8">Тема: {COMPARE_TOPIC}</p>
             {/* ChatGPT цитатой как есть, свернута по смыслу до первой реплики сценки; PsyCont готовым рилсом целиком (designer-psycont 11.11) */}
             <div className="mt-5 grid gap-5 lg:grid-cols-2 lg:items-start lg:gap-8">
@@ -136,7 +139,8 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 4. Как это работает, крем: шаги по нарастанию тона, без иконок; снимки телефонов только на десктопе */}
+        {/* 4. Как это работает, крем: шаги по нарастанию тона, цифра и одна фраза, без заголовков и иконок.
+            Шаги 1 и 2 со снимком экрана, в третьем Вера (второе и последнее ее появление на странице) и строка про рилсы */}
         <section className={SECTION}>
           <div className={WRAP}>
             <h2 className={H2}>{HOW.title}</h2>
@@ -144,15 +148,15 @@ export default function Home() {
               {HOW.steps.map((s, i) => {
                 const dark = i === 2
                 return (
-                  <li key={s.title} className={`rounded-[28px] p-4 lg:p-7 ${STEP_CARD[i]}`}>
-                    {/* мобилка: текст слева, маленький снимок экрана справа (104 px); десктоп: цифра крупно над заголовком, снимок под текстом */}
-                    <div className={s.shot ? 'max-lg:grid max-lg:grid-cols-[1fr_104px] max-lg:items-start max-lg:gap-3.5' : ''}>
+                  <li key={s.text} className={`rounded-[28px] p-4 lg:p-7 ${STEP_CARD[i]}`}>
+                    {/* мобилка: текст слева, справа маленький снимок экрана или Вера (104 px); десктоп: цифра крупно над фразой, картинка под текстом */}
+                    <div className="max-lg:grid max-lg:grid-cols-[1fr_104px] max-lg:items-start max-lg:gap-3.5">
                       <div className="min-w-0">
-                        <div className="flex items-baseline gap-2.5 lg:block">
+                        <div className="flex items-baseline gap-3 lg:block">
                           <p aria-hidden className={`text-[28px] font-bold leading-none lg:text-[56px] ${dark ? 'text-brand-lilac' : 'text-brand-text'}`}>{i + 1}</p>
-                          <h3 className="text-[19px] font-bold leading-[1.2] lg:mt-4 lg:text-[24px]"><span className="sr-only">Шаг {i + 1}. </span>{s.title}</h3>
+                          <p className={`text-[17px] font-medium leading-[1.4] lg:mt-4 lg:text-[20px] ${dark ? 'text-brand-bg' : 'text-brand-text'}`}><span className="sr-only">Шаг {i + 1}. </span>{s.text}</p>
                         </div>
-                        <p className={`mt-2 text-[15px] leading-[1.5] lg:mt-3 lg:text-[17px] lg:leading-[1.55] ${dark ? 'text-brand-bg' : 'text-brand-text'}`}>{s.text}</p>
+                        {dark && <p className="mt-3 text-[15px] leading-[1.45] text-brand-on-dark lg:text-[16px]">{HOW.reels}</p>}
                       </div>
                       {s.shot && (
                         <div className="w-[104px] rounded-[20px] border border-brand-border bg-brand-card p-1 lg:hidden">
@@ -161,28 +165,16 @@ export default function Home() {
                           </div>
                         </div>
                       )}
+                      {s.vera && <Image src={s.vera} alt={s.alt} width={338} height={360} sizes="120px" className="h-[124px] w-auto self-end justify-self-end lg:hidden" />}
                     </div>
-                    {i === 1 && <p className="mt-3 text-[14px] leading-[1.45] text-brand-muted lg:text-[15px]">{HOW.invite}</p>}
                     {s.shot && <div className="mt-6 hidden justify-center lg:flex"><PhoneShot src={s.shot} alt={s.alt} w={s.w} h={s.h} /></div>}
-                    {dark && (
-                      <>
-                        {/* виды рилса картинками Веры из карточек «Сделать»: на мобилке одним рядом из пяти, уже 360 px и на десктопе 3+2 */}
-                        <ul className="mt-4 grid min-w-0 grid-cols-5 gap-1.5 max-[359px]:grid-cols-6 max-[359px]:gap-2 lg:grid-cols-6 lg:gap-3">
-                          {HOW.vidy.map((v, n) => (
-                            <li key={v.src} className={`min-w-0 max-[359px]:col-span-2 lg:col-span-2 ${n === 3 ? 'max-[359px]:col-start-2 lg:col-start-2' : ''}`}>
-                              <Image src={v.src} alt={v.alt} width={350} height={625} sizes="(min-width:1024px) 104px, 64px" className="h-auto w-full rounded-[10px] lg:rounded-[14px]" />
-                              <p className="mt-1 min-h-[30px] text-center text-[12px] leading-[1.2] text-brand-on-dark [text-wrap:balance] lg:mt-1.5 lg:min-h-[16px] lg:text-[13px]">{v.label}</p>
-                            </li>
-                          ))}
-                        </ul>
-                        <p className="mt-2 text-[14px] leading-[1.5] text-brand-on-dark-muted">{HOW.vidyNote}</p>
-                        <CtaButton place="how" variant="light" className="mt-4 w-full lg:mt-5">{HOW.step3Link}</CtaButton>
-                      </>
-                    )}
+                    {s.vera && <Image src={s.vera} alt={s.alt} width={338} height={360} sizes="190px" className="mx-auto mt-6 hidden h-[200px] w-auto lg:block" />}
+                    {dark && <CtaButton place="how" variant="light" className="mt-4 w-full lg:mt-6">{HOW.cta}</CtaButton>}
                   </li>
                 )
               })}
             </ol>
+            <p className="mt-5 max-w-[640px] text-[15px] leading-[1.5] text-brand-muted lg:mt-10 lg:text-[17px]">{HOW.privacy}</p>
           </div>
         </section>
 
@@ -234,7 +226,7 @@ export default function Home() {
         <section className="bg-brand-card py-9 lg:py-24">
           <div id="pricing" className={`${WRAP} scroll-mt-20`}>
             <h2 className={H2}>{PRICING.title}</h2>
-            <p className={`mt-3 max-w-[640px] text-brand-muted ${TEXT}`}>{PRICING.lead}</p>
+            <p className={`mt-3 max-w-[640px] text-brand-muted ${TEXT}`}><span className="font-semibold text-brand-text">{PRICING.leadBold}</span> {PRICING.lead}</p>
             <div className="mt-5 grid gap-3 lg:mt-12 lg:grid-cols-3 lg:items-start lg:gap-6">
               {PLANS.map((p, i) => (
                 <div key={p.id} className={`flex flex-col rounded-3xl px-4 py-3.5 lg:p-8 ${PLAN_CARD[i]}`}>
@@ -253,7 +245,7 @@ export default function Home() {
                   </ul>
                   <div className="mt-auto max-lg:hidden">
                     {p.price > 0 && <p className="mb-2 text-[14px] text-brand-muted">{PRICING.soon}</p>}
-                    <CtaButton place="pricing" plan={p.track} variant={p.price > 0 ? 'secondary' : 'primary'} className="w-full !px-4">
+                    <CtaButton place="pricing" plan={p.track} variant={p.price > 0 ? 'secondary' : 'primary'} className="w-full whitespace-nowrap !px-4 lg:!text-[16px]">
                       {p.price > 0 ? PRICING.ctaPaid : PRICING.ctaFree}
                     </CtaButton>
                   </div>
@@ -274,27 +266,15 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 9. Финал на бледной сирени: волна сверху, Вера в другой позе с бантом */}
-        <section className="relative z-10 bg-brand-soft pt-10 pb-10 lg:pt-20 lg:pb-16">
+        {/* 9. Финал на бледной сирени: волна сверху, единственный центрированный блок страницы. Бант лентой над заголовком,
+            Веры здесь нет: она появляется на странице дважды, на первом экране и в шагах */}
+        <section className="relative z-10 bg-brand-soft pt-10 pb-11 lg:pt-20 lg:pb-20">
           <Wave side="top" />
-          {/* мобилка: заголовок слева, Вера справа, кнопка во всю ширину под ними; десктоп: текст слева, Вера справа на две строки сетки */}
-          <div className={`${WRAP} grid grid-cols-[1fr_auto] gap-x-3 lg:grid-cols-12 lg:items-center lg:gap-x-8`}>
-            <div className="col-start-1 row-start-1 self-center lg:col-span-7 lg:self-end">
-              <h2 className={H2}>{FINAL.title}</h2>
-            </div>
-            <figure className="relative col-start-2 row-start-1 flex flex-col items-center lg:col-span-5 lg:col-start-8 lg:row-span-2 lg:justify-self-center">
-              {/* Бант на волосах справа от пробора, около четверти ширины головы, наклон по линии головы (проценты от картинки 299x360).
-                  На мобилке Вера мелкая, бант читался бы соринкой, поэтому только на десктопе */}
-              <div className="relative">
-                <Image src="/vera/raduetsya.webp" alt="Вера радуется" width={299} height={360} className="h-[104px] w-auto lg:h-[300px]" />
-                <Dekor name="bant-zelenyj-atlas" className="top-[3%] left-[57%] w-[11%] rotate-[24deg] max-lg:hidden" />
-              </div>
-              <figcaption className="mt-1 max-w-[120px] text-center text-[13px] leading-[1.3] text-brand-muted lg:mt-2 lg:max-w-none lg:text-[14px]">{HERO.veraRole}</figcaption>
-            </figure>
-            <div className="col-span-2 row-start-2 lg:col-span-7 lg:col-start-1">
-              <CtaButton place="final" className="mt-4 w-full lg:mt-6 lg:w-auto">{FINAL.cta}</CtaButton>
-              <p className="mt-3 text-[15px] text-brand-muted">{FINAL.note}</p>
-            </div>
+          <div className={`${WRAP} flex flex-col items-center text-center`}>
+            <Dekor inline name="bant-zelenyj-atlas" className="mb-3 w-[56px] rotate-[-8deg] lg:mb-4 lg:w-[76px]" />
+            <h2 className={`${H2} max-w-[560px]`}>{FINAL.title}</h2>
+            <CtaButton place="final" className="mt-5 w-full lg:mt-7 lg:w-auto lg:px-10">{FINAL.cta}</CtaButton>
+            <p className="mt-3 text-[15px] text-brand-muted">{FINAL.note}</p>
           </div>
         </section>
       </main>
