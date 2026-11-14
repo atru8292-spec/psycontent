@@ -80,7 +80,7 @@ export default function Home() {
             <p className="mt-4 max-w-[640px] text-[16px] leading-[1.5] text-brand-muted min-[390px]:text-[17px] lg:mt-7 lg:max-w-[520px] lg:text-[20px]">{HERO.lead}</p>
             <div className="mt-5 flex flex-col gap-2.5 lg:mt-10 lg:flex-row lg:items-center lg:gap-4">
               <HeroCta>{HERO.cta}</HeroCta>
-              <p className="text-[15px] text-brand-muted">{HERO.note}</p>
+              <p className="text-[14px] text-brand-muted min-[390px]:text-[15px]">{HERO.note}</p>
             </div>
           </div>
           <figure className="relative z-10 mt-5 flex items-end justify-end gap-3 lg:col-span-4 lg:mt-0 lg:flex-col lg:items-end lg:gap-4 lg:pt-16">
@@ -98,7 +98,7 @@ export default function Home() {
         {/* 2. Проблема на шоколаде: одна заметка в линейку на деревянной кнопке и рядом что берет PsyCont (components/landing/PainBoard.tsx) */}
         <section className="bg-brand-text pt-9 pb-10 lg:pt-24 lg:pb-20">
           <div className={WRAP}>
-            <h2 className={`${H2} max-w-[560px] !text-brand-bg`}>{PAINS.title}</h2>
+            <h2 className={`${H2} max-w-[560px] !text-brand-bg lg:max-w-[760px]`}>{PAINS.title}</h2>
             <PainBoard />
           </div>
         </section>
@@ -148,28 +148,40 @@ export default function Home() {
               {HOW.steps.map((s, i) => {
                 const dark = i === 2
                 return (
-                  <li key={s.text} className={`rounded-[28px] p-4 lg:p-7 ${STEP_CARD[i]}`}>
-                    {/* мобилка: текст слева, справа маленький снимок экрана или Вера (104 px); десктоп: цифра крупно над фразой, картинка под текстом */}
-                    <div className="max-lg:grid max-lg:grid-cols-[1fr_104px] max-lg:items-start max-lg:gap-3.5">
-                      <div className="min-w-0">
-                        <div className="flex items-baseline gap-3 lg:block">
+                  <li key={s.text} className={`rounded-[28px] p-4 lg:flex lg:min-h-[670px] lg:flex-col lg:p-7 ${STEP_CARD[i]}`}>
+                    {/* мобилка: цифра над фразой; у шагов 1 и 2 справа маленький снимок экрана (104 px); у третьего фраза во всю ширину,
+                        под ней строка про рилсы и Вера справа. Десктоп: цифра крупно над фразой, картинка под текстом */}
+                    {(() => {
+                      const head = (
+                        <>
                           <p aria-hidden className={`text-[28px] font-bold leading-none lg:text-[56px] ${dark ? 'text-brand-lilac' : 'text-brand-text'}`}>{i + 1}</p>
-                          <p className={`text-[17px] font-medium leading-[1.4] lg:mt-4 lg:text-[20px] ${dark ? 'text-brand-bg' : 'text-brand-text'}`}><span className="sr-only">Шаг {i + 1}. </span>{s.text}</p>
-                        </div>
-                        {dark && <p className="mt-3 text-[15px] leading-[1.45] text-brand-on-dark lg:text-[16px]">{HOW.reels}</p>}
-                      </div>
-                      {s.shot && (
-                        <div className="w-[104px] rounded-[20px] border border-brand-border bg-brand-card p-1 lg:hidden">
-                          <div className="aspect-[375/600] overflow-hidden rounded-[16px] border border-brand-border bg-brand-bg">
-                            <Image src={s.shot} alt={s.alt} width={s.w} height={s.h} sizes="104px" className="block h-auto w-full" />
+                          <p className={`mt-1.5 text-[17px] font-medium leading-[1.4] lg:mt-4 lg:text-[20px] ${dark ? 'text-brand-bg' : 'text-brand-text'}`}><span className="sr-only">Шаг {i + 1}. </span>{s.text}</p>
+                        </>
+                      )
+                      if (dark) return (
+                        <>
+                          {head}
+                          <div className="max-lg:mt-2 max-lg:grid max-lg:grid-cols-[1fr_104px] max-lg:items-end max-lg:gap-3.5">
+                            <p className="text-[15px] leading-[1.45] text-brand-on-dark max-lg:self-center lg:mt-3 lg:text-[16px]">{HOW.reels}</p>
+                            {s.vera && <Image src={s.vera} alt={s.alt} width={338} height={360} sizes="(min-width: 1024px) 190px, 104px" className="h-auto w-[104px] justify-self-end lg:mx-auto lg:mt-6 lg:h-[200px] lg:w-auto" />}
                           </div>
+                        </>
+                      )
+                      return (
+                        <div className="max-lg:grid max-lg:grid-cols-[1fr_104px] max-lg:items-start max-lg:gap-3.5">
+                          <div className="min-w-0">{head}</div>
+                          {s.shot && (
+                            <div className="w-[104px] rounded-[20px] border border-brand-border bg-brand-card p-1 lg:hidden">
+                              <div className="aspect-[375/600] overflow-hidden rounded-[16px] border border-brand-border bg-brand-bg">
+                                <Image src={s.shot} alt={s.alt} width={s.w} height={s.h} sizes="104px" className="block h-auto w-full" />
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      )}
-                      {s.vera && <Image src={s.vera} alt={s.alt} width={338} height={360} sizes="120px" className="h-[124px] w-auto self-end justify-self-end lg:hidden" />}
-                    </div>
+                      )
+                    })()}
                     {s.shot && <div className="mt-6 hidden justify-center lg:flex"><PhoneShot src={s.shot} alt={s.alt} w={s.w} h={s.h} /></div>}
-                    {s.vera && <Image src={s.vera} alt={s.alt} width={338} height={360} sizes="190px" className="mx-auto mt-6 hidden h-[200px] w-auto lg:block" />}
-                    {dark && <CtaButton place="how" variant="light" className="mt-4 w-full lg:mt-6">{HOW.cta}</CtaButton>}
+                    {dark && <CtaButton place="how" variant="light" className="mt-4 w-full lg:mt-auto">{HOW.cta}</CtaButton>}
                   </li>
                 )
               })}

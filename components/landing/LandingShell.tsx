@@ -102,8 +102,10 @@ export function HeroCta({ className = '', children }: { className?: string; chil
     if (!el || typeof IntersectionObserver === 'undefined') { setHeroCtaGone(true); return }
     const io = new IntersectionObserver(es => {
       const e = es[es.length - 1]
-      setHeroCtaGone(!e.isIntersecting && e.boundingClientRect.top < 0)
-    }, { rootMargin: '-56px 0px 0px 0px' })
+      // ушла именно вверх: низ кнопки выше верхней границы наблюдения (сравниваем с границей, а не с нулем,
+      // иначе при мелком шрифте браузера кнопка шапки осталась бы скрытой). 72 px это высота шапки на десктопе
+      setHeroCtaGone(!e.isIntersecting && e.boundingClientRect.bottom <= (e.rootBounds?.top ?? 0) + 1)
+    }, { rootMargin: '-72px 0px 0px 0px' })
     io.observe(el)
     return () => io.disconnect()
   }, [setHeroCtaGone])
