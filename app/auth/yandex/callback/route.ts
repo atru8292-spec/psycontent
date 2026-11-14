@@ -3,6 +3,8 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient } from '@/utils/supabase/server'
 import { publicOrigin } from '@/lib/origin'
 import { firstName } from '@/lib/first-name'
+import { cookies } from 'next/headers'
+import { CONSENT_VERSION } from '@/lib/rekvizity'
 
 // Шаг 2 входа через Яндекс. Яндекс вернул сюда ?code=...
 // Мы: меняем код на токен → узнаём email/имя → находим или заводим пользователя
@@ -53,22 +55,46 @@ export async function GET(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { persistSession: false } }
   )
+  // Согласие на обработку данных (152-ФЗ): галочка в окне регистрации ставит cookie psy_sogl (app/auth/yandex/start).
+  const jar = await cookies()
+  const consent = jar.get('psy_sogl')?.value === '1'
+  // одноразовая: после чтения убираем
+  try { jar.delete({ name: 'psy_sogl', path: '/auth/yandex' }) } catch {}
   // Заводим нового (если уже есть — Supabase вернёт ошибку, мы её просто игнорируем).
-  await admin.auth.admin.createUser({
+  const created = await admin.auth.admin.createUser({
     email,
     email_confirm: true,
     // imya: имя для писем входа («{имя}, привет!»), то же правило, что у триггера базы (lib/first-name.ts)
     user_metadata: {
       ...(fullName ? { full_name: fullName } : {}),
       ...(firstName(info.first_name) ? { imya: firstName(info.first_name) } : {}),
+      ...(consent ? { soglasie_pd: new Date().toISOString(), soglasie_ver: CONSENT_VERSION } : {}),
     },
     app_metadata: { provider: 'yandex', providers: ['yandex'] },
   })
+  // Аккаунт только что создан этим запросом, а согласия нет (человек нажал Яндекс в окне «Войти», аккаунта у него не было):
+  // убираем пустой аккаунт и просим поставить галочку. Удаляется только созданный здесь аккаунт, по его id из ответа createUser
+  // (для уже существующей почты createUser возвращает ошибку, и id пуст). Не удалился: без входа, на главную с ошибкой.
+  const newId = !created.error ? created.data?.user?.id : undefined
+  if (newId && !consent) {
+    const { error: delErr } = await admin.auth.admin.deleteUser(newId)
+    if (delErr) { console.error('yandex callback: аккаунт без согласия не удалился'); return NextResponse.redirect(`${origin}/?error=yandex_link`) }
+    return NextResponse.redirect(`${origin}/?auth=register&nado=soglasie`)
+  }
 
   // 4. Выдаём сессию: получаем одноразовый токен и подтверждаем его в куки-клиенте.
   let { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({ type: 'magiclink', email })
   if (linkErr || !linkData?.properties?.hashed_token) {
     return NextResponse.redirect(`${origin}/?error=yandex_link`)
+  }
+
+  // createUser мог упасть не из-за занятой почты (сеть, сбой): тогда generateLink сам заводит пользователя, уже без отметки
+  // согласия. Такой аккаунт виден по возрасту (создан меньше минуты назад) при пустом newId. Без согласия его убираем.
+  const justMade = !newId && !!linkData.user?.created_at && Date.now() - Date.parse(linkData.user.created_at) < 60_000
+  if (justMade && !consent && linkData.user) {
+    const { error: delErr } = await admin.auth.admin.deleteUser(linkData.user.id)
+    if (delErr) { console.error('yandex callback: свежий аккаунт без согласия не удалился'); return NextResponse.redirect(`${origin}/?error=yandex_link`) }
+    return NextResponse.redirect(`${origin}/?auth=register&nado=soglasie`)
   }
 
   // Защита от захвата аккаунта заранее (ревью 10.11): кто-то мог зарегистрироваться по почте на этот адрес
@@ -81,6 +107,10 @@ export async function GET(req: Request) {
     const { error: resetErr } = await admin.auth.admin.updateUserById(existing.id, {
       password: `${crypto.randomUUID()}${crypto.randomUUID()}`,
       email_confirm: true,
+      // отметку согласия при регистрации по почте мог поставить чужой человек: пишем согласие вошедшего или стираем
+      user_metadata: consent
+        ? { soglasie_pd: new Date().toISOString(), soglasie_ver: CONSENT_VERSION }
+        : { soglasie_pd: null, soglasie_ver: null },
     })
     if (resetErr) return NextResponse.redirect(`${origin}/?error=yandex_link`)
     ;({ data: linkData, error: linkErr } = await admin.auth.admin.generateLink({ type: 'magiclink', email }))

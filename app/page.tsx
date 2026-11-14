@@ -13,10 +13,12 @@ import Faq from '@/components/landing/Faq'
 import ClampText from '@/components/landing/ClampText'
 import PainBoard from '@/components/landing/PainBoard'
 import { Wave, HandUnderline, MarginNote, Dekor } from '@/components/landing/Paper'
-import { HERO, PAINS, HOW, EXAMPLE, WHY, ETHICS, PRICING, FAQ, FINAL, FOOTER, CONTACT_EMAIL, PRIVACY_URL, OFFER_URL } from '@/components/landing/content'
+import { HERO, PAINS, HOW, EXAMPLE, WHY, ETHICS, PRICING, FAQ, FINAL, FOOTER } from '@/components/landing/content'
 import { EXAMPLES, COMPARE_TOPIC, COMPARE_CHATGPT, COMPARE_PSYCONT } from '@/components/landing/examples'
 import { jsonLdString } from '@/lib/structured-data'
-import { PLANS, PLAN_COMMON_LINE, MATERIAL_NOTE, formatRub, planPerks } from '@/lib/pricing'
+import { PLANS, PLAN_COMMON_LINE, MATERIAL_NOTE, formatRub, planPerks, startLine } from '@/lib/pricing'
+import SiteFooter from '@/components/site/SiteFooter'
+import CookieNote from '@/components/site/CookieNote'
 
 // Год в подвале берется из даты сборки; пересобираем страницу раз в сутки, чтобы он сменился сам
 export const revalidate = 86400
@@ -62,7 +64,6 @@ function PhoneShot({ src, alt, w, h }: { src: string; alt: string; w: number; h:
 }
 
 export default function Home() {
-  const year = new Date().getFullYear()
   return (
     <LandingShell>
       {/* JSON-LD для поисковиков и нейросетей: lib/structured-data.ts (цены из lib/pricing.ts, FAQ из того же источника, что на странице) */}
@@ -251,6 +252,8 @@ export default function Home() {
                     </p>
                   </div>
                   <p className="mt-1 text-[15px] leading-[1.4] text-brand-muted lg:mt-3 lg:text-[18px]">{p.who}</p>
+                  {/* что входит и как включается (описание услуги у каждого тарифа, нужно и для ЮKassa) */}
+                  <p className="mt-2 text-[14px] leading-[1.45] text-brand-text lg:mt-4 lg:text-[16px] lg:leading-[1.5]">{p.what} {startLine(p)}</p>
                   <p className="mt-1 text-[14px] leading-[1.4] text-brand-text lg:hidden">{planPerks(p)[0]}{p.price > 0 && <span className="text-brand-muted"> · {PRICING.soon.toLowerCase()}</span>}</p>
                   <ul className="mt-5 mb-6 hidden lg:block">
                     {planPerks(p).map(perk => <li key={perk} className="border-t border-brand-border py-3 text-[18px] text-brand-text">{perk}</li>)}
@@ -291,25 +294,9 @@ export default function Home() {
         </section>
       </main>
 
-      {/* Подвал на шоколаде */}
-      <footer className="bg-brand-text py-8 text-brand-bg lg:py-16">
-        <div className={`${WRAP} flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between`}>
-          <div>
-            <Image src="/brand/psycont-wordmark-light.svg" alt="PsyCont" width={131} height={40} className="h-10 w-auto" />
-            <p className="mt-3 text-[15px] text-brand-on-dark">{FOOTER.slogan}</p>
-          </div>
-          <div className="flex flex-col gap-2 text-[15px] lg:items-end">
-            {CONTACT_EMAIL && <p className="text-brand-on-dark">{FOOTER.mailLabel} <a href={`mailto:${CONTACT_EMAIL}`} className="text-brand-bg underline underline-offset-4">{CONTACT_EMAIL}</a></p>}
-            {(PRIVACY_URL || OFFER_URL) && (
-              <p className="flex flex-wrap gap-x-4">
-                {PRIVACY_URL && <a href={PRIVACY_URL} className="text-brand-on-dark underline-offset-4 hover:underline">{FOOTER.privacy}</a>}
-                {OFFER_URL && <a href={OFFER_URL} className="text-brand-on-dark underline-offset-4 hover:underline">{FOOTER.offer}</a>}
-              </p>
-            )}
-            <p className="text-[14px] text-brand-on-dark-muted">© {year} PsyCont</p>
-          </div>
-        </div>
-      </footer>
+      {/* Подвал на шоколаде: реквизиты и ссылки на оферту и политику, общий со страницами /offer и /privacy */}
+      <SiteFooter slogan={FOOTER.slogan} />
+      <CookieNote />
     </LandingShell>
   )
 }
