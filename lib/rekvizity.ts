@@ -18,7 +18,7 @@ export const PRIVACY_PATH = '/privacy'
 export const CONSENT_PATH = '/soglasie'
 
 // Дата редакции оферты и политики. Менять при каждой правке текста этих страниц.
-export const DOCS_DATE = '14 ноября 2026 года'
+export const DOCS_DATE = '15 ноября 2026 года'
 // Версия текста согласия (app/soglasie/page.tsx): пишется в аккаунт вместе с датой, когда человек поставил галочку.
 // Менять при любой правке текста согласия.
 export const CONSENT_VERSION = '2026-11-14'
