@@ -494,6 +494,8 @@ export const SO_MNOJ = /со мной (?:тоже )?можно|на меня м�
 // (вызов это пачка из 10 дней, поэтому одно на пачку и до трех на план из 30 дней; лендинг обещает «до трех», тест test-priglasheniya),
 // не два подряд и не сразу после узнавания (Арина 09.11); лишние становятся доверием. Реакция сводится с задачей
 export const BOLNO = /страх|страшн|бол[ьи]|больн|паник|тревог|близк|ребен|дет[еи]|сын|доч|мам|пап|муж|жен|партнер|отношени|развод|расста|одиноч|измен|насили|крик|срыв|ссор/iu
+// План тем zh6 собирается пачками по столько дней (app/api/generate-content-plan); zapisPravila работает на пачку
+export const ZH6_BATCH = 10
 export function zapisPravila<T extends { zadacha: string; reakciya?: string; tema: string; situaciya?: string }>(temy: T[]): T[] {
   const max = Math.max(1, Math.floor(temy.length / 7))
   let bylo = 0

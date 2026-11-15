@@ -7,11 +7,10 @@ import { activeHyps } from '@/lib/generation/hypotheses'
 import { isSimpleMode } from '@/lib/generation/simple'
 import { buildAuthorSettings } from '@/lib/generation/settings'
 import { loadMemory } from '@/lib/generation/memory'
-import { zh6Plan } from '@/lib/generation/zh6/write'
+import { zh6Plan, ZH6_BATCH } from '@/lib/generation/zh6/write'
 import { formatByCode } from '@/lib/generation/zh6/formaty'
 
 // ---------- zh6 (PROMPT_HYP=zh6 и новый мозг): план тем через zh6Plan, пачки по 10 дней ----------
-const ZH6_BATCH = 10
 const ZH6_TOTAL_BATCHES = 3
 const ZH6_PILLAR: Record<string, string> = { ohvat: 'Психообразование', doverie: 'Позиционирование', zapis: 'Практика' }
 // тип формата каталога в старых кодах дня плана (post|carousel|reels|stories), чтобы старые экраны не сломались
@@ -47,6 +46,10 @@ async function zh6PlanBatch(args: { db: ReturnType<typeof getSupabaseAdmin>; use
   const pometki = temy.reduce((n, t) => n + (t.pometki?.length || 0), 0)
   if (pometki || res.smesh.length) console.info('generate-content-plan zh6: pometki', pometki, 'smesh', res.smesh.length)
 
+  // «никогда два подряд» и на стыке пачек: zapisPravila видит только свою пачку, поэтому если последний день прошлой пачки
+  // уже приглашение, первая тема этой пачки становится доверием (как делает zapisPravila внутри пачки)
+  const prevDay = batch > 1 ? existingPlan.find((d: any) => Number(d?.day) === startDay - 1) : null
+  if (prevDay?.zadacha === 'zapis' && temy[0]?.zadacha === 'zapis') temy[0] = { ...temy[0], zadacha: 'doverie', reakciya: 'poziciya' }
   const newDays = temy.map((t, i) => {
     const kod = formatByCode(t.format)?.code || ''
     return {
