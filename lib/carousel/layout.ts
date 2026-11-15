@@ -187,6 +187,8 @@ export async function layoutWithModel(args: {
   style: TemplateStyle
   heavy: boolean
   userId?: string
+  // имя автора (профиль и подпись карусели): маскируется перед нейросетью гарантированно
+  knownNames?: string[]
 }): Promise<{ layout: SlideLayout[]; fixed: number; viaModel: boolean }> {
   const meta = STYLES[args.style]
   const vars = {
@@ -209,6 +211,7 @@ export async function layoutWithModel(args: {
       timeoutMs: 40000,
       userId: args.userId,
       operation: 'carousel_layout',
+      knownNames: args.knownNames,
     })
     const { layout, fixed } = checkLayout(args.slides, raw, args.style)
     return { layout, fixed, viaModel: true }

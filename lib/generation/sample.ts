@@ -129,7 +129,7 @@ export async function parseSample(ctx: GenContext, input: { kind: SampleInput['k
     }),
     images: input.images,
     effort: 'low', verbosity: 'low', maxTokens: 2000, timeoutMs: input.images?.length ? 90000 : 55000,
-    userId: ctx.userId, operation: input.images?.length ? 'sample_parse_vision' : 'sample_parse',
+    userId: ctx.userId, operation: input.images?.length ? 'sample_parse_vision' : 'sample_parse', knownNames: ctx.settings?.knownNames,
   })
   // переписка, личные сообщения, медкарта: не публичный пост, данные клиентов не трогаем (152-ФЗ)
   if (raw?.private === true) return { error: 'private' }

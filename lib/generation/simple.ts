@@ -126,7 +126,7 @@ export async function cutText(ctx: GenContext, format: FormatCode, text: string)
     const r = await callJson<{ cut?: string[] }>({
       system: PN_SYSTEM, user: fill(PN_USER, { format_code: format, text }),
       effort: 'low', verbosity: 'low', maxTokens: 3000,
-      userId: ctx.userId, operation: 'generate_post_cut', writer: true,
+      userId: ctx.userId, operation: 'generate_post_cut', writer: true, knownNames: ctx.settings?.knownNames,
     })
     return applyCuts(text, Array.isArray(r?.cut) ? r.cut : [])
   } catch {
@@ -144,7 +144,7 @@ async function cutToLength(ctx: GenContext, text: string, maxWords: number): Pro
       system: H7_CUT_SYSTEM,
       user: `<нужно_слов_в_речи>не больше ${maxWords} (сейчас ${have}, вырезать около ${have - maxWords})</нужно_слов_в_речи>\n<текст>\n${text}\n</текст>`,
       effort: 'low', verbosity: 'low', maxTokens: 4000,
-      userId: ctx.userId, operation: 'generate_post_cut_h7', writer: true,
+      userId: ctx.userId, operation: 'generate_post_cut_h7', writer: true, knownNames: ctx.settings?.knownNames,
     })
     return applyCuts(text, Array.isArray(r?.cut) ? r.cut : [], 1 / 2)
   } catch {

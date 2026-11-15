@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
   if (layout) {
     layout = layout.map(s => ({ ...s, photo: meta.photos !== 'none' && (s.photo || s.n === 1) }))
   } else {
-    const r = await layoutWithModel({ slides, style, heavy: isHeavy(post.plan?.risks), userId: user.id })
+    const r = await layoutWithModel({ slides, style, heavy: isHeavy(post.plan?.risks), userId: user.id, knownNames: [branding.name].filter(Boolean) })
     layout = r.layout
   }
 
