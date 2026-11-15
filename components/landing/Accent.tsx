@@ -1,33 +1,33 @@
 'use client'
-// Выделение слова: рукописная линия или плашка-маркер под нижней частью слова (задача Арины 16.11, показ вариантов).
-// Вариант для показа выбирается адресом ?podch=liniya | marker | smes (по умолчанию smes: на первом экране линия,
-// под подписями манер маркер, так советует designer-psycont). После выбора Арины переключатель убрать.
-// Маркер: тень внутрь (без градиента) на нижние 0.4em, ровно по краям слова; box-decoration-break clone держит перенос.
+// Выделение слова плашкой-маркером (решение Арины 16.11: маркер вместо рукописной линии, заметнее прежнего).
+// Полоса закрывает нижнюю часть слова: тень внутрь (без градиента), ровно от первой до последней буквы (без отступов),
+// в соседние строки не выходит (рисуется внутри строки слова), при переносе каждая строка получает свою целую полосу
+// (box-decoration-break: clone), концы чуть скруглены (border-radius). Текст поверх шоколадный.
+// Цвета: на креме сирень знака, на бледной сирени сирень темнее (токены brand-lilac-mid и brand-lilac-deep), контраст текста от 4.8.
+// Сила для показа выбирается адресом ?marker=obych | sochno (по умолчанию obych). После выбора Арины переключатель убрать.
 import { useEffect, useState } from 'react'
-import { HandUnderline } from './Paper'
 
-type Mode = 'liniya' | 'marker' | 'smes'
+type Sila = 'obych' | 'sochno'
+
+const COLOR: Record<'title' | 'label', Record<Sila, string>> = {
+  // заголовок первого экрана стоит на креме
+  title: { obych: 'var(--color-brand-lilac)', sochno: 'var(--color-brand-lilac-deep)' },
+  // подписи манер стоят на бледной сирени: обычная сирень там почти не видна
+  label: { obych: 'var(--color-brand-lilac-mid)', sochno: 'var(--color-brand-lilac-deep)' },
+}
+// какую часть высоты строки слова закрывает полоса
+const HEIGHT: Record<Sila, string> = { obych: '0.42em', sochno: '0.5em' }
 
 export default function Accent({ children, where }: { children: React.ReactNode; where: 'title' | 'label' }) {
-  const [mode, setMode] = useState<Mode>('smes')
+  const [sila, setSila] = useState<Sila>('obych')
   useEffect(() => {
     try {
-      const m = new URLSearchParams(window.location.search).get('podch')
-      if (m === 'liniya' || m === 'marker' || m === 'smes') setMode(m)
+      const m = new URLSearchParams(window.location.search).get('marker')
+      if (m === 'obych' || m === 'sochno') setSila(m)
     } catch {}
   }, [])
-  const marker = mode === 'marker' || (mode === 'smes' && where === 'label')
-  if (marker) {
-    // на креме (первый экран) сирень под темным текстом; на бледной сирени (подписи манер) шалфей, текст шоколадный
-    const color = where === 'title' ? 'var(--color-brand-lilac)' : 'color-mix(in srgb, var(--color-brand-sage) 55%, transparent)'
-    return (
-      <mark className="bg-transparent text-brand-text [-webkit-box-decoration-break:clone] [box-decoration-break:clone]"
-        style={{ boxShadow: `inset 0 -0.4em 0 ${color}` }}>{children}</mark>
-    )
-  }
   return (
-    <span className="relative inline-block whitespace-nowrap pb-[0.24em]">
-      {children}<HandUnderline draw={where === 'title'} size={where} />
-    </span>
+    <mark className="rounded-[0.18em] bg-transparent text-brand-text [-webkit-box-decoration-break:clone] [box-decoration-break:clone]"
+      style={{ boxShadow: `inset 0 -${HEIGHT[sila]} 0 ${COLOR[where][sila]}` }}>{children}</mark>
   )
 }

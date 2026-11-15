@@ -18,9 +18,12 @@ type Ctx = {
   who: Who
   start: (place: Place, plan?: Plan, opts?: { note?: string }) => void
   login: () => void
+  // кнопка первого экрана ушла за верх: только тогда шапка на телефоне показывает свою
+  heroCtaGone: boolean
+  setHeroCtaGone: (v: boolean) => void
 }
 
-const LandingCtx = createContext<Ctx>({ who: 'unknown', start: () => {}, login: () => {} })
+const LandingCtx = createContext<Ctx>({ who: 'unknown', start: () => {}, login: () => {}, heroCtaGone: false, setHeroCtaGone: () => {} })
 export const useLanding = () => useContext(LandingCtx)
 
 export default function LandingShell({ children }: { children: React.ReactNode }) {
@@ -28,6 +31,7 @@ export default function LandingShell({ children }: { children: React.ReactNode }
   const [who, setWho] = useState<Who>('unknown')
   const [modal, setModal] = useState<{ mode: 'login' | 'register'; note?: string } | null>(null)
   const viewed = useRef(false)
+  const [heroCtaGone, setHeroCtaGone] = useState(false)
 
   // Кто зашел. Пока проверка идет, клик ждет ее, чтобы вошедшему не открылась регистрация.
   // Ошибка чтения профиля считается «не знаем» (как без входа: окно входа само разведет), а не «нет профиля».
@@ -71,7 +75,7 @@ export default function LandingShell({ children }: { children: React.ReactNode }
   const login = useCallback(() => setModal({ mode: 'login' }), [])
 
   return (
-    <LandingCtx.Provider value={{ who, start, login }}>
+    <LandingCtx.Provider value={{ who, start, login, heroCtaGone, setHeroCtaGone }}>
       {children}
       <AuthModal isOpen={!!modal} onClose={() => setModal(null)} initialMode={modal?.mode || 'register'} contextNote={modal?.note} />
     </LandingCtx.Provider>
@@ -96,7 +100,21 @@ export function CtaButton({ place, plan, variant = 'primary', className = '', ch
   )
 }
 
-// Кнопка первого экрана (с 16.11 кнопка шапки видна всегда, связь между ними не нужна)
+// Кнопка первого экрана. На телефоне кнопка шапки появляется, только когда эта ушла за верх (решение Арины 16.11:
+// две кнопки на одно действие на одном экране не нужны); на компьютере кнопка шапки видна всегда.
+// Ушла именно вверх: низ кнопки выше верхней границы наблюдения (с запасом под шапку 72 px).
 export function HeroCta({ className = '', children }: { className?: string; children: React.ReactNode }) {
-  return <div className={className}><CtaButton place="hero" className="w-full lg:w-auto">{children}</CtaButton></div>
+  const { setHeroCtaGone } = useLanding()
+  const box = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = box.current
+    if (!el || typeof IntersectionObserver === 'undefined') { setHeroCtaGone(true); return }
+    const io = new IntersectionObserver(es => {
+      const e = es[es.length - 1]
+      setHeroCtaGone(!e.isIntersecting && e.boundingClientRect.bottom <= (e.rootBounds?.top ?? 0) + 1)
+    }, { rootMargin: '-72px 0px 0px 0px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [setHeroCtaGone])
+  return <div ref={box} className={className}><CtaButton place="hero" className="w-full lg:w-auto">{children}</CtaButton></div>
 }

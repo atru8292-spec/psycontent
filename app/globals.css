@@ -21,6 +21,8 @@
      Сирень на креме без темного контура для смысловых элементов не ставить; текст на сирени только темный.
      Зеленый и шоколад рядом как фон и фигура не ставить */
   --color-brand-lilac: #C3A6E6;
+  --color-brand-lilac-mid: #B795E0;   /* маркер на бледной сирени, текст шоколадом 5.4:1 */
+  --color-brand-lilac-deep: #AE89DC;  /* насыщенный маркер, текст шоколадом 4.8:1 */
 
   /* Рамки */
   --color-brand-border: #E3DACB;
@@ -161,18 +163,6 @@ body {
   }
 }
 
-/* Прорисовка рукописной линии под словами заголовка на первом экране (HandUnderline draw). 600 мс, ease-out, задержка 200 мс,
-   один раз. Через clip-path (не stroke-dasharray: pathLength вместе с non-scaling-stroke в Safari считается неверно).
-   Только при включенном JS (scripting: enabled) и без prefers-reduced-motion, иначе линия сразу нарисована */
-@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
-  .ink-draw {
-    clip-path: inset(0 100% 0 0);
-    animation: ink-draw 600ms ease-out 200ms forwards;
-  }
-}
-@keyframes ink-draw {
-  to { clip-path: inset(0 0 0 0); }
-}
 /* Пункты темной шапки ведут к блокам страницы: прокрутка плавная, если человек не просил меньше движения */
 @media (prefers-reduced-motion: no-preference) {
   html { scroll-behavior: smooth; }

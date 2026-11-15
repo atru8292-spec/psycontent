@@ -70,8 +70,8 @@ export default function Home() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString() }} />
       <Header />
       <main className="overflow-x-clip">
-        {/* 1. Первый экран, крем: заголовок в два веса с рукописным штрихом на «блогерскую часть». Кнопка темной шапки видна всегда
-            (решение Арины 16.11). На 375 и 390 заголовок, подзаголовок и кнопка видны без прокрутки. Вера ниже кнопки */}
+        {/* 1. Первый экран, крем: заголовок в два веса, «блогерскую часть» под сиреневым маркером. Кнопка темной шапки на телефоне
+            появляется, когда эта ушла за верх (решение Арины 16.11). На 375 и 390 заголовок, подзаголовок и кнопка видны без прокрутки. Вера ниже кнопки */}
         <section className={`${WRAP} pt-5 lg:grid lg:grid-cols-12 lg:gap-8 lg:pt-14`}>
           <div className="lg:col-span-8 lg:self-center lg:pb-24">
             <h1 className="max-w-[780px] text-[30px] font-medium leading-[1.15] tracking-[-0.01em] text-brand-text min-[390px]:text-[31px] lg:text-[44px]">
