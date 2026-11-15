@@ -130,8 +130,8 @@ export default function Home() {
               <div>
                 <figure className="rounded-3xl bg-brand-bg p-4 lg:p-8">
                   <figcaption className="inline-flex h-7 items-center rounded-full bg-brand-soft px-3 text-[13px] text-brand-text">{WHY.oursLabel}</figcaption>
-                  {/* монолог Ольги из PRAVKI-LENDING-2026-10-05.md: свернут как ChatGPT (мобилка 6 строк, десктоп 11) */}
-                  <div className="mt-3"><ClampText text={COMPARE_PSYCONT} place="compare_ours" className="text-[15px] leading-[1.55] text-brand-text lg:text-[16px]" /></div>
+                  {/* монолог Ольги из PRAVKI-LENDING-2026-10-05.md: свернут по смыслу, до «Бл*дь, как у вас все просто.» на любой ширине */}
+                  <div className="mt-3"><ClampText text={COMPARE_PSYCONT} until="Бл*дь, как у вас все просто." place="compare_ours" className="text-[15px] leading-[1.55] text-brand-text lg:text-[16px]" /></div>
                 </figure>
                 <MarginNote tone="accent" className="mt-2 pl-3">{WHY.oursNote}</MarginNote>
               </div>
