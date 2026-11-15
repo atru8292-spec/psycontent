@@ -11,7 +11,8 @@ import Header from '@/components/landing/Header'
 import Faq from '@/components/landing/Faq'
 import ClampText from '@/components/landing/ClampText'
 import PainBoard from '@/components/landing/PainBoard'
-import { Wave, HandUnderline, MarginNote, Dekor } from '@/components/landing/Paper'
+import { Wave, MarginNote, Dekor } from '@/components/landing/Paper'
+import Accent from '@/components/landing/Accent'
 import { HERO, PAINS, HOW, EXAMPLE, WHY, ETHICS, PRICING, FAQ, FINAL, FOOTER } from '@/components/landing/content'
 import { EXAMPLES, COMPARE_TOPIC, COMPARE_CHATGPT, COMPARE_PSYCONT } from '@/components/landing/examples'
 import { jsonLdString } from '@/lib/structured-data'
@@ -69,13 +70,13 @@ export default function Home() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString() }} />
       <Header />
       <main className="overflow-x-clip">
-        {/* 1. Первый экран, крем: заголовок в два веса с рукописным штрихом на «блогерскую часть», одна кнопка
-            (кнопка шапки скрыта, пока эта на экране). На 375 и 390 заголовок, подзаголовок и кнопка видны без прокрутки. Вера ниже кнопки */}
+        {/* 1. Первый экран, крем: заголовок в два веса, «блогерскую часть» под сиреневым маркером. Кнопка темной шапки на телефоне
+            появляется, когда эта ушла за верх (решение Арины 16.11). На 375 и 390 заголовок, подзаголовок и кнопка видны без прокрутки. Вера ниже кнопки */}
         <section className={`${WRAP} pt-5 lg:grid lg:grid-cols-12 lg:gap-8 lg:pt-14`}>
           <div className="lg:col-span-8 lg:self-center lg:pb-24">
             <h1 className="max-w-[780px] text-[30px] font-medium leading-[1.15] tracking-[-0.01em] text-brand-text min-[390px]:text-[31px] lg:text-[44px]">
               <span className="block font-bold">{HERO.titleBold}</span>
-              <span className="relative inline-block whitespace-nowrap">{HERO.titleMark}<HandUnderline draw /></span>{' '}{HERO.title}
+              <Accent on="cream">{HERO.titleMark}</Accent>{' '}{HERO.title}
             </h1>
             <p className="mt-4 max-w-[640px] text-[16px] leading-[1.5] text-brand-muted min-[390px]:text-[17px] lg:mt-7 lg:max-w-[520px] lg:text-[20px]">{HERO.lead}</p>
             <div className="mt-5 flex flex-col gap-2.5 lg:mt-10 lg:flex-row lg:items-center lg:gap-4">
@@ -142,7 +143,7 @@ export default function Home() {
 
         {/* 4. Как это работает, крем: шаги по нарастанию тона, цифра и одна фраза, без заголовков и иконок.
             Шаги 1 и 2 со снимком экрана, в третьем Вера (второе и последнее ее появление на странице) и строка про рилсы */}
-        <section className={SECTION}>
+        <section id="how" className={`${SECTION} scroll-mt-[88px]`}>
           <div className={WRAP}>
             <h2 className={H2}>{HOW.title}</h2>
             <ol className="mt-5 grid gap-3 lg:mt-12 lg:grid-cols-3 lg:items-start lg:gap-6">
@@ -201,8 +202,9 @@ export default function Home() {
             <div className="mt-5 grid gap-5 lg:mt-10 lg:grid-cols-3 lg:items-start lg:gap-7">
               {EXAMPLES.map((e, i) => (
                 <div key={e.id} className={MANNER_CARD[i]}>
-                  <p className="mb-1 pl-1 text-[17px] font-medium text-brand-accent lg:mb-3">
-                    <span className="relative inline-block">{e.manner}<HandUnderline /></span>                  </p>
+                  <p className="mb-1 pl-1 text-[17px] font-medium text-brand-text lg:mb-3">
+                    <Accent on="lilac">{e.manner}</Accent>
+                  </p>
                   <div className="relative">
                     {i === 0 && <Dekor name="zazhim-sirenevyj" className="-top-6 left-1/2 z-10 w-[40px] -translate-x-1/2 lg:w-[48px]" />}
                     <article className={`rounded-3xl border border-brand-border bg-brand-card p-4 lg:p-7 ${i === 0 ? 'max-lg:pt-8' : ''}`}>
@@ -237,8 +239,8 @@ export default function Home() {
         </section>
 
         {/* 7. Тарифы из lib/pricing.ts, белый фон и кремовые карточки */}
-        <section className="bg-brand-card py-9 lg:py-24">
-          <div id="pricing" className={`${WRAP} scroll-mt-20`}>
+        <section id="pricing" className="scroll-mt-[88px] bg-brand-card py-9 lg:py-24">
+          <div className={WRAP}>
             <h2 className={H2}>{PRICING.title}</h2>
             <p className={`mt-3 max-w-[640px] text-brand-muted ${TEXT}`}><span className="font-semibold text-brand-text">{PRICING.leadBold}</span> {PRICING.lead}</p>
             <div className="mt-5 grid gap-3 lg:mt-12 lg:grid-cols-3 lg:items-stretch lg:gap-6">
@@ -275,7 +277,7 @@ export default function Home() {
         </section>
 
         {/* 8. Вопросы, крем */}
-        <section className={SECTION}>
+        <section id="faq" className={`${SECTION} scroll-mt-[88px]`}>
           <div className={`${WRAP} lg:grid lg:grid-cols-12 lg:gap-8`}>
             <h2 className={`${H2} lg:col-span-4`}>{FAQ.title}</h2>
             <div className="mt-4 max-w-[800px] lg:col-span-8 lg:mt-0"><Faq /></div>

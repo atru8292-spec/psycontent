@@ -13,17 +13,6 @@ export function Wave({ side, color = 'text-brand-soft' }: { side: 'top' | 'botto
   )
 }
 
-// Неровный штрих зеленым под одним словом заголовка
-// draw: линия прорисовывается один раз при загрузке, как ручкой (класс ink-draw в globals.css; без JS и при reduced-motion сразу нарисована)
-export function HandUnderline({ draw = false }: { draw?: boolean }) {
-  return (
-    <svg aria-hidden viewBox="0 0 200 18" preserveAspectRatio="none" className={`absolute -bottom-2 left-[-4%] h-[12px] w-[108%] text-brand-accent lg:-bottom-3 lg:h-[16px] ${draw ? 'ink-draw' : ''}`}>
-      <path pathLength={1} d="M3 11 C 30 6, 62 13, 96 9 S 160 4, 197 8" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-      <path pathLength={1} d="M22 15 C 70 11, 120 14, 176 11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" opacity=".7" />
-    </svg>
-  )
-}
-
 // Рукописная стрелка вниз и вправо, от подписи к примеру
 export function HandArrow({ className = '' }: { className?: string }) {
   return (

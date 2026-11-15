@@ -18,7 +18,7 @@ type Ctx = {
   who: Who
   start: (place: Place, plan?: Plan, opts?: { note?: string }) => void
   login: () => void
-  // кнопка первого экрана ушла за верх экрана: только тогда шапка показывает свою (на первом экране кнопка одна)
+  // кнопка первого экрана ушла за верх: только тогда шапка на телефоне показывает свою
   heroCtaGone: boolean
   setHeroCtaGone: (v: boolean) => void
 }
@@ -85,20 +85,25 @@ export default function LandingShell({ children }: { children: React.ReactNode }
 const PRIMARY = 'inline-flex h-14 items-center justify-center rounded-2xl bg-brand-accent px-7 text-[17px] font-semibold text-brand-bg transition-colors hover:bg-brand-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent cursor-pointer'
 // Светлая кнопка для зеленой карточки: зеленая кнопка на зеленом не видна, кремовая читается
 const LIGHT = 'inline-flex h-12 items-center justify-center rounded-2xl bg-brand-bg px-6 text-[16px] font-semibold text-brand-text transition-colors hover:bg-brand-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-bg cursor-pointer'
+// Сиреневая кнопка темной шапки: зеленое на шоколаде запрещено правилом бренда, текст на сирени только темный
+const HEADER_BTN = 'inline-flex h-11 items-center justify-center rounded-xl bg-brand-lilac px-4 text-[15px] font-semibold text-brand-text transition-colors hover:bg-brand-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-bg cursor-pointer lg:px-5 lg:text-[16px]'
 const SECONDARY = 'inline-flex h-12 items-center justify-center rounded-2xl border border-brand-border bg-transparent px-6 text-[16px] font-medium text-brand-text transition-colors hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent cursor-pointer'
 
 export function CtaButton({ place, plan, variant = 'primary', className = '', children }: {
-  place: Place; plan?: Plan; variant?: 'primary' | 'secondary' | 'light'; className?: string; children: React.ReactNode
+  place: Place; plan?: Plan; variant?: 'primary' | 'secondary' | 'light' | 'header'; className?: string; children: React.ReactNode
 }) {
   const { start } = useLanding()
   return (
-    <button type="button" onClick={() => start(place, plan)} className={`${variant === 'primary' ? PRIMARY : variant === 'light' ? LIGHT : SECONDARY} ${className}`}>
+    <button type="button" onClick={() => start(place, plan)} className={`${variant === 'primary' ? PRIMARY : variant === 'light' ? LIGHT : variant === 'header' ? HEADER_BTN : SECONDARY} ${className}`}>
       {children}
     </button>
   )
 }
 
-// Кнопка первого экрана. Пока она на экране, кнопка в шапке скрыта; ушла вверх за шапку, шапка показывает свою.
+// Кнопка первого экрана. На телефоне кнопка шапки появляется, только когда эта ушла за верх (решение Арины 16.11:
+// две кнопки на одно действие на одном экране не нужны); на компьютере кнопка шапки видна всегда.
+// Ушла именно вверх: низ кнопки выше верхней границы наблюдения. Граница 72 px: шапка 60 px на телефоне и 68 на компьютере,
+// кнопка шапки появляется чуть раньше, чем главная полностью уйдет под плашку (на глаз незаметно).
 export function HeroCta({ className = '', children }: { className?: string; children: React.ReactNode }) {
   const { setHeroCtaGone } = useLanding()
   const box = useRef<HTMLDivElement>(null)
@@ -107,8 +112,6 @@ export function HeroCta({ className = '', children }: { className?: string; chil
     if (!el || typeof IntersectionObserver === 'undefined') { setHeroCtaGone(true); return }
     const io = new IntersectionObserver(es => {
       const e = es[es.length - 1]
-      // ушла именно вверх: низ кнопки выше верхней границы наблюдения (сравниваем с границей, а не с нулем,
-      // иначе при мелком шрифте браузера кнопка шапки осталась бы скрытой). 72 px это высота шапки на десктопе
       setHeroCtaGone(!e.isIntersecting && e.boundingClientRect.bottom <= (e.rootBounds?.top ?? 0) + 1)
     }, { rootMargin: '-72px 0px 0px 0px' })
     io.observe(el)
