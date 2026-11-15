@@ -1,7 +1,8 @@
 'use client'
 // Шапка лендинга: темная плашка с полями, скруглением и тонкой сиреневой кромкой (вариант B, выбор Арины 16.11,
 // спецификация designer-psycont). Над шоколадным блоком не сливается: кромка и поля по краям.
-// Кнопка «Первый пост» сиреневая (зеленое на шоколаде запрещено). На телефоне сначала только «Войти»: кнопка появляется,
+// Кнопка «Первый пост» сиреневая (зеленое на шоколаде запрещено). «Войти» всегда у правого края, кнопка левее него
+// (решение Арины 16.11: «Войти» не сдвигается). На телефоне сначала только «Войти»: кнопка появляется,
 // когда зеленая кнопка первого экрана ушла за верх (две кнопки на одно действие на одном экране не нужны).
 // На компьютере кнопка видна всегда, плюс пункты по странице без подчеркиваний, прокрутка к блокам плавная (globals.css).
 import Image from 'next/image'
@@ -42,12 +43,12 @@ export default function Header() {
           </nav>
         </div>
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-          <button type="button" onClick={login} className={LOGIN}>{HEADER.login}</button>
           {/* телефон и планшет: только после того, как кнопка первого экрана ушла за верх; компьютер: всегда */}
           <CtaButton place="header" variant="header" className={heroCtaGone ? '' : 'max-lg:hidden'}>
             <span className="sm:hidden">{HEADER.ctaShort}</span>
             <span className="hidden sm:inline">{HEADER.cta}</span>
           </CtaButton>
+          <button type="button" onClick={login} className={LOGIN}>{HEADER.login}</button>
         </div>
       </div>
     </header>
