@@ -76,7 +76,7 @@ export default function Home() {
           <div className="lg:col-span-8 lg:self-center lg:pb-24">
             <h1 className="max-w-[780px] text-[30px] font-medium leading-[1.15] tracking-[-0.01em] text-brand-text min-[390px]:text-[31px] lg:text-[44px]">
               <span className="block font-bold">{HERO.titleBold}</span>
-              <Accent where="title">{HERO.titleMark}</Accent>{' '}{HERO.title}
+              <Accent on="cream">{HERO.titleMark}</Accent>{' '}{HERO.title}
             </h1>
             <p className="mt-4 max-w-[640px] text-[16px] leading-[1.5] text-brand-muted min-[390px]:text-[17px] lg:mt-7 lg:max-w-[520px] lg:text-[20px]">{HERO.lead}</p>
             <div className="mt-5 flex flex-col gap-2.5 lg:mt-10 lg:flex-row lg:items-center lg:gap-4">
@@ -203,7 +203,7 @@ export default function Home() {
               {EXAMPLES.map((e, i) => (
                 <div key={e.id} className={MANNER_CARD[i]}>
                   <p className="mb-1 pl-1 text-[17px] font-medium text-brand-text lg:mb-3">
-                    <Accent where="label">{e.manner}</Accent>
+                    <Accent on="lilac">{e.manner}</Accent>
                   </p>
                   <div className="relative">
                     {i === 0 && <Dekor name="zazhim-sirenevyj" className="-top-6 left-1/2 z-10 w-[40px] -translate-x-1/2 lg:w-[48px]" />}
