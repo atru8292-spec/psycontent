@@ -8,7 +8,6 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import LandingShell, { CtaButton, HeroCta } from '@/components/landing/LandingShell'
 import Header from '@/components/landing/Header'
-import ReelCard from '@/components/landing/ReelCard'
 import Faq from '@/components/landing/Faq'
 import ClampText from '@/components/landing/ClampText'
 import PainBoard from '@/components/landing/PainBoard'
@@ -122,7 +121,7 @@ export default function Home() {
                   <figcaption className="inline-flex h-7 items-center rounded-full border border-brand-border px-3 text-[13px] text-brand-muted">{WHY.aiLabel}</figcaption>
                   <span aria-hidden className="absolute top-6 right-6 hidden rotate-[3deg] text-[15px] text-brand-text lg:block">{WHY.aiSideNote}</span>
                   <div className="mt-3">
-                    <ClampText text={COMPARE_CHATGPT} until="Мам, нет, в эти выходные я не приеду" place="compare_gpt"
+                    <ClampText text={COMPARE_CHATGPT} place="compare_gpt"
                       className="text-[14px] leading-[20px] text-brand-text-secondary lg:text-[16px] lg:leading-[1.5]" />
                   </div>
                 </figure>
@@ -131,7 +130,8 @@ export default function Home() {
               <div>
                 <figure className="rounded-3xl bg-brand-bg p-4 lg:p-8">
                   <figcaption className="inline-flex h-7 items-center rounded-full bg-brand-soft px-3 text-[13px] text-brand-text">{WHY.oursLabel}</figcaption>
-                  <div className="mt-3"><ReelCard text={COMPARE_PSYCONT} /></div>
+                  {/* монолог Ольги из PRAVKI-LENDING-2026-10-05.md: свернут по смыслу, до «Бл*дь, как у вас все просто.» на любой ширине */}
+                  <div className="mt-3"><ClampText text={COMPARE_PSYCONT} until="Бл*дь, как у вас все просто." place="compare_ours" className="text-[15px] leading-[1.55] text-brand-text lg:text-[16px]" /></div>
                 </figure>
                 <MarginNote tone="accent" className="mt-2 pl-3">{WHY.oursNote}</MarginNote>
               </div>
@@ -206,7 +206,8 @@ export default function Home() {
                   <div className="relative">
                     {i === 0 && <Dekor name="zazhim-sirenevyj" className="-top-6 left-1/2 z-10 w-[40px] -translate-x-1/2 lg:w-[48px]" />}
                     <article className={`rounded-3xl border border-brand-border bg-brand-card p-4 lg:p-7 ${i === 0 ? 'max-lg:pt-8' : ''}`}>
-                      <ReelCard text={e.text} collapse place={`ex_${e.id.split('_')[0]}`} />
+                      {/* монологи из PRAVKI-LENDING-2026-10-05.md: мобилка свернута до 6 строк, десктоп до 11, кнопка «Показать целиком» */}
+                      <ClampText text={e.text} place={`ex_${e.id.split('_')[0]}`} className="text-[15px] leading-[1.55] text-brand-text lg:text-[16px]" />
                     </article>
                   </div>
                   {e.note && <MarginNote className="mt-2 pl-3 lg:mt-3">{e.note}</MarginNote>}

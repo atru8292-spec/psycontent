@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Сборка в отдельную папку (deploy/update.sh: NEXT_DIST_DIR=.next-novaya npm run build, потом папки меняются местами).
+  // Раньше сборка шла поверх .next работающего сайта, и пару минут картинки (_next/image) и куски страниц отдавали ошибки
+  // (502 и «Unable to optimize image» в журнале 15.11). next start переменную не получает и читает обычную .next.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   eslint: {
     ignoreDuringBuilds: true,
   },

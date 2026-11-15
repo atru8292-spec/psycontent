@@ -1,8 +1,9 @@
 'use client'
 // Длинный текст свернут с кнопкой «Показать целиком». Два способа:
-// clamp: по числу строк (класс line-clamp), until: по смыслу, видно все до строки с этим куском включительно,
-// граница одна на любой ширине (цитата ChatGPT в сравнении: до первой реплики сценки). Остальное лежит в HTML, скрыто стилями.
-// Раскрытие мгновенное, без затухания градиентом. place: код для land_more_open.
+// clamp: по числу строк (класс line-clamp, на телефоне 6, на компьютере 11);
+// until: по смыслу, видно все до строки с этим куском включительно, граница одна на любой ширине
+// (правая карточка сравнения: до «Бл*дь, как у вас все просто.», решение Арины 16.11).
+// Свернутое лежит в HTML и скрыто только стилями (SEO). Раскрытие мгновенное, без затухания градиентом. place: код для land_more_open.
 import { useId, useState } from 'react'
 import { track } from '@/lib/track'
 import { EXAMPLE } from './content'
@@ -17,7 +18,7 @@ export default function ClampText({ text, clamp = 'line-clamp-6 lg:line-clamp-[1
     <>
       {cut > 0 ? (
         <div id={id} className={`whitespace-pre-line ${className}`}>
-          <span>{text.slice(0, cut).replace(/\n$/, '')}</span>
+          <span>{text.slice(0, cut).replace(/\n+$/, '')}</span>
           <span className={open ? '' : 'hidden'}>{'\n' + text.slice(cut)}</span>
         </div>
       ) : (

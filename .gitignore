@@ -48,3 +48,5 @@ sk/
 _sekrety/
 # заполненный конфиг бэкапа с ключами S3 (пример лежит рядом, backup.env.example)
 deploy/baza-ru/backup/backup.env
+/.next-novaya/
+/.next-staraya/
