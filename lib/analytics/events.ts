@@ -54,7 +54,7 @@ export const EVENTS = {
   land_cta_click: ['place', 'plan'],                 // кнопка в регистрацию: place hero|how|pricing|final|header, plan free|calm|daily
   land_demo_submit: [],                              // оставили мысль в демо (сама мысль в событие не идет); демо пока снято со страницы
   land_faq_open: ['q'],                              // открыли вопрос: короткий код вроде q_chatgpt, текст вопроса не идет
-  land_more_open: ['place'],                         // раскрыли свернутый текст: place compare_gpt|ex_nina|ex_taisiya|ex_zahar
+  land_more_open: ['place'],                         // раскрыли свернутый текст: place compare_gpt|compare_ours|ex_yulia|ex_mihail|ex_olga
   land_doc_view: ['doc'],                            // открыли документ: doc offer|privacy|soglasie
   land_cookie_ok: [],                                // нажали «Понятно» в плашке про cookie
 } as const satisfies Record<string, readonly string[]>
