@@ -13,13 +13,15 @@ export function Wave({ side, color = 'text-brand-soft' }: { side: 'top' | 'botto
   )
 }
 
-// Неровный штрих зеленым под одним словом заголовка
-// draw: линия прорисовывается один раз при загрузке, как ручкой (класс ink-draw в globals.css; без JS и при reduced-motion сразу нарисована)
-export function HandUnderline({ draw = false }: { draw?: boolean }) {
+// Рукописная линия под фразой до трех слов (переделано 16.11, спецификация designer-psycont).
+// Одна линия ровной толщины: vector-effect non-scaling-stroke не дает растяжке менять толщину, толщина в em от шрифта слова,
+// поэтому на 375 и 1280 линия одинаковая. Начало и конец точно под словом (inset-x-0). Под словом своя полоса (pb у обертки
+// в Accent), линия не налезает на буквы и следующую строку. draw: прорисовка один раз через clip-path (класс ink-draw).
+export function HandUnderline({ draw = false, size = 'label' }: { draw?: boolean; size?: 'title' | 'label' }) {
   return (
-    <svg aria-hidden viewBox="0 0 200 18" preserveAspectRatio="none" className={`absolute -bottom-2 left-[-4%] h-[12px] w-[108%] text-brand-accent lg:-bottom-3 lg:h-[16px] ${draw ? 'ink-draw' : ''}`}>
-      <path pathLength={1} d="M3 11 C 30 6, 62 13, 96 9 S 160 4, 197 8" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-      <path pathLength={1} d="M22 15 C 70 11, 120 14, 176 11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" opacity=".7" />
+    <svg aria-hidden viewBox="0 0 200 10" preserveAspectRatio="none" className={`pointer-events-none absolute inset-x-0 bottom-0 h-[0.22em] w-full overflow-visible text-brand-accent ${draw ? 'ink-draw' : ''}`}>
+      <path d="M3 6 C 45 3, 85 8, 125 5 S 180 3, 197 5" fill="none" stroke="currentColor" strokeLinecap="round" vectorEffect="non-scaling-stroke"
+        style={{ strokeWidth: size === 'title' ? '0.085em' : '0.12em' }} />
     </svg>
   )
 }
