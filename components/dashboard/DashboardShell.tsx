@@ -79,10 +79,19 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   }, [])
 
   const newMenu = energy?.newPipeline === true
-  // В новом меню нет «Главной»: кабинет открывается на «Создать»
+  // В новом меню нет «Главной»: кабинет открывается на «Создать».
+  // Только после guard (status ready): иначе у человека без профиля этот переход перебивал уход
+  // в онбординг, guard уже стоял в 'redirecting', и кабинет навсегда оставался кружком (16.11)
   useEffect(() => {
-    if (newMenu && pathname === '/dashboard') router.replace('/dashboard/make')
-  }, [newMenu, pathname, router])
+    if (status === 'ready' && newMenu && pathname === '/dashboard') router.replace('/dashboard/make')
+  }, [status, newMenu, pathname, router])
+
+  // Уводим и страхуемся: если клиентский переход кто-то перебил и мы все еще здесь, уходим полной загрузкой
+  const leave = (to: string) => {
+    setStatus('redirecting')
+    router.replace(to)
+    window.setTimeout(() => { if (window.location.pathname !== to) window.location.replace(to) }, 2500)
+  }
 
   // Guard: в кабинет пускаем только юзера с заполненным профилем.
   // Используем тот же запрос профиля, что и для имени в сайдбаре.
@@ -90,12 +99,12 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     let active = true
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!active) return
-      if (!user) { setStatus('redirecting'); router.replace('/'); return }
-      supabase.from('onboarding_profiles').select('full_name').eq('user_id', user.id).single()
+      if (!user) { leave('/'); return }
+      supabase.from('onboarding_profiles').select('full_name').eq('user_id', user.id).maybeSingle()
         .then(({ data, error }) => {
           if (!active) return
-          // PGRST116 = строки нет (нет профиля) -> ведем на короткий онбординг
-          if (error && error.code === 'PGRST116') { setStatus('redirecting'); router.replace('/onboarding/express'); return }
+          // строки нет (нет профиля) -> ведем на короткий онбординг. maybeSingle не дает 406 в консоли
+          if (!error && !data) { leave('/onboarding/express'); return }
           // иная ошибка = сбой чтения (права/сеть). НЕ выкидываем на онбординг (была петля), показываем мягкий повтор
           if (error || !data) { setStatus('error'); return }
           setProfile(data)
