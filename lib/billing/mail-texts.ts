@@ -9,6 +9,7 @@
 // charge_failed_final  все попытки не прошли, тариф не продлен
 // autorenew_off        человек выключил автопродление (или удалил карту)
 // refund               оформлен возврат за оставшиеся дни
+// receipt              Арина пробила чек в «Мой налог» и вставила ссылку в /admin
 
 export const DRAFT = true
 
@@ -32,6 +33,10 @@ export const MAIL: Record<string, { subject: string; text: string }> = {
   autorenew_off: {
     subject: 'ЧЕРНОВИК. Автопродление выключено',
     text: 'ЧЕРНОВИК.\n\nАвтопродление выключено, больше списаний не будет. Тариф работает до {until}.\nВключить снова можно в Профиле: {site}/dashboard/settings#tariff',
+  },
+  receipt: {
+    subject: 'ЧЕРНОВИК. Чек об оплате PsyCont',
+    text: 'ЧЕРНОВИК.\n\nЧек об оплате тарифа: {url}\n\nЧек сформирован в приложении «Мой налог», я работаю как самозанятая.',
   },
   refund: {
     subject: 'ЧЕРНОВИК. Возврат {amount}',

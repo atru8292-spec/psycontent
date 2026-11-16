@@ -60,7 +60,7 @@ export interface Repo {
   userEmail(userId: string): Promise<string | null>
 }
 
-export type MailKind = 'paid' | 'reminder' | 'charge_failed' | 'charge_failed_final' | 'autorenew_off' | 'refund'
+export type MailKind = 'paid' | 'reminder' | 'charge_failed' | 'charge_failed_final' | 'autorenew_off' | 'refund' | 'receipt'
 export interface Deps {
   now(): Date
   repo: Repo
