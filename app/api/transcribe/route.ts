@@ -158,8 +158,8 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       // внешний сервис упал — энергию НЕ списываем
       await recordFailure(user.id, 'transcription')
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      return NextResponse.json({ error: `Не удалось получить транскрипцию: ${message}` }, { status: 400 })
+      console.warn('transcribe fetch:', errTag(error))
+      return NextResponse.json({ error: 'Не удалось получить расшифровку видео. Проверь ссылку и попробуй еще раз.' }, { status: 400 })
     }
 
     if (!transcript || transcript.trim().length < 20) {
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Transcribe error:', errTag(error))
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Ошибка транскрипции' },
+      { error: 'Не получилось расшифровать видео, попробуй еще раз через минуту.' },
       { status: 500 }
     )
   }

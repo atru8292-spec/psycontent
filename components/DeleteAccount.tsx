@@ -6,13 +6,14 @@
 import { useState } from 'react'
 import { X, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { REKV } from '@/lib/rekvizity'
 
 const REASONS: { id: string; label: string }[] = [
-  { id: 'ne_pro_menya', label: 'Тексты не про меня' },
+  { id: 'tekst', label: 'Тексты не про меня' },
   { id: 'dorogo', label: 'Дорого' },
-  { id: 'net_vremeni', label: 'Нет времени на блог' },
-  { id: 'poka_ne_nuzhno', label: 'Пока не нужно' },
-  { id: 'neudobno', label: 'Неудобно пользоваться' },
+  { id: 'vremya', label: 'Нет времени на блог' },
+  { id: 'pozzhe', label: 'Пока не нужно' },
+  { id: 'neudob', label: 'Неудобно пользоваться' },
   { id: 'drugoe', label: 'Другое' },
 ]
 
@@ -34,7 +35,7 @@ export default function DeleteAccount() {
       await supabase.auth.signOut().catch(() => {})
       window.location.replace('/?udalen=1')
     } catch {
-      setError('Удалить аккаунт не получилось. Попробуй еще раз через пару минут, а если снова не выйдет, напиши на atru8292@gmail.com.')
+      setError(`Удалить аккаунт не получилось. Попробуй еще раз через пару минут, а если снова не выйдет, напиши на ${REKV.email}.`)
       setBusy(false)
     }
   }

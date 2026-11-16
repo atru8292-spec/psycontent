@@ -24,16 +24,17 @@ export async function POST(req: NextRequest) {
   if (body?.soglasie !== true) return NextResponse.json({ error: 'generic' }, { status: 400 })
 
   const ip = clientIp(req.headers)
-  const g = checkSignup({ ip, honeypot: body?.site, formMs: body?.ms })
+  const g = checkSignup({ ip, honeypot: body?.hp_field, formMs: body?.ms, captchaOn: !!process.env.SMARTCAPTCHA_SERVER_KEY })
   if (!g.ok) {
     console.warn('signup refused:', g.reason)
     return NextResponse.json({ error: g.reason === 'ip_limit' || g.reason === 'all_limit' ? 'rate_limit' : 'bot' }, { status: 429 })
   }
+  // попытку считаем до капчи: иначе пачка параллельных запросов с одного адреса проскочила бы предел
+  recordSignup(ip)
   if (!(await captchaOk(body?.captcha, ip))) {
     console.warn('signup refused: captcha')
     return NextResponse.json({ error: 'bot' }, { status: 429 })
   }
-  recordSignup(ip)
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY

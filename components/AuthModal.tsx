@@ -96,7 +96,7 @@ export default function AuthModal({
         const token = await captcha.getToken()
         const r = await fetch('/api/auth/signup', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password, soglasie: true, site: trap, ms: Date.now() - openedAt.current, captcha: token }),
+          body: JSON.stringify({ email, password, soglasie: true, hp_field: trap, ms: Date.now() - openedAt.current, captcha: token }),
         })
         const d = await r.json().catch(() => ({}))
         if (d?.error) {
@@ -281,7 +281,7 @@ export default function AuthModal({
                     </div>
                     {/* ловушка для ботов: человек это поле не видит и не заполняет */}
                     {mode === 'register' && (
-                      <input type="text" name="site" tabIndex={-1} autoComplete="off" aria-hidden="true" value={trap} onChange={e => setTrap(e.target.value)}
+                      <input type="text" name="hp_field" tabIndex={-1} autoComplete="new-password" aria-hidden="true" value={trap} onChange={e => setTrap(e.target.value)}
                         className="absolute -left-[9999px] w-px h-px opacity-0" />
                     )}
                     <PasswordInput

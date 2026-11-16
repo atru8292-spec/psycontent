@@ -6,7 +6,8 @@
 // usage_log, счетчики, тарифы и прочие), строки уходят вместе с аккаунтом.
 // Логика с зависимостями отдельно от роута, чтобы ее проверял тест без базы (scripts/test-account-delete.ts).
 
-export const DELETE_REASONS = ['ne_pro_menya', 'dorogo', 'net_vremeni', 'poka_ne_nuzhno', 'neudobno', 'drugoe'] as const
+// коды короткие: в событии они идут одной строкой через запятую, а санитайзер пропускает значения до 40 знаков (все шесть = 40)
+export const DELETE_REASONS = ['tekst', 'dorogo', 'vremya', 'pozzhe', 'neudob', 'drugoe'] as const
 export type DeleteReason = typeof DELETE_REASONS[number]
 
 export function cleanReasons(v: unknown): DeleteReason[] {

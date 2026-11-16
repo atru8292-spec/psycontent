@@ -16,7 +16,9 @@ let allHits: number[] = []
 
 function prune(list: number[], now: number, windowMs: number) { return list.filter(t => now - t < windowMs) }
 
-export type GuardInput = { ip: string; honeypot?: unknown; formMs?: unknown; now?: number }
+// captchaOn: на сервере есть ключ капчи. Тогда общий предел не отказывает (капча и так держит ботов), иначе бот
+// с десятка адресов выбрал бы общий предел и закрыл регистрацию для всех людей (ревью 16.11)
+export type GuardInput = { ip: string; honeypot?: unknown; formMs?: unknown; now?: number; captchaOn?: boolean }
 export type GuardResult = { ok: true } | { ok: false; reason: 'honeypot' | 'too_fast' | 'ip_limit' | 'all_limit' }
 
 // Проверка без записи; запись попытки отдельно (recordSignup), только после того, как прошли все слои
@@ -27,7 +29,7 @@ export function checkSignup(inp: GuardInput, store: { ip: Hits; all: number[] } 
   if (!Number.isFinite(ms) || ms < MIN_FORM_MS) return { ok: false, reason: 'too_fast' }
   const mine = prune(store.ip.get(inp.ip) || [], now, 24 * 3600e3)
   if (mine.filter(t => now - t < 3600e3).length >= PER_IP_HOUR || mine.length >= PER_IP_DAY) return { ok: false, reason: 'ip_limit' }
-  if (prune(store.all, now, 3600e3).length >= ALL_HOUR) return { ok: false, reason: 'all_limit' }
+  if (!inp.captchaOn && prune(store.all, now, 3600e3).length >= ALL_HOUR) return { ok: false, reason: 'all_limit' }
   return { ok: true }
 }
 
@@ -41,9 +43,10 @@ export function recordSignup(ip: string, now = Date.now(), store: { ip: Hits; al
   if (store.ip.size > 5000) for (const [k, v] of store.ip) if (!v.some(t => now - t < 24 * 3600e3)) store.ip.delete(k)
 }
 
-// Адрес клиента: nginx ставит X-Real-IP; запасной вариант первый адрес X-Forwarded-For
+// Адрес клиента только из X-Real-IP: его ставит nginx ($remote_addr, проверено 16.11). X-Forwarded-For клиент
+// может подделать, его не берем; без X-Real-IP все попадают в один счетчик 'unknown'
 export function clientIp(h: Headers): string {
-  return (h.get('x-real-ip') || h.get('x-forwarded-for')?.split(',')[0] || 'unknown').trim().slice(0, 64)
+  return (h.get('x-real-ip') || 'unknown').trim().slice(0, 64)
 }
 
 // Яндекс SmartCaptcha: https://smartcaptcha.yandexcloud.net/validate (POST secret, token, ip). Ответ { status: 'ok' }.

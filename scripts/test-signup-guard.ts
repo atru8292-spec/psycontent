@@ -25,6 +25,7 @@ const T0 = 1_800_000_000_000
   st = fresh()
   for (let i = 0; i < ALL_HOUR; i++) recordSignup(`9.9.${i}.1`, T0 + i, st)
   assert.deepEqual(checkSignup({ ip: '8.8.8.8', formMs: 8000, now: T0 + 1000 }, st), { ok: false, reason: 'all_limit' })
+  assert.deepEqual(checkSignup({ ip: '8.8.8.8', formMs: 8000, now: T0 + 1000, captchaOn: true }, st), { ok: true }, 'с капчей общий предел не отказывает')
 
   // капча: без ключа выключена; с ключом пустой токен нет, ответ ok да, сбой сервиса не закрывает регистрацию
   delete process.env.SMARTCAPTCHA_SERVER_KEY
@@ -37,8 +38,7 @@ const T0 = 1_800_000_000_000
   assert.equal(await captchaOk('tok', '1.1.1.1', fake(500, {})), true)
   delete process.env.SMARTCAPTCHA_SERVER_KEY
 
-  const h = new Headers({ 'x-forwarded-for': '5.5.5.5, 10.0.0.1' })
-  assert.equal(clientIp(h), '5.5.5.5')
+  assert.equal(clientIp(new Headers({ 'x-forwarded-for': '5.5.5.5, 10.0.0.1' })), 'unknown', 'X-Forwarded-For не берем')
   assert.equal(clientIp(new Headers({ 'x-real-ip': '6.6.6.6', 'x-forwarded-for': '5.5.5.5' })), '6.6.6.6')
   console.log('test-signup-guard: ок')
 })()

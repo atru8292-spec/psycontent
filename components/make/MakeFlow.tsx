@@ -220,18 +220,33 @@ export default function MakeFlow() {
   // Продолжение после обновления страницы: запуск еще идет на сервере. Ждем строки в базе не дольше RUN_WAIT_MS
   // от старта; готовое открываем как из «Моих текстов». Не трогаем, если открыт конкретный текст (?post=)
   const [resumed, setResumed] = useState(false)
+  const resumeCancelled = useRef(false)
   useEffect(() => {
     if (params.get('post')) return
     const run = readRun()
     if (!run) return
     let on = true
+    resumeCancelled.current = false
     setResumed(true)
     setThought(run.thought)
     setItems(run.formats.map(f => ({ format: f, code: f, postId: null, text: '', baseline: '', publishedAt: null, status: 'pending' as const })))
     setActive(0)
     setView('progress')
     track('feature_open', { feature: 'make_resume' })
-    const since = new Date(run.t - 30000).toISOString() // запас на расхождение часов телефона и сервера
+    const since = new Date(run.t - 60000).toISOString() // запас на расхождение часов телефона и сервера
+    // своя группа: самая свежая в окне, с той же темой (прошлый запуск минуту назад не подхватываем, ревью 16.11)
+    const norm = (v: unknown) => String(v || '').toLowerCase().replace(/\s+/g, ' ').trim().slice(0, 40)
+    const want = norm(run.thought)
+    const pick = (all: any[]): any[] => {
+      const mine = want ? all.filter(r => norm(r.topic) === want || (norm(r.topic) && want.startsWith(norm(r.topic)))) : all
+      const latest = [...mine].reverse().find(r => r.group_id)?.group_id
+      return latest ? mine.filter(r => r.group_id === latest) : mine.filter(r => !r.group_id).slice(-run.formats.length)
+    }
+    const load = async () => {
+      const { data } = await supabase.from('generated_posts').select('*').gte('created_at', since)
+        .not('format', 'eq', 'hooks').order('created_at', { ascending: true })
+      return pick(Array.isArray(data) ? data : [])
+    }
     const finish = (rows: any[]) => {
       markRun(null)
       if (!on) return
@@ -245,13 +260,13 @@ export default function MakeFlow() {
     }
     const tick = async () => {
       if (!on) return
-      if (!readRun()) { setResumed(false); return } // «Назад» снял отметку: больше не ждем
-      const { data } = await supabase.from('generated_posts').select('*').gte('created_at', since)
-        .not('format', 'eq', 'hooks').order('created_at', { ascending: true })
+      if (resumeCancelled.current) { setResumed(false); return } // «Назад»: больше не ждем
+      // отметку снял поток прошлого экрана (ушла в «Мои тексты» и вернулась без перезагрузки): он закончил,
+      // значит все уже в базе; последний раз читаем и открываем, иначе крутилки висели бы вечно (ревью 16.11)
+      const stillRunning = !!readRun()
+      const rows = await load()
       if (!on) return
-      const all = Array.isArray(data) ? data : []
-      const gid = all.find(r => r.group_id)?.group_id
-      const rows = gid ? all.filter(r => r.group_id === gid) : all
+      if (!stillRunning) { finish(rows); return }
       if (rows.length) setItems(prev => prev.map(x => {
         const r = rows.find(row => toMakeFormat(String(row.format || 'post')) === x.format)
         return r && x.status === 'pending' ? rowToItem(r) : x
@@ -424,7 +439,7 @@ export default function MakeFlow() {
 
 
   const backToCompose = () => {
-    markRun(null); setResumed(false)
+    markRun(null); setResumed(false); resumeCancelled.current = true
     abortRef.current?.abort(); abortRef.current = null; setBusy(false)
     setView('compose'); setItems([]); setThought(''); setGroupId(null); setSampleInfo(null); setAskSampleText(false); setRestoreText('')
     setComposerKey(k => k + 1); router.replace('/dashboard/make')

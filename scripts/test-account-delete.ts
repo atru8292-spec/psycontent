@@ -20,12 +20,12 @@ function make(opts: { photos?: string[]; removeFails?: boolean; userFails?: bool
 ;(async () => {
   // 1. обычный путь: фото, событие, аккаунт, по порядку
   let t = make({ photos: [`${ID}/photo-1.jpg`, `${ID}/avatar-2.png`, `другой/photo.jpg`] })
-  let r = await deleteAccount(ID, ['dorogo', 'neudobno'], t.deps)
+  let r = await deleteAccount(ID, ['dorogo', 'neudob'], t.deps)
   assert.deepEqual(r, { ok: true, photos: 2 })
   assert.equal(t.log[1], `remove:${ID}/photo-1.jpg|${ID}/avatar-2.png`, 'чужой путь не удаляется')
   assert.ok(t.log.findIndex(x => x.startsWith('event')) < t.log.indexOf('user'))
   assert.equal(t.log.at(-1), 'user')
-  assert.ok(t.log.some(x => x === 'event:{"reason":"dorogo,neudobno","days":3,"materials":7}'))
+  assert.ok(t.log.some(x => x === 'event:{"reason":"dorogo,neudob","days":3,"materials":7}'))
 
   // 2. без фото и без причин
   t = make(); r = await deleteAccount(ID, [], t.deps)
@@ -44,5 +44,6 @@ function make(opts: { photos?: string[]; removeFails?: boolean; userFails?: bool
   // 5. причины только из словаря
   assert.deepEqual(cleanReasons(['dorogo', 'dorogo', 'Мария Иванова', 5, 'drugoe']), ['dorogo', 'drugoe'])
   assert.deepEqual(cleanReasons('dorogo'), [])
+  assert.ok(['tekst', 'dorogo', 'vremya', 'pozzhe', 'neudob', 'drugoe'].join(',').length <= 40, 'все причины влезают в 40 знаков санитайзера')
   console.log('test-account-delete: ок')
 })()
