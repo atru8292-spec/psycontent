@@ -17,7 +17,9 @@ alter table public.user_subscription
   add column if not exists retry_count integer not null default 0,
   add column if not exists canceled_at timestamptz null,
   add column if not exists reminder_sent_for timestamptz null,
-  add column if not exists billing_anchor_day smallint null check (billing_anchor_day is null or billing_anchor_day between 1 and 31);
+  add column if not exists billing_anchor_day smallint null check (billing_anchor_day is null or billing_anchor_day between 1 and 31),
+  add column if not exists next_plan_code text null check (next_plan_code is null or next_plan_code in ('start', 'practice'));
+comment on column public.user_subscription.next_plan_code is 'Смена тарифа (решение Арины 17.11): этот тариф начнется со следующего списания, без доплаты; согласие на новую сумму в autopay_consents'
 comment on column public.user_subscription.billing_anchor_day is 'День месяца первой оплаты (по Москве): окно продлевается на этот день, в коротком месяце на последний';
 comment on column public.user_subscription.status is 'trial: пробный; active: оплачено окно [period_start, period_end); past_due: продление не прошло, идут повторы; canceled: автопродление выключено или возврат; expired: окно кончилось, тариф снова free';
 comment on column public.user_subscription.next_charge_at is 'Когда списать следующий раз (конец окна или время повтора). null: автопродления нет';
@@ -40,9 +42,11 @@ alter table public.user_subscription
   add constraint user_subscription_payment_method_fk foreign key (payment_method_id) references public.payment_methods(id) on delete set null;
 
 -- ── согласия на автопродление (доказательство: кто, когда, какой текст, с какого адреса) ──
+-- после удаления аккаунта согласие остается без связи с человеком (user_id null) и без почты 3 года, потом таймер
+-- оплаты его удаляет (решение Арины 17.11, /privacy раздел 8): доказательство, что списания были с согласия
 create table if not exists public.autopay_consents (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
+  user_id uuid null references auth.users(id) on delete set null,
   plan_code text not null,
   amount numeric(10, 2) not null,
   consent_text text not null check (length(consent_text) <= 2000),
@@ -52,6 +56,7 @@ create table if not exists public.autopay_consents (
   created_at timestamptz not null default now()
 );
 create index if not exists idx_autopay_consents_user on public.autopay_consents (user_id, created_at desc);
+create index if not exists idx_autopay_consents_orphan on public.autopay_consents (created_at) where user_id is null;
 
 -- ── платежи ──
 create table if not exists public.payments (

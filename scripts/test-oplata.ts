@@ -359,6 +359,42 @@ function setup(start = '2026-11-17T09:00:00Z') {
     assert.ok(!last.payment_method_data && !last.save_payment_method)
   }
   {
+    // 14. смена тарифа: со следующего списания, без доплаты, с согласием на новую сумму
+    const t = setup(); await paidWithCard(t)
+    assert.deepEqual(await B.changePlan(t.d, { userId: U, plan: 'practice', consent: false, ip: null }), { ok: false, error: 'no_consent' })
+    const r = await B.changePlan(t.d, { userId: U, plan: 'practice', consent: true, ip: '5.6.7.8' })
+    assert.ok(r.ok && r.from === '2026-12-17T09:00:00.000Z')
+    const c = t.m.consents.at(-1)!
+    assert.ok(c.plan_code === 'practice' && c.amount === 2490 && c.payment_id === null && c.ip === '5.6.7.8' && c.consent_text.includes('2 490 ₽'))
+    let s = (await t.m.repo.getSub(U))!
+    assert.equal(s.plan_code, 'start', 'до списания тариф прежний'); assert.equal(s.next_plan_code, 'practice')
+    t.at('2026-12-14T10:00:00Z'); await B.runBilling(t.d)
+    assert.equal(t.mails.at(-1)!.data.amount, '2 490 ₽', 'письмо за 3 дня с новой суммой'); assert.equal(t.mails.at(-1)!.data.plan, 'Каждый день')
+    t.at('2026-12-17T09:30:00Z'); await B.runBilling(t.d)
+    const renew = t.f.calls.find(x => x.body?.payment_method_id)!
+    assert.equal(renew.body.amount.value, '2490.00', 'списание по новому тарифу')
+    s = (await t.m.repo.getSub(U))!
+    assert.equal(s.plan_code, 'practice'); assert.equal(s.next_plan_code, null); assert.equal(s.period_end, '2027-01-17T09:00:00.000Z')
+    // отмена смены и отказ без автопродления
+    const t2 = setup(); await paidWithCard(t2)
+    await B.changePlan(t2.d, { userId: U, plan: 'practice', consent: true, ip: null })
+    assert.ok((await B.changePlan(t2.d, { userId: U, plan: 'start', consent: false, ip: null })).ok)
+    assert.equal((await t2.m.repo.getSub(U))!.next_plan_code, null, 'выбор текущего отменяет смену')
+    await B.changePlan(t2.d, { userId: U, plan: 'practice', consent: true, ip: null })
+    await B.disableAutoRenew(t2.d, U)
+    assert.equal((await t2.m.repo.getSub(U))!.next_plan_code, null, 'отключение автопродления снимает смену')
+    assert.deepEqual(await B.changePlan(t2.d, { userId: U, plan: 'practice', consent: true, ip: null }), { ok: false, error: 'no_autorenew' })
+  }
+  {
+    // 15. согласия удаленных аккаунтов хранятся 3 года, потом удаляются; согласия живых не трогаем
+    const t = setup(); await paidWithCard(t)
+    t.m.consents.push({ ...t.m.consents[0], user_id: null, created_at: '2023-11-01T00:00:00.000Z' })
+    t.m.consents.push({ ...t.m.consents[0], user_id: null, created_at: '2025-01-01T00:00:00.000Z' })
+    t.at('2026-11-20T10:00:00Z'); const r = await B.runBilling(t.d)
+    assert.equal(r.purged, 1, 'старше 3 лет удалено одно')
+    assert.equal(t.m.consents.length, 2)
+  }
+  {
     // 13.9 цены из lib/pricing.ts
     const { PLANS } = await import('../lib/pricing')
     for (const code of ['start', 'practice'] as const) assert.equal(B.PAID_PLANS[code].price, PLANS.find(p => p.dbCodes[0] === code)!.price)

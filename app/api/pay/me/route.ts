@@ -24,6 +24,7 @@ export async function GET() {
       autoRenew: !!((paid || pastDue) && sub!.auto_renew),
       nextChargeAt: (paid || pastDue) && sub!.auto_renew ? sub!.next_charge_at : null,
       method: method && !method.deleted_at ? { title: method.title, type: method.type } : null,
+      nextPlan: (paid || pastDue) && sub?.next_plan_code && isPaidCode(sub.next_plan_code) && sub.next_plan_code !== sub.plan_code ? { code: sub.next_plan_code, name: PAID_PLANS[sub.next_plan_code].name, price: PAID_PLANS[sub.next_plan_code].price } : null,
     })
   } catch (e) {
     console.error('pay me:', errTag(e))

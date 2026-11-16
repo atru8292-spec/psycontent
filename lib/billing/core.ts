@@ -25,6 +25,7 @@ export const REMIND_BEFORE_HOURS = 72
 export const CREATE_LIMIT = { count: 5, minutes: 10 }  // переходов к оплате у одного человека
 export const REUSE_PENDING_MIN = 15                     // свежий неоплаченный платеж отдаем снова, а не создаем новый
 export const RENEW_STALE_HOURS = 20                     // ключ ЮKassa живет сутки: старше этого платеж не пересоздаем
+export const CONSENT_KEEP_DAYS = 3 * 365 + 1             // согласия удаленных аккаунтов (решение Арины 17.11)
 const H = 3600000
 // причины, при которых повторять списание бессмысленно (документация ЮKassa, cancellation_details.reason)
 const HOPELESS = ['permission_revoked', 'card_expired', 'payment_method_restricted']
@@ -33,6 +34,7 @@ export type SubRow = {
   user_id: string; plan_code: string; status: 'trial' | 'active' | 'past_due' | 'canceled' | 'expired'
   period_start: string | null; period_end: string | null; auto_renew: boolean; payment_method_id: string | null
   next_charge_at: string | null; retry_count: number; reminder_sent_for: string | null; billing_anchor_day: number | null
+  next_plan_code?: string | null
 }
 export type PaymentRow = {
   id: string; user_id: string | null; email: string | null; yk_payment_id: string | null; kind: 'first' | 'renewal'; plan_code: string
@@ -59,7 +61,9 @@ export interface Repo {
   upsertMethod(userId: string, ykId: string, type: string, title: string, last4: string | null): Promise<MethodRow>
   getMethod(id: string): Promise<MethodRow | null>
   deleteMethods(userId: string, at: string): Promise<void>
-  insertConsent(row: { user_id: string; plan_code: string; amount: number; consent_text: string; offer_version: string; ip: string | null; payment_id: string }): Promise<void>
+  insertConsent(row: { user_id: string; plan_code: string; amount: number; consent_text: string; offer_version: string; ip: string | null; payment_id: string | null }): Promise<void>
+  // согласия удаленных аккаунтов старше срока (3 года) удаляются; возвращает, сколько удалено
+  purgeOrphanConsents(beforeIso: string): Promise<number>
   claimEvent(key: string, event: string, objectId: string): Promise<boolean>   // false: уже обработано
   finishEvent(key: string, result: string): Promise<void>
   subsToRemind(nowIso: string, untilIso: string): Promise<SubRow[]>
@@ -199,6 +203,9 @@ async function applyWindow(d: Deps, row: PaymentRow, methodId: string | null): P
     billing_anchor_day: Number((row.note || '').match(/anchor:(\d+)/)?.[1]) || sub?.billing_anchor_day || null,
     auto_renew: autoRenew, payment_method_id: methodId ?? (row.kind === 'first' ? null : sub?.payment_method_id ?? null),
     next_charge_at: autoRenew ? row.period_end : null, retry_count: 0,
+    // тариф продления стал текущим: отложенная смена выполнена
+    ...(row.kind === 'renewal' && sub?.next_plan_code === row.plan_code ? { next_plan_code: null } : {}),
+    ...(row.kind === 'first' ? { next_plan_code: null } : {}),
   })
 }
 
@@ -297,7 +304,7 @@ export async function handleWebhook(d: Deps, ip: string, body: any): Promise<{ s
 // ── 4. Таймер: сверка зависших, письма за 3 дня, продления, окончание окна ──
 export async function runBilling(d: Deps): Promise<Record<string, number>> {
   const now = d.now()
-  const out = { reconciled: 0, reminded: 0, charged: 0, failed: 0, postponed: 0, expired: 0, errors: 0 }
+  const out = { reconciled: 0, reminded: 0, charged: 0, failed: 0, postponed: 0, expired: 0, purged: 0, errors: 0 }
   // 4.1 платежи без ответа дольше 10 минут (вебхук потерялся): сверяем по API
   for (const p of await d.repo.stalePayments(iso(new Date(now.getTime() - 10 * 60000)), iso(new Date(now.getTime() - 3 * 24 * H)))) {
     if (!p.yk_payment_id) continue
@@ -314,7 +321,9 @@ export async function runBilling(d: Deps): Promise<Record<string, number>> {
       // перечитываем: человек мог отключить автопродление, пока таймер шел по списку (ревью 17.11)
       const s = await d.repo.getSub(s0.user_id)
       if (!s || !s.auto_renew || !s.next_charge_at || new Date(s.next_charge_at) > now || !['active', 'past_due'].includes(s.status)) continue
-      const plan = isPaidCode(s.plan_code) ? PAID_PLANS[s.plan_code] : null
+      // смена тарифа: со следующего списания новый тариф и его цена (согласие на нее дано в окне смены)
+      const code = s.next_plan_code && isPaidCode(s.next_plan_code) ? s.next_plan_code : s.plan_code
+      const plan = isPaidCode(code) ? PAID_PLANS[code] : null
       const m = s.payment_method_id ? await d.repo.getMethod(s.payment_method_id) : null
       if (!plan || !m || m.deleted_at) { await d.repo.updateSub(s.user_id, { auto_renew: false, next_charge_at: null }); continue }
       // первая попытка только после письма «за 3 дня» (оферта): письма не было (простой сервера), шлем и ждем 3 дня
@@ -345,6 +354,8 @@ export async function runBilling(d: Deps): Promise<Record<string, number>> {
       if (r === 'renewed') out.charged++; else if (r !== 'pending') out.failed++
     } catch { out.errors++ }
   }
+  // 4.5 согласия удаленных аккаунтов храним 3 года, потом удаляем (/privacy раздел 8)
+  try { out.purged = await d.repo.purgeOrphanConsents(iso(new Date(now.getTime() - CONSENT_KEEP_DAYS * 24 * H))) } catch { out.errors++ }
   // 4.4 окно кончилось, продления нет (автопродление выключено или нет способа): тариф снова пробный
   for (const s of await d.repo.subsToExpire(iso(now))) {
     await d.repo.updateSub(s.user_id, { status: 'expired', plan_code: 'free', auto_renew: false, next_charge_at: null })
@@ -356,7 +367,8 @@ export async function runBilling(d: Deps): Promise<Record<string, number>> {
 async function remind(d: Deps, s: SubRow, chargeAt: string): Promise<boolean> {
   if (!(await d.repo.markReminded(s.user_id, chargeAt))) return false // другой прогон уже отправил
   const to = await d.repo.userEmail(s.user_id)
-  const plan = isPaidCode(s.plan_code) ? PAID_PLANS[s.plan_code] : null
+  const code = s.next_plan_code && isPaidCode(s.next_plan_code) ? s.next_plan_code : s.plan_code
+  const plan = isPaidCode(code) ? PAID_PLANS[code] : null
   if (to && plan) await sent(d.mail('reminder', to, { plan: plan.name, amount: money(plan.price), date: dateRu(chargeAt) }))
   return true
 }
@@ -365,12 +377,32 @@ async function remind(d: Deps, s: SubRow, chargeAt: string): Promise<boolean> {
 export async function disableAutoRenew(d: Deps, userId: string): Promise<'ok' | 'nothing'> {
   const sub = await d.repo.getSub(userId)
   if (!sub || !sub.auto_renew) return 'nothing'
-  await d.repo.updateSub(userId, { auto_renew: false, next_charge_at: null, status: sub.status === 'past_due' ? 'expired' : 'canceled', ...(sub.status === 'past_due' ? { plan_code: 'free' } : {}) })
+  await d.repo.updateSub(userId, { auto_renew: false, next_charge_at: null, next_plan_code: null, status: sub.status === 'past_due' ? 'expired' : 'canceled', ...(sub.status === 'past_due' ? { plan_code: 'free' } : {}) })
   const to = await d.repo.userEmail(userId)
   // письмо только если окно еще идет: при past_due дата уже прошла, тариф выключается сразу
   if (to && sub.period_end && paidAccess(sub, d.now())) await sent(d.mail('autorenew_off', to, { until: dateRu(sub.period_end) }))
   d.track?.(userId, 'pay_autorenew_off', {})
   return 'ok'
+}
+
+// Смена тарифа (решение Арины 17.11): новый тариф со следующего списания, доплаты нет. Нужно автопродление со способом
+// оплаты (иначе следующего списания нет) и согласие на новую сумму: оно пишется так же, как при первой оплате.
+// Выбор текущего тарифа отменяет отложенную смену.
+export async function changePlan(d: Deps, a: { userId: string; plan: string; consent: boolean; ip: string | null }): Promise<{ ok: true; from: string | null } | { ok: false; error: 'bad_plan' | 'no_autorenew' | 'no_consent' }> {
+  if (!isPaidCode(a.plan)) return { ok: false, error: 'bad_plan' }
+  const sub = await d.repo.getSub(a.userId)
+  if (!sub || !sub.auto_renew || !sub.payment_method_id || !sub.next_charge_at || !['active', 'past_due'].includes(sub.status)) return { ok: false, error: 'no_autorenew' }
+  if (a.plan === sub.plan_code) {
+    await d.repo.updateSub(a.userId, { next_plan_code: null })
+    d.track?.(a.userId, 'pay_plan_change', { plan: a.plan, cancel: true })
+    return { ok: true, from: null }
+  }
+  if (!a.consent) return { ok: false, error: 'no_consent' }
+  const plan = PAID_PLANS[a.plan]
+  await d.repo.insertConsent({ user_id: a.userId, plan_code: plan.code, amount: plan.price, consent_text: consentText(plan), offer_version: d.offerVersion, ip: a.ip, payment_id: null })
+  await d.repo.updateSub(a.userId, { next_plan_code: plan.code, reminder_sent_for: null })
+  d.track?.(a.userId, 'pay_plan_change', { plan: plan.code, cancel: false })
+  return { ok: true, from: sub.next_charge_at }
 }
 
 export async function deletePaymentMethod(d: Deps, userId: string): Promise<'ok'> {
