@@ -12,6 +12,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, Check, Loader2, X, Film, Layers, AlignLeft, Send, Smartphone } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { topicsFor } from '@/lib/first-topic'
+import { useDashboardMe } from '@/lib/dashboard-me'
+import { RESUME, END, TARIFF_HREF, isMaterials, type Materials } from '@/lib/limit-texts'
 import Composer, { DRAFT_KEY, type ComposerSubmit, type PlanPick } from './Composer'
 import FormatPane, { type PaneItem } from './FormatPane'
 import BottomSheet from './BottomSheet'
@@ -54,7 +56,6 @@ const TOAST_KEY = 'psycont_saved_toast_groups'
 const RUN_KEY = 'psycont_make_running'
 const RUN_WAIT_MS = 4 * 60 * 1000
 const RUN_POLL_MS = 4000
-const RESUME_LINE = 'Страница обновилась, а текст пишется дальше. Он появится здесь и в «Моих текстах»'
 type RunMark = { t: number; formats: MakeFormat[]; thought: string }
 function readRun(): RunMark | null {
   try {
@@ -105,6 +106,9 @@ function friendly(code?: string, message?: string): string {
 export default function MakeFlow() {
   const router = useRouter()
   const params = useSearchParams()
+  const { me, refresh: refreshMe } = useDashboardMe()
+  const materials: Materials | null = isMaterials(me?.materials) ? me.materials : null
+  const limitReached = !!materials && materials.remaining <= 0
   const [topics, setTopics] = useState<string[]>([])
   const [firstTime, setFirstTime] = useState(false)
   const [view, setView] = useState<View>('compose')
@@ -234,7 +238,7 @@ export default function MakeFlow() {
       setResumed(false)
       if (!rows.length) {
         setItems([]); setView('compose')
-        setError('Текст еще не появился. Загляни в «Мои тексты» через пару минут: если он дописался, он там.')
+        setError(RESUME.timeout)
         return
       }
       setItems(rows.map(rowToItem)); setGroupId(rows[0].group_id || null); setActive(0); setView('result')
@@ -351,9 +355,10 @@ export default function MakeFlow() {
     } finally {
       // поток закончился здесь же (готово, сбой или «Назад»): ждать после обновления нечего
       if (!append) markRun(null)
+      refreshMe?.() // остаток материалов в шапке и на «Сделать»
       if (abortRef.current === ac) { abortRef.current = null; setBusy(false) }
     }
-  }, [router])
+  }, [router, refreshMe])
 
   const submit = (s: ComposerSubmit) => {
     lastSubmit.current = s
@@ -438,8 +443,18 @@ export default function MakeFlow() {
             </div>
           </div>
         )}
+        {limitReached && materials && (
+          <div className="max-w-[560px] mx-auto px-4 pt-4">
+            <div className="rounded-2xl bg-brand-card border border-brand-border px-4 py-4" role="status">
+              <p className="text-[17px] leading-6 font-semibold text-brand-text">{END[materials.kind].title(materials.cap)}</p>
+              <p className="mt-1 text-[15px] leading-[22px] text-brand-text-secondary">{END[materials.kind].text}</p>
+              <button type="button" onClick={() => { track('paywall_view', { where: 'make_limit' }); router.push(TARIFF_HREF) }}
+                className="mt-3 h-11 px-5 rounded-2xl bg-brand-accent text-white text-[15px] font-semibold hover:bg-brand-accent-hover cursor-pointer">{END.button}</button>
+            </div>
+          </div>
+        )}
         <Composer key={composerKey} firstTime={firstTime} topics={topics} busy={busy} onSubmit={submit} askSampleText={askSampleText} onSampleCleared={() => setAskSampleText(false)}
-          initialText={initialTopic || restoreText || seed} initialFormats={initialFormats} plan={plan} />
+          initialText={initialTopic || restoreText || seed} initialFormats={initialFormats} plan={plan} materials={materials} />
       </div>
   )
 
@@ -452,8 +467,8 @@ export default function MakeFlow() {
         <button type="button" onClick={backToCompose} className="h-11 -ml-2 pl-1 pr-2 inline-flex items-center text-[15px] text-brand-text-secondary cursor-pointer">
           <ChevronLeft className="w-5 h-5" />Назад
         </button>
-        <h1 className="text-[22px] leading-7 font-semibold text-brand-text">{resumed ? 'Доделываю' : 'Делаю'} {items.length} {pluralMaterial(items.length)}</h1>
-        {resumed && <p className="mt-1 text-[15px] leading-[22px] text-brand-text-secondary">{RESUME_LINE}</p>}
+        <h1 className="text-[22px] leading-7 font-semibold text-brand-text">{resumed ? RESUME.title : 'Делаю'} {items.length} {pluralMaterial(items.length)}</h1>
+        {resumed && <p className="mt-1 text-[15px] leading-[22px] text-brand-text-secondary">{RESUME.line}</p>}
         <ul aria-live="polite" className="mt-4 divide-y divide-brand-border rounded-2xl bg-brand-card border border-brand-border">
           {items.map(x => {
             const Icon = ICON[x.format] || AlignLeft

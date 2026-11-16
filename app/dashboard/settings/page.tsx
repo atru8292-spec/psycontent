@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import TariffSection from '@/components/TariffSection'
 import { ARCHETYPES, ARCHETYPE_ACCENT, archetypeLabel, flexibleLine, getArchetypeSelectionFromProfile, type ArchetypeSelection } from '@/lib/archetypes'
 import { ArchetypeGlyph, FlexibleGlyph } from '@/lib/archetype-glyphs'
+import { isMaterials, profileLine } from '@/lib/limit-texts'
 
 const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
 
@@ -201,6 +202,9 @@ export default function SettingsPage() {
             {/* ── Тариф ── */}
             <section id="tariff" className="scroll-mt-20">
               <SectionTitle>Тариф</SectionTitle>
+              {isMaterials((summary as any)?.materials) && (
+                <p className="mb-3 text-[15px] leading-[22px] font-semibold text-brand-text">{profileLine((summary as any).materials)}</p>
+              )}
               <TariffSection currentCode={summary?.plan?.code} />
             </section>
           </div>

@@ -5,7 +5,8 @@
 import { createContext, useContext } from 'react'
 
 // typing: поле ввода в фокусе (таб-бар уехал); липкие панели прячутся вместе с ним
-export type DashboardMe = { me: any; loaded: boolean; typing?: boolean }
+// refresh: перечитать сводку (остаток материалов) после генерации
+export type DashboardMe = { me: any; loaded: boolean; typing?: boolean; refresh?: () => void }
 
 export const DashboardMeContext = createContext<DashboardMe>({ me: null, loaded: false })
 
