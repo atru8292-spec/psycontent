@@ -2,7 +2,7 @@
 // Код тарифа в логике (plan_code) хранится в user_subscription как plan_id: переводим через таблицу plans.
 import { getSupabaseAdmin } from '@/lib/generation/db'
 import { serverTrack } from '@/lib/track-server'
-import { CONSENT_VERSION } from '@/lib/rekvizity'
+import { OFFER_VERSION } from '@/lib/rekvizity'
 import { httpYk } from './yookassa'
 import { sendPayMail } from './mailer'
 import type { Deps, Repo, SubRow, PaymentRow, MethodRow } from './core'
@@ -20,7 +20,7 @@ async function planIdMap(): Promise<Map<string, string>> {
   return planIds
 }
 
-const SUB_COLS = 'user_id, status, period_start, period_end, auto_renew, payment_method_id, next_charge_at, retry_count, reminder_sent_for, billing_anchor_day, plans(code)'
+const SUB_COLS = 'user_id, status, period_start, period_end, auto_renew, payment_method_id, next_charge_at, retry_count, reminder_sent_for, billing_anchor_day, next_plan_code, plans(code)'
 const toSub = (r: any): SubRow => ({ ...r, plan_code: r.plans?.code || 'free', plans: undefined })
 const PAY_COLS = 'id, user_id, email, yk_payment_id, kind, plan_code, amount, status, save_requested, idempotence_key, attempt, period_start, period_end, created_at, payment_method_id, receipt_status, confirmation_url, note'
 const toPay = (r: any): PaymentRow => ({ ...r, amount: Number(r.amount) })
@@ -78,6 +78,10 @@ export const supabaseRepo: Repo = {
   async getMethod(id) { const r = must(await db().from('payment_methods').select('id, user_id, yk_method_id, type, title, deleted_at').eq('id', id).maybeSingle(), 'method_get'); return (r as MethodRow) || null },
   async deleteMethods(u, at) { must(await db().from('payment_methods').update({ deleted_at: at }).eq('user_id', u).is('deleted_at', null), 'method_delete') },
   async insertConsent(row) { must(await db().from('autopay_consents').insert(row), 'consent') },
+  async purgeOrphanConsents(before) {
+    const r = must(await db().from('autopay_consents').delete().is('user_id', null).lt('created_at', before).select('id'), 'consent_purge') as any[]
+    return r?.length || 0
+  },
   async claimEvent(key, event, objectId) {
     const ins = await db().from('payment_events').insert({ event_key: key, event, object_id: objectId })
     if (!ins.error) return true
@@ -121,6 +125,6 @@ export function billingDeps(): Deps {
     log: (m) => console.warn(m),
     track: (u, e, p) => serverTrack(u, e, p),
     siteUrl: SITE,
-    offerVersion: CONSENT_VERSION,
+    offerVersion: OFFER_VERSION,
   }
 }
