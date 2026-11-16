@@ -10,10 +10,12 @@ function fakeDb(rows: { user_id: string; period: string; count: number }[]) {
   return {
     from() {
       const f: Record<string, string> = {}
+      const notLike: Record<string, string> = {}
       const q: any = {
         select() { return q },
         eq(k: string, v: string) { f[k] = v; return q },
-        get list() { return rows.filter(r => Object.entries(f).every(([k, v]) => (r as any)[k] === v)) },
+        not(k: string, op: string, v: string) { if (op === 'like') notLike[k] = v; return q },
+        get list() { return rows.filter(r => Object.entries(f).every(([k, v]) => (r as any)[k] === v) && Object.entries(notLike).every(([k, v]) => !String((r as any)[k]).startsWith(v.replace('%', '')))) },
         maybeSingle() { return Promise.resolve({ data: q.list[0] ?? null, error: null }) },
         then(res: any, rej: any) { return Promise.resolve({ data: q.list, error: null }).then(res, rej) },
       }
@@ -37,8 +39,12 @@ async function main() {
   assert.equal(await usedForLimit(db, 'u1', 'free'), 9, 'пробный: счет за все месяцы, новый месяц не обнуляет')
   for (const code of ['start', 'practice', 'expert']) assert.equal(await usedForLimit(db, 'u1', code), 2, `${code}: только текущий месяц`)
   assert.equal(await usedForLimit(db, 'u3', 'free'), 0, 'новый человек: 0')
+  // окно оплаченной подписки (17.11): платный считает только ключ окна, пробный окна не считает
+  const dbw = fakeDb([{ user_id: 'u4', period: '2026-11', count: 10 }, { user_id: 'u4', period: 'w2026-11-17', count: 7 }])
+  assert.equal(await usedForLimit(dbw, 'u4', 'start', 'w2026-11-17'), 7, 'пробные не съедают первый платный месяц')
+  assert.equal(await usedForLimit(dbw, 'u4', 'free'), 10, 'после подписки пробные считаются без ее окна')
   // база не ответила: ошибка, а не 0 (иначе лимит молча открыт); canConsume в этом случае отказывает server_error
-  const broken = { from() { const q: any = { select: () => q, eq: () => q, then: (res: any, rej: any) => Promise.resolve({ data: null, error: { code: 'PGRST000' } }).then(res, rej) }; return q } } as any
+  const broken = { from() { const q: any = { select: () => q, eq: () => q, not: () => q, then: (res: any, rej: any) => Promise.resolve({ data: null, error: { code: 'PGRST000' } }).then(res, rej) }; return q } } as any
   for (const code of ['free', 'start']) await assert.rejects(usedForLimit(broken, 'u1', code), /text_usage_counter/, `${code}: сбой чтения не дает 0`)
   assert.match(readFileSync(join(__dirname, '..', 'lib', 'energy.ts'), 'utf8'), /reason: 'server_error'/, 'canConsume отказывает при сбое счетчика')
 
@@ -49,7 +55,7 @@ async function main() {
   assert.match(adj, /canConsume\([^)]*ZAHOD_OP, 1\)/, '«Другой заход» проверяет лимит на 1 материал')
   assert.match(adj, /commitConsume\([^)]*ZAHOD_OP, decision\)/, '«Другой заход» списывает материал')
   const en = readFileSync(join(__dirname, '..', 'lib', 'energy.ts'), 'utf8')
-  assert.match(en, /count = await usedForLimit\(db, userId, plan\.code\)/, 'решение о лимите считает через usedForLimit')
+  assert.match(en, /count = await usedForLimit\(db, userId, plan\.code, plan\.windowKey\)/, 'решение о лимите считает через usedForLimit (с окном подписки)')
 
   // витрина: без подлимита каруселей, числа те же, что в миграции
   const { PLANS, planPerks } = await import('../lib/pricing')

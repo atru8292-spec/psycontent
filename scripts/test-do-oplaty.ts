@@ -156,7 +156,7 @@ async function main() {
     const db: any = { rpc: async () => { throw new Error('network') }, from: () => { throw new Error('не должен') } }
     await quiet(() => energy.incrementText(db, ME, '2026-11'))
   }
-  assert.ok(/await incrementText\(db, userId\)/.test(src('lib/energy.ts')), 'commitConsume зовет incrementText')
+  assert.ok(/await incrementText\(db, userId, ctx\?\.windowKey \|\| periodKey\(\)\)/.test(src('lib/energy.ts')), 'commitConsume зовет incrementText с ключом окна')
   {
     const mig = src('supabase/migrations/20261112100100_increment_text_usage.sql')
     assert.ok(/create or replace function public\.increment_text_usage\(p_user_id uuid, p_period text\)\s+returns integer/.test(mig))

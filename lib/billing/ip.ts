@@ -18,7 +18,7 @@ function v6(ip: string): bigint | null {
   if (tail === undefined && h.length !== 8) return null
   const parts = [...h, ...Array(8 - h.length - t.length).fill('0'), ...t]
   if (parts.length !== 8 || parts.some(x => !/^[0-9a-f]{1,4}$/i.test(x))) return null
-  return parts.reduce((acc, x) => (acc << 16n) + BigInt(parseInt(x, 16)), 0n)
+  return parts.reduce((acc, x) => (acc << BigInt(16)) + BigInt(parseInt(x, 16)), BigInt(0))
 }
 
 export function inNet(ipRaw: string, cidr: string): boolean {
@@ -28,7 +28,8 @@ export function inNet(ipRaw: string, cidr: string): boolean {
   if (net.includes(':')) {
     const a = v6(ip), b = v6(net)
     if (a === null || b === null) return false
-    const mask = bits === 0 ? 0n : ((1n << 128n) - 1n) ^ ((1n << BigInt(128 - bits)) - 1n)
+    const one = BigInt(1)
+    const mask = bits === 0 ? BigInt(0) : ((one << BigInt(128)) - one) ^ ((one << BigInt(128 - bits)) - one)
     return (a & mask) === (b & mask)
   }
   const a = v4(ip), b = v4(net)
