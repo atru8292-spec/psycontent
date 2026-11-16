@@ -62,6 +62,9 @@ function setup(start = '2026-11-17T09:00:00Z') {
     assert.equal(t.mails.filter(m => m.kind === 'paid').length, 1, 'одно письмо')
     // второй раз купить нельзя, пока окно активно
     assert.deepEqual(await B.startCheckout(t.d, { userId: U, email: null, plan: 'practice', autoRenew: false, via: 'any', ip: null }), { ok: false, error: 'already_paid' })
+    // после «Отключить автопродление» окно еще оплачено: новая оплата сожгла бы оставшиеся дни, не пускаем
+    await B.disableAutoRenew(t.d, U)
+    assert.deepEqual(await B.startCheckout(t.d, { userId: U, email: null, plan: 'start', autoRenew: true, via: 'any', ip: null }), { ok: false, error: 'already_paid' })
   }
 
   // ── 2. СБП без автопродления: способ не сохраняется, согласия нет ──
@@ -174,6 +177,11 @@ function setup(start = '2026-11-17T09:00:00Z') {
     for (const at of ['2026-12-17T09:30:00Z', '2026-12-18T09:40:00Z', '2026-12-20T09:50:00Z']) { t2.at(at); await B.runBilling(t2.d) }
     s = (await t2.m.repo.getSub(U))!
     assert.equal(s.status, 'expired'); assert.equal(s.plan_code, 'free'); assert.equal(s.auto_renew, false)
+    // отключение во время повторов: тариф выключается, письма с прошедшей датой нет
+    const t4 = setup(); await paidWithCard(t4); t4.f.state.autopay = 'canceled'
+    t4.at('2026-12-17T09:30:00Z'); await B.runBilling(t4.d)
+    const before = t4.mails.length; await B.disableAutoRenew(t4.d, U)
+    assert.equal(t4.mails.length, before, 'нет письма «работает до» с прошедшей датой'); assert.equal((await t4.m.repo.getSub(U))!.plan_code, 'free')
     assert.equal(t2.mails.filter(m => m.kind === 'charge_failed').length, 2); assert.equal(t2.mails.at(-1)!.kind, 'charge_failed_final')
     assert.equal(t2.f.calls.filter(c => c.body?.payment_method_id).length, 3, 'три попытки, не больше')
     // отозванное разрешение: без повторов

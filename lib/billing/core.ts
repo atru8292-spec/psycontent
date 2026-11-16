@@ -73,8 +73,9 @@ export interface Deps {
 
 // Текст согласия на автопродление: показывается у галочки и пишется в базу дословно (autopay_consents.consent_text)
 export function consentText(plan: { name: string; price: number }): string {
-  const p = plan.price.toLocaleString('ru-RU').replace(/\s/g, ' ')
-  return `Даю согласие на автопродление тарифа «${plan.name}»: каждый месяц в день первой оплаты с сохраненного способа оплаты будет списываться ${p} ₽, пока я не отключу автопродление. За 3 дня до списания придет письмо. Отключить автопродление или удалить способ оплаты можно в «Профиле» в любой момент, это срабатывает сразу.`
+  const p = `${plan.price.toLocaleString('ru-RU').replace(/\s/g, ' ')} ₽`
+  // текст copywriter-psycont 17.11: что делает код (якорь дня, повторы, бессрочно до отключения) и цена по оферте
+  return `Даю согласие на автоматические списания за тариф «${plan.name}»: ${p} каждый месяц с сохраненного способа оплаты, в то же число, что и эта оплата (если в месяце нет такого числа, в последний день месяца). Списания идут, пока я не отключу автопродление или не удалю способ оплаты в «Профиле», это срабатывает сразу. За 3 дня до каждого списания придет письмо с суммой и датой. Если списание не пройдет, будет еще не больше двух попыток: через день и через три дня. Если цена изменится, об этом напишут на почту не меньше чем за 10 дней, и новая цена начнет действовать только со следующего месяца.`
 }
 
 const iso = (d: Date) => d.toISOString()
@@ -93,7 +94,8 @@ export async function startCheckout(d: Deps, a: { userId: string; email: string 
   const plan = PAID_PLANS[a.plan]
   const now = d.now()
   const sub = await d.repo.getSub(a.userId)
-  if (paidAccess(sub, now) && sub!.status === 'active') return { ok: false, error: 'already_paid' }
+  // окно еще оплачено (и с автопродлением, и после его отключения): новая оплата сожгла бы оставшиеся дни (copywriter 17.11)
+  if (paidAccess(sub, now)) return { ok: false, error: 'already_paid' }
   const key = `first:${a.userId}:${crypto.randomUUID()}`
   const row = await d.repo.insertPayment({ user_id: a.userId, email: a.email, kind: 'first', plan_code: plan.code, amount: plan.price, save_requested: a.autoRenew, idempotence_key: key, attempt: 1 })
   if (a.autoRenew) await d.repo.insertConsent({ user_id: a.userId, plan_code: plan.code, amount: plan.price, consent_text: consentText(plan), offer_version: d.offerVersion, ip: a.ip, payment_id: row.id })
@@ -258,7 +260,8 @@ export async function disableAutoRenew(d: Deps, userId: string): Promise<'ok' | 
   if (!sub || !sub.auto_renew) return 'nothing'
   await d.repo.updateSub(userId, { auto_renew: false, next_charge_at: null, status: sub.status === 'past_due' ? 'expired' : 'canceled', ...(sub.status === 'past_due' ? { plan_code: 'free' } : {}) })
   const to = await d.repo.userEmail(userId)
-  if (to && sub.period_end) await d.mail('autorenew_off', to, { until: dateRu(sub.period_end) }).catch(() => {})
+  // письмо только если окно еще идет: при past_due дата уже прошла, тариф выключается сразу
+  if (to && sub.period_end && paidAccess(sub, d.now())) await d.mail('autorenew_off', to, { until: dateRu(sub.period_end) }).catch(() => {})
   d.track?.(userId, 'pay_autorenew_off', {})
   return 'ok'
 }
