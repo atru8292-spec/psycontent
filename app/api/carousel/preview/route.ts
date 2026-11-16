@@ -4,6 +4,7 @@ import { getSessionUser } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/generation/db'
 import { isTemplateStyle, parsePalette, VARIANTS } from '@/lib/carousel/styles'
 import { loadBranding, loadImages, normDecor, renderPng, variantFor } from '@/lib/carousel/server'
+import { errTag } from '@/lib/safe-error'
 
 export const runtime = 'nodejs'
 
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
     images,
   })
   } catch (e: any) {
-    console.error('carousel preview:', e?.message)
+    console.error('carousel preview:', errTag(e))
     return NextResponse.json({ error: 'Не получилось нарисовать обложку' }, { status: 500 })
   }
   const headers: Record<string, string> = { 'Content-Type': 'image/png', 'Cache-Control': 'private, max-age=3600' }

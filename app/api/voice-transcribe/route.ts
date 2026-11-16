@@ -12,6 +12,7 @@ import { NextRequest, NextResponse, after } from 'next/server'
 import { getSessionUser } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/generation/db'
 import { recordEvent, maybeRebuildVoice } from '@/lib/generation/learning'
+import { errTag } from '@/lib/safe-error'
 
 export const runtime = 'nodejs'
 // Верхний порог ожидания. Длинный монолог (6.3) на small/CPU идет дольше короткой
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
       if (e?.name === 'AbortError') {
         return NextResponse.json({ error: 'Расшифровка заняла слишком долго, попробуй короче' }, { status: 504 })
       }
-      console.error('voice-transcribe: сервис недоступен:', e?.message)
+      console.error('voice-transcribe: сервис недоступен:', errTag(e))
       return NextResponse.json({ error: 'Транскрибация временно недоступна' }, { status: 503 })
     } finally {
       clearTimeout(timer)
@@ -106,14 +107,14 @@ export async function POST(request: NextRequest) {
         try {
           const db = getSupabaseAdmin()
           if (await recordEvent(db, uid, { kind: 'speech', after: text })) await maybeRebuildVoice(db, uid)
-        } catch (e: any) { console.warn('speech sample:', e?.message) }
+        } catch (e: any) { console.warn('speech sample:', errTag(e)) }
       })
     }
     // Пустой текст при 200 = речь не распозналась (контракт сервиса). Отдаем как есть,
     // клиент покажет мягкое «не расслышал, повтори». Текст не логируем (перс. данные).
     return NextResponse.json({ text })
   } catch (e: any) {
-    console.error('voice-transcribe error:', e?.message)
+    console.error('voice-transcribe error:', errTag(e))
     return NextResponse.json({ error: 'Не удалось расшифровать, попробуй еще раз' }, { status: 500 })
   }
 }

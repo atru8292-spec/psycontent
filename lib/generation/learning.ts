@@ -8,6 +8,7 @@ import { callJson } from './ai'
 import { buildVoiceCore } from './pipeline'
 import { fill } from './prompts'
 import { P0B_SYSTEM, P0B_USER } from './prompts.generated'
+import { errTag } from '@/lib/safe-error'
 
 export const EVENT_KINDS = [
   'edit_pair', 'copied_clean', 'mine', 'not_like', 'button', 'hook_pick', 'rephrase',
@@ -32,7 +33,7 @@ export async function recordEvent(db: SupabaseClient, userId: string, ev: VoiceE
     after_text: ev.after ? clip(String(ev.after), 8000) : null,
     data: ev.data || null,
   })
-  if (error) console.warn('voice_events insert:', error.message)
+  if (error) console.warn('voice_events insert:', errTag(error))
   return !error
 }
 
@@ -170,7 +171,7 @@ export async function rebuildVoice(db: SupabaseClient, userId: string, profile: 
       effort: 'low', verbosity: 'low', maxTokens: 2000, userId, operation: 'voice_core_brief', knownNames: names,
     })
   } catch (e: any) {
-    console.warn('voice brief failed:', e?.message)
+    console.warn('voice brief failed:', errTag(e))
   }
 
   const repeat = await db.from('voice_events').select('after_text').eq('user_id', userId).eq('kind', 'repeat_phrases').order('created_at', { ascending: false }).limit(3)

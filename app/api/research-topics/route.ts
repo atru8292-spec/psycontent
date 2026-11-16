@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { generateWithWebSearch } from '@/lib/openrouter'
 import { buildProfileContext } from '@/lib/profile-context'
 import { getSessionUser } from '@/lib/auth'
+import { errTag } from '@/lib/safe-error'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -314,7 +315,7 @@ Block строго: "trend" (12 штук), "science" (10 штук), "quote" (8 �
 
     return NextResponse.json({ topics })
   } catch (error: any) {
-    console.error('Research topics error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Research topics error:', errTag(error))
+    return NextResponse.json({ error: 'server_error' }, { status: 500 })
   }
 }

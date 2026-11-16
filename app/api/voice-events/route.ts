@@ -4,6 +4,7 @@ import { NextRequest, NextResponse, after } from 'next/server'
 import { getSessionUser } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/generation/db'
 import { recordEvent, classifyCopy, changeRatio, maybeRebuildVoice } from '@/lib/generation/learning'
+import { errTag } from '@/lib/safe-error'
 
 const NOT_LIKE_REASONS = ['слишком умно', 'слишком сладко', 'не мои слова', 'длинно', 'не та тема']
 const str = (v: unknown, n = 8000) => (typeof v === 'string' ? v.slice(0, n) : '')
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
 
   if (rebuild) {
     after(async () => {
-      try { await maybeRebuildVoice(db, user.id) } catch (e: any) { console.warn('voice rebuild:', e?.message) }
+      try { await maybeRebuildVoice(db, user.id) } catch (e: any) { console.warn('voice rebuild:', errTag(e)) }
     })
   }
   return NextResponse.json({ ok: true })

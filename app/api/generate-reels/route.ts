@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
     try {
       profileContext = buildProfileContext(profile)
     } catch (e: any) {
-      console.error('buildProfileContext error:', e)
+      console.error('buildProfileContext error:', errTag(e))
       profileContext = 'Профиль психолога не заполнен.'
     }
     const approachStyle = getApproachReelsStyle(approaches)

@@ -1,5 +1,6 @@
 import { serverTrack } from './track-server'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { errTag } from './safe-error'
 
 // Служебный клиент (service_role): энергией управляет ТОЛЬКО сервер.
 function admin(): SupabaseClient {
@@ -251,7 +252,7 @@ export async function canConsume(userId: string, operation: string, units = 1): 
       count = await usedForLimit(db, userId, plan.code)
     } catch (e: any) {
       // счетчик не прочитался (сбой базы): не пускаем молча мимо лимита; новый «Сделать» покажет свой текст о сбое
-      console.warn('canConsume: счетчик материалов не прочитан', String(e?.message || '').slice(0, 60))
+      console.warn('canConsume: счетчик материалов не прочитан', errTag(e))
       return { ok: false, mode: 'text', operation, cost: 0, reason: 'server_error', message: 'Не получилось проверить остаток материалов. Попробуй еще раз через минуту.' }
     }
     if (count >= cap) {

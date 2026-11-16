@@ -9,6 +9,7 @@ import { buildAuthorSettings } from '@/lib/generation/settings'
 import { formatyAvtora } from '@/lib/generation/zh6/write'
 import { bezGolosa } from '@/lib/generation/zh6/formaty'
 import { zh6On } from '../new-pipeline'
+import { errTag } from '@/lib/safe-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,7 +23,7 @@ export async function GET() {
     const profileRes = await db.from('onboarding_profiles').select('*').eq('user_id', user.id).single()
     if (profileRes.error) {
       if (profileRes.error.code === 'PGRST116') return NextResponse.json({ error: 'need_onboarding' }, { status: 404 })
-      console.error('formaty: profile read failed', profileRes.error.message)
+      console.error('formaty: profile read failed', errTag(profileRes.error))
       return NextResponse.json({ error: 'server_error' }, { status: 500 })
     }
     const profile = profileRes.data
@@ -38,7 +39,7 @@ export async function GET() {
     }))
     return NextResponse.json({ formaty, zh6: true }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (e: any) {
-    console.error('formaty error:', e?.message || e)
+    console.error('formaty error:', errTag(e))
     return NextResponse.json({ error: 'server_error' }, { status: 500 })
   }
 }

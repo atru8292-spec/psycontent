@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { canConsume, commitConsume, recordFailure, recordRefusal } from '@/lib/energy'
+import { errTag } from '@/lib/safe-error'
 
 export const maxDuration = 60
 
@@ -177,7 +178,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Transcribe error:', error)
+    console.error('Transcribe error:', errTag(error))
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Ошибка транскрипции' },
       { status: 500 }

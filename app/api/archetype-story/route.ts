@@ -4,6 +4,7 @@ import { generateWithAI } from '@/lib/openrouter'
 import { ANTI_SLOP_RULES } from '@/lib/anti-slop'
 import { getSessionUser } from '@/lib/auth'
 import { ARCHETYPES, archetypeLabel, getArchetypeSelectionFromProfile, type ArchetypeSelection } from '@/lib/archetypes'
+import { errTag } from '@/lib/safe-error'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -71,7 +72,7 @@ ${voice ? `Его собственные слова из ответов (опи�
     if (!story) return NextResponse.json({ error: 'empty' }, { status: 500 })
     return NextResponse.json({ story })
   } catch (e: any) {
-    console.error('archetype-story error:', e?.message)
+    console.error('archetype-story error:', errTag(e))
     return NextResponse.json({ error: 'server_error' }, { status: 500 })
   }
 }

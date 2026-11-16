@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSessionUser } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/generation/db'
 import { recordEvent, rebuildVoice } from '@/lib/generation/learning'
+import { errTag } from '@/lib/safe-error'
 
 function channelName(input: string): string | null {
   const s = input.trim().replace(/^@/, '')
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
     const r = await rebuildVoice(db, user.id, profile)
     return NextResponse.json({ ok: true, added, ...r })
   } catch (e: any) {
-    console.error('voice-import error:', e?.message || e)
+    console.error('voice-import error:', errTag(e))
     return NextResponse.json({ error: 'Не получилось забрать посты, попробуй еще раз' }, { status: 500 })
   }
 }

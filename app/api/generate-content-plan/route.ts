@@ -9,6 +9,7 @@ import { buildAuthorSettings } from '@/lib/generation/settings'
 import { loadMemory } from '@/lib/generation/memory'
 import { zh6Plan, ZH6_BATCH } from '@/lib/generation/zh6/write'
 import { formatByCode } from '@/lib/generation/zh6/formaty'
+import { errTag } from '@/lib/safe-error'
 
 // ---------- zh6 (PROMPT_HYP=zh6 и новый мозг): план тем через zh6Plan, пачки по 10 дней ----------
 const ZH6_TOTAL_BATCHES = 3
@@ -34,7 +35,7 @@ async function zh6PlanBatch(args: { db: ReturnType<typeof getSupabaseAdmin>; use
   try {
     res = await zh6Plan(settings, { n: endDay - startDay + 1, recent, rotation: batch - 1, userId })
   } catch (e: any) {
-    console.error('generate-content-plan zh6: plan failed', userId, e?.message || e)
+    console.error('generate-content-plan zh6: plan failed', userId, errTag(e))
     return NextResponse.json({ error: 'server_error', message: 'Что-то пошло не так на нашей стороне. Попробуй через минуту.' }, { status: 500 })
   }
   const temy = res.temy.slice(0, endDay - startDay + 1)
@@ -69,7 +70,7 @@ async function zh6PlanBatch(args: { db: ReturnType<typeof getSupabaseAdmin>; use
   const fullPlan = batch === 1 ? newDays : [...existingPlan.filter((d: any) => d.day < startDay), ...newDays]
   const up = await db.from('content_plans').upsert({ user_id: userId, plan: fullPlan, generated_at: new Date().toISOString() }, { onConflict: 'user_id' })
   if (up.error) {
-    console.error('generate-content-plan zh6: save failed', userId, up.error.message)
+    console.error('generate-content-plan zh6: save failed', userId, errTag(up.error))
     return NextResponse.json({ error: 'server_error', message: 'Что-то пошло не так на нашей стороне. Попробуй через минуту.' }, { status: 500 })
   }
   return NextResponse.json({ plan: fullPlan, batch, complete: batch >= ZH6_TOTAL_BATCHES, totalBatches: ZH6_TOTAL_BATCHES })
@@ -376,7 +377,7 @@ ${profile.video_attitude === 'не снимаю' ? '• ⚠️ НЕ исполь
     })
 
   } catch (error: any) {
-    console.error('Content plan error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Content plan error:', errTag(error))
+    return NextResponse.json({ error: 'server_error' }, { status: 500 })
   }
 }

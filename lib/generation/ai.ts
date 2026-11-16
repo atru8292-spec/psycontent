@@ -8,6 +8,7 @@
 import { appendFileSync } from 'node:fs'
 import { anonymize, deanonymize } from '@/lib/anonymize'
 import { logAiUsage, type OpenAIUsage } from '@/lib/energy'
+import { CodedError, openAiError } from '@/lib/safe-error'
 import { DEFAULT_MODEL } from '@/lib/openrouter'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
@@ -73,13 +74,13 @@ export async function callModel(o: CallOpts): Promise<string> {
   if (res.status === 400 && /verbosity|reasoning_effort|reasoning\.effort|temperature/i.test(raw)) {
     if (/verbosity/i.test(raw)) delete body.verbosity
     if (/reasoning/i.test(raw)) delete body.reasoning_effort
-    if (/temperature/i.test(raw)) { console.warn(`model ${model} rejected temperature: ${raw.slice(0, 200)}`); delete body.temperature }
+    if (/temperature/i.test(raw)) { console.warn(`model ${model} rejected temperature`); delete body.temperature }
     res = await send()
     raw = await res.text()
   }
   // модели нет у ключа или она не принимает запрос: не роняем генерацию, пишем на gpt-5.4
   if (!res.ok && model !== DEFAULT_MODEL && (res.status === 404 || (res.status === 400 && /model/i.test(raw)))) {
-    console.warn(`generation model ${model} failed (${res.status}), fallback to ${DEFAULT_MODEL}: ${raw.slice(0, 200)}`)
+    console.warn(`generation model ${model} failed (${res.status}), fallback to ${DEFAULT_MODEL}`)
     model = DEFAULT_MODEL
     body.model = model
     body.reasoning_effort = o.effort || 'low'
@@ -87,13 +88,13 @@ export async function callModel(o: CallOpts): Promise<string> {
     res = await send()
     raw = await res.text()
   }
-  if (!res.ok) throw new Error(`OpenAI error ${res.status}: ${raw.slice(0, 500)}`)
+  if (!res.ok) throw openAiError(res.status, raw)
   let data: any
-  try { data = JSON.parse(raw) } catch { throw new Error('OpenAI returned invalid JSON') }
+  try { data = JSON.parse(raw) } catch { throw new CodedError('openai_bad_json') }
   const usage: OpenAIUsage | undefined = data?.usage
   let content = data?.choices?.[0]?.message?.content
   if (Array.isArray(content)) content = content.map((c: any) => (typeof c === 'string' ? c : c?.text || '')).join('')
-  if (typeof content !== 'string' || !content.trim()) throw new Error('Empty model response')
+  if (typeof content !== 'string' || !content.trim()) throw new CodedError('openai_empty')
   if (o.userId && o.operation) await logAiUsage(o.userId, o.operation, model, usage).catch(() => {})
   // локальный учет токенов для массовых прогонов (scripts/usage-cost.ts считает рубли); в проде переменной нет
   if (process.env.USAGE_LOG_FILE && usage) {
@@ -111,7 +112,7 @@ export function parseJsonLoose<T = any>(text: string): T {
   const firstArr = t.indexOf('[')
   const start = firstArr !== -1 && (firstObj === -1 || firstArr < firstObj) ? firstArr : firstObj
   const end = Math.max(t.lastIndexOf('}'), t.lastIndexOf(']'))
-  if (start === -1 || end === -1) throw new Error('No JSON in model response')
+  if (start === -1 || end === -1) throw new CodedError('openai_no_json')
   t = t.slice(start, end + 1)
   return JSON.parse(t) as T
 }

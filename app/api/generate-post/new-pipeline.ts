@@ -11,6 +11,7 @@ import { isSimpleMode, simpleWrite } from '@/lib/generation/simple'
 import { intentForFormat, cleanAds, cleanHardAds } from '@/lib/generation/group'
 import { activeHyps } from '@/lib/generation/hypotheses'
 import { formatByCode } from '@/lib/generation/zh6/formaty'
+import { errTag } from '@/lib/safe-error'
 
 // ---------- zh6 (PROMPT_HYP=zh6): формат каталога, задача и реакция из плана ----------
 // zh6 пишет только простым путем (simpleWrite), поэтому при GENERATION_MODE=full его нет
@@ -137,7 +138,7 @@ export async function handleNewPipeline(args: {
           check_result: { ...r.review, fixes: r.fixes, rewritten: r.rewritten, ms_draft: tDraft, ms_total: Date.now() - t0 },
         }).eq('id', postId).eq('user_id', userId)
       } catch (e: any) {
-        console.error('new pipeline refine error:', e?.message || e)
+        console.error('new pipeline refine error:', errTag(e))
         await db.from('generated_posts').update({ pipeline_status: 'error' }).eq('id', postId).eq('user_id', userId)
       }
     })
@@ -157,15 +158,15 @@ const GROUP_COLUMNS = ['group_id', 'core', 'sample_source']
 export async function savePost(db: SupabaseClient, row: Record<string, any>, opts?: { basicId?: boolean }): Promise<string | null> {
   const full = await db.from('generated_posts').insert(row).select('id').single()
   if (!full.error) return full.data?.id ?? null
-  console.warn('generated_posts insert (new fields) failed, fallback:', full.error.message)
+  console.warn('generated_posts insert (new fields) failed, fallback:', errTag(full.error))
   if (GROUP_COLUMNS.some(k => k in row)) {
     const mid = Object.fromEntries(Object.entries(row).filter(([k]) => !GROUP_COLUMNS.includes(k)))
     const r = await db.from('generated_posts').insert(mid).select('id').single()
     if (!r.error) return r.data?.id ?? null
-    console.warn('generated_posts insert (without group fields) failed, fallback:', r.error.message)
+    console.warn('generated_posts insert (without group fields) failed, fallback:', errTag(r.error))
   }
   const { user_id, topic, format, category, content } = row
   const basic = await db.from('generated_posts').insert({ user_id, topic, format, category, content }).select('id').single()
-  if (basic.error) console.warn('generated_posts insert failed:', basic.error.message)
+  if (basic.error) console.warn('generated_posts insert failed:', errTag(basic.error))
   return opts?.basicId ? basic.data?.id ?? null : null
 }
