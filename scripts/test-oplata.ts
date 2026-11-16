@@ -169,7 +169,7 @@ function setup(start = '2026-11-17T09:00:00Z') {
     t.at('2026-12-17T09:30:00Z'); await B.runBilling(t.d)
     let s = (await t.m.repo.getSub(U))!
     assert.equal(s.status, 'past_due'); assert.equal(s.next_charge_at, '2026-12-18T09:30:00.000Z')
-    assert.equal(B.paidAccess(s, t.d.now()), false, 'окно кончилось: доступа нет, пока не оплачено')
+    assert.equal(B.paidAccess(s, t.d.now()), true, 'пока идут повторы, тариф работает')
     assert.equal(t.mails.at(-1)!.kind, 'charge_failed')
     t.at('2026-12-18T09:40:00Z'); await B.runBilling(t.d)
     s = (await t.m.repo.getSub(U))!; assert.equal(s.next_charge_at, '2026-12-20T09:40:00.000Z', 'второй повтор через 2 дня (3-й день)')
@@ -177,13 +177,14 @@ function setup(start = '2026-11-17T09:00:00Z') {
     t.f.state.autopay = 'succeeded'
     t.at('2026-12-20T09:45:00Z'); const r = await B.runBilling(t.d)
     assert.equal(r.charged, 1)
-    s = (await t.m.repo.getSub(U))!; assert.equal(s.status, 'active'); assert.equal(s.period_start, '2026-12-20T09:45:00.000Z'); assert.equal(s.retry_count, 0)
-    assert.equal(s.period_end, '2027-01-20T09:45:00.000Z', 'после позднего повтора полный месяц от оплаты')
+    s = (await t.m.repo.getSub(U))!; assert.equal(s.status, 'active'); assert.equal(s.retry_count, 0)
+    assert.equal(s.period_start, '2026-12-17T09:00:00.000Z', 'окно без разрыва: дни повторов тариф работал'); assert.equal(s.period_end, '2027-01-17T09:00:00.000Z')
     // и вариант, когда все попытки не прошли
     const t2 = setup(); await paidWithCard(t2); t2.f.state.autopay = 'canceled'
     for (const at of ['2026-12-14T10:00:00Z', '2026-12-17T09:30:00Z', '2026-12-18T09:40:00Z', '2026-12-20T09:50:00Z']) { t2.at(at); await B.runBilling(t2.d) }
     s = (await t2.m.repo.getSub(U))!
     assert.equal(s.status, 'expired'); assert.equal(s.plan_code, 'free'); assert.equal(s.auto_renew, false)
+    assert.equal(B.paidAccess(s, t2.d.now()), false, 'все попытки не прошли: тариф выключен')
     // отключение во время повторов: тариф выключается, письма с прошедшей датой нет
     const t4 = setup(); await paidWithCard(t4); t4.f.state.autopay = 'canceled'
     t4.at('2026-12-14T10:00:00Z'); await B.runBilling(t4.d)

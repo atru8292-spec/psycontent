@@ -84,11 +84,11 @@ export default function SubscriptionCard() {
         )}
 
         <dl className="mt-3 divide-y divide-brand-border">
-          {me.paid && row(SUB.paidUntil, until)}
+          {me.paid && !pastDue && row(SUB.paidUntil, until)}
           {me.paid && me.autoRenew && me.nextChargeAt && me.plan && row(SUB.next, `${dateRu(me.nextChargeAt)}, ${rubles(me.plan.price)}`)}
           {row(SUB.method, me.method?.title || SUB.noMethod)}
         </dl>
-        {me.paid && <p className="mt-3 text-[13px] leading-5 text-brand-muted">{me.autoRenew ? SUB.autoHint : SUB.autoOff(until)}</p>}
+        {me.paid && !pastDue && <p className="mt-3 text-[13px] leading-5 text-brand-muted">{me.autoRenew ? SUB.autoHint : SUB.autoOff(until)}</p>}
 
         {me.nextPlan && nextDate && (
           <div className="mt-3 rounded-2xl bg-brand-soft border border-brand-border-soft p-4">

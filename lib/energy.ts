@@ -110,7 +110,8 @@ async function getPlanForUser(db: SupabaseClient, userId: string): Promise<PlanC
     const { data } = await db.from('plans').select('*').eq('id', sub.plan_id).maybeSingle()
     plan = (data as PlanRow) ?? null
     if (plan && plan.code !== 'free' && !plan.is_unlimited && sub.period_end) {
-      const over = sub.status === 'expired' || new Date(sub.period_end) <= new Date()
+      // пока идут повторы списания (past_due), тариф работает (решение Арины 17.11); expired: выключен
+      const over = sub.status === 'expired' || (sub.status !== 'past_due' && new Date(sub.period_end) <= new Date())
       if (over) plan = null
       else if (sub.period_start) windowKey = windowKeyOf(sub.period_start)
     }

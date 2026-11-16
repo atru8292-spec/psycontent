@@ -99,9 +99,12 @@ const dateRu = (d: string | Date) => new Date(d).toLocaleDateString('ru-RU', { d
 const planName = (code: string) => (isPaidCode(code) ? PAID_PLANS[code].name : code)
 const sent = async (p: Promise<boolean | void>) => { try { return (await p) !== false } catch { return false } }
 
-// Подписка считается платной, пока окно не кончилось: и после «Отключить автопродление», и во время повторов нет
+// Подписка платная, пока окно не кончилось (и после «Отключить автопродление»). Пока идут повторы списания
+// (past_due, до 3 дней), тариф тоже работает (решение Арины 17.11); все попытки не прошли: expired, тариф выключен.
 export function paidAccess(sub: SubRow | null, now: Date): boolean {
-  return !!sub && sub.plan_code !== 'free' && sub.status !== 'expired' && !!sub.period_end && new Date(sub.period_end) > now
+  if (!sub || sub.plan_code === 'free' || sub.status === 'expired') return false
+  if (sub.status === 'past_due' && sub.auto_renew && sub.next_charge_at) return true
+  return !!sub.period_end && new Date(sub.period_end) > now
 }
 
 // ── 1. Переход к оплате ──
@@ -113,7 +116,7 @@ export async function startCheckout(d: Deps, a: { userId: string; email: string 
   const now = d.now()
   const sub = await d.repo.getSub(a.userId)
   // окно еще оплачено: новая оплата не нужна (вторую оплату поверх окна processPayment все равно сложит, ревью 17.11)
-  if (paidAccess(sub, now)) return { ok: false, error: 'already_paid' }
+  if (paidAccess(sub, now) && sub!.status !== 'past_due') return { ok: false, error: 'already_paid' }
   const recent = await d.repo.recentPayments(a.userId, iso(new Date(now.getTime() - Math.max(CREATE_LIMIT.minutes, REUSE_PENDING_MIN) * 60000)))
   // тот же тариф, тот же выбор, платеж еще ждет оплаты: отдаем его, а не создаем второй (две вкладки, двойной клик)
   const fresh = recent.find(p => p.kind === 'first' && p.status === 'pending' && p.plan_code === plan.code && p.save_requested === a.autoRenew
@@ -168,17 +171,18 @@ export async function startCheckout(d: Deps, a: { userId: string; email: string 
   }
 }
 
-// Окно оплаты. Продление: с конца прошлого окна, если оно кончилось не раньше 6 часов назад. Первая оплата поверх
+// Окно оплаты. Продление: с конца прошлого окна (повторы идут до 3 дней, тариф в это время работает). Первая оплата поверх
 // живого окна (две вкладки, СБП прошла позже карты): складываем с концом окна и помечаем двойную оплату.
 // Иначе с момента оплаты, и якорь дня тоже от момента оплаты (иначе после позднего повтора месяц был бы короче, ревью 17.11).
 function windowFor(row: PaymentRow, sub: SubRow | null, now: Date): { start: Date; end: Date; anchor: number; double: boolean } {
   const prevEnd = sub?.period_end && sub.status !== 'expired' ? new Date(sub.period_end) : null
-  const live = !!(prevEnd && prevEnd > now && sub!.plan_code !== 'free')
+  const live = !!(prevEnd && prevEnd > now && sub!.plan_code !== 'free' && sub!.status !== 'past_due')
   if (row.kind === 'first' && live) {
     const anchor = sub!.billing_anchor_day || anchorDayOf(prevEnd!)
     return { start: prevEnd!, end: addMonthAnchored(prevEnd!, anchor), anchor, double: true }
   }
-  if (row.kind === 'renewal' && prevEnd && prevEnd.getTime() >= now.getTime() - 6 * H) {
+  // продление (в том числе удачный повтор через 1 или 3 дня) продолжает окно с его конца: во время повторов тариф работал
+  if (row.kind === 'renewal' && prevEnd && prevEnd.getTime() >= now.getTime() - (RETRY_AFTER_HOURS.reduce((a, b) => a + b, 0) + 24) * H) {
     const anchor = sub!.billing_anchor_day || anchorDayOf(prevEnd)
     return { start: prevEnd, end: addMonthAnchored(prevEnd, anchor), anchor, double: false }
   }
@@ -380,7 +384,7 @@ export async function disableAutoRenew(d: Deps, userId: string): Promise<'ok' | 
   await d.repo.updateSub(userId, { auto_renew: false, next_charge_at: null, next_plan_code: null, status: sub.status === 'past_due' ? 'expired' : 'canceled', ...(sub.status === 'past_due' ? { plan_code: 'free' } : {}) })
   const to = await d.repo.userEmail(userId)
   // письмо только если окно еще идет: при past_due дата уже прошла, тариф выключается сразу
-  if (to && sub.period_end && paidAccess(sub, d.now())) await sent(d.mail('autorenew_off', to, { until: dateRu(sub.period_end) }))
+  if (to && sub.period_end && sub.status !== 'past_due' && new Date(sub.period_end) > d.now()) await sent(d.mail('autorenew_off', to, { until: dateRu(sub.period_end) }))
   d.track?.(userId, 'pay_autorenew_off', {})
   return 'ok'
 }
