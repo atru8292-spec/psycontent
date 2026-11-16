@@ -71,7 +71,7 @@ export default function AdminPay() {
                   <td className="px-3 py-2 tabular-nums whitespace-nowrap">{Number(p.amount).toLocaleString('ru-RU')} ₽</td>
                   <td className="px-3 py-2">{STATUS[p.status] || p.status}{p.cancellation_reason && <div className="text-brand-muted">{p.cancellation_reason}</div>}</td>
                   <td className="px-3 py-2 whitespace-nowrap">{p.period_end ? `до ${dt(p.period_end)}` : ''}{sub && <div className="text-brand-muted">{sub.status}{sub.auto_renew ? ', авто' : ''}</div>}</td>
-                  <td className="px-3 py-2 min-w-[220px]">
+                  <td className="px-3 py-2 min-w-[200px]">
                     <div>{RECEIPT[p.receipt_status] || p.receipt_status}{p.receipt_url && <> · <a href={p.receipt_url} target="_blank" rel="noopener" className="underline">чек</a></>}</div>
                     {p.receipt_status === 'need' && (
                       <div className="mt-1 flex gap-1">
@@ -83,7 +83,7 @@ export default function AdminPay() {
                   </td>
                   <td className="px-3 py-2">
                     {p.user_id && p.status === 'succeeded' && (
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-col gap-1 min-w-[96px]">
                         <button type="button" disabled={busy} onClick={() => post({ action: 'refund', userId: p.user_id }, 'Вернуть деньги за оставшиеся дни и выключить тариф сейчас?')} className={btn}>Возврат</button>
                         <button type="button" disabled={busy} onClick={() => { const n = Number(window.prompt('Продлить на сколько дней?', '7')); if (n) post({ action: 'extend', userId: p.user_id, days: n, plan: p.plan_code }) }} className={btn}>Продлить</button>
                         <button type="button" disabled={busy} onClick={() => post({ action: 'disable', userId: p.user_id }, 'Выключить тариф сейчас, без возврата?')} className={btn}>Выключить</button>
