@@ -352,6 +352,13 @@ function setup(start = '2026-11-17T09:00:00Z') {
     assert.equal(t.f.calls.filter(c => c.body?.payment_method_id).length, 1, 'повтора нет')
   }
   {
+    // 13.10 СБП недоступна у магазина: общая страница ЮKassa; и вместе с запретом автоплатежей
+    const t = setup(); t.f.state.sbpUnavailable = true; t.f.state.recurringForbidden = true
+    const r = await B.startCheckout(t.d, { userId: U, email: null, plan: 'start', autoRenew: true, via: 'sbp', ip: null })
+    assert.ok(r.ok, 'оплата открылась'); const last = t.f.calls.at(-1)!.body
+    assert.ok(!last.payment_method_data && !last.save_payment_method)
+  }
+  {
     // 13.9 цены из lib/pricing.ts
     const { PLANS } = await import('../lib/pricing')
     for (const code of ['start', 'practice'] as const) assert.equal(B.PAID_PLANS[code].price, PLANS.find(p => p.dbCodes[0] === code)!.price)

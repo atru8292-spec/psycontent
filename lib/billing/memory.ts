@@ -70,7 +70,7 @@ export function fakeYooKassa() {
   const byKey = new Map<string, string>()
   const refunds = new Map<string, YkRefund>()
   const calls: { method: string; body?: any; key?: string }[] = []
-  const state = { autopay: 'succeeded' as 'succeeded' | 'canceled', autopayReason: 'insufficient_funds', fail: false, recurringForbidden: false, refundFail: false }
+  const state = { autopay: 'succeeded' as 'succeeded' | 'canceled', autopayReason: 'insufficient_funds', fail: false, recurringForbidden: false, refundFail: false, sbpUnavailable: false }
   let n = 0
   const pid = () => `2f${Date.now().toString(16)}-000f-5000-8000-${String(++n).padStart(12, '0')}`
   const yk: YkClient = {
@@ -79,6 +79,7 @@ export function fakeYooKassa() {
       if (state.fail) throw Object.assign(new Error('x'), { code: 'yookassa_500' })
       // магазину не включены автоплатежи: так ответил тестовый магазин 1532988 17.11 на save_payment_method
       if (state.recurringForbidden && body.save_payment_method) throw Object.assign(new Error('x'), { code: 'yookassa_403_forbidden' })
+      if (state.sbpUnavailable && (body.payment_method_data as any)?.type === 'sbp') throw Object.assign(new Error('x'), { code: 'yookassa_400_invalid_request' })
       if (byKey.has(key)) return { ...store.get(byKey.get(key)!)! }
       const id = pid()
       const auto = !!body.payment_method_id

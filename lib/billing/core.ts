@@ -122,25 +122,35 @@ export async function startCheckout(d: Deps, a: { userId: string; email: string 
   const key = `first:${a.userId}:${crypto.randomUUID()}`
   const row = await d.repo.insertPayment({ user_id: a.userId, email: a.email, kind: 'first', plan_code: plan.code, amount: plan.price, save_requested: a.autoRenew, idempotence_key: key, attempt: 1, note: `via:${a.via}` })
   if (a.autoRenew) await d.repo.insertConsent({ user_id: a.userId, plan_code: plan.code, amount: plan.price, consent_text: consentText(plan), offer_version: d.offerVersion, ip: a.ip, payment_id: row.id })
-  const body = (save: boolean) => ({
+  const body = (save: boolean, sbp = a.via === 'sbp') => ({
     amount: rub(plan.price),
     capture: true,
     confirmation: { type: 'redirect', return_url: `${d.siteUrl}/dashboard/oplata/itog?p=${row.id}` },
     description: `PsyCont, тариф «${plan.name}», месяц доступа`,
     metadata: { payment_row: row.id },
     ...(save ? { save_payment_method: true } : {}),
-    ...(a.via === 'sbp' ? { payment_method_data: { type: 'sbp' } } : {}),
+    ...(sbp ? { payment_method_data: { type: 'sbp' } } : {}),
   })
   try {
     let p: YkPayment
     let saveDropped = false
-    try { p = await d.yk.createPayment(body(a.autoRenew), key) }
+    // СБП у магазина недоступна (400 «Payment method is not available», так отвечал тестовый магазин 17.11):
+    // уводим на общую страницу ЮKassa со всеми способами, а не показываем ошибку
+    const create = async (save: boolean, k: string): Promise<YkPayment> => {
+      try { return await d.yk.createPayment(body(save), k) }
+      catch (e: any) {
+        if (a.via !== 'sbp' || !/^yookassa_400/.test(String(e?.code || ''))) throw e
+        d.log?.('pay create: СБП недоступна, общая страница оплаты')
+        return d.yk.createPayment(body(save, false), `${k}:any`)
+      }
+    }
+    try { p = await create(a.autoRenew, key) }
     catch (e: any) {
       // магазину не включены автоплатежи (403 forbidden «can't make recurring payments», тестовый магазин 17.11):
       // оплата без сохранения способа, автопродление не включится, экран итога скажет об этом честно
       if (!a.autoRenew || !/^yookassa_403/.test(String(e?.code || ''))) throw e
       d.log?.('pay create: recurring forbidden, без сохранения способа')
-      p = await d.yk.createPayment(body(false), `${key}:nosave`)
+      p = await create(false, `${key}:nosave`)
       saveDropped = true
     }
     const url = p.confirmation?.confirmation_url
