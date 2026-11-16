@@ -42,7 +42,7 @@ export default function SubscriptionCard() {
     try {
       const r = await fetch('/api/pay/plan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan: me.plan.code, consent: false }) })
       if (!r.ok) throw new Error()
-      setToast(SUB.toastCancel); window.setTimeout(() => setToast(null), 4000); await load()
+      setToast(SUB.toastCancel(me.plan.name)); window.setTimeout(() => setToast(null), 4000); await load()
     } catch { setToast(SUB.error) } finally { setBusy(false) }
   }
 
@@ -56,7 +56,7 @@ export default function SubscriptionCard() {
         ? await fetch('/api/pay/plan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan: otherCode, consent: agree }) })
         : await fetch('/api/pay/method', { method: 'DELETE' })
       if (!r.ok) throw new Error()
-      setToast(ask === 'off' ? SUB.toastOff(until) : ask === 'plan' ? SUB.toastChange(nextDate) : SUB.toastDel)
+      setToast(ask === 'off' ? SUB.toastOff(until) : ask === 'plan' ? SUB.toastChange(nextDate, other.name) : SUB.toastDel)
       window.setTimeout(() => setToast(null), 4000)
       setAsk(null)
       await load()
@@ -93,7 +93,7 @@ export default function SubscriptionCard() {
         {me.nextPlan && nextDate && (
           <div className="mt-3 rounded-2xl bg-brand-soft border border-brand-border-soft p-4">
             <p className="text-[15px] leading-[22px] text-brand-text">{SUB.planned(nextDate, me.nextPlan.name, rubles(me.nextPlan.price))}</p>
-            <button type="button" disabled={busy} onClick={cancelChange} className={`mt-3 ${btn}`}>{SUB.cancelChange}</button>
+            <button type="button" disabled={busy} onClick={cancelChange} className={`mt-3 ${btn}`}>{SUB.cancelChange(me.plan?.name || '')}</button>
           </div>
         )}
         {(me.autoRenew || me.method) && (
@@ -114,25 +114,25 @@ export default function SubscriptionCard() {
             <p id="sub-ask" className="text-[19px] leading-6 font-semibold text-brand-text">{ask === 'off' ? SUB.offTitle : ask === 'plan' ? SUB.changeTitle : SUB.delTitle(sbp)}</p>
             {ask === 'plan' ? (
               <>
-                <p className="mt-2 text-[15px] leading-[22px] text-brand-text-secondary">{SUB.changeText(nextDate)}</p>
+                <p className="mt-2 text-[15px] leading-[22px] text-brand-text-secondary">{SUB.changeText(nextDate, me.plan?.name || '')}</p>
                 <div className="mt-4 rounded-2xl border-2 border-brand-accent p-4 flex items-center justify-between gap-3">
                   <span><span className="block text-[16px] font-semibold text-brand-text">{other.name}</span><span className="block text-[13px] text-brand-muted">{other.materials} материалов в месяц</span></span>
                   <span className="text-[16px] font-semibold text-brand-text tabular-nums">{rubles(other.price)}</span>
                 </div>
                 <label className="mt-4 flex items-start gap-3 cursor-pointer">
                   <input type="checkbox" checked={agree} onChange={e => setAgree(e.target.checked)} className="mt-0.5 w-6 h-6 shrink-0 accent-[#33472B]" />
-                  <span className="text-[15px] leading-6 font-semibold text-brand-text">{SUB.changeAgree}</span>
+                  <span className="text-[15px] leading-6 font-semibold text-brand-text">{SUB.changeAgree(rubles(other.price), nextDate)}</span>
                 </label>
                 <p className="mt-2 pl-9 text-[13px] leading-5 text-brand-muted max-h-40 overflow-y-auto">{consentText(other)}</p>
               </>
             ) : (
               <p className="mt-2 text-[15px] leading-[22px] text-brand-text-secondary">{ask === 'off' ? (pastDue ? SUB.offTextPastDue : SUB.offText(until)) : SUB.delText(until)}</p>
             )}
-            {err && <p role="alert" className="mt-3 rounded-2xl bg-brand-soft px-4 py-3 text-[15px] text-brand-text">{SUB.error}</p>}
+            {err && <p role="alert" className="mt-3 rounded-2xl bg-brand-soft px-4 py-3 text-[15px] text-brand-text">{ask === 'plan' ? SUB.changeError : SUB.error}</p>}
             <div className="mt-6 flex flex-col-reverse sm:flex-row gap-2">
               <button type="button" disabled={busy} onClick={() => setAsk(null)} className="h-12 w-full sm:w-auto sm:flex-1 shrink-0 rounded-2xl border border-brand-border text-brand-text font-semibold hover:bg-brand-soft cursor-pointer">{ask === 'plan' ? SUB.changeNo : SUB.keep}</button>
               <button type="button" disabled={busy || (ask === 'plan' && !agree)} onClick={act} className="h-12 w-full sm:w-auto sm:flex-1 shrink-0 rounded-2xl bg-brand-accent text-white font-semibold hover:bg-brand-accent-hover cursor-pointer inline-flex items-center justify-center gap-2 disabled:opacity-60">
-                {busy && <Loader2 className="w-4 h-4 animate-spin" />}{ask === 'off' ? SUB.offYes : ask === 'plan' ? SUB.changeYes : SUB.delYes}
+                {busy && <Loader2 className="w-4 h-4 animate-spin" />}{ask === 'off' ? SUB.offYes : ask === 'plan' ? SUB.changeYes(other.name) : SUB.delYes}
               </button>
             </div>
           </div>
