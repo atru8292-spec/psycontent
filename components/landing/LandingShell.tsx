@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { track } from '@/lib/track'
 import AuthModal from '@/components/AuthModal'
 import { T } from '@/lib/auth-texts'
+import { X } from 'lucide-react'
 
 type Who = 'unknown' | 'anon' | 'noprofile' | 'profile'
 type Place = 'hero' | 'how' | 'pricing' | 'final' | 'header'
@@ -81,10 +82,10 @@ export default function LandingShell({ children }: { children: React.ReactNode }
     <LandingCtx.Provider value={{ who, start, login, heroCtaGone, setHeroCtaGone }}>
       {children}
       {goodbye && (
-        <div role="status" className="fixed inset-x-0 top-0 z-50 p-4 pt-[calc(16px+env(safe-area-inset-top))] flex justify-center">
+        <div role="status" className="fixed inset-x-0 top-16 z-50 px-4 flex justify-center">
           <div className="w-full max-w-md flex items-start gap-2 rounded-2xl bg-brand-card border border-brand-border shadow-lg px-4 py-3 text-[15px] leading-[22px] text-brand-text">
             <p className="min-w-0 flex-1">Аккаунт и все данные удалены. Если захочется вернуться, можно зарегистрироваться заново, с чистого листа.</p>
-            <button type="button" onClick={() => setGoodbye(false)} aria-label="Закрыть" className="w-11 h-11 -m-2 flex items-center justify-center text-brand-muted cursor-pointer shrink-0">×</button>
+            <button type="button" onClick={() => setGoodbye(false)} aria-label="Закрыть" className="w-11 h-11 -m-2 flex items-center justify-center text-brand-muted hover:text-brand-text cursor-pointer shrink-0"><X className="w-5 h-5" /></button>
           </div>
         </div>
       )}

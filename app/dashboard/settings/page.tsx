@@ -204,7 +204,7 @@ export default function SettingsPage() {
             <section id="tariff" className="scroll-mt-20">
               <SectionTitle>Тариф</SectionTitle>
               {isMaterials((summary as any)?.materials) && (
-                <p className="mb-3 text-[15px] leading-[22px] font-semibold text-brand-text">{profileLine((summary as any).materials)}</p>
+                <p className="-mt-1 mb-3 text-[15px] leading-[22px] text-brand-text-secondary">{profileLine((summary as any).materials)}</p>
               )}
               <TariffSection currentCode={summary?.plan?.code} />
             </section>
