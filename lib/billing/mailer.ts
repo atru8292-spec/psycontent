@@ -15,11 +15,13 @@ function tr(): nodemailer.Transporter | null {
   return transport
 }
 
-export async function sendPayMail(kind: string, to: string, data: Record<string, string>, site: string): Promise<void> {
+export const smtpConfigured = () => !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)
+
+export async function sendPayMail(kind: string, to: string, data: Record<string, string>, site: string): Promise<boolean> {
   const tpl = MAIL[kind]
-  if (!tpl || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return
+  if (!tpl || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return false
   const t = tr()
-  if (!t) { console.info('pay mail skipped (no SMTP):', kind); return }
+  if (!t) { console.info('pay mail skipped (no SMTP):', kind); return false }
   const all = { ...data, site }
   try {
     await t.sendMail({
@@ -28,7 +30,9 @@ export async function sendPayMail(kind: string, to: string, data: Record<string,
       subject: fill(tpl.subject, all),
       text: fill(tpl.text, all),
     })
+    return true
   } catch (e) {
     console.warn('pay mail failed:', kind, errTag(e))
+    return false
   }
 }

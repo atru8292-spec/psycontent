@@ -98,7 +98,12 @@ export function windowKeyOf(periodStart: string | Date): string {
 }
 
 async function getPlanForUser(db: SupabaseClient, userId: string): Promise<PlanCtx> {
-  const { data: sub } = await db.from('user_subscription').select('plan_id, status, period_start, period_end').eq('user_id', userId).maybeSingle()
+  let { data: sub, error: subErr } = await db.from('user_subscription').select('plan_id, status, period_start, period_end').eq('user_id', userId).maybeSingle()
+  // колонки status еще нет (код выкатили раньше миграции оплаты): читаем по-старому, без окна (ревью 17.11)
+  if (subErr && /42703|status|column/i.test(`${subErr.code} ${subErr.message}`)) {
+    const old = await db.from('user_subscription').select('plan_id, period_start, period_end').eq('user_id', userId).maybeSingle()
+    sub = old.data ? { ...old.data, status: 'trial' } as any : null
+  }
   let plan: PlanRow | null = null
   let windowKey: string | null = null
   if (sub?.plan_id) {

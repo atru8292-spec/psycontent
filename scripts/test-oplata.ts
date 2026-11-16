@@ -10,9 +10,9 @@ import { isYooKassaIp } from '../lib/billing/ip'
 const U = 'u-1', U2 = 'u-2'
 const YK_IP = '185.71.76.10', BAD_IP = '8.8.8.8'
 function setup(start = '2026-11-17T09:00:00Z') {
-  const m = memoryRepo({ [U]: 'anna@example.invalid', [U2]: 'b@example.invalid' })
-  const f = fakeYooKassa()
   const clock = { t: new Date(start) }
+  const m = memoryRepo({ [U]: 'anna@example.invalid', [U2]: 'b@example.invalid' }, () => new Date(clock.t))
+  const f = fakeYooKassa()
   const mails: { kind: string; to: string; data: any }[] = []
   const events: string[] = []
   const d: B.Deps = { now: () => new Date(clock.t), repo: m.repo, yk: f.yk, siteUrl: 'https://psycont.ru', offerVersion: '2026-11-14',
@@ -160,6 +160,7 @@ function setup(start = '2026-11-17T09:00:00Z') {
   {
     const t = setup(); await paidWithCard(t)
     t.f.state.autopay = 'canceled'
+    t.at('2026-12-14T10:00:00Z'); await B.runBilling(t.d)
     t.at('2026-12-17T09:30:00Z'); await B.runBilling(t.d)
     let s = (await t.m.repo.getSub(U))!
     assert.equal(s.status, 'past_due'); assert.equal(s.next_charge_at, '2026-12-18T09:30:00.000Z')
@@ -172,13 +173,15 @@ function setup(start = '2026-11-17T09:00:00Z') {
     t.at('2026-12-20T09:45:00Z'); const r = await B.runBilling(t.d)
     assert.equal(r.charged, 1)
     s = (await t.m.repo.getSub(U))!; assert.equal(s.status, 'active'); assert.equal(s.period_start, '2026-12-20T09:45:00.000Z'); assert.equal(s.retry_count, 0)
+    assert.equal(s.period_end, '2027-01-20T09:45:00.000Z', 'после позднего повтора полный месяц от оплаты')
     // и вариант, когда все попытки не прошли
     const t2 = setup(); await paidWithCard(t2); t2.f.state.autopay = 'canceled'
-    for (const at of ['2026-12-17T09:30:00Z', '2026-12-18T09:40:00Z', '2026-12-20T09:50:00Z']) { t2.at(at); await B.runBilling(t2.d) }
+    for (const at of ['2026-12-14T10:00:00Z', '2026-12-17T09:30:00Z', '2026-12-18T09:40:00Z', '2026-12-20T09:50:00Z']) { t2.at(at); await B.runBilling(t2.d) }
     s = (await t2.m.repo.getSub(U))!
     assert.equal(s.status, 'expired'); assert.equal(s.plan_code, 'free'); assert.equal(s.auto_renew, false)
     // отключение во время повторов: тариф выключается, письма с прошедшей датой нет
     const t4 = setup(); await paidWithCard(t4); t4.f.state.autopay = 'canceled'
+    t4.at('2026-12-14T10:00:00Z'); await B.runBilling(t4.d)
     t4.at('2026-12-17T09:30:00Z'); await B.runBilling(t4.d)
     const before = t4.mails.length; await B.disableAutoRenew(t4.d, U)
     assert.equal(t4.mails.length, before, 'нет письма «работает до» с прошедшей датой'); assert.equal((await t4.m.repo.getSub(U))!.plan_code, 'free')
@@ -186,6 +189,7 @@ function setup(start = '2026-11-17T09:00:00Z') {
     assert.equal(t2.f.calls.filter(c => c.body?.payment_method_id).length, 3, 'три попытки, не больше')
     // отозванное разрешение: без повторов
     const t3 = setup(); await paidWithCard(t3); t3.f.state.autopay = 'canceled'; t3.f.state.autopayReason = 'permission_revoked'
+    t3.at('2026-12-14T10:00:00Z'); await B.runBilling(t3.d)
     t3.at('2026-12-17T09:30:00Z'); await B.runBilling(t3.d)
     assert.equal((await t3.m.repo.getSub(U))!.status, 'expired')
   }
@@ -218,7 +222,7 @@ function setup(start = '2026-11-17T09:00:00Z') {
     assert.equal(rc.body.amount.value, '817.00'); assert.equal(rc.body.payment_id, t.m.payments[0].yk_payment_id)
     const s = (await t.m.repo.getSub(U))!
     assert.equal(s.plan_code, 'free'); assert.equal(s.auto_renew, false); assert.equal(B.paidAccess(s, t.d.now()), false, 'в день возврата тариф выключен')
-    assert.equal(t.m.payments[0].receipt_status, 'annul_need')
+    assert.equal(t.m.payments[0].receipt_status, 'need', 'чек еще не выбит: выбить на остаток'); assert.ok((t.m.payments[0].note || '').includes('refunded:817'))
     assert.equal((await B.refundRemaining(t.d, U) as any).error, 'already_refunded', 'второго возврата нет')
   }
 
@@ -244,6 +248,108 @@ function setup(start = '2026-11-17T09:00:00Z') {
     assert.deepEqual(await B.startCheckout(t.d, { userId: U, email: null, plan: 'start', autoRenew: true, via: 'any', ip: null }), { ok: false, error: 'yookassa' })
     assert.equal(t.m.payments[0].status, 'canceled')
     assert.deepEqual(await B.startCheckout(t.d, { userId: U, email: null, plan: 'expert', autoRenew: true, via: 'any', ip: null }), { ok: false, error: 'bad_plan' })
+  }
+  // ── 13. ревью 17.11: блокеры и важное ──
+  {
+    // 13.1 автоплатежи магазину не включены (403): оплата без сохранения, человек увидит, что автопродление не включилось
+    const t = setup(); t.f.state.recurringForbidden = true
+    const r = await B.startCheckout(t.d, { userId: U, email: null, plan: 'start', autoRenew: true, via: 'sbp', ip: null })
+    assert.ok(r.ok && (r as any).saveDropped, 'оплата открылась без сохранения')
+    assert.ok(!t.f.calls.at(-1)!.body.save_payment_method)
+    assert.equal(t.m.consents.length, 1, 'согласие записано, человек его дал')
+    const ykId = t.m.payments[0].yk_payment_id!
+    t.f.finish(ykId, { ok: true, type: 'sbp' }); await t.hook('payment.succeeded', ykId, 'succeeded')
+    assert.equal((await t.m.repo.getSub(U))!.auto_renew, false)
+  }
+  {
+    // 13.2 две вкладки: свежий платеж отдается снова; предел 5 переходов за 10 минут
+    const t = setup()
+    const a1 = await B.startCheckout(t.d, { userId: U, email: null, plan: 'start', autoRenew: false, via: 'any', ip: null })
+    const a2 = await B.startCheckout(t.d, { userId: U, email: null, plan: 'start', autoRenew: false, via: 'any', ip: null })
+    assert.ok(a1.ok && a2.ok && a1.url === a2.url && t.m.payments.length === 1, 'второй платеж не создан')
+    const combos = [['practice', 'sbp', true], ['practice', 'any', true], ['start', 'sbp', true], ['start', 'sbp', false]] as const
+    for (const [plan, via, auto] of combos) assert.ok((await B.startCheckout(t.d, { userId: U, email: null, plan, autoRenew: auto, via, ip: null })).ok)
+    assert.equal(t.m.payments.length, 5)
+    assert.deepEqual(await B.startCheckout(t.d, { userId: U, email: null, plan: 'practice', autoRenew: false, via: 'any', ip: null }), { ok: false, error: 'too_many' })
+  }
+  {
+    // 13.3 двойная оплата (СБП прошла позже карты): окно складывается, ничего не сгорает, пометка «вернуть»
+    const t = setup()
+    await B.startCheckout(t.d, { userId: U, email: null, plan: 'start', autoRenew: false, via: 'any', ip: null })
+    await B.startCheckout(t.d, { userId: U, email: null, plan: 'start', autoRenew: false, via: 'sbp', ip: null })
+    const [p1, p2] = t.m.payments
+    t.f.finish(p1.yk_payment_id!, { ok: true }); await t.hook('payment.succeeded', p1.yk_payment_id!, 'succeeded')
+    t.at('2026-11-17T09:20:00Z')
+    t.f.finish(p2.yk_payment_id!, { ok: true, type: 'sbp' }); await t.hook('payment.succeeded', p2.yk_payment_id!, 'succeeded')
+    const s = (await t.m.repo.getSub(U))!
+    assert.equal(s.period_start, '2026-11-17T09:00:00.000Z', 'начало окна и счетчик прежние'); assert.equal(s.period_end, '2027-01-17T09:00:00.000Z', 'два месяца')
+    assert.ok((t.m.payments[1].note || '').includes('double') && (t.m.payments[1].note || '').includes('refund_due'))
+  }
+  {
+    // 13.4 сбой базы посередине включения: платеж остается pending, повтор (вебхук или сверка) доводит до конца
+    const t = setup()
+    await B.startCheckout(t.d, { userId: U, email: null, plan: 'start', autoRenew: false, via: 'any', ip: null })
+    const ykId = t.m.payments[0].yk_payment_id!
+    t.f.finish(ykId, { ok: true })
+    t.m.fail.applySub = true
+    assert.equal((await t.hook('payment.succeeded', ykId, 'succeeded')).status, 500, 'ЮKassa повторит')
+    assert.equal(t.m.payments[0].status, 'pending', 'деньги есть, но платеж еще не закрыт')
+    t.m.fail.applySub = false
+    assert.equal((await t.hook('payment.succeeded', ykId, 'succeeded')).result, 'activated', 'повтор включил тариф')
+    assert.equal((await t.m.repo.getSub(U))!.plan_code, 'start')
+  }
+  {
+    // 13.5 человек отключил автопродление, пока таймер шел по списку: списания нет
+    const t = setup(); await paidWithCard(t)
+    t.at('2026-12-14T10:00:00Z'); await B.runBilling(t.d)
+    t.at('2026-12-17T09:30:00Z')
+    const orig = t.m.repo.subsToCharge
+    t.m.repo.subsToCharge = async (n) => { const list = await orig(n); await B.disableAutoRenew(t.d, U); return list }
+    await B.runBilling(t.d)
+    assert.equal(t.f.calls.filter(c => c.body?.payment_method_id).length, 0)
+  }
+  {
+    // 13.6 без письма «за 3 дня» не списываем: письмо сейчас, списание через 3 дня
+    const t = setup(); await paidWithCard(t)
+    t.at('2026-12-17T09:30:00Z'); const r = await B.runBilling(t.d)
+    assert.equal(r.postponed, 1); assert.equal(t.f.calls.filter(c => c.body?.payment_method_id).length, 0)
+    assert.equal(t.mails.at(-1)!.kind, 'reminder')
+    t.at('2026-12-20T09:40:00Z'); assert.equal((await B.runBilling(t.d)).charged, 1)
+  }
+  {
+    // 13.7 возврат: сорвался у ЮKassa, повтор проходит; по платежу удаленного человека вся сумма
+    const t = setup(); await paidWithCard(t)
+    t.at('2026-11-27T12:00:00Z'); t.f.state.refundFail = true
+    assert.equal((await B.refundRemaining(t.d, U) as any).error, 'yookassa')
+    assert.equal((await t.m.repo.getSub(U))!.plan_code, 'start', 'тариф не выключен, денег не вернули')
+    t.f.state.refundFail = false
+    const r = await B.refundRemaining(t.d, U)
+    assert.ok(r.ok && r.amount === 817, JSON.stringify(r))
+    assert.equal(t.f.calls.filter(c => c.method === 'createRefund').map(c => c.key)[0], t.f.calls.filter(c => c.method === 'createRefund').map(c => c.key)[1], 'тот же ключ идемпотентности')
+    const t2 = setup()
+    await B.startCheckout(t2.d, { userId: U, email: 'x@example.invalid', plan: 'start', autoRenew: false, via: 'any', ip: null })
+    t2.m.payments[0].user_id = null
+    t2.f.finish(t2.m.payments[0].yk_payment_id!, { ok: true })
+    assert.equal((await t2.hook('payment.succeeded', t2.m.payments[0].yk_payment_id!, 'succeeded')).result, 'no_user')
+    const r2 = await B.refundPayment(t2.d, t2.m.payments[0].id)
+    assert.ok(r2.ok && r2.amount === 1290, 'вся сумма')
+  }
+  {
+    // 13.8 продление на повторах, а человек платит сам: повторы остановлены, второго списания не будет
+    const t = setup(); await paidWithCard(t); t.f.state.autopay = 'canceled'
+    t.at('2026-12-14T10:00:00Z'); await B.runBilling(t.d)
+    t.at('2026-12-17T09:30:00Z'); await B.runBilling(t.d)
+    assert.equal((await t.m.repo.getSub(U))!.status, 'past_due')
+    const r = await B.startCheckout(t.d, { userId: U, email: null, plan: 'start', autoRenew: false, via: 'any', ip: null })
+    assert.ok(r.ok)
+    const s = (await t.m.repo.getSub(U))!; assert.equal(s.next_charge_at, null); assert.equal(s.auto_renew, false)
+    t.at('2026-12-18T10:00:00Z'); await B.runBilling(t.d)
+    assert.equal(t.f.calls.filter(c => c.body?.payment_method_id).length, 1, 'повтора нет')
+  }
+  {
+    // 13.9 цены из lib/pricing.ts
+    const { PLANS } = await import('../lib/pricing')
+    for (const code of ['start', 'practice'] as const) assert.equal(B.PAID_PLANS[code].price, PLANS.find(p => p.dbCodes[0] === code)!.price)
   }
   console.log('test-oplata: все сценарии прошли')
 })()

@@ -464,8 +464,8 @@ export default function MakeFlow() {
               <p className="text-[17px] leading-6 font-semibold text-brand-text">{END[materials.kind].title(materials.cap)}</p>
               <p className="mt-1 text-[15px] leading-[22px] text-brand-text-secondary">{END[materials.kind].text}</p>
               {END[materials.kind].note && !me?.paymentsOn && <p className="mt-1 text-[13px] leading-5 text-brand-muted">{END[materials.kind].note}</p>}
-              <button type="button" onClick={() => { track('paywall_view', { where: 'make_limit' }); router.push(me?.paymentsOn ? '/dashboard/oplata?plan=start' : TARIFF_HREF) }}
-                className="mt-3 w-full sm:w-auto h-12 px-5 rounded-2xl bg-brand-accent text-white text-[15px] font-semibold hover:bg-brand-accent-hover cursor-pointer">{me?.paymentsOn ? END.buttonPay : END.button}</button>
+              <button type="button" onClick={() => { track('paywall_view', { where: 'make_limit' }); router.push(me?.paymentsOn && materials.kind === 'trial' ? '/dashboard/oplata?plan=start' : TARIFF_HREF) }}
+                className="mt-3 w-full sm:w-auto h-12 px-5 rounded-2xl bg-brand-accent text-white text-[15px] font-semibold hover:bg-brand-accent-hover cursor-pointer">{me?.paymentsOn && materials.kind === 'trial' ? END.buttonPay : END.button}</button>
             </div>
           </div>
         )}

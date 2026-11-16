@@ -6,8 +6,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminOrNull, notFoundResponse } from '@/lib/admin'
 import { getSupabaseAdmin } from '@/lib/generation/db'
 import { billingDeps } from '@/lib/billing/deps'
-import { refundRemaining, adminExtend, adminDisable } from '@/lib/billing/core'
-import { ykConfigured } from '@/lib/billing/yookassa'
+import { refundPayment, adminExtend, adminDisable, disableAutoRenew } from '@/lib/billing/core'
+import { billingReady } from '@/lib/billing/ready'
 import { errTag } from '@/lib/safe-error'
 import { publicOrigin } from '@/lib/origin'
 
@@ -17,13 +17,13 @@ export async function GET() {
   if (!(await adminOrNull())) return notFoundResponse()
   const db = getSupabaseAdmin()
   const [p, r] = await Promise.all([
-    db.from('payments').select('id, user_id, email, kind, plan_code, amount, status, method_type, attempt, cancellation_reason, receipt_status, receipt_url, paid_at, period_start, period_end, created_at').order('created_at', { ascending: false }).limit(300),
+    db.from('payments').select('id, user_id, email, kind, plan_code, amount, status, method_type, attempt, cancellation_reason, receipt_status, receipt_url, paid_at, period_start, period_end, note, created_at').order('created_at', { ascending: false }).limit(300),
     db.from('refunds').select('id, payment_id, amount, days_left, days_total, status, created_at').order('created_at', { ascending: false }).limit(100),
   ])
   if (p.error || r.error) return NextResponse.json({ error: 'need_migration' }, { status: 200 })
   const ids = [...new Set((p.data || []).map(x => x.user_id).filter(Boolean))] as string[]
   const subs = ids.length ? (await db.from('user_subscription').select('user_id, status, auto_renew, period_end, next_charge_at, plans(code)').in('user_id', ids)).data || [] : []
-  return NextResponse.json({ payments: p.data, refunds: r.data, subs, ready: ykConfigured() })
+  return NextResponse.json({ payments: p.data, refunds: r.data, subs, ready: billingReady() })
 }
 
 export async function POST(req: NextRequest) {
@@ -36,8 +36,10 @@ export async function POST(req: NextRequest) {
   const d = billingDeps()
   try {
     if (action === 'refund') {
-      if (!UUID.test(userId)) return NextResponse.json({ error: 'bad_user' }, { status: 400 })
-      const r = await refundRemaining(d, userId)
+      // возврат по конкретному платежу (кнопка на его строке), в том числе удаленного человека
+      const pid = String(b?.paymentId || '')
+      if (!UUID.test(pid)) return NextResponse.json({ error: 'bad_payment' }, { status: 400 })
+      const r = await refundPayment(d, pid)
       console.info('admin pay:', action, r.ok ? 'ok' : r.error)
       return NextResponse.json(r)
     }
@@ -46,6 +48,13 @@ export async function POST(req: NextRequest) {
       const r = await adminExtend(d, userId, Number(b?.days), String(b?.plan || ''))
       console.info('admin pay:', action, r)
       return NextResponse.json({ ok: r === 'ok' })
+    }
+    if (action === 'autorenew_off') {
+      // оферта: подписку отключают и письмом, доступ остается до конца оплаченного месяца
+      if (!UUID.test(userId)) return NextResponse.json({ error: 'bad_user' }, { status: 400 })
+      const r = await disableAutoRenew(d, userId)
+      console.info('admin pay:', action, r)
+      return NextResponse.json({ ok: true, result: r })
     }
     if (action === 'disable') {
       if (!UUID.test(userId)) return NextResponse.json({ error: 'bad_user' }, { status: 400 })

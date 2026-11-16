@@ -74,6 +74,8 @@ create table if not exists public.payments (
   receipt_status text not null default 'none' check (receipt_status in ('none', 'need', 'done', 'annul_need', 'annulled')),
   receipt_url text null check (receipt_url is null or receipt_url ~ '^https://'),
   paid_at timestamptz null,
+  confirmation_url text null check (confirmation_url is null or confirmation_url ~ '^https://'),  -- свежий неоплаченный платеж отдаем снова
+  note text null check (note is null or length(note) <= 200),  -- пометки: via:sbp, anchor:17, nosave, double, refund_due, check
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

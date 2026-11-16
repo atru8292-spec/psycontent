@@ -6,7 +6,7 @@
 // считается на сервере, lib/billing/period.ts), продлить на N дней, выключить тариф. Почты видит только Арина.
 import { useEffect, useMemo, useState } from 'react'
 
-type Pay = { id: string; user_id: string | null; email: string | null; kind: string; plan_code: string; amount: number; status: string; method_type: string | null; attempt: number; cancellation_reason: string | null; receipt_status: string; receipt_url: string | null; paid_at: string | null; period_start: string | null; period_end: string | null; created_at: string }
+type Pay = { note?: string | null; id: string; user_id: string | null; email: string | null; kind: string; plan_code: string; amount: number; status: string; method_type: string | null; attempt: number; cancellation_reason: string | null; receipt_status: string; receipt_url: string | null; paid_at: string | null; period_start: string | null; period_end: string | null; created_at: string }
 type Ref = { id: string; payment_id: string; amount: number; days_left: number; days_total: number; status: string; created_at: string }
 type Data = { payments?: Pay[]; refunds?: Ref[]; subs?: any[]; ready?: boolean; error?: string }
 
@@ -72,6 +72,7 @@ export default function AdminPay() {
                   <td className="px-3 py-2">{STATUS[p.status] || p.status}{p.cancellation_reason && <div className="text-brand-muted">{p.cancellation_reason}</div>}</td>
                   <td className="px-3 py-2 whitespace-nowrap">{p.period_end ? `до ${dt(p.period_end)}` : ''}{sub && <div className="text-brand-muted">{sub.status}{sub.auto_renew ? ', авто' : ''}</div>}</td>
                   <td className="px-3 py-2 min-w-[200px]">
+                    {/refunded:([\d.]+)/.test(p.note || '') && <div className="text-[12px] text-brand-text">возврат {(p.note || '').match(/refunded:([\d.]+)/)![1]} ₽: чек на {(Number(p.amount) - Number((p.note || '').match(/refunded:([\d.]+)/)![1])).toLocaleString('ru-RU')} ₽</div>}
                     <div>{RECEIPT[p.receipt_status] || p.receipt_status}{p.receipt_url && <> · <a href={p.receipt_url} target="_blank" rel="noopener" className="underline">чек</a></>}</div>
                     {p.receipt_status === 'need' && (
                       <div className="mt-1 flex gap-1">
@@ -82,9 +83,15 @@ export default function AdminPay() {
                     {p.receipt_status === 'annul_need' && <button type="button" disabled={busy} onClick={() => post({ action: 'receipt', paymentId: p.id, status: 'annulled' })} className={`mt-1 ${btn}`}>Аннулировала</button>}
                   </td>
                   <td className="px-3 py-2">
-                    {p.user_id && p.status === 'succeeded' && (
+                    {/(refund_due|check)/.test(p.note || '') && <div className="mb-1 text-[12px] font-semibold text-brand-text">{(p.note || '').includes('check') ? 'проверить в ЮKassa' : (p.note || '').includes('double') ? 'двойная оплата: вернуть' : 'вернуть: аккаунт удален'}</div>}
+                    {p.status === 'succeeded' && (
                       <div className="flex flex-col gap-1 min-w-[96px]">
-                        <button type="button" disabled={busy} onClick={() => post({ action: 'refund', userId: p.user_id }, 'Вернуть деньги за оставшиеся дни и выключить тариф сейчас?')} className={btn}>Возврат</button>
+                        <button type="button" disabled={busy} onClick={() => post({ action: 'refund', paymentId: p.id }, p.user_id ? 'Вернуть деньги за оставшиеся дни этого платежа и выключить тариф сейчас?' : 'Вернуть всю сумму этого платежа?')} className={btn}>Возврат</button>
+                      </div>
+                    )}
+                    {p.user_id && p.status === 'succeeded' && (
+                      <div className="mt-1 flex flex-col gap-1 min-w-[96px]">
+                        <button type="button" disabled={busy} onClick={() => post({ action: 'autorenew_off', userId: p.user_id })} className={btn}>Без автопродления</button>
                         <button type="button" disabled={busy} onClick={() => { const n = Number(window.prompt('Продлить на сколько дней?', '7')); if (n) post({ action: 'extend', userId: p.user_id, days: n, plan: p.plan_code }) }} className={btn}>Продлить</button>
                         <button type="button" disabled={busy} onClick={() => post({ action: 'disable', userId: p.user_id }, 'Выключить тариф сейчас, без возврата?')} className={btn}>Выключить</button>
                       </div>

@@ -67,7 +67,7 @@ export default function TariffSection({ currentCode, paymentsOn = false }: { cur
                   <span className="block w-full text-center text-sm font-semibold text-brand-accent bg-brand-card border border-brand-accent/30 rounded-2xl py-2.5">
                     Ты здесь
                   </span>
-                ) : plan.price > 0 ? (
+                ) : plan.price > 0 && !(paymentsOn && current && current.price > 0) ? (
                   <button
                     type="button"
                     onClick={() => { track('plan_click', { plan: plan.dbCodes[0] || plan.id }); if (paymentsOn) window.location.assign(`/dashboard/oplata?plan=${plan.dbCodes[0] === 'practice' ? 'practice' : 'start'}`); else setPicked(plan) }}

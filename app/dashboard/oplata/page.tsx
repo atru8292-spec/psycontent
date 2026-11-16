@@ -9,11 +9,10 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, Check, Loader2 } from 'lucide-react'
 import { PAY, rubles, dateRu } from '@/lib/billing/pay-texts'
-import { consentText, PAID_PLANS, type PaidCode } from '@/lib/billing/core'
+import { consentText, PAID_PLANS, type PaidCode } from '@/lib/billing/plans'
 import { track } from '@/lib/track'
 
 type Me = { payments: boolean; paid: boolean; plan: { name: string } | null; until: string | null }
-const PLAN_MATERIALS: Record<PaidCode, number> = { start: 50, practice: 150 }
 
 function Oplata() {
   const router = useRouter()
@@ -42,6 +41,7 @@ function Oplata() {
     try {
       const r = await fetch('/api/pay/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan, autoRenew: agree, via }) })
       const d = await r.json().catch(() => ({}))
+      if (r.status === 429) { setError(true); setBusy(null); return }
       if (r.status === 409) { setMe(m => (m ? { ...m, paid: true } : m)); setBusy(null); fetch('/api/pay/me', { cache: 'no-store' }).then(x => x.json()).then(setMe).catch(() => {}); return }
       if (!r.ok || typeof d?.url !== 'string' || !d.url.startsWith('https://')) throw new Error()
       window.location.assign(d.url)
@@ -108,7 +108,7 @@ function Oplata() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[16px] font-semibold text-brand-text">{pl.name}</span>
-                  <span className="block text-[13px] text-brand-muted">{PLAN_MATERIALS[code]} материалов в месяц</span>
+                  <span className="block text-[13px] text-brand-muted">{pl.materials} материалов в месяц</span>
                 </span>
                 <span className="text-right shrink-0">
                   <span className="block text-[16px] font-semibold text-brand-text tabular-nums">{rubles(pl.price)}</span>

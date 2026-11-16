@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { timingSafeEqual } from 'node:crypto'
 import { billingDeps } from '@/lib/billing/deps'
 import { runBilling } from '@/lib/billing/core'
-import { ykConfigured } from '@/lib/billing/yookassa'
+import { billingReady } from '@/lib/billing/ready'
 import { errTag } from '@/lib/safe-error'
 
 function secretOk(got: string | null): boolean {
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   // через nginx пришло, если есть X-Real-IP (его ставит только nginx). X-Forwarded-For не признак: Next добавляет его сам
   if (req.headers.get('x-real-ip')) return new NextResponse('Not found', { status: 404 })
   if (!secretOk(req.headers.get('x-cron-secret'))) return new NextResponse('Not found', { status: 404 })
-  if (!ykConfigured()) return NextResponse.json({ skipped: 'not_ready' })
+  if (!billingReady()) return NextResponse.json({ skipped: 'not_ready' })
   try {
     const r = await runBilling(billingDeps())
     console.info('billing run:', JSON.stringify(r))

@@ -7,22 +7,30 @@ import type { YkClient, YkPayment, YkRefund } from './yookassa'
 let seq = 0
 const uid = () => `00000000-0000-4000-8000-${String(++seq).padStart(12, '0')}`
 
-export function memoryRepo(emails: Record<string, string> = {}) {
+export function memoryRepo(emails: Record<string, string> = {}, clock: () => Date = () => new Date()) {
+  const clockIso = () => clock().toISOString()
   const subs = new Map<string, SubRow>()
   const payments: PaymentRow[] = []
   const methods: MethodRow[] = []
   const consents: any[] = []
   const events = new Map<string, { processed: boolean; result?: string }>()
   const refunds: any[] = []
+  const fail = { applySub: false }
   const repo: Repo = {
     async getSub(u) { return subs.get(u) ? { ...subs.get(u)! } : null },
     async updateSub(u, patch) {
+      if (fail.applySub && 'period_start' in patch) throw Object.assign(new Error('db'), { code: 'db_sub_update_test' })
       const cur = subs.get(u) || { user_id: u, plan_code: 'free', status: 'trial', period_start: null, period_end: null, auto_renew: false, payment_method_id: null, next_charge_at: null, retry_count: 0, reminder_sent_for: null, billing_anchor_day: null } as SubRow
       subs.set(u, { ...cur, ...patch } as SubRow)
     },
+    async upsertSub(u, patch) { await repo.updateSub(u, patch) },
+    async setWindowOnce(id, patch) { const p = payments.find(x => x.id === id); if (!p || p.period_start) return null; Object.assign(p, patch); return { ...p } },
+    async recentPayments(u, since) { return payments.filter(p => p.user_id === u && p.created_at >= since).map(p => ({ ...p })) },
+    async markReminded(u, at) { const s = subs.get(u); if (!s || s.reminder_sent_for === at) return false; s.reminder_sent_for = at; return true },
+    async getRefundByPayment(pid) { const r = refunds.find(x => x.payment_id === pid); return r ? { ...r } : null },
     async insertPayment(row) {
       if (payments.some(p => p.idempotence_key === row.idempotence_key)) throw new Error('unique')
-      const p: PaymentRow = { ...row, id: uid(), created_at: new Date().toISOString(), yk_payment_id: null, status: 'pending', period_start: null, period_end: null, payment_method_id: null, receipt_status: 'none' }
+      const p: PaymentRow = { ...row, id: uid(), created_at: clockIso(), yk_payment_id: null, status: 'pending', period_start: null, period_end: null, payment_method_id: null, receipt_status: 'none', confirmation_url: null }
       payments.push(p); return { ...p }
     },
     async getPaymentByKey(k) { const p = payments.find(x => x.idempotence_key === k); return p ? { ...p } : null },
@@ -53,7 +61,7 @@ export function memoryRepo(emails: Record<string, string> = {}) {
     async getRefundByYk(y) { const r = refunds.find(x => x.yk_refund_id === y); return r ? { id: r.id, payment_id: r.payment_id, status: r.status } : null },
     async userEmail(u) { return emails[u] ?? null },
   }
-  return { repo, subs, payments, methods, consents, events, refunds }
+  return { repo, subs, payments, methods, consents, events, refunds, fail }
 }
 
 // Фальшивая ЮKassa. mode управляет исходом: чем закончится платеж на странице оплаты и автоплатеж
@@ -62,13 +70,15 @@ export function fakeYooKassa() {
   const byKey = new Map<string, string>()
   const refunds = new Map<string, YkRefund>()
   const calls: { method: string; body?: any; key?: string }[] = []
-  const state = { autopay: 'succeeded' as 'succeeded' | 'canceled', autopayReason: 'insufficient_funds', fail: false }
+  const state = { autopay: 'succeeded' as 'succeeded' | 'canceled', autopayReason: 'insufficient_funds', fail: false, recurringForbidden: false, refundFail: false }
   let n = 0
   const pid = () => `2f${Date.now().toString(16)}-000f-5000-8000-${String(++n).padStart(12, '0')}`
   const yk: YkClient = {
     async createPayment(body, key) {
       calls.push({ method: 'createPayment', body, key })
       if (state.fail) throw Object.assign(new Error('x'), { code: 'yookassa_500' })
+      // магазину не включены автоплатежи: так ответил тестовый магазин 1532988 17.11 на save_payment_method
+      if (state.recurringForbidden && body.save_payment_method) throw Object.assign(new Error('x'), { code: 'yookassa_403_forbidden' })
       if (byKey.has(key)) return { ...store.get(byKey.get(key)!)! }
       const id = pid()
       const auto = !!body.payment_method_id
@@ -84,7 +94,7 @@ export function fakeYooKassa() {
     async getPayment(id) { calls.push({ method: 'getPayment' }); const p = store.get(id); if (!p) throw Object.assign(new Error('x'), { code: 'yookassa_404' }); return JSON.parse(JSON.stringify(p)) },
     async createRefund(body, key) {
       calls.push({ method: 'createRefund', body, key })
-      if (state.fail) throw Object.assign(new Error('x'), { code: 'yookassa_500' })
+      if (state.fail || state.refundFail) throw Object.assign(new Error('x'), { code: 'yookassa_500' })
       const r: YkRefund = { id: `rf-${++n}`, payment_id: String(body.payment_id), status: 'succeeded', amount: body.amount as any }
       refunds.set(r.id, r); return { ...r }
     },

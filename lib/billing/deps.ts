@@ -22,16 +22,41 @@ async function planIdMap(): Promise<Map<string, string>> {
 
 const SUB_COLS = 'user_id, status, period_start, period_end, auto_renew, payment_method_id, next_charge_at, retry_count, reminder_sent_for, billing_anchor_day, plans(code)'
 const toSub = (r: any): SubRow => ({ ...r, plan_code: r.plans?.code || 'free', plans: undefined })
-const PAY_COLS = 'id, user_id, email, yk_payment_id, kind, plan_code, amount, status, save_requested, idempotence_key, attempt, period_start, period_end, created_at, payment_method_id, receipt_status'
+const PAY_COLS = 'id, user_id, email, yk_payment_id, kind, plan_code, amount, status, save_requested, idempotence_key, attempt, period_start, period_end, created_at, payment_method_id, receipt_status, confirmation_url, note'
 const toPay = (r: any): PaymentRow => ({ ...r, amount: Number(r.amount) })
+
+async function subRow(patch: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const { plan_code, ...rest } = patch as any
+  const row: Record<string, unknown> = { ...rest, updated_at: new Date().toISOString() }
+  if (plan_code) { const id = (await planIdMap()).get(plan_code); if (!id) throw Object.assign(new Error('plan'), { code: 'db_no_plan' }); row.plan_id = id }
+  return row
+}
 
 export const supabaseRepo: Repo = {
   async getSub(u) { const r = must(await db().from('user_subscription').select(SUB_COLS).eq('user_id', u).maybeSingle(), 'sub_get'); return r ? toSub(r) : null },
   async updateSub(u, patch) {
-    const { plan_code, ...rest } = patch as any
-    const row: Record<string, unknown> = { ...rest, updated_at: new Date().toISOString() }
-    if (plan_code) { const id = (await planIdMap()).get(plan_code); if (!id) throw Object.assign(new Error('plan'), { code: 'db_no_plan' }); row.plan_id = id }
-    must(await db().from('user_subscription').update(row).eq('user_id', u), 'sub_update')
+    const r = must(await db().from('user_subscription').update(await subRow(patch)).eq('user_id', u).select('user_id'), 'sub_update') as any[]
+    // строки подписки нет (триггер регистрации мог не отработать): не молчим, ревью 17.11
+    if (!r?.length) throw Object.assign(new Error('sub'), { code: 'db_sub_missing' })
+  },
+  async upsertSub(u, patch) {
+    must(await db().from('user_subscription').upsert({ user_id: u, ...(await subRow(patch)) }, { onConflict: 'user_id' }), 'sub_upsert')
+  },
+  async setWindowOnce(id, patch) {
+    const r = must(await db().from('payments').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).is('period_start', null).select(PAY_COLS), 'pay_window') as any[]
+    return r?.length ? toPay(r[0]) : null
+  },
+  async recentPayments(u, since) {
+    const r = must(await db().from('payments').select(PAY_COLS).eq('user_id', u).gte('created_at', since).order('created_at', { ascending: false }).limit(50), 'pay_recent') as any[]
+    return r.map(toPay)
+  },
+  async markReminded(u, at) {
+    const r = must(await db().from('user_subscription').update({ reminder_sent_for: at, updated_at: new Date().toISOString() }).eq('user_id', u).or(`reminder_sent_for.is.null,reminder_sent_for.neq."${at}"`).select('user_id'), 'remind_mark') as any[]
+    return !!r?.length
+  },
+  async getRefundByPayment(pid) {
+    const r = must(await db().from('refunds').select('id, status, yk_refund_id, amount, days_left, days_total').eq('payment_id', pid).order('created_at', { ascending: false }).limit(1), 'refund_pay') as any[]
+    return r?.length ? { ...r[0], amount: Number(r[0].amount) } : null
   },
   async insertPayment(row) { return toPay(must(await db().from('payments').insert(row).select(PAY_COLS).single(), 'pay_insert')) },
   async getPaymentByKey(k) { const r = must(await db().from('payments').select(PAY_COLS).eq('idempotence_key', k).maybeSingle(), 'pay_key'); return r ? toPay(r) : null },
@@ -93,6 +118,7 @@ export function billingDeps(): Deps {
     repo: supabaseRepo,
     yk: httpYk(),
     mail: (kind, to, data) => sendPayMail(kind, to, data, SITE),
+    log: (m) => console.warn(m),
     track: (u, e, p) => serverTrack(u, e, p),
     siteUrl: SITE,
     offerVersion: CONSENT_VERSION,

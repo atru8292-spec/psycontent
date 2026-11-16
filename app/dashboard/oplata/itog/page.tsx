@@ -9,7 +9,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { ITOG, reasonText, rubles, dateRu } from '@/lib/billing/pay-texts'
-import { PAID_PLANS, isPaidCode } from '@/lib/billing/core'
+import { PAID_PLANS, isPaidCode } from '@/lib/billing/plans'
 import { track } from '@/lib/track'
 import { useDashboardMe } from '@/lib/dashboard-me'
 
