@@ -49,6 +49,42 @@ function shrinkImage(file: File, max = 1280): Promise<string> {
 
 const ICON: Record<string, any> = { reels: Film, carousel: Layers, post: AlignLeft, post_tg: Send, stories: Smartphone }
 const TOAST_KEY = 'psycont_saved_toast_groups'
+// Идущий запуск (16.11): страница обновилась или вкладка перезагрузилась, а сервер дописывает и сохраняет сам.
+// После загрузки показываем «доделываю» и подтягиваем готовое из базы, чтобы человек не запускал второй раз.
+const RUN_KEY = 'psycont_make_running'
+const RUN_WAIT_MS = 4 * 60 * 1000
+const RUN_POLL_MS = 4000
+const RESUME_LINE = 'Страница обновилась, а текст пишется дальше. Он появится здесь и в «Моих текстах»'
+type RunMark = { t: number; formats: MakeFormat[]; thought: string }
+function readRun(): RunMark | null {
+  try {
+    const r = JSON.parse(sessionStorage.getItem(RUN_KEY) || 'null')
+    if (!r || typeof r.t !== 'number' || !Array.isArray(r.formats) || !r.formats.length) return null
+    if (Date.now() - r.t > RUN_WAIT_MS) { sessionStorage.removeItem(RUN_KEY); return null }
+    const formats = r.formats.filter((f: string) => MAKE_FORMATS.some(m => m.id === f)) as MakeFormat[]
+    return formats.length ? { t: r.t, formats, thought: String(r.thought || '').slice(0, 200) } : null
+  } catch { return null }
+}
+// страница уходит (обновление, закрытие): оборванный поток не должен стереть отметку запуска в finally
+let pageLeaving = false
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', () => { pageLeaving = true })
+  window.addEventListener('pageshow', () => { pageLeaving = false })
+}
+function markRun(r: RunMark | null) {
+  if (!r && pageLeaving) return
+  try { if (r) sessionStorage.setItem(RUN_KEY, JSON.stringify(r)); else sessionStorage.removeItem(RUN_KEY) } catch {}
+}
+
+// Строка generated_posts в карточку результата (открытие из «Моих текстов» и продолжение после обновления)
+function rowToItem(r: any): Item {
+  return {
+    format: toMakeFormat(String(r.format || 'post')), code: String(r.format || 'post'), postId: r.id,
+    text: String(r.content || ''), baseline: String(r.content || ''), publishedAt: r.published_at || null, status: 'ready',
+    ...(typeof r.check_result?.zh4?.zh6?.formatName === 'string' ? { formatName: String(r.check_result.zh4.zh6.formatName).slice(0, 120) } : {}),
+    ...(typeof r.check_result?.zh4?.zh6?.ustr === 'string' ? { vid: String(r.check_result.zh4.zh6.ustr).slice(0, 40) } : {}),
+  }
+}
 
 // Ответ сервера человеческими словами: что случилось и что сохранилось
 function friendly(code?: string, message?: string): string {
@@ -165,12 +201,7 @@ export default function MakeFlow() {
         if (g.data?.length) rows = g.data
       }
       if (!on) return
-      const list: Item[] = rows.map(r => ({
-        format: toMakeFormat(String(r.format || 'post')), code: String(r.format || 'post'), postId: r.id,
-        text: String(r.content || ''), baseline: String(r.content || ''), publishedAt: r.published_at || null, status: 'ready',
-        ...(typeof r.check_result?.zh4?.zh6?.formatName === 'string' ? { formatName: String(r.check_result.zh4.zh6.formatName).slice(0, 120) } : {}),
-        ...(typeof r.check_result?.zh4?.zh6?.ustr === 'string' ? { vid: String(r.check_result.zh4.zh6.ustr).slice(0, 40) } : {}),
-      }))
+      const list: Item[] = rows.map(rowToItem)
       setItems(list)
       setGroupId(one.data.group_id || null)
       setThought(String(one.data.core?.thought || one.data.topic || ''))
@@ -179,6 +210,53 @@ export default function MakeFlow() {
       setActive(idx)
       setView('result')
     })()
+    return () => { on = false }
+  }, [params])
+
+  // Продолжение после обновления страницы: запуск еще идет на сервере. Ждем строки в базе не дольше RUN_WAIT_MS
+  // от старта; готовое открываем как из «Моих текстов». Не трогаем, если открыт конкретный текст (?post=)
+  const [resumed, setResumed] = useState(false)
+  useEffect(() => {
+    if (params.get('post')) return
+    const run = readRun()
+    if (!run) return
+    let on = true
+    setResumed(true)
+    setThought(run.thought)
+    setItems(run.formats.map(f => ({ format: f, code: f, postId: null, text: '', baseline: '', publishedAt: null, status: 'pending' as const })))
+    setActive(0)
+    setView('progress')
+    track('feature_open', { feature: 'make_resume' })
+    const since = new Date(run.t - 30000).toISOString() // запас на расхождение часов телефона и сервера
+    const finish = (rows: any[]) => {
+      markRun(null)
+      if (!on) return
+      setResumed(false)
+      if (!rows.length) {
+        setItems([]); setView('compose')
+        setError('Текст еще не появился. Загляни в «Мои тексты» через пару минут: если он дописался, он там.')
+        return
+      }
+      setItems(rows.map(rowToItem)); setGroupId(rows[0].group_id || null); setActive(0); setView('result')
+    }
+    const tick = async () => {
+      if (!on) return
+      if (!readRun()) { setResumed(false); return } // «Назад» снял отметку: больше не ждем
+      const { data } = await supabase.from('generated_posts').select('*').gte('created_at', since)
+        .not('format', 'eq', 'hooks').order('created_at', { ascending: true })
+      if (!on) return
+      const all = Array.isArray(data) ? data : []
+      const gid = all.find(r => r.group_id)?.group_id
+      const rows = gid ? all.filter(r => r.group_id === gid) : all
+      if (rows.length) setItems(prev => prev.map(x => {
+        const r = rows.find(row => toMakeFormat(String(row.format || 'post')) === x.format)
+        return r && x.status === 'pending' ? rowToItem(r) : x
+      }))
+      const late = Date.now() - run.t > RUN_WAIT_MS
+      if (rows.length >= run.formats.length || late) { finish(rows); return }
+      window.setTimeout(tick, RUN_POLL_MS)
+    }
+    tick()
     return () => { on = false }
   }, [params])
 
@@ -198,6 +276,8 @@ export default function MakeFlow() {
     let opened = append
     const ac = new AbortController()
     abortRef.current = ac
+    // запуск идет: если страница обновится, после загрузки покажем «доделываю» (RUN_KEY). «Еще формат» не метим
+    if (!append) markRun({ t: Date.now(), formats, thought: String(body.topic || '').slice(0, 200) })
     try {
       const res = await fetch('/api/generate-post/group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, formats }), signal: ac.signal })
       if (!res.ok || !res.body) {
@@ -269,6 +349,8 @@ export default function MakeFlow() {
       else if (!append) { setItems(prev => prev.map(x => x.status === 'pending' ? { ...x, status: 'failed', error: msg } : x)) }
       else { setItems(prev => prev.map(x => x.status === 'pending' ? { ...x, status: 'failed', error: msg } : x)) }
     } finally {
+      // поток закончился здесь же (готово, сбой или «Назад»): ждать после обновления нечего
+      if (!append) markRun(null)
       if (abortRef.current === ac) { abortRef.current = null; setBusy(false) }
     }
   }, [router])
@@ -337,6 +419,7 @@ export default function MakeFlow() {
 
 
   const backToCompose = () => {
+    markRun(null); setResumed(false)
     abortRef.current?.abort(); abortRef.current = null; setBusy(false)
     setView('compose'); setItems([]); setThought(''); setGroupId(null); setSampleInfo(null); setAskSampleText(false); setRestoreText('')
     setComposerKey(k => k + 1); router.replace('/dashboard/make')
@@ -369,7 +452,8 @@ export default function MakeFlow() {
         <button type="button" onClick={backToCompose} className="h-11 -ml-2 pl-1 pr-2 inline-flex items-center text-[15px] text-brand-text-secondary cursor-pointer">
           <ChevronLeft className="w-5 h-5" />Назад
         </button>
-        <h1 className="text-[22px] leading-7 font-semibold text-brand-text">Делаю {items.length} {pluralMaterial(items.length)}</h1>
+        <h1 className="text-[22px] leading-7 font-semibold text-brand-text">{resumed ? 'Доделываю' : 'Делаю'} {items.length} {pluralMaterial(items.length)}</h1>
+        {resumed && <p className="mt-1 text-[15px] leading-[22px] text-brand-text-secondary">{RESUME_LINE}</p>}
         <ul aria-live="polite" className="mt-4 divide-y divide-brand-border rounded-2xl bg-brand-card border border-brand-border">
           {items.map(x => {
             const Icon = ICON[x.format] || AlignLeft
