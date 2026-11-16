@@ -2,7 +2,12 @@
 // адрес API YOOKASSA_API_URL (по умолчанию боевой https://api.yookassa.ru/v3; для проверок заглушка на 127.0.0.1).
 // Каждый POST с заголовком Idempotence-Key: повтор с тем же ключом в течение суток вернет тот же объект, второго
 // списания не будет. Ошибки только кодом (lib/safe-error.ts): yookassa_<статус>_<code из ответа>, текст ответа не пишем.
+import { createHash } from 'node:crypto'
 import { CodedError } from '@/lib/safe-error'
+
+// Idempotence-Key у ЮKassa не длиннее 64 знаков (тестовый магазин 17.11 отклонял наши first:<id>:<uuid>).
+// Длинный ключ отправляем хешем sha256: тот же ключ дает тот же хеш, повтор по-прежнему возвращает тот же объект.
+export const ykIdemKey = (k: string) => (k.length <= 64 ? k : createHash('sha256').update(k).digest('hex'))
 
 export type YkAmount = { value: string; currency: 'RUB' }
 export type YkPaymentMethod = {
@@ -51,7 +56,7 @@ export function httpYk(): YkClient {
     if (!/^\/[a-z_]+(\/[A-Za-z0-9_-]{1,80})?$/.test(path)) throw new CodedError('yookassa_bad_path')
     const r = await fetch(base + path, {
       method,
-      headers: { Authorization: auth, 'Content-Type': 'application/json', ...(idem ? { 'Idempotence-Key': idem } : {}) },
+      headers: { Authorization: auth, 'Content-Type': 'application/json', ...(idem ? { 'Idempotence-Key': ykIdemKey(idem) } : {}) },
       body: body ? JSON.stringify(body) : undefined,
       signal: AbortSignal.timeout(20000),
     })

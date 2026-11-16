@@ -6,6 +6,7 @@ import { memoryRepo, fakeYooKassa } from '../lib/billing/memory'
 import * as B from '../lib/billing/core'
 import { addMonthAnchored, refundByDays, anchorDayOf } from '../lib/billing/period'
 import { isYooKassaIp } from '../lib/billing/ip'
+import { ykIdemKey } from '../lib/billing/yookassa'
 
 const U = 'u-1', U2 = 'u-2'
 const YK_IP = '185.71.76.10', BAD_IP = '8.8.8.8'
@@ -31,6 +32,10 @@ function setup(start = '2026-11-17T09:00:00Z') {
   const rf = refundByDays(1290, new Date('2026-11-17T09:00:00Z'), new Date('2026-12-17T09:00:00Z'), new Date('2026-11-27T12:00:00Z'))
   assert.deepEqual(rf, { amount: 817, daysLeft: 19, daysTotal: 30 }, '1290/30*19: оплачено 17.11-16.12, после просьбы 27.11 остались 28.11-16.12')
   assert.equal(refundByDays(2490, new Date('2026-11-17T09:00:00Z'), new Date('2026-12-17T09:00:00Z'), new Date('2026-12-16T12:00:00Z')).amount, 0, 'в последний день возвращать нечего')
+
+  // ── ключ идемпотентности не длиннее 64 знаков и стабилен ──
+  const longKey = 'renew:00000000-0000-4000-8000-000000000001:2026-12-17T09:00:00.000Z:1'
+  assert.ok(longKey.length > 64 && ykIdemKey(longKey).length === 64 && ykIdemKey(longKey) === ykIdemKey(longKey) && ykIdemKey('short') === 'short')
 
   // ── адреса ЮKassa ──
   for (const ip of ['185.71.76.0', '185.71.76.31', '185.71.77.5', '77.75.153.127', '77.75.156.11', '77.75.156.35', '77.75.154.200', '2a02:5180::1', '2a02:5180:0:1::5', '::ffff:185.71.76.10']) assert.ok(isYooKassaIp(ip), ip)
