@@ -9,6 +9,8 @@ import { deleteAccount, cleanReasons } from '@/lib/account-delete'
 import { sanitizeProps } from '@/lib/analytics/sanitize'
 import { errTag } from '@/lib/safe-error'
 import { publicOrigin } from '@/lib/origin'
+import { billingDeps } from '@/lib/billing/deps'
+import { cancelBillingForDeletion } from '@/lib/billing/core'
 
 export async function POST(req: NextRequest) {
   const user = await getSessionUser()
@@ -20,6 +22,15 @@ export async function POST(req: NextRequest) {
 
   const db = getSupabaseAdmin()
   const res = await deleteAccount(user.id, cleanReasons(body?.reasons), {
+    cancelBilling: async (id) => {
+      // таблиц оплаты еще нет (миграция не применена): пропускаем, иначе удаление сломалось бы
+      const probe = await db.from('payments').select('id', { head: true, count: 'exact' }).eq('user_id', id)
+      if (probe.error && /relation|does not exist|42P01|PGRST205/i.test(`${probe.error.code} ${probe.error.message}`)) return
+      if (probe.error) throw probe.error
+      await cancelBillingForDeletion(billingDeps(), id)
+      const { error } = await db.from('payments').update({ email: null }).eq('user_id', id)
+      if (error) throw error
+    },
     listPhotos: async (id) => {
       const { data, error } = await db.storage.from(PHOTO_BUCKET).list(id, { limit: 1000 })
       if (error) throw error

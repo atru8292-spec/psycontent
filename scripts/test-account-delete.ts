@@ -41,6 +41,14 @@ function make(opts: { photos?: string[]; removeFails?: boolean; userFails?: bool
   t = make({ userFails: true }); r = await deleteAccount(ID, [], t.deps)
   assert.deepEqual(r, { ok: false, step: 'user' })
 
+  // 4б. оплата: гасится первой; если не вышло, аккаунт и фото не трогаем
+  { const t = make({ photos: [`${ID}/a.jpg`] }); const order: string[] = []
+    t.deps.cancelBilling = async () => { order.push('billing') }
+    const orig = t.deps.listPhotos; t.deps.listPhotos = async (u) => { order.push('photos'); return orig(u) }
+    assert.deepEqual(await deleteAccount(ID, [], t.deps), { ok: true, photos: 1 }); assert.equal(order[0], 'billing') }
+  { const t = make({ photos: [`${ID}/a.jpg`] }); t.deps.cancelBilling = async () => { throw new Error('db') }
+    assert.deepEqual(await deleteAccount(ID, [], t.deps), { ok: false, step: 'billing' }); assert.ok(!t.log.includes('user') && !t.log.some(x => x.startsWith('remove'))) }
+
   // 5. причины только из словаря
   assert.deepEqual(cleanReasons(['dorogo', 'dorogo', 'Мария Иванова', 5, 'drugoe']), ['dorogo', 'drugoe'])
   assert.deepEqual(cleanReasons('dorogo'), [])

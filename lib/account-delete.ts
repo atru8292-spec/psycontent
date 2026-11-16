@@ -21,11 +21,16 @@ export interface DeleteDeps {
   stats: (userId: string) => Promise<{ days: number; materials: number }>
   logEvent: (props: Record<string, unknown>) => Promise<void> // без user_id, не бросает
   deleteUser: (userId: string) => Promise<void>             // бросает при ошибке
+  // оплата (17.11): выключить автопродление и способы оплаты, стереть почту в платежах (платежи остаются для учета
+  // дохода самозанятой, без связи с человеком). Бросает при ошибке: тогда аккаунт не трогаем
+  cancelBilling?: (userId: string) => Promise<void>
 }
 
-export type DeleteResult = { ok: true; photos: number } | { ok: false; step: 'photos' | 'user' }
+export type DeleteResult = { ok: true; photos: number } | { ok: false; step: 'billing' | 'photos' | 'user' }
 
 export async function deleteAccount(userId: string, reasons: DeleteReason[], deps: DeleteDeps): Promise<DeleteResult> {
+  // 0) подписка: ни одного списания после удаления
+  if (deps.cancelBilling) { try { await deps.cancelBilling(userId) } catch { return { ok: false, step: 'billing' } } }
   let photos: string[]
   try {
     // все файлы человека лежат в папке с его id; чужие пути сюда не попадут

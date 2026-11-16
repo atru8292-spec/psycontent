@@ -1,0 +1,11 @@
+# Раз в час, в начале часа плюс до 5 минут случайно. Persistent: после простоя сервера запуск сразу.
+[Unit]
+Description=PsyCont billing hourly
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=300
+Persistent=true
+
+[Install]
+WantedBy=timers.target
