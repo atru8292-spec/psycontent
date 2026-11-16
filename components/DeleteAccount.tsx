@@ -75,9 +75,9 @@ export default function DeleteAccount() {
 
             <div className="mt-6 flex flex-col-reverse sm:flex-row gap-2">
               <button type="button" disabled={busy} onClick={() => setOpen(false)}
-                className="h-12 flex-1 rounded-2xl bg-brand-accent text-white font-semibold hover:bg-brand-accent-hover transition cursor-pointer">Оставить аккаунт</button>
+                className="h-12 w-full sm:w-auto sm:flex-1 shrink-0 rounded-2xl bg-brand-accent text-white font-semibold hover:bg-brand-accent-hover transition cursor-pointer">Оставить аккаунт</button>
               <button type="button" disabled={busy} onClick={remove}
-                className="h-12 flex-1 rounded-2xl border border-brand-text text-brand-text font-semibold hover:bg-brand-soft transition cursor-pointer inline-flex items-center justify-center gap-2 disabled:opacity-60">
+                className="h-12 w-full sm:w-auto sm:flex-1 shrink-0 rounded-2xl border border-brand-text text-brand-text font-semibold hover:bg-brand-soft transition cursor-pointer inline-flex items-center justify-center gap-2 disabled:opacity-60">
                 {busy && <Loader2 className="w-4 h-4 animate-spin" />}Удалить навсегда
               </button>
             </div>
