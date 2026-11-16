@@ -11,6 +11,7 @@ import { useSearchParams } from 'next/navigation'
 import { ITOG, reasonText, rubles, dateRu } from '@/lib/billing/pay-texts'
 import { PAID_PLANS, isPaidCode } from '@/lib/billing/core'
 import { track } from '@/lib/track'
+import { useDashboardMe } from '@/lib/dashboard-me'
 
 type St = { status: 'pending' | 'waiting_for_capture' | 'succeeded' | 'canceled'; plan: string; amount: number; until: string | null; reason: string | null; saveRequested: boolean; via: string | null; autoRenew: boolean; method: string | null }
 
@@ -22,6 +23,7 @@ function Itog() {
   const [slow, setSlow] = useState(false)
   const started = useRef(Date.now())
   const tracked = useRef(false)
+  const { refresh } = useDashboardMe()
 
   const load = useCallback(async () => {
     if (!/^[0-9a-f-]{36}$/.test(id)) { setLost(true); return null }
@@ -55,8 +57,10 @@ function Itog() {
   useEffect(() => {
     if (tracked.current || state === 'checking') return
     tracked.current = state !== 'timeout'
+    // тариф включился: пилюля остатка в шапке должна показать новый месяц, а не «0 из 10»
+    if (state === 'done') refresh?.()
     track('feature_open', { feature: `pay_itog_${state}` })
-  }, [state])
+  }, [state, refresh])
 
   const planName = st && isPaidCode(st.plan) ? PAID_PLANS[st.plan].name : ''
   const primary = 'w-full h-12 rounded-2xl bg-brand-accent text-white text-[16px] font-semibold hover:bg-brand-accent-hover transition cursor-pointer inline-flex items-center justify-center'
