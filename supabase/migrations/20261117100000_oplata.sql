@@ -128,3 +128,6 @@ revoke insert, update, delete, truncate on public.payment_methods, public.autopa
 revoke all on public.payment_events from authenticated;
 grant select on public.payment_methods, public.autopay_consents, public.payments, public.refunds to authenticated;
 grant all on public.payment_methods, public.autopay_consents, public.payments, public.refunds, public.payment_events to service_role;
+
+-- подписку меняет только сервер: второй замок к RLS (политики на запись и так нет)
+revoke insert, update, delete, truncate on public.user_subscription from anon, authenticated;
