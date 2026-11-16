@@ -235,7 +235,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       </aside>
 
       {/* ─── Основной контент ─── */}
-      <main className={`flex-1 min-w-0 min-h-dvh lg:pb-0 transition-all duration-300 ${newMenu ? 'pb-[calc(56px+env(safe-area-inset-bottom)+16px)]' : 'pb-20'} ${collapsed ? 'lg:ml-[72px]' : 'lg:ml-[240px]'}`}>
+      <main className={`flex-1 min-w-0 min-h-dvh lg:pb-0 transition-all duration-300 ${pathname.startsWith('/dashboard/oplata') ? 'pb-0' : newMenu ? 'pb-[calc(56px+env(safe-area-inset-bottom)+16px)]' : 'pb-20'} ${collapsed ? 'lg:ml-[72px]' : 'lg:ml-[240px]'}`}>
         {/* Мобильная шапка: под вырезом iPhone отступ safe-area */}
         <header className="lg:hidden sticky top-0 z-30 bg-brand-card/90 backdrop-blur border-b border-brand-border h-14 box-content pt-[env(safe-area-inset-top)] flex items-center justify-between px-4">
           <Image
@@ -267,7 +267,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       </main>
 
       {/* ─── Нижняя навигация (мобилка) ─── */}
-      {newMenu ? (
+      {pathname.startsWith('/dashboard/oplata') ? null : newMenu ? (
         // Новое меню: 56 px плюс safe-area, четыре равные колонки, активный пункт с плашкой за иконкой.
         // Пока поле в фокусе, бар уезжает вниз (z: таб-бар 40, листы 50, тост 60)
         <nav aria-label="Разделы" className={`lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-brand-card border-t border-brand-border flex h-14 box-content pb-[env(safe-area-inset-bottom)] transition-transform duration-150 motion-reduce:transition-none ${typing ? 'translate-y-full' : ''}`}

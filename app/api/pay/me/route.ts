@@ -14,14 +14,15 @@ export async function GET() {
     const now = new Date()
     const method = sub?.payment_method_id ? await supabaseRepo.getMethod(sub.payment_method_id) : null
     const paid = paidAccess(sub, now)
+    const pastDue = sub?.status === 'past_due'
     return NextResponse.json({
       payments: ykConfigured(),
       paid,
-      plan: paid && sub && isPaidCode(sub.plan_code) ? { code: sub.plan_code, name: PAID_PLANS[sub.plan_code].name, price: PAID_PLANS[sub.plan_code].price } : null,
+      plan: (paid || pastDue) && sub && isPaidCode(sub.plan_code) ? { code: sub.plan_code, name: PAID_PLANS[sub.plan_code].name, price: PAID_PLANS[sub.plan_code].price } : null,
       status: sub?.status || 'trial',
       until: paid ? sub!.period_end : null,
-      autoRenew: !!(paid && sub!.auto_renew),
-      nextChargeAt: paid && sub!.auto_renew ? sub!.next_charge_at : null,
+      autoRenew: !!((paid || pastDue) && sub!.auto_renew),
+      nextChargeAt: (paid || pastDue) && sub!.auto_renew ? sub!.next_charge_at : null,
       method: method && !method.deleted_at ? { title: method.title, type: method.type } : null,
     })
   } catch (e) {

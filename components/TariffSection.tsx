@@ -11,7 +11,8 @@ import { PAY_SOON } from '@/lib/limit-texts'
 // Только показ и захват внимания, НИКАКИХ записей в БД и смены плана (план меняет только сервер,
 // требование безопасности денег). Кнопка «Выбрать» открывает честный поповер «оплата скоро».
 
-export default function TariffSection({ currentCode }: { currentCode?: string }) {
+// paymentsOn (17.11): оплата подключена (ключи ЮKassa на сервере): «Выбрать» ведет на /dashboard/oplata, плашки «скоро» нет
+export default function TariffSection({ currentCode, paymentsOn = false }: { currentCode?: string; paymentsOn?: boolean }) {
   const [picked, setPicked] = useState<PricePlan | null>(null)
   const current = planForDbCode(currentCode)
   // paywall_view, когда блок тарифов попал на экран
@@ -29,11 +30,11 @@ export default function TariffSection({ currentCode }: { currentCode?: string })
   return (
     <div ref={box}>
       {/* Честная плашка про оплату, без urgency */}
-      <div className="rounded-3xl bg-brand-soft border border-brand-border-soft p-4 sm:p-5 mb-4">
+      {!paymentsOn && <div className="rounded-3xl bg-brand-soft border border-brand-border-soft p-4 sm:p-5 mb-4">
         <p className="text-sm text-brand-text leading-relaxed">
           {PAY_SOON.line}
         </p>
-      </div>
+      </div>}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {PLANS.map((plan) => {
@@ -69,7 +70,7 @@ export default function TariffSection({ currentCode }: { currentCode?: string })
                 ) : plan.price > 0 ? (
                   <button
                     type="button"
-                    onClick={() => { track('plan_click', { plan: plan.dbCodes[0] || plan.id }); setPicked(plan) }}
+                    onClick={() => { track('plan_click', { plan: plan.dbCodes[0] || plan.id }); if (paymentsOn) window.location.assign(`/dashboard/oplata?plan=${plan.dbCodes[0] === 'practice' ? 'practice' : 'start'}`); else setPicked(plan) }}
                     className="block w-full text-center text-sm font-semibold rounded-2xl py-2.5 transition cursor-pointer bg-brand-card text-brand-accent border border-brand-accent/40 hover:bg-brand-soft"
                   >
                     Выбрать
