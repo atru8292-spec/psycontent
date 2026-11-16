@@ -16,7 +16,8 @@ function secretOk(got: string | null): boolean {
 }
 
 export async function POST(req: NextRequest) {
-  if (req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for')) return new NextResponse('Not found', { status: 404 })
+  // через nginx пришло, если есть X-Real-IP (его ставит только nginx). X-Forwarded-For не признак: Next добавляет его сам
+  if (req.headers.get('x-real-ip')) return new NextResponse('Not found', { status: 404 })
   if (!secretOk(req.headers.get('x-cron-secret'))) return new NextResponse('Not found', { status: 404 })
   if (!ykConfigured()) return NextResponse.json({ skipped: 'not_ready' })
   try {
