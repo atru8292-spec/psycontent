@@ -11,6 +11,7 @@ import { Notice, PasswordInput, StateIcon, useCooldown } from '@/components/auth
 import RequestLinkForm from '@/components/auth/RequestLinkForm'
 import { requestLink } from '@/components/auth/request-link'
 import YandexIdButton from '@/components/auth/YandexIdButton'
+import { useSmartCaptcha } from '@/components/auth/SmartCaptcha'
 import Link from 'next/link'
 import { OFFER_PATH, PRIVACY_PATH, CONSENT_PATH, CONSENT_VERSION } from '@/lib/rekvizity'
 
@@ -50,10 +51,14 @@ export default function AuthModal({
   const noConsent = () => { setConsentErr(true); agreeRef.current?.focus() }
   const cd = useCooldown()
   const router = useRouter()
+  // защита от ботов (lib/signup-guard.ts): время с открытия окна, поле-ловушка, невидимая капча Яндекса
+  const openedAt = useRef(Date.now())
+  const [trap, setTrap] = useState('')
+  const captcha = useSmartCaptcha(isOpen && mode === 'register')
 
   // при каждом открытии начинаем с того режима, с которым открыли («Войти» или «Попробовать»)
   useEffect(() => {
-    if (isOpen) { setMode(initialMode); setAwaiting(''); setError(''); setUnconfirmed(false); setResent(false); setAgree(false); setConsentErr(false) }
+    if (isOpen) { setMode(initialMode); setAwaiting(''); setError(''); setUnconfirmed(false); setResent(false); setAgree(false); setConsentErr(false); openedAt.current = Date.now() }
   }, [isOpen, initialMode])
 
   const switchMode = (m: Mode) => { setMode(m); setError(''); setUnconfirmed(false); setResent(false); setAwaiting('') }
@@ -87,24 +92,21 @@ export default function AuthModal({
 
     try {
       if (mode === 'register') {
-        const { data, error: signUpError } = await supabase.auth.signUp({
-          email, password,
-          // отметка согласия: дата и версия политики, остаются в аккаунте
-          options: { data: { soglasie_pd: new Date().toISOString(), soglasie_ver: CONSENT_VERSION } },
+        // регистрация через сайт: проверки от ботов, потом GoTrue шлет письмо подтверждения (app/api/auth/signup)
+        const token = await captcha.getToken()
+        const r = await fetch('/api/auth/signup', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, soglasie: true, site: trap, ms: Date.now() - openedAt.current, captcha: token }),
         })
-        // «Уже зарегистрирован» не показываем никогда (окно не должно выдавать чужие аккаунты):
-        // при включенном подтверждении Supabase эту ошибку не шлет, а если пришлет, экран тот же, что для новой почты.
-        if (signUpError && /already registered|already exists/i.test(signUpError.message)) {
-          setAwaiting(email.trim())
-          cd.start()
-        } else if (signUpError) {
-          const k = authErrorKind(signUpError)
-          setError(k === 'rate_limit' ? T.rateLimit : k === 'weak_password' ? T.shortPassword : T.generic)
-        } else if (data.session) {
+        const d = await r.json().catch(() => ({}))
+        if (d?.error) {
+          // «Уже зарегистрирован» сервер не выдает: окно не должно выдавать чужие аккаунты
+          setError(d.error === 'bot' ? T.signupBlocked : d.error === 'rate_limit' ? T.rateLimit : d.error === 'weak_password' ? T.shortPassword : T.generic)
+        } else if (d?.session?.access_token && d?.session?.refresh_token) {
+          await supabase.auth.setSession(d.session)
           router.push('/onboarding/intro')
         } else {
-          // Новая почта или уже занятая: Supabase в обоих случаях отвечает без сессии, письмо уходит только новой.
-          // Показываем одинаково, чтобы окно не выдавало, есть ли аккаунт на чужой почте.
+          // Новая почта или уже занятая: ответ одинаковый, письмо уходит только новой
           setAwaiting(email.trim())
           cd.start()
         }
@@ -262,7 +264,8 @@ export default function AuthModal({
                   </div>
 
                   {/* Email Form, font-size: 16px чтобы iOS не зумил */}
-                  <form onSubmit={handleEmailAuth} className="space-y-3">
+                  <form onSubmit={handleEmailAuth} className="space-y-3 relative">
+                    <div ref={captcha.box} />
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" aria-hidden="true" />
                       <input
@@ -276,6 +279,11 @@ export default function AuthModal({
                         className="input pl-10"
                       />
                     </div>
+                    {/* ловушка для ботов: человек это поле не видит и не заполняет */}
+                    {mode === 'register' && (
+                      <input type="text" name="site" tabIndex={-1} autoComplete="off" aria-hidden="true" value={trap} onChange={e => setTrap(e.target.value)}
+                        className="absolute -left-[9999px] w-px h-px opacity-0" />
+                    )}
                     <PasswordInput
                       value={password}
                       onChange={setPassword}
