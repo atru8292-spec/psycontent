@@ -37,6 +37,7 @@ export const EVENTS = {
   // ---- деньги и лимиты ----
   limit_hit: ['reason', 'plan', 'op'],               // сервер: canConsume отказал (lib/energy.ts)
   paywall_view: ['where'],                           // клиент: показан LimitNotice или блок тарифов
+  account_delete: ['reason', 'days', 'materials'],  // сервер: человек удалил аккаунт сам (без user_id: аккаунт и его строки стерты). reason коды чипов через запятую
   plan_click: ['plan'],                              // клиент: нажала на тариф
 
   // ---- вход по ссылкам из писем (app/auth/podtverdit, app/auth/novyy-parol) ----
