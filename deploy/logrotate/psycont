@@ -1,0 +1,17 @@
+# Ротация журналов pm2 только для psycont (16.11, блок 1 запуска). На сервере сайта: /etc/logrotate.d/psycont.
+# Модуль pm2-logrotate не ставим: он ротировал бы журналы всех процессов pm2, включая чужие razbor-*.
+# copytruncate: pm2 пишет в тот же файл, перезапуск psycont не нужен. Храним 14 дней (в журналах только коды ошибок,
+# без текстов: lib/safe-error.ts), сжатие, файл больше 20 МБ ротируется раньше суток. Срабатывает по ежедневному таймеру logrotate.
+/root/.pm2/logs/psycont-out.log /root/.pm2/logs/psycont-error.log {
+	daily
+	maxsize 20M
+	rotate 14
+	missingok
+	notifempty
+	compress
+	delaycompress
+	copytruncate
+	dateext
+	dateformat -%Y%m%d-%s
+	su root root
+}
