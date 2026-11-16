@@ -22,6 +22,8 @@ const blocks = [
   { id: 'outward', title: 'Как ты в блоге', icon: MapPin, color: 'text-brand-sage bg-brand-soft' },
 ]
 
+const GENDER_OPTIONS = ['«Я заметила»', '«Я заметил»']
+
 const questions = [
   // --- БЛОК 1: ТЫ И ПРАКТИКА ---
   {
@@ -58,6 +60,14 @@ const questions = [
     ],
     textKey: 'one_niche',
     textPlaceholder: 'С этим я работаю глубже всего, потому что...'
+  },
+  {
+    // род автора (16.11): генератор больше не угадывает его по имени; значения female/male, метки ниже
+    block: 0, key: 'author_gender',
+    title: 'Как ты пишешь о себе',
+    subtitle: '«я заметила» или «я заметил»',
+    type: 'single',
+    options: GENDER_OPTIONS,
   },
   {
     block: 0, key: 'experience',
@@ -180,6 +190,7 @@ export default function EditProfile() {
 
       setAnswers({
         full_name: profile.full_name || '',
+        author_gender: profile.author_gender === 'male' ? GENDER_OPTIONS[1] : GENDER_OPTIONS[0],
         appeal: profile.appeal || '',
         approaches: profile.approaches || [],
         niches: profile.niches || [],
@@ -256,6 +267,7 @@ export default function EditProfile() {
     // .update не затер стиль (live_voice/values) и результат теста-архетипа.
     const profileData = {
       full_name: answers.full_name || '',
+      author_gender: answers.author_gender === GENDER_OPTIONS[1] ? 'male' : 'female',
       appeal: answers.appeal || '',
       approaches: answers.approaches || [],
       niches: answers.niches || [],
