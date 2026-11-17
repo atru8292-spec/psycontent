@@ -613,8 +613,10 @@ export default function MakeFlow() {
                 {items.filter(x => x.status === 'ready').length > 1 && (
                   <button type="button" onClick={() => { copyAll(); close() }} className="w-full h-[52px] text-left text-[16px] text-brand-text cursor-pointer">Скопировать все</button>
                 )}
+                {/* удаление внизу, отделено чертой и красным (решение Арины 18.11: единственное разрушительное действие) */}
+                <div className="mt-1 pt-1 border-t border-brand-border">
                 {!confirmDelete ? (
-                  <button type="button" onClick={() => setConfirmDelete(true)} className="w-full h-[52px] text-left text-[16px] text-brand-text cursor-pointer">Удалить {current ? formatOne(current.format) : ''}</button>
+                  <button type="button" onClick={() => setConfirmDelete(true)} className="w-full h-[52px] text-left text-[16px] font-medium text-brand-danger cursor-pointer">Удалить {current ? formatOne(current.format) : ''}</button>
                 ) : (
                   <div className="py-2">
                     <p className="text-[16px] text-brand-text">Удалить {current ? formatOne(current.format) : ''} насовсем? Остальные форматы останутся.</p>
@@ -624,6 +626,7 @@ export default function MakeFlow() {
                     </div>
                   </div>
                 )}
+                </div>
               </>
             )} />
         )}

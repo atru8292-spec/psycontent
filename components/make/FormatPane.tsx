@@ -380,10 +380,13 @@ export default function FormatPane({ item, onChange, onPublished, onMore, moreCo
 
       <BottomSheet open={moreOpen} onClose={() => setMoreOpen(false)} title="Еще">
         <div className="pt-1">
-          {/* копирование и отметка тут тоже: на телефоне главная кнопка уже могла смениться на «Уже в блоге» */}
-          <button type="button" onClick={() => { copy(); setMoreOpen(false) }} className="w-full h-[52px] text-left text-[16px] text-brand-text cursor-pointer">Скопировать текст</button>
-          {!published && postId && (
-            <button type="button" onClick={() => { togglePublished(); setMoreOpen(false) }} className="w-full h-[52px] text-left text-[16px] text-brand-text cursor-pointer">Уже в блоге</button>
+          {/* «Скопировать текст» и «Уже в блоге» в листе не дублируют кнопки под текстом: на компьютере обе всегда в ряду,
+              поэтому тут их нет; на телефоне в панели одна главная, и в листе только та, которой сейчас в панели нет */}
+          {(copiedOnce || published) && (
+            <button type="button" onClick={() => { copy(); setMoreOpen(false) }} className="lg:hidden w-full h-[52px] text-left text-[16px] text-brand-text cursor-pointer">Скопировать текст</button>
+          )}
+          {!published && !copiedOnce && postId && (
+            <button type="button" onClick={() => { togglePublished(); setMoreOpen(false) }} className="lg:hidden w-full h-[52px] text-left text-[16px] text-brand-text cursor-pointer">Уже в блоге</button>
           )}
           {postId && !code.startsWith('reels_scenka') && (
             <button type="button" onClick={() => { setMoreOpen(false); otherVariant() }} className="w-full h-[52px] text-left text-[16px] text-brand-text cursor-pointer">Другой вариант</button>
