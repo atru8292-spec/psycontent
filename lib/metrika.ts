@@ -26,7 +26,8 @@ const isGoal = (g: string): g is Goal => (GOALS as readonly string[]).includes(g
 // Классы Вебвизора: содержимое поля в записи заменяется звездочками, нажатия клавиш не пишутся
 export const PRIVATE_FIELD = 'ym-hide-content ym-disable-keys'
 
-const BLOCKED = ['/admin', '/api', '/dev']
+// /auth: страницы из писем входа, в адресе одноразовые токены (ревью 17.11); скрипт там не грузится вовсе
+const BLOCKED = ['/admin', '/api', '/dev', '/auth']
 export const metrikaPathAllowed = (p: string) => !BLOCKED.some(b => p === b || p.startsWith(b + '/'))
 
 type Consent = 'yes' | 'no' | null
@@ -35,6 +36,18 @@ export function getConsent(): Consent {
 }
 export function setConsent(v: 'yes' | 'no') {
   try { localStorage.setItem(CONSENT_KEY, v) } catch {}
+  if (v === 'no') clearMetrikaData()
+}
+// Отказ после согласия: стираем cookie и записи Метрики в браузере (_ym_uid, _ym_d, _ym_isad и другие _ym*)
+export function clearMetrikaData() {
+  try {
+    for (const part of document.cookie.split(';')) {
+      const name = part.split('=')[0].trim()
+      if (!name.startsWith('_ym')) continue
+      for (const dom of ['', `; Domain=${location.hostname}`, `; Domain=.${location.hostname.replace(/^www\./, '')}`]) document.cookie = `${name}=; Max-Age=0; Path=/${dom}`
+    }
+    for (const st of [localStorage, sessionStorage]) for (let i = st.length - 1; i >= 0; i--) { const k = st.key(i); if (k?.startsWith('_ym')) st.removeItem(k) }
+  } catch {}
 }
 
 function hostAllowed(): boolean {
@@ -99,6 +112,7 @@ export function loadMetrika(): boolean {
   loaded = true
   lastUrl = now
   if (location.pathname.startsWith('/dashboard')) prepareFirsts()
+  flushPending()
   return true
 }
 
@@ -128,9 +142,31 @@ function utmParams(): Record<string, string> | undefined {
   } catch { return undefined }
 }
 
+// Метрика готова к целям: уже загружена или есть согласие и ее можно загрузить сейчас (страница шлет цель раньше,
+// чем баннер в конце layout успел загрузить Метрику; заглушка ym ставит цель в очередь после init)
+const ready = () => getConsent() === 'yes' && (loaded || loadMetrika())
+
+// Цель с закрытой страницы (/auth: подтверждение почты) ждет в sessionStorage и уходит на следующей открытой
+const PENDING_KEY = 'psy_goal_pending'
+function flushPending() {
+  try {
+    const list: string[] = JSON.parse(sessionStorage.getItem(PENDING_KEY) || '[]')
+    sessionStorage.removeItem(PENDING_KEY)
+    for (const g of list) if (isGoal(g)) goal(g)
+  } catch {}
+}
+
 export function goal(id: Goal): void {
   try {
-    if (!isGoal(id) || !loaded || !metrikaPathAllowed(location.pathname)) return
+    if (!isGoal(id)) return
+    if (!metrikaPathAllowed(location.pathname)) {
+      if (getConsent() === 'yes' && !location.pathname.startsWith('/admin')) {
+        const list: string[] = JSON.parse(sessionStorage.getItem(PENDING_KEY) || '[]')
+        if (!list.includes(id)) sessionStorage.setItem(PENDING_KEY, JSON.stringify([...list, id]))
+      }
+      return
+    }
+    if (!ready()) return
     const params = id === 'signup_submit' || id === 'signup_done' || id === 'login_yandex' ? utmParams() : undefined
     ;(window as any).ym(METRIKA_ID, 'reachGoal', id, params)
     // eslint-disable-next-line no-console
@@ -144,14 +180,18 @@ type FirstKey = 'make' | 'material' | 'copy'
 const FIRST_GOAL: Record<FirstKey, Goal> = { make: 'make_first_click', material: 'first_material', copy: 'first_copy' }
 let firsts: Promise<Record<FirstKey, boolean> | null> | null = null
 function loadFirsts() {
-  if (!firsts) firsts = fetch('/api/metrika/firsts', { credentials: 'same-origin' }).then(r => (r.ok ? r.json() : null)).catch(() => null)
+  if (!firsts) {
+    firsts = fetch('/api/metrika/firsts', { credentials: 'same-origin' }).then(r => (r.ok ? r.json() : null)).catch(() => null)
+    // сбой не запоминаем: следующий вызов спросит базу снова
+    firsts.then(v => { if (!v) firsts = null })
+  }
   return firsts
 }
 // Вызывать при открытии экрана «Сделать»: ответ базы нужен до действия, после него база уже знает о нем
 export function prepareFirsts() { if (loaded) void loadFirsts() }
 export async function goalFirst(k: FirstKey): Promise<void> {
   try {
-    if (!loaded) return
+    if (!ready()) return
     const flag = `psy_g_${k}`
     if (localStorage.getItem(flag) === '1') return
     const had = await loadFirsts()
@@ -164,7 +204,7 @@ export async function goalFirst(k: FirstKey): Promise<void> {
 
 // Цели, которые совпадают с событиями внутренней аналитики: track() зовет это сам, логика не дублируется
 export function goalsFromTrack(event: string, props?: Record<string, string | number | boolean>) {
-  if (!loaded) return
+  if (typeof window === 'undefined' || getConsent() !== 'yes') return
   switch (event) {
     case 'land_cta_click':
       goal('land_cta')
@@ -201,7 +241,10 @@ export function goalsFromCookie() {
   try {
     const m = document.cookie.match(/(?:^|;\s*)psy_goal=([^;]+)/)
     if (!m) return
+    const c = getConsent()
+    if (c === null) return // ждет ответа в баннере: после «Принять» уйдет, cookie живет 10 минут
     document.cookie = 'psy_goal=; Max-Age=0; Path=/; SameSite=Lax'
+    if (c === 'no') return
     for (const g of decodeURIComponent(m[1]).split(',')) if (isGoal(g)) goal(g)
   } catch {}
 }

@@ -3,7 +3,7 @@
 // Стоит в корневом layout, поэтому работает на лендинге, /offer, /privacy, в кабинете и знакомстве. В /admin, /api,
 // /dev не рисуется и Метрику не грузит (lib/metrika.ts metrikaPathAllowed).
 // Спека designer-psycont 17.11: две одинаковые кнопки с обводкой («Отказаться» и «Принять»), без крестика,
-// белая карточка, z-[55] (выше таб-бара 40 и нижних панелей 50, ниже тостов 60). В кабинете на мобилке над таб-баром.
+// белая карточка, z-[55] (выше таб-бара 40 и нижних панелей 50, ниже тостов 60). В кабинете и знакомстве на телефоне сверху.
 // Пока на мобилке человек печатает в поле, баннер прячется (иначе висит над клавиатурой), ответ не записывается.
 // «Настройки cookie» в подвале (CookieSettingsLink) открывает баннер снова; отказ после согласия перезагружает
 // страницу, чтобы Метрика выгрузилась. Тексты copywriter-psycont 17.11.
@@ -34,7 +34,7 @@ export default function CookieBanner() {
     rememberLandingUrl()
     const c = getConsent()
     if (c === 'yes') { loadMetrika(); goalsFromCookie() }
-    else { if (c === null) setShow(true); goalsFromCookie() } // без согласия cookie целей просто стирается
+    else { if (c === null) setShow(true); goalsFromCookie() } // при отказе cookie целей стирается, без ответа ждет
     const open = () => setShow(true)
     window.addEventListener(COOKIE_OPEN_EVENT, open)
     return () => window.removeEventListener(COOKIE_OPEN_EVENT, open)
@@ -58,18 +58,20 @@ export default function CookieBanner() {
 
   const accept = () => {
     setConsent('yes'); track('land_cookie_ok'); setShow(false)
-    loadMetrika()
+    loadMetrika(); goalsFromCookie()
   }
   const decline = () => {
     const wasOn = metrikaLoaded()
     setConsent('no'); track('land_cookie_no'); setShow(false)
     if (wasOn) location.reload() // Метрика уже работала: перезагрузка выгружает ее
   }
-  const inCabinet = pathname.startsWith('/dashboard') && !pathname.startsWith('/dashboard/edit-profile')
+  // Кабинет и знакомство на телефоне: баннер сверху. Внизу там таб-бар, липкая панель «Скопировать», кнопки «Дальше»
+  // и «Сохранить»: главное действие должно быть видно сразу (мобильное правило проекта, ревью 17.11)
+  const topOnPhone = pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding')
 
   return (
     <div role="region" aria-label="Согласие на cookie"
-      className={`fixed inset-x-0 z-[55] px-3 lg:px-6 bottom-0 pb-[max(12px,env(safe-area-inset-bottom))] lg:pb-6 ${inCabinet ? 'max-lg:bottom-[calc(56px+env(safe-area-inset-bottom))] max-lg:pb-2' : ''} ${typing ? 'hidden' : ''}`}>
+      className={`fixed inset-x-0 z-[55] px-3 lg:px-6 bottom-0 pb-[max(12px,env(safe-area-inset-bottom))] lg:pb-6 ${topOnPhone ? 'max-lg:top-0 max-lg:bottom-auto max-lg:pt-[max(8px,env(safe-area-inset-top))] max-lg:pb-0' : ''} ${typing ? 'hidden' : ''}`}>
       <div className="mx-auto flex max-w-[720px] flex-col gap-3 rounded-2xl border border-brand-border bg-brand-card p-4 shadow-[0_6px_24px_rgb(59_42_34/0.14)] sm:flex-row sm:items-center sm:gap-5">
         <p className="min-w-0 text-[14px] leading-[1.45] text-brand-text">
           Хотим включить Яндекс Метрику. Она запишет, как ты пользуешься сайтом и кабинетом, и мы увидим, где неудобно. Без нее все тоже работает.{' '}

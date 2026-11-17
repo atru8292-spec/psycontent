@@ -10,8 +10,8 @@ let firstsAnswer: Record<string, boolean> | null = { make: false, material: fals
 const g = globalThis as any
 g.window = g
 g.location = { hostname: 'psycont.ru', pathname: '/', href: 'https://psycont.ru/', search: '', reload() { g.__reloaded = true } }
-g.localStorage = { getItem: (k: string) => store[k] ?? null, setItem: (k: string, v: string) => { store[k] = v }, removeItem: (k: string) => { delete store[k] } }
-g.sessionStorage = { getItem: (k: string) => ss[k] ?? null, setItem: (k: string, v: string) => { ss[k] = v }, removeItem: (k: string) => { delete ss[k] } }
+g.localStorage = { get length() { return Object.keys(store).length }, key: (i: number) => Object.keys(store)[i] ?? null, getItem: (k: string) => store[k] ?? null, setItem: (k: string, v: string) => { store[k] = v }, removeItem: (k: string) => { delete store[k] } }
+g.sessionStorage = { get length() { return Object.keys(ss).length }, key: (i: number) => Object.keys(ss)[i] ?? null, getItem: (k: string) => ss[k] ?? null, setItem: (k: string, v: string) => { ss[k] = v }, removeItem: (k: string) => { delete ss[k] } }
 g.document = {
   referrer: '', head: { appendChild() {} }, querySelector: () => null, createElement: () => ({}),
   get cookie() { return cookie }, set cookie(v: string) { if (/Max-Age=0/.test(v)) cookie = '' },
@@ -105,8 +105,21 @@ async function main() {
   // токены из адресов входа в Метрику не уходят, метки остаются
   assert.equal(M.cleanUrl('https://psycont.ru/auth/podtverdit?token_hash=abc&type=signup#access_token=x'), 'https://psycont.ru/auth/podtverdit')
   assert.equal(M.cleanUrl('https://psycont.ru/?utm_source=vk&email=a@b.ru&yclid=5'), 'https://psycont.ru/?utm_source=vk&yclid=5')
-  go('/auth/novyy-parol'); g.location.href = 'https://psycont.ru/auth/novyy-parol?code=secret'; M.metrikaRoute()
-  assert.equal(calls.at(-1)![2], 'https://psycont.ru/auth/novyy-parol')
+  go('/dashboard/make'); g.location.href = 'https://psycont.ru/dashboard/make?topic=%D1%82%D0%B5%D0%BC%D0%B0&post=42'; M.metrikaRoute()
+  assert.deepEqual(calls.at(-1)!.slice(1, 3), ['hit', 'https://psycont.ru/dashboard/make'], 'тема и id материала в Метрику не уходят')
+
+  // /auth закрыт: цель подтверждения почты ждет и уходит на следующей открытой странице
+  assert.equal(M.metrikaPathAllowed('/auth/podtverdit'), false)
+  go('/auth/podtverdit'); n = calls.length
+  M.goalsFromTrack('auth_link_ok', { kind: 'signup' })
+  assert.equal(calls.length, n, 'на /auth ничего не уходит')
+  go('/onboarding/express'); M.metrikaRoute()
+  assert.ok(ss['psy_goal_pending']?.includes('signup_done'), 'отложена до открытой страницы (уйдет при загрузке Метрики)')
+
+  // отказ стирает данные Метрики
+  cookie = '_ym_uid=123'; store['_ym_x'] = '1'
+  M.setConsent('no'); assert.equal(cookie, ''); assert.equal(store['_ym_x'], undefined)
+  n = calls.length; M.goalsFromTrack('onb_done'); M.goal('plan_click'); assert.equal(calls.length, n, 'после отказа цели не уходят')
 
   // идентификаторы целей ровно как в Метрике
   assert.deepEqual([...M.GOALS].sort(), ['first_copy', 'first_material', 'land_cta', 'land_signup_open', 'login_yandex', 'make_first_click',

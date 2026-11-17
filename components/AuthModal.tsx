@@ -57,7 +57,11 @@ export default function AuthModal({
     if (isOpen) { setMode(initialMode); setAwaiting(''); setError(''); setUnconfirmed(false); setResent(false); setAgree(false); setConsentErr(false) }
   }, [isOpen, initialMode])
   // цель Метрики: открыла регистрацию (окно открыто в режиме регистрации или переключено на нее)
-  useEffect(() => { if (isOpen && mode === 'register') goal('land_signup_open') }, [isOpen, mode])
+  const signupGoal = useRef(false)
+  useEffect(() => {
+    if (!isOpen) { signupGoal.current = false; return }
+    if (mode === 'register' && !signupGoal.current) { signupGoal.current = true; goal('land_signup_open') } // один раз за открытие
+  }, [isOpen, mode])
 
   const switchMode = (m: Mode) => { setMode(m); setError(''); setUnconfirmed(false); setResent(false); setAwaiting('') }
 
