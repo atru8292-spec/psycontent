@@ -212,7 +212,7 @@ export async function POST(request: NextRequest) {
     // НИКОГДА не врём юзеру «заполните профиль» из-за серверной поломки.
     if (profileError && profileError.code !== 'PGRST116') {
       console.error('generate-passport: profile read failed', userId, profileError)
-      return NextResponse.json({ error: 'server_error', message: 'Что-то пошло не так на нашей стороне. Попробуйте через минуту.' }, { status: 500 })
+      return NextResponse.json({ error: 'server_error', message: 'Сбой в PsyCont. Попробуй через минуту.' }, { status: 500 })
     }
     if (!profile) {
       return NextResponse.json({ error: 'need_onboarding', message: 'Сначала заполни профиль', redirect: '/onboarding' }, { status: 404 })
