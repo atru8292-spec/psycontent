@@ -38,7 +38,7 @@ export function renderPayMail(kind: string, data: Record<string, string>, site: 
   if (tpl.button && !/^https:\/\/[^\s"<>]+$/.test(btnHref)) return null
   const button = tpl.button ? { label: tpl.button.label, href: btnHref } : null
   const note = tpl.note ? { before: tpl.note.before, link: tpl.note.link, href: safeHref(plain(tpl.note.href)), after: tpl.note.after } : null
-  const preheader = (paras[0]?.plain || '').slice(0, 140)
+  const preheader = plain(tpl.pre).slice(0, 90)
   const title = esc(plain(tpl.subject))
   const offer = `https://${REKV.site}${OFFER_PATH}`, privacy = `https://${REKV.site}${PRIVACY_PATH}`
   const legal = `${REKV.fio}, самозанятая, ИНН ${REKV.inn}`
@@ -88,7 +88,7 @@ ${keyParas.map((p, i) => `<p class="key" style="margin:0;${t(`font-size:18px;lin
 </style>
 </head>
 <body style="margin:0;padding:0;background:${C.bg};-webkit-text-size-adjust:100%;">
-<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:${C.bg};">${esc(preheader)}${'&#8203;&#847;'.repeat(50)}</div>
+<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:${C.bg};">${esc(preheader)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.bg}" style="background:${C.bg};">
 <tr><td class="wrap" align="center" style="padding:40px 16px 32px 16px;">
 <!--[if mso]><table role="presentation" width="560" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->

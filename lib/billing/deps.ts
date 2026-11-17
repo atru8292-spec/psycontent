@@ -72,10 +72,10 @@ export const supabaseRepo: Repo = {
     return r?.length ? toPay(r[0]) : null
   },
   async upsertMethod(u, yk, type, title, last4) {
-    const r = must(await db().from('payment_methods').upsert({ user_id: u, yk_method_id: yk, type, title, card_last4: last4, deleted_at: null }, { onConflict: 'yk_method_id' }).select('id, user_id, yk_method_id, type, title, deleted_at').single(), 'method_upsert')
+    const r = must(await db().from('payment_methods').upsert({ user_id: u, yk_method_id: yk, type, title, card_last4: last4, deleted_at: null }, { onConflict: 'yk_method_id' }).select('id, user_id, yk_method_id, type, title, deleted_at, card_last4').single(), 'method_upsert')
     return r as MethodRow
   },
-  async getMethod(id) { const r = must(await db().from('payment_methods').select('id, user_id, yk_method_id, type, title, deleted_at').eq('id', id).maybeSingle(), 'method_get'); return (r as MethodRow) || null },
+  async getMethod(id) { const r = must(await db().from('payment_methods').select('id, user_id, yk_method_id, type, title, deleted_at, card_last4').eq('id', id).maybeSingle(), 'method_get'); return (r as MethodRow) || null },
   async deleteMethods(u, at) { must(await db().from('payment_methods').update({ deleted_at: at }).eq('user_id', u).is('deleted_at', null), 'method_delete') },
   async insertConsent(row) { must(await db().from('autopay_consents').insert(row), 'consent') },
   async purgeOrphanConsents(before) {
@@ -113,6 +113,13 @@ export const supabaseRepo: Repo = {
   async insertRefund(row) { return must(await db().from('refunds').insert(row).select('id').single(), 'refund_insert') as { id: string } },
   async updateRefund(id, patch) { must(await db().from('refunds').update(patch).eq('id', id), 'refund_update') },
   async getRefundByYk(y) { return must(await db().from('refunds').select('id, payment_id, status').eq('yk_refund_id', y).maybeSingle(), 'refund_yk') as any },
+  async queueMail(row) { must(await db().from('pay_mail_queue').insert(row), 'mailq_insert') },
+  async dueMails(now) {
+    const r = must(await db().from('pay_mail_queue').select('id, user_id, kind, data').is('sent_at', null).lte('send_after', now).order('send_after').limit(200), 'mailq_due') as any[]
+    return r as any
+  },
+  async mailSent(id, at) { must(await db().from('pay_mail_queue').update({ sent_at: at }).eq('id', id), 'mailq_sent') },
+  async mailDelay(id, until) { must(await db().from('pay_mail_queue').update({ send_after: until }).eq('id', id), 'mailq_delay') },
   async userEmail(u) { const r = await db().auth.admin.getUserById(u); return r.data?.user?.email || null },
 }
 

@@ -16,6 +16,7 @@ import { rub, methodTitle, type YkClient, type YkPayment } from './yookassa'
 import { addMonthAnchored, anchorDayOf, refundByDays } from './period'
 import { isYooKassaIp } from './ip'
 import { PAID_PLANS, isPaidCode, consentText, type PaidCode } from './plans'
+import { methodPhrase } from './mail-texts'
 
 export { PAID_PLANS, isPaidCode, consentText, type PaidCode }
 
@@ -42,7 +43,7 @@ export type PaymentRow = {
   idempotence_key: string; attempt: number; period_start: string | null; period_end: string | null; created_at: string
   payment_method_id: string | null; receipt_status: string; confirmation_url?: string | null; note?: string | null
 }
-export type MethodRow = { id: string; user_id: string; yk_method_id: string; type: string; title: string; deleted_at: string | null }
+export type MethodRow = { id: string; user_id: string; yk_method_id: string; type: string; title: string; deleted_at: string | null; card_last4?: string | null }
 
 export interface Repo {
   getSub(userId: string): Promise<SubRow | null>
@@ -78,6 +79,11 @@ export interface Repo {
   updateRefund(id: string, patch: Record<string, unknown>): Promise<void>
   getRefundByYk(ykId: string): Promise<{ id: string; payment_id: string; status: string } | null>
   userEmail(userId: string): Promise<string | null>
+  // очередь писем вне окна 10:00-20:00 по Москве или после неудачной отправки (почта берется в момент отправки)
+  queueMail(row: { user_id: string; kind: MailKind; data: Record<string, string>; send_after: string }): Promise<void>
+  dueMails(nowIso: string): Promise<{ id: string; user_id: string | null; kind: MailKind; data: Record<string, string> }[]>
+  mailSent(id: string, atIso: string): Promise<void>
+  mailDelay(id: string, untilIso: string): Promise<void>
 }
 
 export type MailKind = 'paid' | 'reminder' | 'charge_failed' | 'charge_failed_final' | 'autorenew_off' | 'refund' | 'receipt'
@@ -98,6 +104,32 @@ const money = (n: number) => `${n.toLocaleString('ru-RU', { minimumFractionDigit
 const dateRu = (d: string | Date) => new Date(d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' })
 const planName = (code: string) => (isPaidCode(code) ? PAID_PLANS[code].name : code)
 const sent = async (p: Promise<boolean | void>) => { try { return (await p) !== false } catch { return false } }
+
+// Письма про продление (напоминание, неудачное списание) только с 10:00 до 20:00 по Москве (решение Арины 17.11):
+// таймер работает круглые сутки, ночное письмо ждет утра в очереди, а списание ждет письма «за 3 дня», как и раньше
+export const MAIL_WINDOW = { from: 10, to: 20 }
+const WINDOW_KINDS: MailKind[] = ['reminder', 'charge_failed', 'charge_failed_final']
+const mskHour = (d: Date) => new Date(d.getTime() + 3 * H).getUTCHours()
+export const inMailWindow = (d: Date) => { const h = mskHour(d); return h >= MAIL_WINDOW.from && h < MAIL_WINDOW.to }
+// ближайшее начало окна (10:00 по Москве) не раньше d
+export function nextMailWindow(d: Date): Date {
+  if (inMailWindow(d)) return d
+  const msk = new Date(d.getTime() + 3 * H)
+  const day = Date.UTC(msk.getUTCFullYear(), msk.getUTCMonth(), msk.getUTCDate() + (mskHour(d) >= MAIL_WINDOW.to ? 1 : 0), MAIL_WINDOW.from)
+  return new Date(day - 3 * H)
+}
+// письмо с учетом окна: в окне шлем сразу, иначе (или если не ушло) в очередь
+async function deliver(d: Deps, userId: string, kind: MailKind, data: Record<string, string>, to: string | null): Promise<void> {
+  const now = d.now()
+  if (to && (!WINDOW_KINDS.includes(kind) || inMailWindow(now)) && await sent(d.mail(kind, to, data))) return
+  const after = WINDOW_KINDS.includes(kind) && !inMailWindow(now) ? nextMailWindow(now) : new Date(now.getTime() + H)
+  await d.repo.queueMail({ user_id: userId, kind, data, send_after: iso(after) }).catch(() => d.log?.('pay mail: письмо не поставлено в очередь'))
+}
+async function methodOf(d: Deps, methodId: string | null): Promise<string> {
+  if (!methodId) return ''
+  const m = await d.repo.getMethod(methodId).catch(() => null)
+  return m && !m.deleted_at ? methodPhrase(m.type, m.card_last4) : ''
+}
 
 // Подписка платная, пока окно не кончилось (и после «Отключить автопродление»). Пока идут повторы списания
 // (past_due, до 3 дней), тариф тоже работает (решение Арины 17.11); все попытки не прошли: expired, тариф выключен.
@@ -246,7 +278,7 @@ export async function processPayment(d: Deps, api: YkPayment): Promise<string> {
     const sub = await d.repo.getSub(row.user_id!)
     const to = row.email || await d.repo.userEmail(row.user_id!)
     const auto = !!sub?.auto_renew
-    const paidSent = !!to && await sent(d.mail('paid', to, { plan: planName(row.plan_code), amount: money(row.amount), until: dateRu(sub?.period_end || row.period_end!), next: auto && sub?.next_charge_at ? `Следующее списание ${dateRu(sub.next_charge_at)}, ${money(row.amount)}` : 'Автопродление выключено' }))
+    const paidSent = !!to && await sent(d.mail('paid', to, { plan: planName(row.plan_code), amount: money(row.amount), until: dateRu(sub?.period_end || row.period_end!), next: auto && sub?.next_charge_at ? `Следующее списание ${dateRu(sub.next_charge_at)}, ${money(row.amount)}.` : 'Автопродление выключено.', method: methodPhrase(api.payment_method?.type, api.payment_method?.card?.last4) }))
     if (!paidSent) d.log?.(`pay mail: письмо об оплате не ушло, платеж ${row.id}`)
     d.track?.(row.user_id, 'pay_done', { plan: row.plan_code, kind: row.kind, via: api.payment_method?.type || 'unknown' })
     if ((won.note || '').includes('double')) d.log?.('pay: двойная оплата, окно сложено, предложить возврат')
@@ -274,11 +306,11 @@ async function renewalFailed(d: Deps, row: PaymentRow, reason: string): Promise<
   if (tries < RETRY_AFTER_HOURS.length && !HOPELESS.includes(reason) && sub.auto_renew) {
     const next = new Date(now.getTime() + RETRY_AFTER_HOURS[tries] * H)
     await d.repo.updateSub(row.user_id!, { status: 'past_due', retry_count: row.attempt, next_charge_at: iso(next) })
-    if (to) await sent(d.mail('charge_failed', to, { plan: planName(row.plan_code), amount: money(row.amount), retry: dateRu(next) }))
+    await deliver(d, row.user_id!, 'charge_failed', { plan: planName(row.plan_code), amount: money(row.amount), retry: dateRu(next), method: await methodOf(d, row.payment_method_id) }, to)
     return 'retry_scheduled'
   }
   await d.repo.updateSub(row.user_id!, { status: 'expired', plan_code: 'free', auto_renew: false, next_charge_at: null, retry_count: row.attempt })
-  if (to) await sent(d.mail('charge_failed_final', to, { plan: planName(row.plan_code), amount: money(row.amount) }))
+  await deliver(d, row.user_id!, 'charge_failed_final', { plan: planName(row.plan_code), amount: money(row.amount) }, to)
   return 'expired_after_retries'
 }
 
@@ -309,11 +341,19 @@ export async function handleWebhook(d: Deps, ip: string, body: any): Promise<{ s
 // ── 4. Таймер: сверка зависших, письма за 3 дня, продления, окончание окна ──
 export async function runBilling(d: Deps): Promise<Record<string, number>> {
   const now = d.now()
-  const out = { reconciled: 0, reminded: 0, charged: 0, failed: 0, postponed: 0, expired: 0, purged: 0, errors: 0 }
+  const out = { reconciled: 0, reminded: 0, charged: 0, failed: 0, postponed: 0, expired: 0, purged: 0, mailed: 0, errors: 0 }
   // 4.1 платежи без ответа дольше 10 минут (вебхук потерялся): сверяем по API
   for (const p of await d.repo.stalePayments(iso(new Date(now.getTime() - 10 * 60000)), iso(new Date(now.getTime() - 3 * 24 * H)))) {
     if (!p.yk_payment_id) continue
     try { const r = await processPayment(d, await d.yk.getPayment(p.yk_payment_id)); if (r !== 'pending') out.reconciled++ } catch { out.errors++ }
+  }
+  // 4.0 очередь писем: ночные и неотправленные (в окне 10:00-20:00 по Москве для писем о продлении)
+  for (const q of await d.repo.dueMails(iso(now)).catch(() => [])) {
+    if (WINDOW_KINDS.includes(q.kind) && !inMailWindow(now)) continue
+    const to = q.user_id ? await d.repo.userEmail(q.user_id).catch(() => null) : null
+    if (!to) { await d.repo.mailSent(q.id, iso(now)); continue } // аккаунта нет: письмо некому слать
+    if (await sent(d.mail(q.kind, to, q.data))) { await d.repo.mailSent(q.id, iso(now)); out.mailed++ }
+    else await d.repo.mailDelay(q.id, iso(new Date(now.getTime() + H)))
   }
   // 4.2 письмо за 3 дня до списания (один раз на дату списания)
   for (const s of await d.repo.subsToRemind(iso(now), iso(new Date(now.getTime() + REMIND_BEFORE_HOURS * H)))) {
@@ -370,11 +410,12 @@ export async function runBilling(d: Deps): Promise<Record<string, number>> {
 }
 
 async function remind(d: Deps, s: SubRow, chargeAt: string): Promise<boolean> {
+  if (!inMailWindow(d.now())) return false // ночью не шлем: утренний прогон отправит, списание ждет письма
   if (!(await d.repo.markReminded(s.user_id, chargeAt))) return false // другой прогон уже отправил
   const to = await d.repo.userEmail(s.user_id)
   const code = s.next_plan_code && isPaidCode(s.next_plan_code) ? s.next_plan_code : s.plan_code
   const plan = isPaidCode(code) ? PAID_PLANS[code] : null
-  const ok = !!to && !!plan && await sent(d.mail('reminder', to, { plan: plan!.name, amount: money(plan!.price), date: dateRu(chargeAt) }))
+  const ok = !!to && !!plan && await sent(d.mail('reminder', to, { plan: plan!.name, amount: money(plan!.price), date: dateRu(chargeAt), method: await methodOf(d, s.payment_method_id) }))
   if (!ok) {
     // письмо не ушло (SMTP, нет почты): снимаем отметку, следующий прогон пошлет снова; списание ждет письма (оферта)
     await d.repo.updateSub(s.user_id, { reminder_sent_for: null })

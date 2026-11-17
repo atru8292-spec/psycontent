@@ -15,6 +15,7 @@ export function memoryRepo(emails: Record<string, string> = {}, clock: () => Dat
   const consents: any[] = []
   const events = new Map<string, { processed: boolean; result?: string }>()
   const refunds: any[] = []
+  const mailq: any[] = []
   const fail = { applySub: false }
   const repo: Repo = {
     async getSub(u) { return subs.get(u) ? { ...subs.get(u)! } : null },
@@ -43,8 +44,8 @@ export function memoryRepo(emails: Record<string, string> = {}, clock: () => Dat
     },
     async upsertMethod(u, yk, type, title, last4) {
       let m = methods.find(x => x.yk_method_id === yk)
-      if (!m) { m = { id: uid(), user_id: u, yk_method_id: yk, type, title, deleted_at: null }; methods.push(m) }
-      return { ...m, ...(last4 ? {} : {}) }
+      if (!m) { m = { id: uid(), user_id: u, yk_method_id: yk, type, title, deleted_at: null, card_last4: last4 }; methods.push(m) }
+      return { ...m }
     },
     async getMethod(id) { const m = methods.find(x => x.id === id); return m ? { ...m } : null },
     async deleteMethods(u, at) { methods.filter(m => m.user_id === u && !m.deleted_at).forEach(m => { m.deleted_at = at }) },
@@ -61,8 +62,12 @@ export function memoryRepo(emails: Record<string, string> = {}, clock: () => Dat
     async updateRefund(id, patch) { Object.assign(refunds.find(r => r.id === id) || {}, patch) },
     async getRefundByYk(y) { const r = refunds.find(x => x.yk_refund_id === y); return r ? { id: r.id, payment_id: r.payment_id, status: r.status } : null },
     async userEmail(u) { return emails[u] ?? null },
+    async queueMail(row) { mailq.push({ ...row, id: uid(), sent_at: null }) },
+    async dueMails(now) { return mailq.filter(q => !q.sent_at && q.send_after <= now).map(q => ({ id: q.id, user_id: q.user_id, kind: q.kind, data: q.data })) },
+    async mailSent(id, at) { const q = mailq.find(x => x.id === id); if (q) q.sent_at = at },
+    async mailDelay(id, until) { const q = mailq.find(x => x.id === id); if (q) q.send_after = until },
   }
-  return { repo, subs, payments, methods, consents, events, refunds, fail }
+  return { repo, subs, payments, methods, consents, events, refunds, fail, mailq }
 }
 
 // Фальшивая ЮKassa. mode управляет исходом: чем закончится платеж на странице оплаты и автоплатеж

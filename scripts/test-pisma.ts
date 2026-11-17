@@ -35,4 +35,10 @@ const x = renderPayMail('paid', { ...DATA.paid, plan: '<script>alert(1)</script>
 assert.ok(!x.html.includes('<script>alert') && x.html.includes('&lt;script&gt;'), 'экранирование')
 assert.equal(renderPayMail('receipt', { url: 'javascript:alert(1)' }, site), null, 'чек без https не собирается')
 assert.equal(renderPayMail('receipt', { url: '' }, site), null, 'чек без ссылки не собирается')
+// прехедер: главная фраза до 90 знаков; плашка paid без повтора тарифа; способ оплаты встает в фразу
+for (const [k, d] of Object.entries(DATA)) { const m = renderPayMail(k, d, site)!; assert.ok(m.preheader.length > 10 && m.preheader.length <= 90, `${k}: прехедер ${m.preheader.length}`); assert.ok(!m.html.includes('&#847;'), `${k}: пустые заполнители`) }
+const pd = renderPayMail('paid', { ...DATA.paid, next: 'Следующее списание 17 декабря, 1 290 ₽.', method: ' с карты •• 4242' }, site)!
+assert.ok(pd.text.includes('Оплата 1 290 ₽ с карты •• 4242 прошла, тариф работает до 17 декабря.'), 'плашка paid')
+assert.ok(renderPayMail('reminder', { ...DATA.reminder, method: ' через СБП' }, site)!.text.includes('17 декабря спишется 1 290 ₽ через СБП за следующий месяц'))
+assert.ok(renderPayMail('charge_failed', DATA.charge_failed, site)!.text.includes('Банк не дал списать 1 290 ₽ за тариф'), 'без способа строка прежняя')
 console.log('test-pisma: все проверки прошли')

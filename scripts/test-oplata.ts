@@ -408,6 +408,27 @@ function setup(start = '2026-11-17T09:00:00Z') {
     assert.equal(t.mails.at(-1)!.kind, 'reminder', 'письмо ушло, когда SMTP ожил')
   }
   {
+    // 17. окно писем 10:00-20:00 по Москве: ночное письмо о неудаче ждет утра; напоминание ночью не уходит; способ оплаты в письмах
+    assert.equal(B.inMailWindow(new Date('2026-12-17T06:59:00Z')), false, '09:59 по Москве')
+    assert.equal(B.inMailWindow(new Date('2026-12-17T07:00:00Z')), true, '10:00 по Москве')
+    assert.equal(B.nextMailWindow(new Date('2026-12-17T19:00:00Z')).toISOString(), '2026-12-18T07:00:00.000Z', '22:00 -> завтра 10:00')
+    assert.equal(B.nextMailWindow(new Date('2026-12-17T01:00:00Z')).toISOString(), '2026-12-17T07:00:00.000Z', '04:00 -> сегодня 10:00')
+    const t = setup('2026-11-17T20:00:00Z'); await paidWithCard(t) // оплата в 23:00 по Москве, окно до 17.12 23:00
+    assert.equal(t.mails.find(m => m.kind === 'paid')!.data.method, ' с карты •• 1234')
+    assert.ok(/\.$/.test(t.mails.find(m => m.kind === 'paid')!.data.next), 'строка о следующем списании с точкой')
+    t.at('2026-12-14T21:00:00Z'); await B.runBilling(t.d) // 00:00 по Москве
+    assert.equal(t.mails.filter(m => m.kind === 'reminder').length, 0, 'ночью напоминание не уходит')
+    t.at('2026-12-15T07:10:00Z'); await B.runBilling(t.d) // 10:10
+    const rem = t.mails.filter(m => m.kind === 'reminder'); assert.equal(rem.length, 1); assert.equal(rem[0].data.method, ' с карты •• 1234', 'сохраненная карта')
+    t.f.state.autopay = 'canceled'
+    t.at('2026-12-17T20:30:00Z'); await B.runBilling(t.d) // 23:30: списание не прошло ночью
+    assert.equal(t.mails.filter(m => m.kind === 'charge_failed').length, 0, 'письмо о неудаче ждет утра')
+    assert.equal(t.m.mailq.length, 1)
+    t.at('2026-12-18T07:05:00Z'); const r = await B.runBilling(t.d) // 10:05
+    assert.equal(r.mailed, 1); const cf = t.mails.find(m => m.kind === 'charge_failed')!
+    assert.equal(cf.data.method, ' с карты •• 1234'); assert.ok(t.m.mailq[0].sent_at)
+  }
+  {
     // 13.9 цены из lib/pricing.ts
     const { PLANS } = await import('../lib/pricing')
     for (const code of ['start', 'practice'] as const) assert.equal(B.PAID_PLANS[code].price, PLANS.find(p => p.dbCodes[0] === code)!.price)

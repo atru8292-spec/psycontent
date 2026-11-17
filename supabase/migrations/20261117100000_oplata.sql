@@ -19,7 +19,7 @@ alter table public.user_subscription
   add column if not exists reminder_sent_for timestamptz null,
   add column if not exists billing_anchor_day smallint null check (billing_anchor_day is null or billing_anchor_day between 1 and 31),
   add column if not exists next_plan_code text null check (next_plan_code is null or next_plan_code in ('start', 'practice'));
-comment on column public.user_subscription.next_plan_code is 'Смена тарифа (решение Арины 17.11): этот тариф начнется со следующего списания, без доплаты; согласие на новую сумму в autopay_consents'
+comment on column public.user_subscription.next_plan_code is 'Смена тарифа (решение Арины 17.11): этот тариф начнется со следующего списания, без доплаты; согласие на новую сумму в autopay_consents';
 comment on column public.user_subscription.billing_anchor_day is 'День месяца первой оплаты (по Москве): окно продлевается на этот день, в коротком месяце на последний';
 comment on column public.user_subscription.status is 'trial: пробный; active: оплачено окно [period_start, period_end); past_due: продление не прошло, идут повторы; canceled: автопродление выключено или возврат; expired: окно кончилось, тариф снова free';
 comment on column public.user_subscription.next_charge_at is 'Когда списать следующий раз (конец окна или время повтора). null: автопродления нет';
@@ -113,12 +113,26 @@ create table if not exists public.payment_events (
   result text null check (result is null or length(result) <= 60)
 );
 
+-- ── очередь писем об оплате: ночью (вне 10:00-20:00 по Москве) и после неудачной отправки. Почты нет, она берется
+-- в момент отправки; в data только тариф, суммы и даты письма. Отправленные старше 30 дней можно чистить ──
+create table if not exists public.pay_mail_queue (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid null references auth.users(id) on delete cascade,
+  kind text not null check (kind ~ '^[a-z_]{3,30}$'),
+  data jsonb not null default '{}'::jsonb check (pg_column_size(data) < 2048),
+  send_after timestamptz not null,
+  sent_at timestamptz null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_pay_mail_queue_due on public.pay_mail_queue (send_after) where sent_at is null;
+
 -- ── права: человек читает только свое, пишет только сервер ──
 alter table public.payment_methods  enable row level security;
 alter table public.autopay_consents enable row level security;
 alter table public.payments         enable row level security;
 alter table public.refunds          enable row level security;
 alter table public.payment_events   enable row level security;
+alter table public.pay_mail_queue   enable row level security;
 
 drop policy if exists "own payment methods" on public.payment_methods;
 create policy "own payment methods" on public.payment_methods for select to authenticated using (auth.uid() = user_id);
@@ -133,6 +147,8 @@ create policy "own refunds" on public.refunds for select to authenticated using 
 revoke all on public.payment_methods, public.autopay_consents, public.payments, public.refunds, public.payment_events from anon;
 revoke insert, update, delete, truncate on public.payment_methods, public.autopay_consents, public.payments, public.refunds, public.payment_events from authenticated;
 revoke all on public.payment_events from authenticated;
+revoke all on public.pay_mail_queue from anon, authenticated;
+grant all on public.pay_mail_queue to service_role;
 grant select on public.payment_methods, public.autopay_consents, public.payments, public.refunds to authenticated;
 grant all on public.payment_methods, public.autopay_consents, public.payments, public.refunds, public.payment_events to service_role;
 
