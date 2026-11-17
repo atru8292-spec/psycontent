@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { getSessionUser } from '@/lib/auth'
 import { supabaseRepo } from '@/lib/billing/deps'
 import { paidAccess, PAID_PLANS, isPaidCode } from '@/lib/billing/core'
-import { billingReady } from '@/lib/billing/ready'
+import { paymentsOnFor } from '@/lib/billing/ready'
 import { errTag } from '@/lib/safe-error'
 
 export async function GET() {
@@ -16,7 +16,7 @@ export async function GET() {
     const paid = paidAccess(sub, now)
     const pastDue = sub?.status === 'past_due'
     return NextResponse.json({
-      payments: billingReady(),
+      payments: paymentsOnFor(user.email),
       paid,
       plan: (paid || pastDue) && sub && isPaidCode(sub.plan_code) ? { code: sub.plan_code, name: PAID_PLANS[sub.plan_code].name, price: PAID_PLANS[sub.plan_code].price } : null,
       status: sub?.status || 'trial',
