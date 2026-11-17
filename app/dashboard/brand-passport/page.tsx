@@ -1,5 +1,6 @@
 'use client'
 
+import { QUIET_BTN } from '@/lib/ui-classes'
 import { useFeatureOpen, useTrackOnce } from '@/lib/analytics/hooks'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -504,21 +505,21 @@ export default function BrandPassport() {
                   Личный документ на основе твоей распаковки
                 </p>
               </div>
-              <div className="flex items-center gap-1 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={handleCopy}
-                  className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-2.5 sm:px-3 py-2 rounded-lg hover:bg-brand-highlight"
+                  className={QUIET_BTN}
                 >
                   {copied
-                    ? <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-sage" />
+                    ? <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-accent" />
                     : <Copy  className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   }
-                  {copied ? 'Скопировано!' : 'Копировать'}
+                  {copied ? 'Скопировано' : 'Копировать'}
                 </button>
 
                 <button
                   onClick={handleDownloadTxt}
-                  className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-2.5 sm:px-3 py-2 rounded-lg hover:bg-brand-highlight"
+                  className={QUIET_BTN}
                 >
                   <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   TXT
@@ -527,12 +528,12 @@ export default function BrandPassport() {
                 <button
                   onClick={handleDownloadPDF}
                   disabled={generatingPDF}
-                  className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-white bg-brand-accent hover:bg-brand-accent-hover transition cursor-pointer px-3 sm:px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1.5 text-[14px] font-semibold min-h-11 text-white bg-brand-accent hover:bg-brand-accent-hover transition cursor-pointer px-4 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {generatingPDF ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
-                      Создаю PDF...
+                      PDF собирается
                     </>
                   ) : (
                     <>
@@ -544,7 +545,7 @@ export default function BrandPassport() {
 
                 <button
                   onClick={handleGenerate}
-                  className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-2.5 sm:px-3 py-2 rounded-lg hover:bg-brand-highlight"
+                  className={QUIET_BTN}
                 >
                   <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   Заново

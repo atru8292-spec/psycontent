@@ -29,7 +29,6 @@ import { QUIET_BTN, QUIET_BTN_SM, QUIET_BTN_SM_MUTED } from '@/lib/ui-classes'
 
 export const DRAFT_KEY = 'psycont_make_draft'
 const FORMATS_KEY = 'psycont_make_formats'
-const MONTH_END_BUTTON = 'Новые тексты со следующего месяца'
 // режим образца включают только ссылки на Telegram и Instagram; другая ссылка в поле это просто мысль
 const URL_RE = /^\s*(?:https?:\/\/)?(?:www\.)?(?:t\.me|telegram\.me|instagram\.com|instagr\.am)\/\S+\s*$/i
 
@@ -328,7 +327,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
   // кнопка на телефоне прилипает над нижним меню (56 px); пока печатают (меню уехало) или тексты закончились, стоит в потоке
   const stick = !typing && !noMaterials
   // на платном заголовок блока выше уже говорит «Тексты этого месяца закончились», на кнопке не повторяем
-  const buttonText = noMaterials ? (materials?.kind === 'month' ? MONTH_END_BUTTON : END.disabled) : tooMany ? END.tooMany : !formats.length ? 'Выбери, что написать' : sampleMode ? 'Написать по образцу' : makeButtonText(formats)
+  const buttonText = noMaterials ? (materials?.kind === 'month' ? END.monthButton : END.disabled) : tooMany ? END.tooMany : !formats.length ? 'Выбери, что написать' : sampleMode ? 'Написать по образцу' : makeButtonText(formats)
 
   return (
     <div className={`min-w-0 ${stick ? 'max-lg:pb-[120px]' : ''}`}>

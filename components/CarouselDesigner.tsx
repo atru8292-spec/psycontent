@@ -727,7 +727,7 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
       {loading[s.n] && <span className="absolute inset-0 flex items-center justify-center bg-brand-bg/60"><Loader2 className="w-6 h-6 animate-spin text-brand-accent" /></span>}
       {broken[s.n] && (
         <span className="absolute inset-x-4 bottom-4 rounded-xl bg-white/95 px-3 py-2 text-sm text-brand-text">
-          Слайд не перерисовался, так иногда бывает. <span role="button" tabIndex={0} className={`ml-1 align-middle ${QUIET_BTN_SM}`} onClick={e => { e.stopPropagation(); setBust(b => b + 1) }} onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); setBust(b => b + 1) } }}>Повторить</span>
+          Слайд не перерисовался, так иногда бывает. <span role="button" tabIndex={0} className={`ml-1 align-middle ${QUIET_BTN_SM}`} onClick={e => { e.stopPropagation(); setBust(b => b + 1) }} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setBust(b => b + 1) } }}>Повторить</span>
         </span>
       )}
     </>

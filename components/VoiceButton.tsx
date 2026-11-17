@@ -121,5 +121,5 @@ export function VoiceStatus({ rec }: { rec: VoiceRecorder }) {
   }
 
   // min-h держит место под одну строку всегда (idle пусто, поле не дергается).
-  return <div className="min-h-[20px] mt-1.5 text-xs leading-tight">{content}</div>
+  return <div className="min-h-9 mt-1.5 text-xs leading-tight">{content}</div>
 }
