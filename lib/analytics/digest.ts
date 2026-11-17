@@ -12,7 +12,7 @@ export type DigestData = {
   stuck: { n: number; latest: DigestPerson[] }
   cooling: { n: number; risk60: number; top: DigestPerson[] }
   aiRubDay: number; aiRubMonth: number
-  genErrors: number; profileChecks: number
+  genErrors: number
   exitReasons: Partial<Record<ExitReason, number>>; exitAnswers: number
   stuckReasons?: Partial<Record<ExitReason, number>>; stuckAnswers?: number
 }
@@ -31,7 +31,6 @@ export function buildDigest(d: DigestData): string {
     `Остывают: ${d.cooling.n}, риск 60+: ${d.cooling.risk60}${d.cooling.top.length ? ` (выше всех: ${d.cooling.top.map(who).join(', ')})` : ''}`,
     `ИИ: вчера ${rub(d.aiRubDay)}, за месяц ${rub(d.aiRubMonth)}`,
     `Ошибки генерации: ${d.genErrors}`,
-    `Проверки профиля: ${d.profileChecks}`,
   ]
   const reasons = Object.entries(d.exitReasons).filter(([, n]) => (n || 0) > 0).sort((a, b) => (b[1] || 0) - (a[1] || 0))
   if (d.exitAnswers) {
@@ -52,7 +51,7 @@ export function demoDigest(): DigestData {
     stuck: { n: 3, latest: [{ id: '0000a1b2-0000', name: 'Марина Ершова' }, { id: '0000c3d4-0000', name: 'Егор' }, { id: '0000e5f6-0000', name: null }] },
     cooling: { n: 5, risk60: 2, top: [{ id: '00001111-0000', name: 'Вера Соколова', score: 75 }, { id: '00002222-0000', name: 'Лилия', score: 64 }, { id: '00003333-0000', name: 'Ольга', score: 52 }] },
     aiRubDay: 186.4, aiRubMonth: 3120,
-    genErrors: 1, profileChecks: 3,
+    genErrors: 1,
     exitReasons: { not_me: 1, no_clients: 1, pause: 1 }, exitAnswers: 3,
   }
 }
@@ -72,7 +71,7 @@ export function yesterdayIn(tz: string, now = new Date()): { from: Date; to: Dat
 
 export function digestFrom(i: {
   label: string; from: Date; to: Date; people: PersonRow[]; overview: Overview
-  aiRubDay: number; aiRubMonth: number; onboarded: number; genErrors: number; profileChecks: number
+  aiRubDay: number; aiRubMonth: number; onboarded: number; genErrors: number
   exits: { reasons: string[]; place?: string }[]
 }): DigestData {
   const inDay = (iso: string | null) => !!iso && Date.parse(iso) >= i.from.getTime() && Date.parse(iso) < i.to.getTime()
@@ -91,7 +90,7 @@ export function digestFrom(i: {
     active7: i.overview.active_7,
     stuck: { n: stuck.length, latest: stuck.slice(0, 3).map(p => ({ id: p.user_id, name: p.full_name })) },
     cooling: { n: cooling.length, risk60: risky.length, top: risky.slice(0, 3).map(p => ({ id: p.user_id, name: p.full_name, score: p.churn.score })) },
-    aiRubDay: i.aiRubDay, aiRubMonth: i.aiRubMonth, genErrors: i.genErrors, profileChecks: i.profileChecks,
+    aiRubDay: i.aiRubDay, aiRubMonth: i.aiRubMonth, genErrors: i.genErrors,
     exitReasons: reasons, exitAnswers: leave.length, stuckReasons, stuckAnswers: stuckEx.length,
   }
 }
