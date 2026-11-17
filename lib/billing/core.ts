@@ -61,7 +61,7 @@ export interface Repo {
   recentPayments(userId: string, sinceIso: string): Promise<PaymentRow[]>
   upsertMethod(userId: string, ykId: string, type: string, title: string, last4: string | null): Promise<MethodRow>
   getMethod(id: string): Promise<MethodRow | null>
-  deleteMethods(userId: string, at: string): Promise<void>
+  deleteMethods(userId: string): Promise<void>  // стирает строки с токеном (не пометка)
   insertConsent(row: { user_id: string; plan_code: string; amount: number; consent_text: string; offer_version: string; ip: string | null; payment_id: string | null }): Promise<void>
   // согласия удаленных аккаунтов старше срока (3 года) удаляются; возвращает, сколько удалено
   purgeOrphanConsents(beforeIso: string): Promise<number>
@@ -459,7 +459,7 @@ export async function changePlan(d: Deps, a: { userId: string; plan: string; con
 
 export async function deletePaymentMethod(d: Deps, userId: string): Promise<'ok'> {
   await disableAutoRenew(d, userId)
-  await d.repo.deleteMethods(userId, iso(d.now()))
+  await d.repo.deleteMethods(userId)
   await d.repo.updateSub(userId, { payment_method_id: null })
   d.track?.(userId, 'pay_method_delete', {})
   return 'ok'
@@ -528,5 +528,5 @@ export async function adminDisable(d: Deps, userId: string): Promise<'ok'> {
 export async function cancelBillingForDeletion(d: Deps, userId: string): Promise<void> {
   const sub = await d.repo.getSub(userId)
   if (sub?.auto_renew) await d.repo.updateSub(userId, { auto_renew: false, next_charge_at: null })
-  await d.repo.deleteMethods(userId, iso(d.now()))
+  await d.repo.deleteMethods(userId)
 }
