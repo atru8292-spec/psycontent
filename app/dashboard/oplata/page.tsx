@@ -108,7 +108,7 @@ function Oplata() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[16px] font-semibold text-brand-text">{pl.name}</span>
-                  <span className="block text-[13px] text-brand-muted">{pl.materials} материалов в месяц</span>
+                  <span className="block text-[13px] text-brand-muted">{pl.materials} текстов в месяц</span>
                 </span>
                 <span className="text-right shrink-0">
                   <span className="block text-[16px] font-semibold text-brand-text tabular-nums">{rubles(pl.price)}</span>

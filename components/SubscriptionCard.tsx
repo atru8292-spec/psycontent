@@ -116,7 +116,7 @@ export default function SubscriptionCard() {
               <>
                 <p className="mt-2 text-[15px] leading-[22px] text-brand-text-secondary">{SUB.changeText(nextDate, me.plan?.name || '')}</p>
                 <div className="mt-4 rounded-2xl border-2 border-brand-accent p-4 flex items-center justify-between gap-3">
-                  <span><span className="block text-[16px] font-semibold text-brand-text">{other.name}</span><span className="block text-[13px] text-brand-muted">{other.materials} материалов в месяц</span></span>
+                  <span><span className="block text-[16px] font-semibold text-brand-text">{other.name}</span><span className="block text-[13px] text-brand-muted">{other.materials} текстов в месяц</span></span>
                   <span className="text-[16px] font-semibold text-brand-text tabular-nums">{rubles(other.price)}</span>
                 </div>
                 <label className="mt-4 flex items-start gap-3 cursor-pointer">

@@ -82,7 +82,7 @@ export const SUB = {
   // смена тарифа (решение Арины 17.11), тексты copywriter-psycont
   changeBtn: 'Сменить тариф',
   changeTitle: 'На какой тариф перейти?',
-  changeText: (date: string, current: string) => `Новый тариф начнет работать с ${date}, со следующего списания. Доплачивать ничего не нужно, до ${date} остается «${current}» с его материалами.`,
+  changeText: (date: string, current: string) => `Новый тариф начнет работать с ${date}, со следующего списания. Доплачивать ничего не нужно, до ${date} остается «${current}» с его текстами.`,
   changeAgree: (sum: string, date: string) => `Списывать ${sum} в месяц с ${date}`,
   changeYes: (plan: string) => `Перейти на «${plan}»`,
   changeNo: 'Оставить текущий',
