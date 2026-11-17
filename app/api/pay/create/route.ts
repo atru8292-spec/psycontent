@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSessionUser } from '@/lib/auth'
 import { publicOrigin } from '@/lib/origin'
 import { clientIp } from '@/lib/signup-guard'
-import { billingReady } from '@/lib/billing/ready'
+import { paymentsOnFor } from '@/lib/billing/ready'
 import { billingDeps } from '@/lib/billing/deps'
 import { startCheckout } from '@/lib/billing/core'
 import { errTag } from '@/lib/safe-error'
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'not_authorized' }, { status: 401 })
   const origin = req.headers.get('origin')
   if (origin && origin !== publicOrigin(req)) return NextResponse.json({ error: 'bad_origin' }, { status: 403 })
-  if (!billingReady()) return NextResponse.json({ error: 'not_ready' }, { status: 503 })
+  if (!paymentsOnFor(user.email)) return NextResponse.json({ error: 'not_ready' }, { status: 503 })
   const b = await req.json().catch(() => null)
   try {
     const r = await startCheckout(billingDeps(), {
