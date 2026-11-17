@@ -267,7 +267,7 @@ export async function processPayment(d: Deps, api: YkPayment): Promise<string> {
     }
     // 2) способ оплаты (повторяемо: upsert по id способа в ЮKassa)
     let methodId: string | null = null
-    if (row.kind === 'first' && row.save_requested && api.payment_method?.saved && api.payment_method.id) {
+    if (row.kind === 'first' && row.save_requested && api.payment_method?.saved && api.payment_method.id && !(row.note || '').includes('double')) {
       methodId = (await d.repo.upsertMethod(row.user_id!, api.payment_method.id, api.payment_method.type, methodTitle(api.payment_method), api.payment_method.card?.last4 || null)).id
     } else if (row.kind === 'renewal') methodId = row.payment_method_id
     // 3) подписка по окну (повторяемо)
@@ -459,8 +459,7 @@ export async function changePlan(d: Deps, a: { userId: string; plan: string; con
 
 export async function deletePaymentMethod(d: Deps, userId: string): Promise<'ok'> {
   await disableAutoRenew(d, userId)
-  await d.repo.deleteMethods(userId)
-  await d.repo.updateSub(userId, { payment_method_id: null })
+  await d.repo.deleteMethods(userId) // ссылку в подписке обнуляет внешний ключ (on delete set null)
   d.track?.(userId, 'pay_method_delete', {})
   return 'ok'
 }

@@ -40,9 +40,9 @@ export type MakeGoal = 'znakomstvo' | 'zapis' | 'obyasnit' | 'podderzhat' | null
 
 export function pluralMaterial(n: number): string {
   const m10 = n % 10, m100 = n % 100
-  if (m10 === 1 && m100 !== 11) return 'материал'
-  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'материала'
-  return 'материалов'
+  if (m10 === 1 && m100 !== 11) return 'текст'
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'текста'
+  return 'текстов'
 }
 
 export function makeButtonText(formats: MakeFormat[]): string {
