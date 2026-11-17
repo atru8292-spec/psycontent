@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ChevronRight, ChevronDown } from 'lucide-react'
+import { QUIET_BTN_MUTED } from '@/lib/ui-classes'
 import { supabase } from '@/lib/supabase'
 import { useDashboardMe } from '@/lib/dashboard-me'
 import MyCarouselDesign from '@/components/MyCarouselDesign'
@@ -138,7 +139,7 @@ export default function SettingsPage() {
           <p className="text-[15px] font-semibold text-brand-text">Выйти из аккаунта?</p>
           <div className="mt-3 flex gap-2">
             <button type="button" onClick={logout} className={BTN}>Выйти</button>
-            <button type="button" onClick={() => setAskLogout(false)} className="h-11 px-4 rounded-2xl text-[15px] font-semibold text-brand-text hover:bg-brand-card transition cursor-pointer">Остаться</button>
+            <button type="button" onClick={() => setAskLogout(false)} className={QUIET_BTN_MUTED}>Остаться</button>
           </div>
         </div>
       )}

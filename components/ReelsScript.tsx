@@ -8,6 +8,7 @@
 import { track } from '@/lib/track'
 import { useState, type ReactNode } from 'react'
 import { Copy, Check, Video, ChevronDown } from 'lucide-react'
+import { QUIET_BTN_SM } from '@/lib/ui-classes'
 import CaptionBlock from './CaptionBlock'
 import { gruppaOf } from '@/lib/generation/zh6/gruppy'
 import { KARTY } from './make/vid-cards'
@@ -126,7 +127,7 @@ export default function ReelsScript({ text, mark, format, postId, title, vid }: 
         <div className="flex items-center justify-between gap-2">
           <p className="min-w-0 text-[13px] font-semibold text-brand-muted">{bezSlov && screens ? 'Надписи на видео' : 'Что сказать'}</p>
           <button type="button" onClick={copySpeech}
-            className="min-h-11 -my-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-brand-accent hover:text-brand-accent-hover cursor-pointer shrink-0">
+            className={`-my-1 shrink-0 ${QUIET_BTN_SM}`}>
             {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Скопировано' : 'Скопировать текст'}
           </button>
         </div>

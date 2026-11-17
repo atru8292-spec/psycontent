@@ -10,6 +10,7 @@ import {
   Heart, MapPin, Loader2, AlertTriangle
 } from 'lucide-react'
 import VoiceTextarea from '@/components/VoiceTextarea'
+import { QUIET_BTN_MUTED, QUIET_BTN_SM_MUTED } from '@/lib/ui-classes'
 import { syncEmailName } from '@/lib/auth-name'
 
 // Профиль практики (этап 5.5 шаг 2): только ФАКТЫ о работе. Стиль и личность теперь
@@ -347,7 +348,7 @@ export default function EditProfile() {
             </button>
             <button
               onClick={() => router.push('/dashboard')}
-              className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-brand-text rounded-xl font-medium transition cursor-pointer"
+              className={`w-full ${QUIET_BTN_MUTED}`}
             >
               Вернуться в кабинет
             </button>
@@ -375,8 +376,9 @@ export default function EditProfile() {
             <div className="flex items-center gap-4">
               <span className="text-brand-text-secondary">{step + 1} / {questions.length}</span>
               <button
+                type="button"
                 onClick={() => router.push('/dashboard')}
-                className="text-gray-400 hover:text-gray-600 text-sm"
+                className={QUIET_BTN_SM_MUTED}
               >
                 Отмена
               </button>

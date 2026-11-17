@@ -25,9 +25,11 @@ import { GRUPPY, gruppaOf, tipOf } from '@/lib/generation/zh6/gruppy'
 import { MAKE_FORMATS, DEFAULT_FORMATS, GOAL_OPTIONS, makeButtonText, formatOne, type MakeFormat, type MakeGoal } from './formats'
 import { END, TARIFF_HREF, spendLine, type Materials } from '@/lib/limit-texts'
 import { GENERIC_TOPIC } from '@/lib/first-topic'
+import { QUIET_BTN, QUIET_BTN_SM, QUIET_BTN_SM_MUTED } from '@/lib/ui-classes'
 
 export const DRAFT_KEY = 'psycont_make_draft'
 const FORMATS_KEY = 'psycont_make_formats'
+const MONTH_END_BUTTON = 'Новые тексты со следующего месяца'
 // режим образца включают только ссылки на Telegram и Instagram; другая ссылка в поле это просто мысль
 const URL_RE = /^\s*(?:https?:\/\/)?(?:www\.)?(?:t\.me|telegram\.me|instagram\.com|instagr\.am)\/\S+\s*$/i
 
@@ -325,7 +327,8 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
   const phoneHint = spend || (materials ? '' : 'Около минуты, текст сохранится в «Моих текстах»')
   // кнопка на телефоне прилипает над нижним меню (56 px); пока печатают (меню уехало) или тексты закончились, стоит в потоке
   const stick = !typing && !noMaterials
-  const buttonText = noMaterials ? (materials?.kind === 'month' ? END.month.title() : END.disabled) : tooMany ? END.tooMany : !formats.length ? 'Выбери, что написать' : sampleMode ? 'Написать по образцу' : makeButtonText(formats)
+  // на платном заголовок блока выше уже говорит «Тексты этого месяца закончились», на кнопке не повторяем
+  const buttonText = noMaterials ? (materials?.kind === 'month' ? MONTH_END_BUTTON : END.disabled) : tooMany ? END.tooMany : !formats.length ? 'Выбери, что написать' : sampleMode ? 'Написать по образцу' : makeButtonText(formats)
 
   return (
     <div className={`min-w-0 ${stick ? 'max-lg:pb-[120px]' : ''}`}>
@@ -337,7 +340,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
         <div className="mt-4 min-h-11 flex items-center gap-2 pl-3 rounded-xl bg-brand-soft-2 text-brand-text">
           {screens.length ? <ImageIcon className="w-4 h-4 shrink-0" /> : <Link2 className="w-4 h-4 shrink-0" />}
           <span className="min-w-0 flex-1 truncate text-[14px] [overflow-wrap:anywhere]">По образцу: {sourceLabel}</span>
-          <button type="button" onClick={clearSozhe} className="h-11 px-3 text-[14px] font-semibold text-brand-accent cursor-pointer shrink-0">Убрать образец</button>
+          <button type="button" onClick={clearSozhe} className={`mr-1 shrink-0 ${QUIET_BTN_SM}`}>Убрать образец</button>
         </div>
       )}
 
@@ -355,7 +358,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
         />
         <div className="h-[72px] flex items-center gap-2 pl-2 lg:pl-3 pr-3">
           <button type="button" onClick={() => setSampleOpen(o => !o)} aria-expanded={sampleOpen || sampleMode}
-            className="h-11 px-2 inline-flex items-center gap-2 rounded-xl text-[14px] font-semibold text-brand-accent hover:bg-brand-soft-2 cursor-pointer shrink-0">
+            className={`shrink-0 ${QUIET_BTN}`}>
             <Paperclip className="w-[18px] h-[18px]" />
             <span className="sm:hidden">По образцу</span><span className="hidden sm:inline">Написать по образцу</span>
           </button>
@@ -381,7 +384,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
 
       {!t && !sampleMode && draft && (
         <button type="button" onClick={() => { typed.current = true; setText(draft); setDraft(null) }}
-          className="mt-1 w-full h-11 flex items-center gap-2 px-1 text-left text-brand-text cursor-pointer">
+          className="mt-2 w-full min-h-11 flex items-center gap-2 px-3 rounded-xl border border-brand-border bg-brand-card text-left text-brand-text hover:bg-brand-soft-2 cursor-pointer focus-visible:outline-2 focus-visible:outline-brand-accent">
           <FileText className="w-[18px] h-[18px] text-brand-muted shrink-0" />
           <span className="min-w-0 flex-1 truncate text-[15px]">Продолжить черновик: {draft}</span>
           <ChevronRight className="w-4 h-4 text-brand-muted shrink-0" />
@@ -452,7 +455,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
                 className="h-11 px-4 rounded-xl bg-white border-[1.5px] border-brand-accent text-[14px] font-semibold text-brand-accent hover:bg-brand-soft cursor-pointer">Взять тему</button>
             )}
             {list.length > 1 && (
-              <button type="button" onClick={otherTopic} className="h-11 px-3 rounded-xl text-[14px] font-semibold text-brand-accent hover:bg-brand-soft cursor-pointer">Другая тема</button>
+              <button type="button" onClick={otherTopic} className={QUIET_BTN}>Другая тема</button>
             )}
           </div>
         </div>
@@ -494,7 +497,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
           })}
         </div>
       )}
-      <button type="button" onClick={() => setGoalOpen(true)} className="mt-2 h-11 inline-flex items-center gap-1 text-[15px] cursor-pointer">
+      <button type="button" onClick={() => setGoalOpen(true)} aria-haspopup="dialog" className="mt-2 max-w-full min-h-11 px-3 inline-flex items-center gap-1 rounded-xl border border-brand-border bg-brand-card text-[15px] text-left hover:border-brand-accent cursor-pointer focus-visible:outline-2 focus-visible:outline-brand-accent">
         <span className="text-brand-muted">Зачем пишешь:</span>
         <span className="text-brand-text">{lowerFirst(GOAL_OPTIONS.find(g => g.id === goal)?.label || 'Подобрать по теме')}</span>
         <ChevronDown className="w-4 h-4 text-brand-muted" />
@@ -569,15 +572,15 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
                             <span className="block mt-2 pl-2 border-l-2 border-brand-border-soft text-[13px] leading-[18px] text-brand-text-secondary whitespace-pre-line break-words">{kt.example}</span>
                           </span>
                         </button>
-                        <div className="flex flex-wrap gap-x-1 px-2 pb-1 -mt-1">
+                        <div className="flex flex-wrap gap-2 px-3 pb-3">
                           <button type="button" aria-expanded={kakOpen === g.id} onClick={() => setKakOpen(kakOpen === g.id ? null : g.id)}
-                            className={`min-h-11 px-2 inline-flex items-center gap-1 text-[14px] font-medium cursor-pointer ${kakOpen === g.id ? 'text-brand-accent' : 'text-brand-text-secondary'}`}>
+                            className={kakOpen === g.id ? QUIET_BTN_SM : QUIET_BTN_SM_MUTED}>
                             {isKak ? KNOPKI.kakSnyat : KNOPKI.kakVylozhit}<ChevronDown className={`w-4 h-4 transition ${kakOpen === g.id ? 'rotate-180' : ''}`} />
                           </button>
                           {/* «выбрать точнее» только у выбранной карточки: иначе на экране 8-10 одинаковых кнопок */}
                           {subs.length > 1 && sel && (
                             <button type="button" aria-expanded={tochOpen === g.id} onClick={() => setTochOpen(tochOpen === g.id ? null : g.id)}
-                              className="min-h-11 px-2 inline-flex items-center gap-1 text-[14px] font-medium text-brand-accent cursor-pointer">
+                              className={QUIET_BTN_SM}>
                               {KNOPKI.tochnee}<ChevronDown className={`w-4 h-4 transition ${tochOpen === g.id ? 'rotate-180' : ''}`} />
                             </button>
                           )}

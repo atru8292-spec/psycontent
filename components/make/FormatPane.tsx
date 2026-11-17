@@ -21,6 +21,7 @@ import BottomSheet from './BottomSheet'
 import { useDashboardMe } from '@/lib/dashboard-me'
 import { isMaterials, spendLine } from '@/lib/limit-texts'
 import { dateRu } from '@/lib/billing/pay-texts'
+import { QUIET_BTN_SM_MUTED } from '@/lib/ui-classes'
 
 export type PaneItem = {
   format: string          // формат экрана: reels, carousel, post, post_tg, stories
@@ -180,7 +181,7 @@ export default function FormatPane({ item, onChange, onPublished, onMore, moreCo
       setError('Не получилось поправить. Текст на месте, попробуй еще раз')
     } finally { setAdjusting(null) }
   }
-  // «Другой вариант» сразу из-под текста: лист открывается уже с вариантами
+  // «Другой вариант» из листа «•••»: открывает лист подтверждения (это 1 текст), спиннер пишется там же
   const otherVariant = () => { setHooks(null); setVariantAsk(true); setFixOpen(true) }
   const noLeft = !!materials && materials.remaining <= 0
 
@@ -232,7 +233,7 @@ export default function FormatPane({ item, onChange, onPublished, onMore, moreCo
     <span className={`h-12 pl-3.5 pr-1 rounded-2xl bg-brand-soft-2 inline-flex items-center gap-1.5 min-w-0 ${cls}`} role="status">
       <Check className="w-4 h-4 text-brand-accent shrink-0" />
       <span className="text-[15px] font-semibold text-brand-text truncate">Опубликовано{item.publishedAt && <span className="hidden lg:inline"> {new Date(item.publishedAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}</span>}</span>
-      <button type="button" onClick={togglePublished} className="ml-auto min-h-11 px-2.5 text-[14px] font-medium text-brand-muted hover:text-brand-text cursor-pointer shrink-0">Отменить</button>
+      <button type="button" onClick={togglePublished} className={`ml-auto mr-1.5 shrink-0 ${QUIET_BTN_SM_MUTED}`}>Отменить</button>
     </span>
   )
   // главная: до копирования «Скопировать текст», после «Уже в блоге», после отметки «Опубликовано» и «Отменить»
@@ -309,7 +310,7 @@ export default function FormatPane({ item, onChange, onPublished, onMore, moreCo
                     {clampable && !expanded && <span aria-hidden="true" className="lg:hidden absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-brand-card to-brand-card/0" />}
                   </div>
                   {clampable && !expanded && (
-                    <button type="button" onClick={() => setExpanded(true)} className="lg:hidden -mt-3 h-11 text-[15px] font-medium text-brand-muted hover:text-brand-text cursor-pointer">Читать дальше</button>
+                    <button type="button" onClick={() => setExpanded(true)} className={`lg:hidden -mt-1 ${QUIET_BTN_SM_MUTED}`}>Читать дальше</button>
                   )}
                   <CaptionBlock caption={splitCaption(body).caption} format={code} postId={postId} title="Описание" />
                 </div>
@@ -350,12 +351,6 @@ export default function FormatPane({ item, onChange, onPublished, onMore, moreCo
               {moreBtn()}
             </div>
           )}
-          {!editing && postId && !code.startsWith('reels_scenka') && (
-            <button type="button" onClick={otherVariant} disabled={!!adjusting}
-              className={`${isCarousel ? 'inline-flex' : 'hidden lg:inline-flex'} mt-3 min-h-11 items-center gap-2 text-[15px] font-semibold text-brand-accent hover:text-brand-accent-hover cursor-pointer disabled:opacity-50`}>
-              {adjusting === 'hooks' && <Loader2 className="w-4 h-4 animate-spin" />}Другой вариант
-            </button>
-          )}
         </div>
 
         {/* оформление карусели и обложка поста */}
@@ -391,7 +386,7 @@ export default function FormatPane({ item, onChange, onPublished, onMore, moreCo
             <button type="button" onClick={() => { togglePublished(); setMoreOpen(false) }} className="w-full h-[52px] text-left text-[16px] text-brand-text cursor-pointer">Уже в блоге</button>
           )}
           {postId && !code.startsWith('reels_scenka') && (
-            <button type="button" onClick={() => { setMoreOpen(false); otherVariant() }} className="lg:hidden w-full h-[52px] text-left text-[16px] text-brand-text cursor-pointer">Другой вариант</button>
+            <button type="button" onClick={() => { setMoreOpen(false); otherVariant() }} className="w-full h-[52px] text-left text-[16px] text-brand-text cursor-pointer">Другой вариант</button>
           )}
           {published && (
             <button type="button" onClick={() => { setFixOpen(true); setMoreOpen(false) }} className="w-full h-[52px] text-left text-[16px] text-brand-text cursor-pointer">Поправить</button>

@@ -1,5 +1,6 @@
 'use client'
 
+import { QUIET_BTN } from '@/lib/ui-classes'
 import { useState, useEffect } from 'react'
 import { makeHref } from '@/lib/make-handoff'
 import NextImage from 'next/image'
@@ -239,7 +240,7 @@ export default function TopicIdeas({ embedded = false }: { embedded?: boolean })
               <button
                 onClick={handleSearch}
                 disabled={searching}
-                className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-1.5 rounded-lg hover:bg-brand-highlight"
+                className={QUIET_BTN}
               >
                 <RefreshCw className={`w-4 h-4 ${searching ? 'animate-spin' : ''}`} />
                 Обновить

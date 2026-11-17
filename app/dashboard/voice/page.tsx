@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Loader2, Plus, Trash2, Check, ChevronDown, Mic } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import VoiceTextarea from '@/components/VoiceTextarea'
+import { QUIET_BTN, QUIET_BTN_MUTED } from '@/lib/ui-classes'
 
 type Story = { text: string; level: 'personal' | 'work' | 'practice' }
 
@@ -339,7 +340,7 @@ export default function VoicePage() {
 
   const filled = texts.filter(t => t.trim().length >= 60).length
   const card = 'rounded-3xl bg-brand-card border border-brand-border p-5 sm:p-6 space-y-3'
-  const primary = (on: boolean) => `inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-semibold transition cursor-pointer ${on ? 'bg-brand-accent text-white hover:bg-brand-accent-hover' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`
+  const primary = (on: boolean) => `inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-semibold transition cursor-pointer ${on ? 'bg-brand-accent text-white hover:bg-brand-accent-hover' : 'bg-brand-border text-brand-text/70 cursor-not-allowed'}`
 
   return (
     <div className="min-h-screen bg-brand-bg">
@@ -367,8 +368,8 @@ export default function VoicePage() {
               {heardVerdict === 'sent' && <p className="text-sm text-brand-text">Принято, это учтется в следующих постах.</p>}
               {heardVerdict === null && (
                 <div className="flex items-center gap-3">
-                  <button type="button" onClick={() => sendHeardFeedback(true)} className="px-4 py-2 rounded-xl text-sm font-semibold bg-white text-brand-text border border-brand-border hover:border-brand-accent cursor-pointer">Похоже</button>
-                  <button type="button" onClick={() => setHeardVerdict('fix')} className="text-sm text-brand-text-secondary hover:text-brand-accent cursor-pointer">Не совсем</button>
+                  <button type="button" onClick={() => sendHeardFeedback(true)} className={QUIET_BTN}>Похоже</button>
+                  <button type="button" onClick={() => setHeardVerdict('fix')} className={QUIET_BTN_MUTED}>Не совсем</button>
                 </div>
               )}
               {heardVerdict === 'fix' && (
@@ -431,7 +432,7 @@ export default function VoicePage() {
           <VoiceTextarea value={phraseAnswer} onChange={setPhraseAnswer} minHeight={90} placeholder="Твоими словами" />
           <div className="flex flex-wrap items-center gap-3">
             <button type="button" disabled={!phraseAnswer.trim()} onClick={sendPhrase} className={primary(!!phraseAnswer.trim())}>Готово</button>
-            <button type="button" onClick={() => { setPhraseAnswer(''); setPhraseIdx(i => (i + 1) % SMOOTH.length) }} className="text-sm text-brand-muted hover:text-brand-text cursor-pointer">Другую фразу</button>
+            <button type="button" onClick={() => { setPhraseAnswer(''); setPhraseIdx(i => (i + 1) % SMOOTH.length) }} className={QUIET_BTN_MUTED}>Другую фразу</button>
             {phrasesDone > 0 && <span className="text-xs text-brand-muted">Сохранено {phrasesDone} из {SMOOTH.length}</span>}
           </div>
 
@@ -473,7 +474,7 @@ export default function VoicePage() {
               {importing ? <><Loader2 className="w-4 h-4 animate-spin" /> Читается</> : 'Прочитать'}
             </button>
           </div>
-          <button type="button" onClick={() => setPasteOpen(!pasteOpen)} className="text-sm text-brand-accent hover:underline cursor-pointer">
+          <button type="button" onClick={() => setPasteOpen(!pasteOpen)} aria-expanded={pasteOpen} className={`text-left ${QUIET_BTN}`}>
             {pasteOpen ? 'Свернуть' : 'Канала нет или он закрыт? Вставь 2-3 поста'}
           </button>
           {pasteOpen && (
@@ -496,7 +497,7 @@ export default function VoicePage() {
                 </div>
               ))}
               {texts.length < MAX_TEXTS && (
-                <button type="button" onClick={() => setTexts([...texts, ''])} className="inline-flex items-center gap-1.5 text-sm text-brand-accent hover:underline cursor-pointer">
+                <button type="button" onClick={() => setTexts([...texts, ''])} className={QUIET_BTN}>
                   <Plus className="w-4 h-4" /> Еще пост
                 </button>
               )}
@@ -588,7 +589,7 @@ export default function VoicePage() {
                 </div>
               </div>
             ))}
-            <button type="button" onClick={() => setStories([...stories, { text: '', level: 'practice' }])} className="inline-flex items-center gap-1.5 text-sm text-brand-accent hover:underline cursor-pointer">
+            <button type="button" onClick={() => setStories([...stories, { text: '', level: 'practice' }])} className={QUIET_BTN}>
               <Plus className="w-4 h-4" /> Добавить историю
             </button>
           </div>

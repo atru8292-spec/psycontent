@@ -9,6 +9,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { Mic, Square, Loader2, Check } from 'lucide-react'
 import type { VoiceRecorder } from '@/lib/use-voice-recorder'
+import { QUIET_BTN_SM, QUIET_BTN_SM_MUTED } from '@/lib/ui-classes'
 
 function fmt(sec: number): string {
   const m = Math.floor(sec / 60)
@@ -67,7 +68,7 @@ export function VoiceButton({ rec }: { rec: VoiceRecorder }) {
             className="absolute right-0 bottom-11 w-60 rounded-xl bg-brand-soft border border-brand-border-soft p-3 text-xs text-brand-text/80 leading-relaxed shadow-[0_10px_30px_-12px_rgba(51,71,43,0.35)] z-10"
           >
             <p>Браузер не пускает к микрофону. Разреши доступ в настройках сайта, и продиктуешь.</p>
-            <button type="button" onClick={rec.reset} className="mt-2 text-brand-accent font-medium cursor-pointer">Понятно</button>
+            <button type="button" onClick={rec.reset} className={`mt-2 ${QUIET_BTN_SM}`}>Понятно</button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -86,7 +87,7 @@ export function VoiceStatus({ rec }: { rec: VoiceRecorder }) {
       <div className="flex items-center gap-2 text-brand-accent">
         <span className="tabular-nums shrink-0">{fmt(elapsed)}</span>
         <span className="truncate">{nearLimit ? 'Заканчивай мысль, запись скоро остановится' : 'Идет запись'}</span>
-        <button type="button" onClick={rec.cancel} className="shrink-0 ml-auto text-brand-muted hover:text-brand-text transition cursor-pointer">Отменить</button>
+        <button type="button" onClick={rec.cancel} className={`shrink-0 ml-auto ${QUIET_BTN_SM_MUTED}`}>Отменить</button>
       </div>
     )
   } else if (state === 'transcribing') {
@@ -100,19 +101,19 @@ export function VoiceStatus({ rec }: { rec: VoiceRecorder }) {
     content = (
       <div className="flex items-center gap-2 text-brand-text/80">
         <span className="truncate">Связь подвела. Попробуй записать еще раз.</span>
-        <button type="button" onClick={rec.retry} className="shrink-0 ml-auto text-brand-accent font-medium cursor-pointer min-h-11 px-1">Повторить</button>
+        <button type="button" onClick={rec.retry} className={`shrink-0 ml-auto ${QUIET_BTN_SM}`}>Повторить</button>
       </div>
     )
   } else if (errorKind === 'empty') {
     content = (
       <div className="flex items-center gap-2 text-brand-text/80">
         <span className="truncate">Ничего не слышно. Попробуй еще раз, поближе к телефону</span>
-        <button type="button" onClick={rec.reset} className="shrink-0 ml-auto text-brand-muted hover:text-brand-text transition cursor-pointer">Скрыть</button>
+        <button type="button" onClick={rec.reset} className={`shrink-0 ml-auto ${QUIET_BTN_SM_MUTED}`}>Скрыть</button>
       </div>
     )
   } else if (justFinished) {
     content = (
-      <div className="flex items-center gap-1.5 text-brand-sage">
+      <div className="flex items-center gap-1.5 text-brand-accent">
         <Check className="w-3.5 h-3.5 shrink-0" />
         <span>Готово</span>
       </div>

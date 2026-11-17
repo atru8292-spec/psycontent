@@ -4,6 +4,7 @@
 // RhythmStrip: та же мера одной строкой на телефоне (A3).
 // Ритм не геймификация: пропуск ничем не наказывается, слов «серия», «потеряно», «сгорит» нет (словарь 17.11, раздел 5).
 
+import { QUIET_BTN, QUIET_BTN_SM } from '@/lib/ui-classes'
 import Link from 'next/link'
 import { Check } from 'lucide-react'
 import { track } from '@/lib/track'
@@ -69,7 +70,7 @@ export function PlanCard({ plan, onPick, current }: { plan: PlanView | null | un
           {plan && !plan.today ? 'Все темы плана уже написаны. Новый план соберется за минуту.' : 'Плана тем пока нет. Соберется под то, с чем ты работаешь, за минуту: о чем писать и с какой первой строки.'}
         </p>
         <Link href={PLAN_HREF} onClick={() => track('feature_open', { feature: 'plan' })}
-          className="mt-4 inline-flex items-center h-11 px-4 rounded-xl border-[1.5px] border-brand-accent text-[14px] font-semibold text-brand-accent hover:bg-brand-soft-2 transition">
+          className={`mt-4 ${QUIET_BTN}`}>
           Составить план тем
         </Link>
       </section>
@@ -81,7 +82,7 @@ export function PlanCard({ plan, onPick, current }: { plan: PlanView | null | un
       <div className="flex items-center justify-between gap-3 px-3 pb-1.5">
         <h2 id="plan-h" className="text-[18px] leading-[26px] font-semibold text-brand-text">План тем</h2>
         <Link href={PLAN_HREF} onClick={() => track('feature_open', { feature: 'plan' })}
-          className="min-h-11 -my-2 inline-flex items-center px-2 text-[13px] font-semibold text-brand-accent hover:text-brand-accent-hover">Весь план</Link>
+          className={`-my-1 shrink-0 ${QUIET_BTN_SM}`}>Весь план</Link>
       </div>
       <ul>
         {rows.map(d => {

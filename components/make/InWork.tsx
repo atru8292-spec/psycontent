@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronRight, Loader2 } from 'lucide-react'
 import { track } from '@/lib/track'
+import { QUIET_BTN_SM, QUIET_BTN_SM_MUTED } from '@/lib/ui-classes'
 import { formatOne } from './formats'
 import type { InWorkItem } from './useDesk'
 
@@ -28,24 +29,15 @@ async function mark(ids: string[], undo: boolean): Promise<boolean> {
   return res.every(Boolean)
 }
 
-// компьютер от 1024 px: две строки, телефон три
-function useDesktop() {
-  const [d, setD] = useState(false)
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)')
-    const on = () => setD(mq.matches)
-    on(); mq.addEventListener('change', on)
-    return () => mq.removeEventListener('change', on)
-  }, [])
-  return d
-}
+// компьютер от 1024 px: две строки, телефон три. Третья строка прячется CSS (lg:hidden), а не по matchMedia:
+// иначе на компьютере она мигала при загрузке, пока скрипт не узнал ширину
+const ROWS = 3
 
 export default function InWork({ items, firstTime, onChanged }: {
   items: InWorkItem[] | null
   firstTime: boolean
   onChanged?: () => void  // отметка поменялась: перечитать ритм месяца (с паузой, чтобы «Отменить» успели нажать)
 }) {
-  const limit = useDesktop() ? 2 : 3
   // перечитываем через 6 с после последней отметки: сразу строка пропала бы вместе с «Отменить»
   const reloadTimer = useRef<number | null>(null)
   const changedRef = useRef(onChanged)
@@ -90,13 +82,13 @@ export default function InWork({ items, firstTime, onChanged }: {
       <div className="flex items-center justify-between gap-3">
         <h2 id="inwork-h" className="text-[20px] lg:text-[22px] leading-[30px] font-semibold text-brand-text">Еще не в блоге · {count}</h2>
         <Link href={TEXTS_HREF} onClick={() => track('feature_open', { feature: 'texts' })}
-          className="min-h-11 inline-flex items-center px-2 -mr-2 text-[14px] font-semibold text-brand-accent hover:text-brand-accent-hover">Все</Link>
+          className={`shrink-0 ${QUIET_BTN_SM}`}>Все</Link>
       </div>
       <ul className="mt-1.5">
-        {items.slice(0, limit).map(x => {
+        {items.slice(0, ROWS).map((x, i) => {
           const on = !!done[x.key]
           return (
-            <li key={x.key} className="flex items-center gap-2 sm:gap-3.5 py-2 border-b border-brand-border">
+            <li key={x.key} className={`${i >= 2 ? 'lg:hidden ' : ''}flex items-center gap-2 sm:gap-3.5 py-2 border-b border-brand-border`}>
               <Link href={`/dashboard/make?post=${x.firstId}`} className="min-w-0 flex-1 py-1.5 rounded-lg focus-visible:outline-2 focus-visible:outline-brand-accent">
                 <span className={`block truncate text-[16px] leading-6 font-medium ${on ? 'text-brand-muted' : 'text-brand-text'}`}>{x.title}</span>
                 <span className="block text-[13px] leading-[18px] text-brand-muted">{formatsLine(x.formats)} · {shortDate(x.createdAt)}</span>
@@ -105,7 +97,7 @@ export default function InWork({ items, firstTime, onChanged }: {
                 <span className="shrink-0 inline-flex items-center gap-1">
                   <span className="inline-flex items-center gap-1 text-[13px] font-medium text-brand-accent"><Check className="w-4 h-4" />Опубликовано</span>
                   <button type="button" onClick={() => toggle(x)} disabled={busy === x.key}
-                    className="min-h-11 px-2 text-[13px] font-medium text-brand-muted hover:text-brand-text cursor-pointer">Отменить</button>
+                    className={`ml-1 ${QUIET_BTN_SM_MUTED}`}>Отменить</button>
                 </span>
               ) : (
                 <button type="button" onClick={() => toggle(x)} disabled={busy === x.key} aria-label={`Уже в блоге: ${x.title}`}

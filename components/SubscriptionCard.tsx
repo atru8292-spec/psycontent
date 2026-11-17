@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
+import { QUIET_BTN } from '@/lib/ui-classes'
 import { SUB, rubles, dateRu } from '@/lib/billing/pay-texts'
 import { PAID_PLANS, consentText, type PaidCode } from '@/lib/billing/plans'
 import { planForDbCode } from '@/lib/pricing'
@@ -123,7 +124,7 @@ export default function SubscriptionCard({ planCode, planName, materials, tariff
         {me?.method && <button type="button" onClick={() => { setErr(false); setAsk('del') }} className={btn}>{SUB.delBtn(sbp)}</button>}
         {onToggleTariffs && (
           <button type="button" onClick={onToggleTariffs} aria-expanded={tariffsOpen} aria-controls="tariff-list"
-            className="self-start h-11 px-1 lg:px-3 text-[15px] font-semibold text-brand-accent hover:text-brand-accent-hover rounded-xl cursor-pointer focus-visible:outline-2 focus-visible:outline-brand-accent">
+            className={`lg:self-start ${QUIET_BTN}`}>
             {tariffsOpen ? SUB.hideTariffs : SUB.seeTariffs}
           </button>
         )}

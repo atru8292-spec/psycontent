@@ -4,7 +4,7 @@
 // Компьютер (от lg): сначала блок под текстом результата; «Оформить на весь экран» включает режим
 // фокуса из трех зон поверх области контента. Слева «Оформление» (три стиля под текст,
 // «Все стили», цвета, «Сохранить оформление»), в центре большой слайд со стрелками и лента миниатюр
-// («Все слайды рядом» сеткой), справа правка текущего слайда. В шапке «Назад», форматы мысли (если переданы),
+// («Все слайды рядом» сеткой), справа правка текущего слайда. В шапке «К тексту» слева, форматы мысли (если переданы),
 // «Скопировать описание», «Скачать все слайды».
 // Телефон: листалка слайдов с точками, тап по слайду открывает правку под ним, ниже «Оформление»,
 // панель «Сохранить в Фото» (share с файлами), «Описание», «•••».
@@ -13,6 +13,7 @@
 // Режим фокуса и меню кабинета: useShellFocus (DashboardShell) сворачивает меню в иконки 72 px, панель стоит
 // от 72 px слева. Экрану результата при входе и выходе зовется onFocusChange(on).
 
+import { QUIET_BTN, QUIET_BTN_SM, QUIET_BTN_MUTED } from '@/lib/ui-classes'
 import { useFeatureOpen } from '@/lib/analytics/hooks'
 import { useShellFocus } from '@/components/dashboard/DashboardShell'
 import { track as trackEvent } from '@/lib/track'
@@ -55,14 +56,13 @@ type DesignView = {
 type Photo = { path: string; url: string }
 type Author = { name: string; about: string; nameSet: boolean; aboutSet: boolean }
 
-// Шапка режима фокуса: что передает экран результата. «Назад» и «К тексту» только выходят из фокуса
-// к результату (кнопки текста на месте); onBack намеренно не зовется, иначе результат стирается (ревью 17.11).
+// Шапка режима фокуса: что передает экран результата. «К тексту» (слева, с шевроном) только выходит из фокуса
+// к результату (кнопки текста на месте); выхода к полю «Написать» отсюда нет, иначе результат стирается (ревью 17.11).
 export type CarouselFocusOpts = {
   title?: string
   formats?: { id: string; label: string }[]
   activeFormat?: string
   onFormat?: (id: string) => void
-  onBack?: () => void
 }
 
 const norm = (t: string) => t.replace(/\s+/g, ' ').trim()
@@ -526,7 +526,7 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
             <button type="button" onClick={saveMine} disabled={busy === 'mine-save'} className={`${accentBtn} h-11 px-5 text-[15px]`}>
               {busy === 'mine-save' ? 'Сохраняется' : 'Сохранить оформление'}
             </button>
-            <button type="button" onClick={() => setSaveForm(false)} className="h-11 px-3 text-[15px] text-brand-muted hover:text-brand-text cursor-pointer">Не сейчас</button>
+            <button type="button" onClick={() => setSaveForm(false)} className={QUIET_BTN_MUTED}>Не сейчас</button>
           </div>
         </div>
       )}
@@ -547,7 +547,7 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
             : <span className="w-full h-full flex items-center justify-center text-sm font-bold text-brand-text">{initialsOf(author.name)}</span>}
         </div>
         <div className="min-w-0">
-          <button type="button" onClick={() => avatarRef.current?.click()} disabled={!!busy} className="min-h-11 text-sm font-semibold text-brand-accent cursor-pointer">
+          <button type="button" onClick={() => avatarRef.current?.click()} disabled={!!busy} className={`mb-1 ${QUIET_BTN_SM}`}>
             {busy === 'avatar' ? 'Загрузка' : avatar ? 'Сменить фото' : label}
           </button>
           <p className="text-xs text-brand-muted">{avatar ? 'Оно на последнем слайде, рядом с именем' : 'Подойдет любое, где хорошо видно лицо. Пока вместо него инициалы'}</p>
@@ -704,13 +704,13 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
       {error && (
         <div className="flex flex-wrap items-center gap-2 text-sm text-brand-text bg-brand-soft rounded-xl px-3 py-2" role="alert">
           <span>{error}</span>
-          {!design && mine && <button type="button" onClick={() => { setError(null); autoMine.current = false; setMine(null) }} className="min-h-11 font-semibold text-brand-accent cursor-pointer">Выбрать стиль</button>}
+          {!design && mine && <button type="button" onClick={() => { setError(null); autoMine.current = false; setMine(null) }} className={QUIET_BTN_SM}>Выбрать стиль</button>}
         </div>
       )}
       {design && stale && (
-        <div className="flex flex-wrap items-center gap-x-2 text-sm bg-brand-soft rounded-xl px-3 py-1">
+        <div className="flex flex-wrap items-center gap-2 text-sm bg-brand-soft rounded-xl px-3 py-2">
           <span className="text-brand-text">Текст карусели поменялся.</span>
-          <button type="button" disabled={!!busy} onClick={relayout} className="min-h-11 font-semibold text-brand-accent cursor-pointer">
+          <button type="button" disabled={!!busy} onClick={relayout} className={QUIET_BTN_SM}>
             {busy === 'relayout' ? 'Слайды собираются' : 'Собрать слайды заново'}
           </button>
         </div>
@@ -727,7 +727,7 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
       {loading[s.n] && <span className="absolute inset-0 flex items-center justify-center bg-brand-bg/60"><Loader2 className="w-6 h-6 animate-spin text-brand-accent" /></span>}
       {broken[s.n] && (
         <span className="absolute inset-x-4 bottom-4 rounded-xl bg-white/95 px-3 py-2 text-sm text-brand-text">
-          Слайд не перерисовался, так иногда бывает. <span role="button" tabIndex={0} className="font-semibold text-brand-accent" onClick={e => { e.stopPropagation(); setBust(b => b + 1) }} onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); setBust(b => b + 1) } }}>Повторить</span>
+          Слайд не перерисовался, так иногда бывает. <span role="button" tabIndex={0} className={`ml-1 align-middle ${QUIET_BTN_SM}`} onClick={e => { e.stopPropagation(); setBust(b => b + 1) }} onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); setBust(b => b + 1) } }}>Повторить</span>
         </span>
       )}
     </>
@@ -778,10 +778,9 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
         {/* шапка */}
         <header className="h-16 shrink-0 flex items-center gap-4 px-6 bg-brand-card border-b border-brand-border">
           <button type="button" onClick={back} className="h-11 -ml-2 px-2 inline-flex items-center gap-1.5 text-[15px] font-semibold text-brand-text rounded-xl hover:bg-brand-bg cursor-pointer focus-visible:outline-2 focus-visible:outline-brand-accent">
-            <ChevronLeft className="w-5 h-5" aria-hidden="true" />Назад
+            <ChevronLeft className="w-5 h-5" aria-hidden="true" />К тексту
           </button>
           <p className="min-w-0 flex-1 truncate text-[15px] text-brand-muted">{focus?.title || cover.split('\n')[0]}</p>
-          <button type="button" onClick={back} className={`${outlineBtn} h-11 px-4 text-[15px] shrink-0`}>К тексту</button>
           {focus?.formats && focus.formats.length > 1 && (
             <div className="shrink-0 inline-flex rounded-full bg-brand-soft-2 p-1" role="tablist" aria-label="Форматы этой мысли">
               {focus.formats.map(f => {
@@ -883,12 +882,12 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
                       </li>
                     ))}
                   </ol>
-                  <div className="shrink-0 flex flex-col gap-1 pt-3">
-                    <button type="button" onClick={() => setGrid(true)} className="min-h-11 px-2 inline-flex items-center gap-2 text-[15px] text-brand-text rounded-xl hover:bg-brand-card cursor-pointer">
+                  <div className="shrink-0 flex flex-col items-stretch gap-2 pt-3">
+                    <button type="button" onClick={() => setGrid(true)} className={QUIET_BTN}>
                       <LayoutGrid className="w-4 h-4" aria-hidden="true" />Все слайды рядом
                     </button>
                     {curSlide && (
-                      <a href={slideUrl(curSlide.n, true)} onClick={() => exported('single')} className="min-h-11 px-2 inline-flex items-center gap-2 text-[15px] text-brand-text rounded-xl hover:bg-brand-card">
+                      <a href={slideUrl(curSlide.n, true)} onClick={() => exported('single')} className={QUIET_BTN}>
                         <ImageDown className="w-4 h-4" aria-hidden="true" />Скачать этот слайд
                       </a>
                     )}
@@ -1001,9 +1000,9 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
 
           {/* Длинный слайд: мельче соседей. Делим без модели, по границе фразы */}
           {curSlide?.overflow && editN == null && !listMode && (
-            <div className="flex flex-wrap items-center gap-x-2 text-sm bg-brand-soft rounded-xl px-3 py-1">
+            <div className="flex flex-wrap items-center gap-2 text-sm bg-brand-soft rounded-xl px-3 py-2">
               <span className="text-brand-text">Слайд длинноват, буквы вышли мельче, чем на соседних</span>
-              {splitBtn(curSlide, 'min-h-11 inline-flex items-center gap-1 font-semibold text-brand-accent cursor-pointer')}
+              {splitBtn(curSlide, QUIET_BTN_SM)}
             </div>
           )}
 
@@ -1011,12 +1010,12 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
             <div ref={editRef} className="rounded-2xl border border-brand-border bg-brand-bg/50 p-4 space-y-3 scroll-mb-4">
               <p className="font-semibold text-brand-text">Слайд {editing.n} из {total}</p>
               {editFields}
-              {editing.overflow && splitBtn(editing, 'min-h-11 inline-flex items-center gap-1 text-sm font-semibold text-brand-accent cursor-pointer')}
+              {editing.overflow && splitBtn(editing, QUIET_BTN_SM)}
               <div className="flex items-center gap-3">
                 <button type="button" disabled={busy === 'edit' || (!editBig.trim() && !editSmall.trim())} onClick={saveEdit} className={`${accentBtn} h-11 px-5 text-sm`}>
                   {busy === 'edit' ? 'Сохраняется' : 'Готово'}
                 </button>
-                <button type="button" onClick={() => setEditN(null)} className="px-2 h-11 text-sm text-brand-muted hover:text-brand-text cursor-pointer">Отмена</button>
+                <button type="button" onClick={() => setEditN(null)} className={QUIET_BTN_MUTED}>Отмена</button>
               </div>
             </div>
           )}
@@ -1026,7 +1025,7 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
             <div className="space-y-3">
               <div className="text-sm text-brand-text bg-brand-soft rounded-xl px-3 py-2">
                 <p>Зажми слайд пальцем, и телефон предложит его сохранить. Сохраняй по порядку, с первого.</p>
-                <button type="button" onClick={() => setListMode(false)} className="min-h-11 font-semibold text-brand-accent cursor-pointer">Листать слайды</button>
+                <button type="button" onClick={() => setListMode(false)} className={`mt-2 mb-1 ${QUIET_BTN_SM}`}>Листать слайды</button>
               </div>
               {design.slides.map(s => (
                 <img key={s.n} src={slideUrl(s.n)} alt={`Слайд ${s.n}`} className="w-full rounded-xl border border-brand-border" />
@@ -1042,7 +1041,7 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-[18px] font-semibold text-brand-text">Оформление</h3>
-          <button type="button" onClick={() => setAllStyles(v => !v)} aria-expanded={allStyles} className="min-h-11 px-1 text-[15px] font-semibold text-brand-accent cursor-pointer">
+          <button type="button" onClick={() => setAllStyles(v => !v)} aria-expanded={allStyles} className={`shrink-0 ${QUIET_BTN}`}>
             {allStyles ? 'Свернуть' : 'Все стили'}
           </button>
         </div>

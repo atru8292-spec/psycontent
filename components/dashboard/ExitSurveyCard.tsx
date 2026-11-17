@@ -13,6 +13,7 @@ import { EXIT_COPY, STUCK_COPY, REASON_RU } from '@/lib/analytics/exit-copy'
 import { visibleReasons, OTHER_MAX, type ExitPlace, type ExitReason } from '@/lib/analytics/exit-survey'
 import { PRICING_FLAGS } from '@/lib/pricing'
 import { track } from '@/lib/track'
+import { QUIET_BTN_MUTED } from '@/lib/ui-classes'
 
 export type ExitSurveyView = 'collapsed' | 'open' | 'thanks' | 'pause'
 
@@ -62,7 +63,8 @@ export default function ExitSurveyCard({ place, onClose, paymentsOn = PRICING_FL
 
   const root = 'relative mb-8 p-5 sm:p-6 rounded-3xl bg-brand-card border border-brand-border'
   const secondary = 'inline-flex items-center justify-center gap-2 h-11 px-5 rounded-2xl bg-brand-bg border border-brand-border text-sm font-semibold text-brand-text hover:bg-brand-soft transition cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2'
-  const textBtn = 'inline-flex items-center justify-center h-11 px-3 text-sm text-brand-muted hover:text-brand-text rounded-2xl transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent'
+  // «Позже»: тихая кнопка с рамкой, не текст (правило 17.11: действий текстом-ссылкой нет)
+  const textBtn = QUIET_BTN_MUTED
 
   // Спасибо: после ответа и после «была пауза». Крестик только закрывает, «закрыла опрос» он не пишет:
   // ответ уже записан, иначе в кабинете ответившие посчитались бы закрывшими.

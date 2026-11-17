@@ -11,6 +11,7 @@ import { DashboardMeContext } from '@/lib/dashboard-me'
 import ScreenTracker from '@/components/analytics/ScreenTracker'
 import { isMaterials, TARIFF_HREF, END, type Materials } from '@/lib/limit-texts'
 import { dateRu } from '@/lib/billing/pay-texts'
+import { QUIET_BTN } from '@/lib/ui-classes'
 
 // Меню кабинета, вариант А (макеты A1, A2, A8, A11; 17.11). Один набор пунктов для всех: «Написать», «Темы»,
 // «Мои тексты», «Настройки», внизу «Помощь». Старые экраны (карусели, хуки, рилс, рерайт, анализ конкурента,
@@ -302,7 +303,7 @@ function MenuBalance({ m, until }: { m: Materials; until: string | null }) {
           </div>
         )}
       </div>
-      <Link href={TARIFF_HREF} className="mt-2.5 inline-flex items-center min-h-11 text-[13px] font-semibold text-brand-accent hover:text-brand-accent-hover rounded focus-visible:outline-2 focus-visible:outline-brand-accent">Посмотреть тарифы</Link>
+      <Link href={TARIFF_HREF} className={`mt-2.5 w-full ${QUIET_BTN}`}>Посмотреть тарифы</Link>
     </div>
   )
 }

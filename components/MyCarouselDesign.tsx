@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { QUIET_BTN } from '@/lib/ui-classes'
 import { Loader2, Check, ArrowRight } from 'lucide-react'
 import { shrink } from '@/lib/image-shrink'
 import { initialsOf } from '@/components/CarouselDesigner'
@@ -94,7 +95,7 @@ export default function MyCarouselDesign() {
       ) : (
         <div className="rounded-2xl bg-brand-soft p-4 space-y-3">
           <p className="text-sm text-brand-text">Пока не настроено. Напиши первую карусель, выбери стиль и нажми «Сохранить оформление», оно появится здесь.</p>
-          <Link href="/dashboard/make?format=carousel" className="min-h-11 inline-flex items-center gap-2 text-brand-accent font-semibold text-sm">Написать карусель <ArrowRight className="w-4 h-4" /></Link>
+          <Link href="/dashboard/make?format=carousel" className={QUIET_BTN}>Написать карусель <ArrowRight className="w-4 h-4" aria-hidden="true" /></Link>
         </div>
       )}
 
@@ -119,7 +120,7 @@ export default function MyCarouselDesign() {
         )}
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full overflow-hidden bg-brand-soft border border-brand-border shrink-0">{avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <span className="w-full h-full flex items-center justify-center text-sm font-bold text-brand-text">{initialsOf(name)}</span>}</div>
-          <button type="button" onClick={() => avatarRef.current?.click()} disabled={!!busy} className="min-h-11 text-sm font-semibold text-brand-accent cursor-pointer">
+          <button type="button" onClick={() => avatarRef.current?.click()} disabled={!!busy} className={QUIET_BTN}>
             {busy === 'avatar' ? 'Загрузка' :avatar ? 'Сменить фото' : 'Твое фото'}
           </button>
           <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={e => upload(e.target.files)} />

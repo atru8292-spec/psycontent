@@ -5,6 +5,7 @@ import { track } from '@/lib/track'
 import { normFormat } from '@/lib/analytics/events'
 import { useState, type ReactNode } from 'react'
 import { Copy, Check } from 'lucide-react'
+import { QUIET_BTN_SM } from '@/lib/ui-classes'
 
 export function splitCaption(text: string): { body: string; caption: string } {
   const m = text.match(/(^|\n)\s*Подпись\s*:\s*/u)
@@ -26,7 +27,7 @@ export default function CaptionBlock({ caption, title = 'Описание', mark
       <div className="flex items-center justify-between gap-2">
         <p className="min-w-0 text-[14px] font-semibold text-brand-text">{title}</p>
         <button type="button" onClick={copy}
-          className="min-h-11 -my-3 shrink-0 inline-flex items-center gap-1.5 text-[13px] font-medium text-brand-accent hover:text-brand-accent-hover cursor-pointer">
+          className={`-my-1 shrink-0 ${QUIET_BTN_SM}`}>
           {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Скопировано' : 'Скопировать описание'}
         </button>
       </div>

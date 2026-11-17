@@ -5,6 +5,7 @@
 // аккаунта уже не будет, а в тексте могут быть личные данные. Тексты copywriter-psycont 16.11.
 import { useEffect, useState } from 'react'
 import { X, Loader2 } from 'lucide-react'
+import { QUIET_BTN_MUTED } from '@/lib/ui-classes'
 import { supabase } from '@/lib/supabase'
 import { REKV } from '@/lib/rekvizity'
 
@@ -49,7 +50,7 @@ export default function DeleteAccount() {
   return (
     <div className="mt-10 pt-6 border-t border-brand-border">
       <button type="button" onClick={() => { setOpen(true); setError(null) }}
-        className="h-11 px-2 -ml-2 rounded-xl text-[14px] text-brand-text-secondary hover:text-brand-text hover:bg-brand-soft-2 transition cursor-pointer">
+        className={QUIET_BTN_MUTED}>
         Удалить аккаунт
       </button>
 

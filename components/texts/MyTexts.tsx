@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, Check, Loader2, ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { QUIET_BTN, QUIET_BTN_SM_MUTED } from '@/lib/ui-classes'
 import { MAKE_FORMATS, NOT_MATERIAL_FORMAT, formatLabel, isRewriteFormat, toMakeFormat, type MakeFormat } from '@/components/make/formats'
 import TextView from './TextView'
 
@@ -251,9 +252,9 @@ export default function MyTexts() {
 
         <div aria-live="polite">
           {undo && (
-            <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-brand-card border border-brand-border pl-4 pr-1 text-[15px] text-brand-text">
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-brand-card border border-brand-border pl-4 pr-2 py-1 text-[15px] text-brand-text">
               <span className="inline-flex items-center gap-2"><Check className="w-4 h-4 text-brand-accent" aria-hidden="true" />Опубликовано</span>
-              <button type="button" onClick={undoLast} className="h-11 px-3 font-semibold text-brand-accent cursor-pointer">Отменить</button>
+              <button type="button" onClick={undoLast} className={QUIET_BTN_SM_MUTED}>Отменить</button>
             </div>
           )}
           {pubError && <p className="mt-3 text-[14px] text-brand-text">Отметка не сохранилась из-за сбоя в PsyCont. Нажми еще раз через минуту</p>}
@@ -273,7 +274,7 @@ export default function MyTexts() {
         ) : !shown.length ? (
           <div className="mt-10 text-center px-2">
             <p className="text-[16px] leading-6 text-brand-text">{emptyFiltered()}</p>
-            <button type="button" onClick={reset} className="mt-3 h-11 px-5 rounded-xl border border-brand-border bg-brand-card text-brand-text cursor-pointer">Сбросить фильтр</button>
+            <button type="button" onClick={reset} className={`mt-3 ${QUIET_BTN}`}>Сбросить фильтр</button>
           </div>
         ) : (
           <>

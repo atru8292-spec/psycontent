@@ -17,6 +17,7 @@ import {
   Layers,
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
+import { QUIET_BTN } from '@/lib/ui-classes'
 import { NOT_MATERIAL_FORMAT } from '@/components/make/formats'
 import TopicIdeas, { pillarLabel } from '@/components/TopicIdeas'
 import { useDashboardMe } from '@/lib/dashboard-me'
@@ -554,7 +555,7 @@ export default function ContentPlan() {
               {plan.length > 0 && !generating && (
                 <>
                   <ExportMenu plan={plan} />
-                  <button onClick={handleGenerate} disabled={generating} className="flex items-center justify-center gap-1.5 w-11 h-11 md:w-auto md:h-auto md:px-3 md:py-1.5 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer rounded-xl hover:bg-brand-highlight whitespace-nowrap border border-brand-border md:border-0">
+                  <button onClick={handleGenerate} disabled={generating} className="flex items-center justify-center gap-1.5 w-11 h-11 md:w-auto md:px-4 rounded-xl border border-brand-border bg-brand-card text-sm font-semibold text-brand-text-secondary hover:bg-brand-soft-2 hover:text-brand-text transition cursor-pointer whitespace-nowrap focus-visible:outline-2 focus-visible:outline-brand-accent disabled:opacity-50">
                     <RefreshCw className={`w-5 h-5 md:w-4 md:h-4 shrink-0 ${generating ? 'animate-spin' : ''}`} />
                     <span className="hidden md:inline">Обновить план</span>
                   </button>
@@ -787,12 +788,11 @@ export default function ContentPlan() {
         {error && !needOnboarding && !serverError && !generating && (
           <div className="max-w-lg mx-auto mt-6 p-5 md:p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-[16px] md:text-sm text-center">
             {error}
-            <button
-              onClick={handleGenerate}
-              className="block mx-auto mt-3 text-brand-accent hover:underline cursor-pointer text-[16px] md:text-sm"
-            >
-              Попробовать еще раз
-            </button>
+            <div className="mt-3">
+              <button type="button" onClick={handleGenerate} className={QUIET_BTN}>
+                Попробовать еще раз
+              </button>
+            </div>
           </div>
         )}
         </div>)}

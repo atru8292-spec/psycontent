@@ -13,7 +13,7 @@ import { normFormat } from '@/lib/analytics/events'
 import { splitPostTitle } from '@/lib/post-format'
 import CaptionBlock, { splitCaption } from '@/components/CaptionBlock'
 import ReelsScript from '@/components/ReelsScript'
-import { formatLabel, toMakeFormat } from '@/components/make/formats'
+import { MAKE_FORMATS, formatLabel, toMakeFormat } from '@/components/make/formats'
 import type { TextRow } from './MyTexts'
 
 const longDay = (iso: string) => new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
@@ -41,6 +41,8 @@ export default function TextView({ rows, activeId, onActive, onTogglePublished }
   const open = () => router.push(`/dashboard/make?post=${row.id}&f=${f}`)
   // «Еще из этой мысли»: сразу лист «Что написать еще?» (ревью 17.11)
   const openMore = () => router.push(`/dashboard/make?post=${row.id}&f=${f}&more=1`)
+  // кнопку прячем, когда у мысли уже есть все форматы из листа «Что написать еще?» (тот же список MAKE_FORMATS, что в MakeFlow)
+  const hasMissing = MAKE_FORMATS.some(m => !rows.some(r => toMakeFormat(String(r.format || 'post')) === m.id))
 
   const copy = () => {
     track('material_take', { how: 'copy', format: normFormat(code), post: row.id })
@@ -68,10 +70,12 @@ export default function TextView({ rows, activeId, onActive, onTogglePublished }
           })}
         </div>
         <span className="text-[13px] text-brand-muted shrink-0">{longDay(row.created_at)}</span>
-        <button type="button" onClick={openMore}
-          className="h-10 px-4 shrink-0 inline-flex items-center gap-2 rounded-xl border border-brand-text/70 text-[14px] font-semibold text-brand-text hover:bg-brand-bg cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent">
-          <Plus className="w-4 h-4" aria-hidden="true" />Еще из этой мысли
-        </button>
+        {hasMissing && (
+          <button type="button" onClick={openMore}
+            className="h-10 px-4 shrink-0 inline-flex items-center gap-2 rounded-xl border border-brand-text/70 text-[14px] font-semibold text-brand-text hover:bg-brand-bg cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent">
+            <Plus className="w-4 h-4" aria-hidden="true" />Еще из этой мысли
+          </button>
+        )}
       </div>
 
       {parsed?.title && <h2 className="mt-6 text-[24px] leading-[30px] font-bold text-brand-text break-words">{parsed.title}</h2>}

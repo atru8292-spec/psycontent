@@ -522,7 +522,6 @@ export default function MakeFlow() {
     formats: tabs.map(t => ({ id: t.id, label: t.label })),
     activeFormat: tabs[active]?.id,
     onFormat: (id: string) => { const t = tabs.find(x => x.id === id); if (t) setActive(t.i) },
-    onBack: backToCompose,
   }
 
   // «Еще из этой мысли»: чипы, нажатие отмечает, кнопка пишет (тратит тексты, поэтому не с одного касания)
