@@ -41,4 +41,6 @@ const pd = renderPayMail('paid', { ...DATA.paid, next: 'Следующее сп�
 assert.ok(pd.text.includes('Оплата 1 290 ₽ с карты •• 4242 прошла, тариф работает до 17 декабря.'), 'плашка paid')
 assert.ok(renderPayMail('reminder', { ...DATA.reminder, method: ' через СБП' }, site)!.text.includes('17 декабря спишется 1 290 ₽ через СБП за следующий месяц'))
 assert.ok(renderPayMail('charge_failed', DATA.charge_failed, site)!.text.includes('Банк не дал списать 1 290 ₽ за тариф'), 'без способа строка прежняя')
+assert.ok(renderPayMail('charge_failed', DATA.charge_failed, site)!.text.includes('за тариф «Спокойный ритм». Чаще всего на карте не хватило денег или у нее закончился срок.'), 'карта: прежняя причина')
+assert.ok(renderPayMail('charge_failed', { ...DATA.charge_failed, method: ' через СБП' }, site)!.text.includes('Банк не дал списать 1 290 ₽ через СБП за тариф «Спокойный ритм». Чаще всего на счете не хватило денег или банк временно не отвечает.'), 'СБП: своя причина')
 console.log('test-pisma: все проверки прошли')

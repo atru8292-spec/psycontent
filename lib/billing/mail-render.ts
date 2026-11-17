@@ -5,7 +5,7 @@
 // Все стили инлайн (Mail.ru и часть почтовиков вырезают <style>); в <style> только мобильная подстройка и защита
 // от темной темы. Светлая схема (color-scheme light only), кнопка и плашка защищены от инверсии.
 // Подставляемые данные экранируются: в письмо не попадет чужая разметка.
-import { MAIL, fill, type MailTpl } from './mail-texts'
+import { MAIL, fill, whyFailed, type MailTpl } from './mail-texts'
 import { REKV, OFFER_PATH, PRIVACY_PATH } from '@/lib/rekvizity'
 
 const C = { bg: '#F5EFE4', card: '#FFFFFF', text: '#3B2A22', muted: '#6B6458', green: '#33472B', border: '#E3DACB', lilac: '#F4EEFA', lilacBorder: '#DCCBF2' }
@@ -23,7 +23,7 @@ export type Rendered = { subject: string; html: string; text: string; preheader:
 export function renderPayMail(kind: string, data: Record<string, string>, site: string, subjectPrefix = ''): Rendered | null {
   const tpl: MailTpl | undefined = MAIL[kind]
   if (!tpl) return null
-  const all: Record<string, string> = { ...data, site }
+  const all: Record<string, string> = { ...data, site, ...(kind === 'charge_failed' ? { why: whyFailed(data.method) } : {}) }
   const plain = (s: string) => fill(s, all).trim()
   // экранированный вариант подстановок для HTML
   const allEsc: Record<string, string> = Object.fromEntries(Object.entries(all).map(([k, v]) => [k, esc(String(v ?? ''))]))
