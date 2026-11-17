@@ -76,7 +76,9 @@ export const supabaseRepo: Repo = {
     return r as MethodRow
   },
   async getMethod(id) { const r = must(await db().from('payment_methods').select('id, user_id, yk_method_id, type, title, deleted_at, card_last4').eq('id', id).maybeSingle(), 'method_get'); return (r as MethodRow) || null },
-  async deleteMethods(u, at) { must(await db().from('payment_methods').update({ deleted_at: at }).eq('user_id', u).is('deleted_at', null), 'method_delete') },
+  // «Удалить карту» (требование ЮKassa к автоплатежам, 17.11): строка с токеном payment_method_id стирается из базы целиком.
+  // Ссылки в payments и user_subscription обнуляются внешним ключом (on delete set null), история платежей остается.
+  async deleteMethods(u) { must(await db().from('payment_methods').delete().eq('user_id', u), 'method_delete') },
   async insertConsent(row) { must(await db().from('autopay_consents').insert(row), 'consent') },
   async purgeOrphanConsents(before) {
     const r = must(await db().from('autopay_consents').delete().is('user_id', null).lt('created_at', before).select('id'), 'consent_purge') as any[]

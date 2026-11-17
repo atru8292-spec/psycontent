@@ -213,7 +213,9 @@ function setup(start = '2026-11-17T09:00:00Z') {
     assert.equal(r.charged, 0); assert.equal(r.expired, 1); assert.equal(t.f.calls.filter(c => c.body?.payment_method_id).length, 0, 'не списали')
     const t2 = setup(); await paidWithCard(t2)
     await B.deletePaymentMethod(t2.d, U)
-    assert.ok(t2.m.methods[0].deleted_at); s = (await t2.m.repo.getSub(U))!; assert.equal(s.auto_renew, false); assert.equal(s.payment_method_id, null)
+    assert.equal(t2.m.methods.filter(m => m.user_id === U).length, 0, 'строка с токеном стерта из базы')
+    s = (await t2.m.repo.getSub(U))!; assert.equal(s.auto_renew, false); assert.equal(s.payment_method_id, null)
+    assert.equal(t2.m.payments.every(p => p.payment_method_id === null), true, 'ссылки на карту в платежах обнулены')
     t2.at('2026-12-17T09:30:00Z'); await B.runBilling(t2.d)
     assert.equal(t2.f.calls.filter(c => c.body?.payment_method_id).length, 0, 'с удаленной карты не списываем')
   }
@@ -236,7 +238,7 @@ function setup(start = '2026-11-17T09:00:00Z') {
   {
     const t = setup(); await paidWithCard(t)
     await B.cancelBillingForDeletion(t.d, U)
-    assert.equal((await t.m.repo.getSub(U))!.auto_renew, false); assert.ok(t.m.methods[0].deleted_at)
+    assert.equal((await t.m.repo.getSub(U))!.auto_renew, false); assert.equal(t.m.methods.length, 0, 'карта стерта')
   }
 
   // ── 11. /admin: продлить и выключить ──

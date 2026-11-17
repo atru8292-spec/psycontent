@@ -48,7 +48,13 @@ export function memoryRepo(emails: Record<string, string> = {}, clock: () => Dat
       return { ...m }
     },
     async getMethod(id) { const m = methods.find(x => x.id === id); return m ? { ...m } : null },
-    async deleteMethods(u, at) { methods.filter(m => m.user_id === u && !m.deleted_at).forEach(m => { m.deleted_at = at }) },
+    async deleteMethods(u) {
+      // как в базе: строка стирается, ссылки обнуляются (on delete set null)
+      const gone = new Set(methods.filter(m => m.user_id === u).map(m => m.id))
+      for (let i = methods.length - 1; i >= 0; i--) if (gone.has(methods[i].id)) methods.splice(i, 1)
+      for (const p of payments) if (p.payment_method_id && gone.has(p.payment_method_id)) p.payment_method_id = null
+      for (const s of subs.values()) if (s.payment_method_id && gone.has(s.payment_method_id)) s.payment_method_id = null
+    },
     async insertConsent(row) { consents.push({ ...row, created_at: clockIso() }) },
     async purgeOrphanConsents(before) { const n = consents.length; for (let i = consents.length - 1; i >= 0; i--) if (consents[i].user_id === null && consents[i].created_at < before) consents.splice(i, 1); return n - consents.length },
     async claimEvent(k) { const e = events.get(k); if (e?.processed) return false; events.set(k, { processed: false }); return true },
