@@ -313,7 +313,7 @@ function StyleMinis({ mine, all }: { mine: Design['mine']; all: boolean }) {
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-[13px] leading-[18px] text-brand-muted">Стиль выбирается в карусели, кнопкой «Запомнить вид» он станет основным.</p>
+      <p className="mt-3 text-[13px] leading-[18px] text-brand-muted">Стиль выбирается в карусели, кнопкой «Сохранить оформление» он станет основным.</p>
     </div>
   )
 }

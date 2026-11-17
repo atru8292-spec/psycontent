@@ -213,7 +213,7 @@ export default function FormatPane({ item, onChange, onPublished, onMore, moreCo
   const btnO = 'h-12 px-5 rounded-2xl border-[1.5px] border-brand-accent bg-white text-brand-accent text-[16px] font-semibold inline-flex items-center justify-center gap-2 hover:bg-brand-soft-2 cursor-pointer transition disabled:opacity-40'
   const copyBtn = (cls: string) => (
     <button type="button" onClick={copy} className={cls}>
-      {copied ? <Check className="w-4 h-4 shrink-0" /> : <Copy className="w-4 h-4 shrink-0" />}<span className="truncate">{copied ? 'Скопировано' : 'Скопировать текст'}</span>
+      {copied ? <Check className="w-4 h-4 shrink-0" /> : <Copy className="w-4 h-4 shrink-0" />}<span className="truncate">{copied ? 'Скопировано' : <>Скопировать<span className="hidden sm:inline"> текст</span></>}</span>
     </button>
   )
   const blogBtn = (cls: string) => (
