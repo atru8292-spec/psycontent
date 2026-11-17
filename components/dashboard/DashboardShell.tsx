@@ -247,7 +247,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           {/* me.paidUntil: до какого числа оплачен тариф (ISO или null), для строки «до 12 декабря» на «Написать» */}
           <DashboardMeContext.Provider value={ctx}>{children}</DashboardMeContext.Provider>
         </ShellFocusContext.Provider>
-        {legal && <LegalLine className="mx-auto w-full max-w-5xl px-4 pt-10 pb-6 md:px-6 lg:px-12" />}
+        {/* на телефоне на «Написать» снизу липкая кнопка или панель (~80 px): реквизиты не должны уходить под нее */}
+        {legal && <LegalLine className={`mx-auto w-full max-w-5xl px-4 pt-10 md:px-6 lg:px-12 lg:pb-6 ${pathname.startsWith('/dashboard/make') ? 'max-lg:pb-28' : 'pb-6'}`} />}
       </main>
 
       {/* ─── Нижнее меню (телефон): 4 пункта с подписями, высота 56 px (на нее опираются липкие панели MakeFlow и FormatPane). Пока поле в фокусе, уезжает вниз (z: меню 40, листы 50, тост 60) ─── */}
