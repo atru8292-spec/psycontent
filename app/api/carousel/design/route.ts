@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   // «мое оформление»: новая карусель открывается сразу в нем
   const mine = body?.useMine === true ? branding.myDesign : null
   const style = mine ? mine.style : body?.style
-  if (!postId || !isTemplateStyle(style)) return NextResponse.json({ error: 'Нет материала или стиля' }, { status: 400 })
+  if (!postId || !isTemplateStyle(style)) return NextResponse.json({ error: 'Нет текста или стиля' }, { status: 400 })
 
   const { data: post } = await db.from('generated_posts').select('id, content, format, format_code, plan').eq('id', postId).eq('user_id', user.id).maybeSingle()
   if (!post) return NextResponse.json({ error: 'Материал не найден' }, { status: 404 })

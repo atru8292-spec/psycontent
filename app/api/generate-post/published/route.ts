@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
   const body = await req.json().catch(() => ({}))
   const postId = typeof body?.postId === 'string' ? body.postId : ''
-  if (!postId) return NextResponse.json({ error: 'Нет материала' }, { status: 400 })
+  if (!postId) return NextResponse.json({ error: 'Нет текста' }, { status: 400 })
   const undo = body?.undo === true
   const db = getSupabaseAdmin()
   const { data, error } = await db.from('generated_posts')

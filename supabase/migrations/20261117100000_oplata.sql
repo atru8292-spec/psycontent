@@ -149,7 +149,9 @@ revoke insert, update, delete, truncate on public.payment_methods, public.autopa
 revoke all on public.payment_events from authenticated;
 revoke all on public.pay_mail_queue from anon, authenticated;
 grant all on public.pay_mail_queue to service_role;
-grant select on public.payment_methods, public.autopay_consents, public.payments, public.refunds to authenticated;
+grant select on public.autopay_consents, public.payments, public.refunds to authenticated;
+-- способ оплаты: человек видит свои карты без токена ЮKassa (yk_method_id только сервер, ревью 17.11)
+grant select (id, user_id, type, title, card_last4, created_at) on public.payment_methods to authenticated;
 grant all on public.payment_methods, public.autopay_consents, public.payments, public.refunds, public.payment_events to service_role;
 
 -- подписку меняет только сервер: второй замок к RLS (политики на запись и так нет)

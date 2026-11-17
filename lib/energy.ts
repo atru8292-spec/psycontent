@@ -280,7 +280,7 @@ export async function canConsume(userId: string, operation: string, units = 1): 
     } catch (e: any) {
       // счетчик не прочитался (сбой базы): не пускаем молча мимо лимита; новый «Сделать» покажет свой текст о сбое
       console.warn('canConsume: счетчик материалов не прочитан', errTag(e))
-      return { ok: false, mode: 'text', operation, cost: 0, reason: 'server_error', message: 'Не получилось проверить остаток материалов. Попробуй еще раз через минуту.' }
+      return { ok: false, mode: 'text', operation, cost: 0, reason: 'server_error', message: 'Не получилось проверить остаток текстов. Попробуй еще раз через минуту.' }
     }
     if (count >= cap) {
       // у бесплатного «пробные» (витрина: 10 без срока), у платных лимит месячный по календарю (periodKey). Тексты copywriter-psycont 11.11:
@@ -292,8 +292,8 @@ export async function canConsume(userId: string, operation: string, units = 1): 
       // число показываем только на бесплатном (там «N из 10» и так видно); у платных потолок скрытый
       const left = cap - count
       const message = plan.code === 'free'
-        ? `Пробных хватит еще на ${left} ${left % 10 === 1 && left % 100 !== 11 ? 'материал' : left % 10 >= 2 && left % 10 <= 4 && (left % 100 < 12 || left % 100 > 14) ? 'материала' : 'материалов'}, а форматов выбрано больше. Убери лишние и нажми еще раз.`
-        : 'На столько форматов материалов в этом месяце не хватит. Убери лишние и нажми еще раз.'
+        ? `Пробных хватит еще на ${left} ${left % 10 === 1 && left % 100 !== 11 ? 'текст' : left % 10 >= 2 && left % 10 <= 4 && (left % 100 < 12 || left % 100 > 14) ? 'текста' : 'текстов'}, а форматов выбрано больше. Убери лишние и нажми еще раз.`
+        : 'На столько форматов текстов в этом месяце не хватит. Убери лишние и нажми еще раз.'
       return refuse({ ok: false, mode: 'text', operation, cost: 0, reason: 'text_limit_partial', message })
     }
     return { ok: true, mode: 'text', operation, cost: 0 }
