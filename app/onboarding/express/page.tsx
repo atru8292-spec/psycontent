@@ -7,6 +7,7 @@
 // в базе остается значение по умолчанию, генерация середину ползунка не выводит.
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { makeHref } from '@/lib/make-handoff'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { ChevronLeft, Check, Plus, Mic, Loader2 } from 'lucide-react'
@@ -277,10 +278,10 @@ export default function ExpressOnboarding() {
     track('onb_first_click')
     // новый мозг: тема в поле, Пост и Карусель выбраны, генерация только по нажатию.
     // Без флага старый экран как раньше: auto=1 сам пишет первый пост, теперь на этой теме (старый экран пишет только пост)
-    const q = newGen === false
-      ? new URLSearchParams({ first: '1', auto: '1', topic })
-      : new URLSearchParams({ first: '1', topic, formats: 'post,carousel' })
-    router.push(`/dashboard/make?${q.toString()}`)
+    // тема дня не в адресе, а через sessionStorage (lib/make-handoff.ts)
+    router.push(newGen === false
+      ? makeHref({ first: '1', auto: '1', topic })
+      : makeHref({ first: '1', topic, formats: 'post,carousel' }))
   }
 
   if (!ready) {

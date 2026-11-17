@@ -9,7 +9,8 @@ import { track } from '@/lib/track'
 import { goalFirst } from '@/lib/metrika'
 import { normFormat } from '@/lib/analytics/events'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+import { useMakeParams } from '@/lib/make-handoff'
 import { ChevronLeft, Check, Loader2, X, Film, Layers, AlignLeft, Send, Smartphone } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { topicsFor } from '@/lib/first-topic'
@@ -69,7 +70,7 @@ function friendly(code?: string, message?: string): string {
 
 export default function MakeFlow() {
   const router = useRouter()
-  const params = useSearchParams()
+  const params = useMakeParams() // адрес + тексты из sessionStorage (lib/make-handoff.ts)
   const [topics, setTopics] = useState<string[]>([])
   const [firstTime, setFirstTime] = useState(false)
   const [view, setView] = useState<View>('compose')

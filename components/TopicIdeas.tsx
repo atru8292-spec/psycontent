@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { makeHref } from '@/lib/make-handoff'
 import NextImage from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -191,12 +192,8 @@ export default function TopicIdeas({ embedded = false }: { embedded?: boolean })
   }
 
   const handleGenerate = (topic: Topic) => {
-    const params = new URLSearchParams({
-      topic: topic.topic,
-      format: topic.format,
-      pillar: topic.pillar,
-    })
-    router.push(`/dashboard/make?${params}`)
+    // тема и рубрика не в адресе, а через sessionStorage (lib/make-handoff.ts)
+    router.push(makeHref({ topic: topic.topic, format: topic.format, pillar: topic.pillar }))
   }
 
   const blocks = [

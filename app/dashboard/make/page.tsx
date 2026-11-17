@@ -7,7 +7,8 @@ import { track } from '@/lib/track'
 import { goalFirst } from '@/lib/metrika'
 import { normFormat } from '@/lib/analytics/events'
 import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+import { useMakeParams, makeHref } from '@/lib/make-handoff'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -229,7 +230,7 @@ function MakeContent() {
   const [voiceDismissAt, setVoiceDismissAt] = useState<number | null>(null)
 
   const router = useRouter()
-  const searchParams = useSearchParams()
+  const searchParams = useMakeParams() // адрес + тексты из sessionStorage (lib/make-handoff.ts)
 
   useEffect(() => {
     const topic = searchParams.get('topic')
@@ -416,7 +417,7 @@ function MakeContent() {
     const fmt = extra?.format || formatCode
     // Без нового движка карусель и Reels пишут старые страницы
     if (!newGen && (fmt === 'carousel' || fmt.startsWith('reels'))) {
-      router.push(`${OLD_PAGES[fmt === 'carousel' ? 'carousel' : 'reels']}?topic=${encodeURIComponent(String(topicVal).trim())}&from=make`)
+      router.push(makeHref({ topic: String(topicVal).trim(), from: 'make' }, OLD_PAGES[fmt === 'carousel' ? 'carousel' : 'reels']))
       return
     }
     setGenerating(true)

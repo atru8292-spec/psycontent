@@ -1,6 +1,7 @@
 'use client'
 
 import { track } from '@/lib/track'
+import { makeHref } from '@/lib/make-handoff'
 import { useState, useEffect } from 'react'
 import NextImage from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -493,20 +494,19 @@ export default function ContentPlan() {
   }
 
   const handleGoGenerate = (item: DayItem) => {
-    const params = new URLSearchParams({
+    // Все форматы открываются в «Сделать»: без нового движка оно само отправит карусель на старую страницу.
+    // Тексты (тема, рубрика, задача, реакция, ситуация) идут не в адрес, а через sessionStorage (lib/make-handoff.ts)
+    router.push(makeHref({
       topic: item.topic,
-      pillar: item.pillar
-    })
-
-    // Все форматы открываются в «Сделать»: без нового движка оно само отправит карусель на старую страницу
-    params.append('format', item.format)
-    // план zh6: формат каталога и задача дня, «Сделать» отдаст их генерации с первым запуском
-    if (item.format_kod) params.append('fkod', item.format_kod)
-    if (item.zadacha) params.append('rol', item.zadacha)
-    if (item.reakciya) params.append('reakciya', item.reakciya)
-    // ситуация, ради которой тема в плане (у zh6 она в tip), уходит в генерацию деталью
-    if (item.format_kod && item.tip) params.append('sit', item.tip.slice(0, 300))
-    router.push(`/dashboard/make?${params}`)
+      pillar: item.pillar,
+      format: item.format,
+      // план zh6: формат каталога и задача дня, «Сделать» отдаст их генерации с первым запуском
+      fkod: item.format_kod,
+      rol: item.zadacha,
+      reakciya: item.reakciya,
+      // ситуация, ради которой тема в плане (у zh6 она в tip), уходит в генерацию деталью
+      sit: item.format_kod && item.tip ? item.tip.slice(0, 300) : undefined,
+    }))
   }
 
   const pillars = ['all', 'Психообразование', 'Личное', 'Практика', 'Истории', 'Позиционирование']

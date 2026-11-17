@@ -4,7 +4,8 @@ import NewBrainRedirect from '@/components/dashboard/NewBrainRedirect'
 import { track } from '@/lib/track'
 import { normFormat } from '@/lib/analytics/events'
 import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+import { useMakeParams } from '@/lib/make-handoff'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -59,7 +60,7 @@ function CarouselGeneratorContent() {
   const [showHelp, setShowHelp] = useState(false)
 
   const router = useRouter()
-  const searchParams = useSearchParams()
+  const searchParams = useMakeParams() // адрес + тексты из sessionStorage (lib/make-handoff.ts)
 
   // С экрана «Сделать» тема тоже приходит в ?topic, но это не план
   const isFromPlan = !!searchParams.get('topic') && searchParams.get('from') !== 'make'
