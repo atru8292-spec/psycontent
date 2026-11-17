@@ -14,7 +14,7 @@ import Link from 'next/link'
 import { ChevronDown, Send } from 'lucide-react'
 import { useFeatureOpen } from '@/lib/analytics/hooks'
 import { track } from '@/lib/track'
-import { REKV } from '@/lib/rekvizity'
+import { SUPPORT_EMAIL } from '@/lib/rekvizity'
 import { QUIET_BTN_SM } from '@/lib/ui-classes'
 import { HELP_FAQ, SUPPORT_BOT_URL, type HelpAnswerPart } from '@/lib/help-faq'
 
@@ -138,7 +138,7 @@ export default function HelpPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-12 pt-4 lg:pt-10 pb-10">
       <h1 className="text-[26px] leading-8 lg:text-[32px] lg:leading-10 font-semibold text-brand-text">Что-то не получается?</h1>
-      <p className="mt-2 text-[16px] leading-6 text-brand-text-secondary">Ответит живой человек из команды PsyCont, обычно в течение дня</p>
+      <p className="mt-2 text-[16px] leading-6 text-brand-text-secondary">Ответит живой человек, обычно в течение дня</p>
 
       <a href={url} target="_blank" rel="noopener noreferrer" onClick={onClick}
         className="mt-5 h-12 w-full sm:w-auto px-6 inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-accent text-white text-[16px] font-semibold hover:bg-brand-accent-hover transition-colors motion-reduce:transition-none cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent">
@@ -151,9 +151,9 @@ export default function HelpPage() {
           <p className="mt-3 text-[14px] leading-5 text-brand-text-secondary">Если напишешь, добавь почту, с которой входишь в PsyCont, так ответ будет быстрее.</p>
         )}
       </div>
-      {REKV.email && (
+      {SUPPORT_EMAIL && (
         <p className="mt-3 text-[14px] leading-5 text-brand-text-secondary">
-          Нет Telegram? Напиши на почту <a href={`mailto:${REKV.email}`} className={INLINE_LINK}>{REKV.email}</a>
+          Нет Telegram? Напиши на почту <a href={`mailto:${SUPPORT_EMAIL}`} className={INLINE_LINK}>{SUPPORT_EMAIL}</a>
         </p>
       )}
 

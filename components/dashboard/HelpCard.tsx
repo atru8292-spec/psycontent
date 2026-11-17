@@ -8,7 +8,7 @@ export default function HelpCard({ className = '' }: { className?: string }) {
   return (
     <section aria-labelledby="help-card-title" className={`rounded-[20px] bg-brand-card border border-brand-border p-4 sm:p-6 ${className}`}>
       <h2 id="help-card-title" className="text-base font-semibold text-brand-text">Что-то не получается?</h2>
-      <p className="mt-1 text-[15px] leading-[22px] text-brand-text-secondary">Ответит живой человек из команды PsyCont, обычно в течение дня</p>
+      <p className="mt-1 text-[15px] leading-[22px] text-brand-text-secondary">Ответит живой человек, обычно в течение дня</p>
       <Link href="/dashboard/pomosch" className={`${QUIET_BTN} mt-4`}>
         Открыть помощь
         <ChevronRight className="w-[18px] h-[18px]" aria-hidden />

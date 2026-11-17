@@ -2,7 +2,7 @@
 // q это короткий код для события help_faq_open (текст вопроса в событие не идет).
 // Ответ собран из кусков: строка или ссылка внутри предложения (почта, телефон). Почта из REKV может быть пустой,
 // тогда кусок с ней выпадает и предложение остается целым.
-import { REKV, PRIVACY_PATH } from '@/lib/rekvizity'
+import { REKV, PRIVACY_PATH, SUPPORT_EMAIL } from '@/lib/rekvizity'
 
 // Бот поддержки без метки: на него ведет кнопка, пока сервер не выдал ссылку с меткой или если не выдал совсем
 export const SUPPORT_BOT_URL = 'https://t.me/psycont_supportbot'
@@ -16,7 +16,7 @@ export type HelpFaqItem = {
   action?: { label: string; href: string } // кнопка-переход под ответом
 }
 
-const email = REKV.email
+const email = SUPPORT_EMAIL
 const mail = (before: string): HelpAnswerPart[] => (email ? [before, { text: email, href: `mailto:${email}` }] : [])
 
 export const HELP_FAQ: HelpFaqItem[] = [
@@ -53,11 +53,11 @@ export const HELP_FAQ: HelpFaqItem[] = [
     q: 'vozvrat',
     title: 'Можно вернуть деньги?',
     answer: [
-      'Да, за дни, которые остались до конца оплаченного месяца. Напиши нам в Telegram по кнопке выше',
+      'Да, за дни, которые остались до конца оплаченного месяца. Напиши в Telegram по кнопке выше',
       ...mail(', на почту '),
       ' или позвони ',
       { text: REKV.phone, href: REKV.phoneHref },
-      '. Вернем, в день возврата тариф выключится, а деньги придут в течение 10 дней.',
+      '. В день возврата тариф выключится, деньги придут в течение 10 дней.',
     ],
   },
   {
