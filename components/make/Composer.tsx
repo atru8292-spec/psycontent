@@ -71,7 +71,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
   materials?: Materials | null // остаток текстов: при 0 главная кнопка неактивна, строка под кнопкой
   until?: string               // платный тариф: до какого числа («12 декабря»)
   paymentsOn?: boolean         // оплата подключена: кнопка конца пробных ведет на оплату
-  firstTime: boolean
+  firstTime?: boolean          // undefined: еще не загружено (заголовок не мигает)
   topics: (TopicPick | string)[]
   busy: boolean
   onSubmit: (s: ComposerSubmit) => void
@@ -325,11 +325,11 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
   const phoneHint = spend || (materials ? '' : 'Около минуты, текст сохранится в «Моих текстах»')
   // кнопка на телефоне прилипает над нижним меню (56 px); пока печатают (меню уехало) или тексты закончились, стоит в потоке
   const stick = !typing && !noMaterials
-  const buttonText = noMaterials ? END.disabled : tooMany ? END.tooMany : !formats.length ? 'Выбери, что написать' : sampleMode ? 'Написать по образцу' : makeButtonText(formats)
+  const buttonText = noMaterials ? (materials?.kind === 'month' ? END.month.title() : END.disabled) : tooMany ? END.tooMany : !formats.length ? 'Выбери, что написать' : sampleMode ? 'Написать по образцу' : makeButtonText(formats)
 
   return (
     <div className={`min-w-0 ${stick ? 'max-lg:pb-[120px]' : ''}`}>
-      <h1 className="text-[26px] leading-8 lg:text-[32px] lg:leading-10 font-semibold tracking-[-0.3px] text-brand-text">{firstTime ? 'О чем первый текст?' : 'О чем сегодня?'}</h1>
+      <h1 className={`text-[26px] leading-8 lg:text-[32px] lg:leading-10 font-semibold tracking-[-0.3px] text-brand-text ${firstTime === undefined ? 'invisible' : ''}`}>{firstTime ? 'О чем первый текст?' : 'О чем сегодня?'}</h1>
       <Squiggle variant={0} width="150px" />
       {subline && <p className="hidden lg:block mt-1.5 text-[14px] leading-5 text-brand-muted">{subline}</p>}
 
@@ -512,7 +512,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
       )}
 
       {/* главная кнопка: телефон прилипает над нижним меню и всегда со строкой остатка, компьютер в строку с подсказкой */}
-      <div className={`${stick ? 'max-lg:fixed max-lg:inset-x-0 max-lg:z-30 max-lg:bottom-[calc(56px+env(safe-area-inset-bottom))] max-lg:px-4 max-lg:pt-3 max-lg:pb-2 max-lg:bg-gradient-to-t max-lg:from-brand-bg max-lg:from-70% max-lg:to-brand-bg/0' : 'max-lg:mt-4'} lg:mt-6 lg:flex lg:items-center lg:gap-4`}>
+      <div className={`${stick ? 'max-lg:fixed max-lg:inset-x-0 max-lg:z-30 max-lg:bottom-[calc(56px+env(safe-area-inset-bottom))] max-lg:px-4 max-lg:pt-3 max-lg:pb-2 max-lg:bg-brand-bg max-lg:border-t max-lg:border-brand-border' : 'max-lg:mt-4'} lg:mt-6 lg:flex lg:items-center lg:gap-4`}>
         <button type="button" onClick={submit} disabled={disabled}
           className={`w-full lg:w-auto h-[52px] lg:px-7 rounded-2xl text-[16px] font-semibold transition cursor-pointer disabled:cursor-not-allowed ${formats.length && !noMaterials && !tooMany ? 'bg-brand-accent text-white hover:bg-brand-accent-hover disabled:opacity-60' : 'bg-brand-border text-brand-text/70'}`}>
           {busy ? <Loader2 className="w-5 h-5 animate-spin inline" aria-label="Пишется" /> : buttonText}

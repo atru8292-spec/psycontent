@@ -419,7 +419,9 @@ export default function MakeFlow() {
   }
   const removeCurrent = async () => {
     if (!current?.postId) return
-    const { error: e } = await supabase.from('generated_posts').delete().eq('id', current.postId)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { showToast('Не получилось удалить. Попробуй еще раз'); return }
+    const { error: e } = await supabase.from('generated_posts').delete().eq('id', current.postId).eq('user_id', user.id)
     setConfirmDelete(false)
     if (e) { showToast('Не получилось удалить. Попробуй еще раз'); return }
     const rest = items.filter((_, i) => i !== active)
@@ -459,9 +461,8 @@ export default function MakeFlow() {
             subline={subline} take={take} onTextChange={onTextChange}
             below={
               <div className="space-y-6">
-                {!firstTime && <div className="xl:hidden"><RhythmStrip rhythm={desk.rhythm} /></div>}
-                <div className="lg:hidden"><InWork items={desk.inWork} firstTime={firstTime} limit={3} onChanged={desk.reload} /></div>
-                <div className="hidden lg:block"><InWork items={desk.inWork} firstTime={firstTime} limit={2} onChanged={desk.reload} /></div>
+                {firstTime === false && <div className="xl:hidden"><RhythmStrip rhythm={desk.rhythm} /></div>}
+                <InWork items={desk.inWork} firstTime={firstTime === true} onChanged={desk.reload} />
               </div>
             } />
         </div>
@@ -603,6 +604,7 @@ export default function MakeFlow() {
             onCopied={() => { setCopiedTop(true); setTimeout(() => setCopiedTop(false), 2500) }}
             aside={moreFromThought}
             carouselFocus={focusOpts}
+            onMoreOpenChange={() => setConfirmDelete(false)}
             moreContent={close => (
               <>
                 {missing.length > 0 && (
@@ -618,7 +620,7 @@ export default function MakeFlow() {
                   <div className="py-2">
                     <p className="text-[16px] text-brand-text">Удалить {current ? formatOne(current.format) : ''} насовсем? Остальные форматы останутся.</p>
                     <div className="mt-2 grid grid-cols-2 gap-2">
-                      <button type="button" onClick={() => { removeCurrent(); close() }} className="h-12 rounded-2xl bg-brand-text text-brand-bg font-semibold cursor-pointer">Удалить</button>
+                      <button type="button" onClick={() => { close(); removeCurrent() }} className="h-12 rounded-2xl bg-brand-text text-brand-bg font-semibold cursor-pointer">Удалить</button>
                       <button type="button" onClick={() => setConfirmDelete(false)} className="h-12 rounded-2xl border border-brand-border text-brand-text font-semibold cursor-pointer">Оставить</button>
                     </div>
                   </div>

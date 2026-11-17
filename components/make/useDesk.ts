@@ -69,7 +69,7 @@ function groupInWork(rows: any[]): InWorkItem[] {
 }
 
 export function useDesk() {
-  const [firstTime, setFirstTime] = useState(false)
+  const [firstTime, setFirstTime] = useState<boolean | undefined>(undefined)
   const [topics, setTopics] = useState<TopicPick[]>([])
   const [plan, setPlan] = useState<PlanView | null | undefined>(undefined)
   const [rhythm, setRhythm] = useState<Rhythm | null>(null)

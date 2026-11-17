@@ -27,7 +27,7 @@ const PROFANITY_RU: Record<string, string> = { no: 'без мата', light: 'и
 const INTENSITY_RU: Record<string, string> = { calm: 'спокойно', live: 'живо', hot: 'на эмоциях' }
 // стили для мини-обложек без узоров и мрамора (решение 17.11); рисуются с decor=none
 const CALM_STYLES: TemplateStyle[] = ['t_zametki', 't_perepiska', 't_premium', 't_redakciya']
-const MINI_COVER = 'Почему мы откладываем самое важное'
+const MINI_COVER = 'Почему самое важное откладывается'
 
 type Design = { mine: { style: TemplateStyle; label: string } | null; handle: string }
 

@@ -172,7 +172,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const slim = collapsed || focus
   const onPay = pathname.startsWith('/dashboard/oplata')
   // Реквизиты продавца в кабинете только в «Настройках» и «Помощи» (лендинг и /offer их показывают всем)
-  const legal = pathname.startsWith('/dashboard/settings') || pathname.startsWith(HELP_HREF)
+  // реквизиты продавца на всех экранах кабинета, как раньше: ЮKassa проверяет ИНН на страницах (ревью 17.11)
+  const legal = true
   const name = (profile?.full_name || '').trim()
   // со старым мозгом «Главная» жива: знак ведет туда; с новым на «Написать»
   const homeHref = newMenu ? '/dashboard/make' : '/dashboard'
@@ -300,7 +301,7 @@ function MenuBalance({ m, until }: { m: Materials; until: string | null }) {
           </div>
         )}
       </div>
-      <Link href={TARIFF_HREF} className="mt-2.5 inline-flex items-center min-h-8 text-[13px] font-semibold text-brand-accent hover:text-brand-accent-hover rounded focus-visible:outline-2 focus-visible:outline-brand-accent">Посмотреть тарифы</Link>
+      <Link href={TARIFF_HREF} className="mt-2.5 inline-flex items-center min-h-11 text-[13px] font-semibold text-brand-accent hover:text-brand-accent-hover rounded focus-visible:outline-2 focus-visible:outline-brand-accent">Посмотреть тарифы</Link>
     </div>
   )
 }

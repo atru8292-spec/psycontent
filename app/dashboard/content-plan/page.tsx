@@ -92,14 +92,14 @@ function RhythmTracker({ count }: { count: number }) {
       animate={{ opacity: 1, y: 0 }}
       className="bg-brand-soft border border-brand-border-soft rounded-2xl px-4 py-3.5 md:px-5 md:py-4 mb-6 md:mb-8"
     >
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-muted mb-2">Твой ритм · этот месяц</p>
+      <p className="text-[15px] font-semibold text-brand-text mb-2">Ритм месяца</p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
         {/* Число за месяц */}
         <div className="shrink-0 flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <span className={`text-[28px] md:text-[32px] leading-none font-bold ${count === 0 ? 'text-brand-muted' : 'text-brand-accent'}`}>{count}</span>
           <span className="text-sm text-brand-text-secondary">{pluralMaterial(count)} собрано</span>
           {reached && (
-            <span className="inline-flex items-center gap-1 text-brand-sage text-xs font-semibold ml-1">
+            <span className="inline-flex items-center gap-1 text-brand-accent text-xs font-semibold ml-1">
               <Check className="w-3.5 h-3.5" /> в ритме
             </span>
           )}
@@ -291,7 +291,7 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
       {/* Хук */}
       {item.hook && !item.done && (
         <div className="mx-5 mb-4 p-4 md:mx-4 md:mb-3 md:p-3 rounded-xl bg-brand-highlight/50 border border-brand-accent/20">
-          <p className="text-[13px] md:text-xs text-brand-text-muted uppercase tracking-wide font-semibold mb-1.5">Первая строка</p>
+          <p className="text-[13px] md:text-xs text-brand-text-muted font-semibold mb-1.5">Первая строка</p>
           <p className="text-[16px] md:text-sm text-brand-text italic leading-relaxed">«{item.hook}»</p>
         </div>
       )}
@@ -352,7 +352,7 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
 
       {item.hook && (
         <div className="mb-5">
-          <p className="text-[13px] md:text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-2.5">Первая строка</p>
+          <p className="text-[13px] md:text-xs font-bold text-brand-text-secondary mb-2.5">Первая строка</p>
           <div className="p-4 md:p-3 bg-brand-highlight rounded-xl border border-brand-accent/20">
             <p className="text-[17px] md:text-sm text-brand-text italic leading-relaxed">«{item.hook}»</p>
           </div>
@@ -361,7 +361,7 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
 
       {item.tip && (
         <div className="mb-7 md:mb-6">
-          <p className="text-[13px] md:text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-2.5">Подсказка</p>
+          <p className="text-[13px] md:text-xs font-bold text-brand-text-secondary mb-2.5">Подсказка</p>
           <div className="flex items-start gap-3 p-4 md:p-3 bg-brand-soft rounded-xl border border-brand-border-soft">
             <Lightbulb className="w-6 h-6 md:w-4 md:h-4 text-brand-sage mt-0.5 shrink-0" />
             <p className="text-[16px] md:text-sm text-brand-text leading-relaxed">{item.tip}</p>

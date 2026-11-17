@@ -1,7 +1,8 @@
 'use client'
 
 // Оформление карусели на экране результата (07-KARUSELI-TZ.md; вариант А, макеты A2 и A10).
-// Компьютер (от lg): режим фокуса из трех зон поверх области контента. Слева «Оформление» (три стиля под текст,
+// Компьютер (от lg): сначала блок под текстом результата; «Оформить на весь экран» включает режим
+// фокуса из трех зон поверх области контента. Слева «Оформление» (три стиля под текст,
 // «Все стили», цвета, «Сохранить оформление»), в центре большой слайд со стрелками и лента миниатюр
 // («Все слайды рядом» сеткой), справа правка текущего слайда. В шапке «Назад», форматы мысли (если переданы),
 // «Скопировать описание», «Скачать все слайды».
@@ -54,7 +55,8 @@ type DesignView = {
 type Photo = { path: string; url: string }
 type Author = { name: string; about: string; nameSet: boolean; aboutSet: boolean }
 
-// Шапка режима фокуса: что передает экран результата. Без onBack «Назад» просто выходит из фокуса.
+// Шапка режима фокуса: что передает экран результата. «Назад» и «К тексту» только выходят из фокуса
+// к результату (кнопки текста на месте); onBack намеренно не зовется, иначе результат стирается (ревью 17.11).
 export type CarouselFocusOpts = {
   title?: string
   formats?: { id: string; label: string }[]
@@ -135,7 +137,7 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
   const [listMode, setListMode] = useState(false)
   const [grid, setGrid] = useState(false)       // компьютер: «Все слайды рядом»
   const [moreOpen, setMoreOpen] = useState(false)
-  const [wantFocus, setWantFocus] = useState(true)
+  const [wantFocus, setWantFocus] = useState(false)
   const [rubric, setRubric] = useState('')
   const [brandV, setBrandV] = useState('') // версия ника, имени и фото: входит в адрес превью
   const colorTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -227,8 +229,8 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
 
   const slideUrl = useCallback((n: number, dl = false) =>
     `/api/carousel/render?designId=${design?.id}&n=${n}&v=${encodeURIComponent(design?.version || '')}-${bust}${dl ? '&dl=1' : ''}`, [design?.id, design?.version, bust])
-  const previewUrl = (s: TemplateStyle) =>
-    `/api/carousel/preview?style=${s}&total=${parsed.slides.length}&cover=${encodeURIComponent(cover.slice(0, 160))}&v=${brandV}-${bust}`
+  const previewUrl = (s: TemplateStyle, plain = false) =>
+    `/api/carousel/preview?style=${s}&total=${parsed.slides.length}&cover=${encodeURIComponent(cover.slice(0, 160))}&v=${brandV}-${bust}${plain ? "&decor=none" : ""}`
 
   // новая версия слайдов: помечаем перерисовку, заранее готовим файлы для share
   const total = design?.slides.length || 0
@@ -431,13 +433,13 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
   // ---------- общие куски ----------
 
   // мини-обложка стиля на настоящем тексте этой карусели
-  const styleThumb = (s: TemplateStyle) => {
+  const styleThumb = (s: TemplateStyle, plain = false) => {
     const active = design?.style === s
     return (
       <button key={s} type="button" disabled={!!busy} onClick={() => !active && choose(s)} aria-pressed={active}
         className="min-w-0 text-left cursor-pointer disabled:cursor-wait group focus-visible:outline-none">
         <span className={`relative block aspect-[3/4] rounded-xl overflow-hidden border-2 transition group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-brand-accent ${active ? 'border-brand-accent' : 'border-brand-border group-hover:border-brand-muted'}`}>
-          <img src={previewUrl(s)} alt="" loading="lazy" className="w-full h-full object-cover bg-brand-bg" />
+          <img src={previewUrl(s, plain)} alt="" loading="lazy" className="w-full h-full object-cover bg-brand-bg" />
           {busy === s && <span className="absolute inset-0 bg-brand-bg/70 flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin text-brand-accent" /></span>}
         </span>
         <span className="mt-1.5 block text-center text-[14px] text-brand-text truncate">{STYLES[s].label}</span>
@@ -448,7 +450,7 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
   const others = TEMPLATE_STYLES.filter(s => !shownSuggested.includes(s))
   const allStylesGrid = allStyles && (
     <div className="grid grid-cols-3 gap-x-2 gap-y-3 pt-2">
-      {others.map(styleThumb)}
+      {others.map(s => styleThumb(s))}
     </div>
   )
 
@@ -770,7 +772,7 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
   // Компьютер: режим фокуса
   // =====================================================================
   if (focusOn) {
-    const back = () => { if (focus?.onBack) focus.onBack(); else setWantFocus(false) }
+    const back = () => setWantFocus(false)
     return (
       <div className="fixed inset-y-0 right-0 left-[72px] z-30 flex flex-col bg-brand-bg" role="region" aria-label="Оформление карусели">
         {/* шапка */}
@@ -779,6 +781,7 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
             <ChevronLeft className="w-5 h-5" aria-hidden="true" />Назад
           </button>
           <p className="min-w-0 flex-1 truncate text-[15px] text-brand-muted">{focus?.title || cover.split('\n')[0]}</p>
+          <button type="button" onClick={back} className={`${outlineBtn} h-11 px-4 text-[15px] shrink-0`}>К тексту</button>
           {focus?.formats && focus.formats.length > 1 && (
             <div className="shrink-0 inline-flex rounded-full bg-brand-soft-2 p-1" role="tablist" aria-label="Форматы этой мысли">
               {focus.formats.map(f => {
@@ -806,7 +809,7 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
             <h2 className="text-[20px] leading-7 font-semibold text-brand-text">Оформление</h2>
             <div className="space-y-2">
               <p className="text-[14px] text-brand-muted">Подходят этому тексту</p>
-              <div className="grid grid-cols-3 gap-2">{shownSuggested.map(styleThumb)}</div>
+              <div className="grid grid-cols-3 gap-2">{shownSuggested.map(s => styleThumb(s, true))}</div>
             </div>
             <div className="border-t border-brand-border pt-1">
               <button type="button" onClick={() => setAllStyles(v => !v)} aria-expanded={allStyles} className="w-full min-h-11 flex items-center justify-between text-[15px] text-brand-text cursor-pointer">
@@ -940,7 +943,7 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
 
   const actionBar = design && !listMode && editN == null && (
     <div className={mobileBar === 'fixed'
-      ? 'fixed inset-x-0 z-30 bottom-[calc(56px+env(safe-area-inset-bottom))] lg:bottom-0 bg-brand-card border-t border-brand-border px-4 py-2'
+      ? 'fixed inset-x-0 z-30 bottom-[calc(56px+env(safe-area-inset-bottom))] bg-brand-card border-t border-brand-border px-4 py-2 lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:mt-4'
       : ''}>
       <div className="flex items-center gap-2 max-w-[560px] mx-auto">
         {primarySave}
@@ -957,7 +960,7 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
   )
 
   return (
-    <div className={`bg-white rounded-2xl border border-brand-border p-4 sm:p-6 space-y-4 mt-4 ${mobileBar === 'fixed' ? 'mb-20' : ''}`}>
+    <div className={`bg-white rounded-2xl border border-brand-border p-4 sm:p-6 space-y-4 mt-4 ${mobileBar === 'fixed' ? 'mb-20 lg:mb-0' : ''}`}>
       {desk && (
         <div className="flex justify-end">
           <button type="button" onClick={() => { setWantFocus(true); trackEvent('feature_open', { feature: 'carousel_design' }) }} className={`${outlineBtn} h-11 px-4 text-[15px]`}>
@@ -1044,7 +1047,7 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
           </button>
         </div>
         {!design && !opening && <p className="text-[14px] text-brand-muted -mt-2">Подходят этому тексту. Потом можно поменять</p>}
-        <div className="grid grid-cols-3 gap-3 max-w-md">{shownSuggested.map(styleThumb)}</div>
+        <div className="grid grid-cols-3 gap-3 max-w-md">{shownSuggested.map(s => styleThumb(s, true))}</div>
         {allStylesGrid && <div className="max-w-md">{allStylesGrid}</div>}
         {choosing && <p className="text-sm text-brand-muted" role="status">Слайды собираются, это секунд десять</p>}
         {colorsRow}

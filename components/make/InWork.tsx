@@ -5,7 +5,7 @@
 // published), после нажатия «Опубликовано» и «Отменить». Зона нажатия 44 px. «Все» ведет в «Мои тексты».
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronRight, Loader2 } from 'lucide-react'
 import { track } from '@/lib/track'
 import { formatOne } from './formats'
@@ -28,12 +28,29 @@ async function mark(ids: string[], undo: boolean): Promise<boolean> {
   return res.every(Boolean)
 }
 
-export default function InWork({ items, firstTime, limit, onChanged }: {
+// компьютер от 1024 px: две строки, телефон три
+function useDesktop() {
+  const [d, setD] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const on = () => setD(mq.matches)
+    on(); mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [])
+  return d
+}
+
+export default function InWork({ items, firstTime, onChanged }: {
   items: InWorkItem[] | null
   firstTime: boolean
-  limit: number           // сколько строк показать (телефон 3, компьютер 2)
-  onChanged?: () => void  // отметка поменялась: перечитать ритм месяца
+  onChanged?: () => void  // отметка поменялась: перечитать ритм месяца (с паузой, чтобы «Отменить» успели нажать)
 }) {
+  const limit = useDesktop() ? 2 : 3
+  // перечитываем через 6 с после последней отметки: сразу строка пропала бы вместе с «Отменить»
+  const reloadTimer = useRef<number | null>(null)
+  const changedRef = useRef(onChanged)
+  changedRef.current = onChanged
+  useEffect(() => () => { if (reloadTimer.current) window.clearTimeout(reloadTimer.current) }, [])
   const [done, setDone] = useState<Record<string, boolean>>({})
   const [busy, setBusy] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
@@ -64,7 +81,8 @@ export default function InWork({ items, firstTime, limit, onChanged }: {
     const ok = await mark(x.ids, undo)
     if (!ok) { setDone(d => ({ ...d, [x.key]: undo })); setErr('Отметить не получилось. Проверь интернет и нажми еще раз') }
     setBusy(null)
-    onChanged?.()
+    if (reloadTimer.current) window.clearTimeout(reloadTimer.current)
+    reloadTimer.current = window.setTimeout(() => { reloadTimer.current = null; changedRef.current?.() }, 6000)
   }
 
   return (

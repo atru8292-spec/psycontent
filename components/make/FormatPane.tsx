@@ -9,7 +9,7 @@
 
 import { track } from '@/lib/track'
 import { normFormat } from '@/lib/analytics/events'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Check, Copy, MoreHorizontal, Loader2 } from 'lucide-react'
 import { splitPostTitle } from '@/lib/post-format'
 import ReelsScript from '@/components/ReelsScript'
@@ -19,6 +19,8 @@ import PostCover from '@/components/PostCover'
 import { zamenaKak } from './vid-hints'
 import BottomSheet from './BottomSheet'
 import { useDashboardMe } from '@/lib/dashboard-me'
+import { isMaterials, spendLine } from '@/lib/limit-texts'
+import { dateRu } from '@/lib/billing/pay-texts'
 
 export type PaneItem = {
   format: string          // формат экрана: reels, carousel, post, post_tg, stories
@@ -100,12 +102,13 @@ function StoriesView({ text }: { text: string }) {
   )
 }
 
-export default function FormatPane({ item, onChange, onPublished, onMore, moreContent, onCopied, aside, carouselFocus, onCarouselFocus }: {
+export default function FormatPane({ item, onChange, onPublished, onMore, moreContent, onMoreOpenChange, onCopied, aside, carouselFocus, onCarouselFocus }: {
   item: PaneItem
   onChange: (patch: Partial<PaneItem>) => void
   onPublished: (at: string | null) => void
   onMore?: () => void                               // старый способ: экран сам открывает лист «Еще»
   moreContent?: (close: () => void) => ReactNode     // пункты листа «Еще» от экрана (еще из мысли, скопировать все, удалить)
+  onMoreOpenChange?: (open: boolean) => void         // лист «Еще» открылся или закрылся (экран сбрасывает подтверждение удаления)
   onCopied?: () => void                              // показать «Скопировано» вверху экрана
   aside?: ReactNode                                  // «Еще из этой мысли»: справа на компьютере, под текстом на телефоне
   carouselFocus?: CarouselFocusOpts                  // шапка режима фокуса карусели (вкладки форматов, «Назад»)
@@ -129,7 +132,12 @@ export default function FormatPane({ item, onChange, onPublished, onMore, moreCo
   const [done, setDone] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
   // пока поле в фокусе (нижнее меню уехало под клавиатуру), липкую панель тоже прячем, иначе она висит в воздухе
-  const { typing } = useDashboardMe()
+  const { typing, me } = useDashboardMe()
+  // «Другой вариант» пишет целый новый текст и тратит 1 текст: сначала пояснение и кнопка, не с одного касания
+  const [variantAsk, setVariantAsk] = useState(false)
+  const materials = isMaterials(me?.materials) ? me.materials : null
+  const paidUntil = (() => { try { return me?.paidUntil ? dateRu(me.paidUntil) : undefined } catch { return undefined } })()
+  useEffect(() => { onMoreOpenChange?.(moreOpen) }, [moreOpen]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { text, code, postId } = item
   const isCarousel = code === 'carousel'
@@ -173,7 +181,8 @@ export default function FormatPane({ item, onChange, onPublished, onMore, moreCo
     } finally { setAdjusting(null) }
   }
   // «Другой вариант» сразу из-под текста: лист открывается уже с вариантами
-  const otherVariant = () => { setHooks(null); setFixOpen(true); adjust('hooks') }
+  const otherVariant = () => { setHooks(null); setVariantAsk(true); setFixOpen(true) }
+  const noLeft = !!materials && materials.remaining <= 0
 
   const pickHook = (h: { hook_type: string; text: string; full?: string; formatName?: string }) => {
     const first = text.split('\n').find(l => l.trim()) || ''
@@ -222,7 +231,7 @@ export default function FormatPane({ item, onChange, onPublished, onMore, moreCo
   const publishedPill = (cls = '') => (
     <span className={`h-12 pl-3.5 pr-1 rounded-2xl bg-brand-soft-2 inline-flex items-center gap-1.5 min-w-0 ${cls}`} role="status">
       <Check className="w-4 h-4 text-brand-accent shrink-0" />
-      <span className="text-[15px] font-semibold text-brand-text truncate">Опубликовано</span>
+      <span className="text-[15px] font-semibold text-brand-text truncate">Опубликовано{item.publishedAt && <span className="hidden lg:inline"> {new Date(item.publishedAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}</span>}</span>
       <button type="button" onClick={togglePublished} className="ml-auto min-h-11 px-2.5 text-[14px] font-medium text-brand-muted hover:text-brand-text cursor-pointer shrink-0">Отменить</button>
     </span>
   )
@@ -391,8 +400,16 @@ export default function FormatPane({ item, onChange, onPublished, onMore, moreCo
         </div>
       </BottomSheet>
 
-      <BottomSheet open={fixOpen} onClose={() => { setFixOpen(false); setHooks(null) }} title={hooks || adjusting === 'hooks' ? 'Другой вариант' : 'Поправить'}>
-        {adjusting === 'hooks' && !hooks ? (
+      <BottomSheet open={fixOpen} onClose={() => { setFixOpen(false); setHooks(null); setVariantAsk(false) }} title={variantAsk || hooks || adjusting === 'hooks' ? 'Другой вариант' : 'Поправить'}>
+        {variantAsk && !hooks && adjusting !== 'hooks' ? (
+          <div className="pt-1 pb-1">
+            <p className="text-[15px] leading-[22px] text-brand-text">Новый вариант целиком, это 1 из твоих текстов.</p>
+            {materials && <p className="mt-1 text-[14px] leading-5 text-brand-muted">{noLeft ? 'Тексты закончились, новый вариант сейчас не написать' : spendLine(materials, 1, paidUntil)}</p>}
+            <button type="button" disabled={noLeft || !!adjusting} onClick={() => { setVariantAsk(false); adjust('hooks') }}
+              className="mt-4 w-full h-[52px] rounded-2xl bg-brand-accent text-white text-[16px] font-semibold hover:bg-brand-accent-hover cursor-pointer disabled:opacity-40">Написать другой вариант</button>
+            {error && <p className="py-2 text-[14px] text-brand-text" role="status">{error}</p>}
+          </div>
+        ) : adjusting === 'hooks' && !hooks ? (
           <p className="py-6 flex items-center gap-2 text-[15px] text-brand-text-secondary" role="status"><Loader2 className="w-4 h-4 animate-spin" />Вариант пишется</p>
         ) : hooks ? (
           <div className="space-y-2 pt-1">
@@ -417,7 +434,7 @@ export default function FormatPane({ item, onChange, onPublished, onMore, moreCo
             <button type="button" onClick={() => { setFixOpen(false); setEditing(true) }}
               className="w-full h-[52px] flex items-center text-left text-[16px] text-brand-text cursor-pointer">Править текст</button>
             {!code.startsWith('reels_scenka') && (
-              <button type="button" disabled={!!adjusting} onClick={() => adjust('hooks')}
+              <button type="button" disabled={!!adjusting} onClick={() => setVariantAsk(true)}
                 className="w-full h-[52px] flex items-center gap-2 text-left text-[16px] text-brand-text cursor-pointer disabled:opacity-50">Другой вариант</button>
             )}
             {error && <p className="py-2 text-[14px] text-brand-text" role="status">{error}</p>}

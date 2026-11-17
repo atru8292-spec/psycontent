@@ -39,6 +39,8 @@ export default function TextView({ rows, activeId, onActive, onTogglePublished }
   const body = parsed?.body ?? text
   const { body: main, caption } = splitCaption(body)
   const open = () => router.push(`/dashboard/make?post=${row.id}&f=${f}`)
+  // «Еще из этой мысли»: сразу лист «Что написать еще?» (ревью 17.11)
+  const openMore = () => router.push(`/dashboard/make?post=${row.id}&f=${f}&more=1`)
 
   const copy = () => {
     track('material_take', { how: 'copy', format: normFormat(code), post: row.id })
@@ -66,7 +68,7 @@ export default function TextView({ rows, activeId, onActive, onTogglePublished }
           })}
         </div>
         <span className="text-[13px] text-brand-muted shrink-0">{longDay(row.created_at)}</span>
-        <button type="button" onClick={open}
+        <button type="button" onClick={openMore}
           className="h-10 px-4 shrink-0 inline-flex items-center gap-2 rounded-xl border border-brand-text/70 text-[14px] font-semibold text-brand-text hover:bg-brand-bg cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent">
           <Plus className="w-4 h-4" aria-hidden="true" />Еще из этой мысли
         </button>
