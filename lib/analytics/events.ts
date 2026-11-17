@@ -120,6 +120,8 @@ export const FEATURES = [
   'archetype_test',   // тест-архетип
   'passport',         // бренд-паспорт
   'format_pick',      // zh6: открыла выбор формата каталога внутри чипа на «Сделать»
+  'help',             // экран «Помощь» (/dashboard/pomosch)
+  'add_home',         // раскрыла подсказку «PsyCont на экран Домой» в «Настройках»
 ] as const
 export type Feature = typeof FEATURES[number]
 

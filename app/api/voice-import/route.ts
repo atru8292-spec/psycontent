@@ -29,14 +29,14 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
     const body = await req.json().catch(() => ({}))
     const name = channelName(String(body?.url || ''))
-    if (!name) return NextResponse.json({ error: 'Не узнала ссылку. Нужна вида t.me/имя_канала' }, { status: 400 })
+    if (!name) return NextResponse.json({ error: 'Ссылка не похожа на канал. Нужна вида t.me/имя_канала' }, { status: 400 })
 
     const res = await fetch(`https://t.me/s/${name}`, { signal: AbortSignal.timeout(15000), headers: { 'User-Agent': 'Mozilla/5.0' } })
     if (!res.ok) return NextResponse.json({ error: 'Канал не открылся. Он точно открытый?' }, { status: 400 })
     const html = await res.text()
     const blocks = [...html.matchAll(/<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/g)].map(m => htmlToText(m[1]))
     const posts = blocks.filter(t => t.length >= 150).slice(-10).reverse()
-    if (!posts.length) return NextResponse.json({ error: 'В канале не нашла постов длиннее пары строк' }, { status: 400 })
+    if (!posts.length) return NextResponse.json({ error: 'В канале нет постов длиннее пары строк' }, { status: 400 })
 
     const db = getSupabaseAdmin()
     const seen = await db.from('voice_events').select('after_text').eq('user_id', user.id).eq('kind', 'tg_post').limit(100)

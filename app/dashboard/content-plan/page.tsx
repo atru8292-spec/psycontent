@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
 import { NOT_MATERIAL_FORMAT } from '@/components/make/formats'
-import TopicIdeas from '@/components/TopicIdeas'
+import TopicIdeas, { pillarLabel } from '@/components/TopicIdeas'
 import { useDashboardMe } from '@/lib/dashboard-me'
 import EmptyState from '@/components/EmptyState'
 import { LimitNotice } from '@/components/LimitNotice'
@@ -40,14 +40,14 @@ type DayItem = {
 }
 
 // Кнопка дня по формату: глагол по делу
-const GO_TEXT: Record<string, string> = { carousel: 'Собрать карусель', reels: 'Сделать рилс', stories: 'Сделать сторис' }
+const GO_TEXT: Record<string, string> = { carousel: 'Собрать карусель', reels: 'Написать рилс', stories: 'Написать сторис' }
 const goText = (f: string) => GO_TEXT[f] || 'Написать пост'
 
 const FORMAT_META: Record<string, { icon: any; label: string; color: string; bg: string }> = {
   post:     { icon: AlignLeft, label: 'Пост',     color: 'text-brand-accent', bg: 'bg-brand-soft' },
   carousel: { icon: Layers,    label: 'Карусель', color: 'text-brand-accent', bg: 'bg-brand-soft' },
   reels:    { icon: Film,      label: 'Рилс',     color: 'text-brand-accent', bg: 'bg-brand-soft' },
-  stories:  { icon: FileText,  label: 'Stories',  color: 'text-brand-muted', bg: 'bg-brand-soft' },
+  stories:  { icon: FileText,  label: 'Сторис',   color: 'text-brand-muted', bg: 'bg-brand-soft' },
 }
 
 const PILLAR_META: Record<string, { color: string; dot: string }> = {
@@ -57,6 +57,9 @@ const PILLAR_META: Record<string, { color: string; dot: string }> = {
   'Истории':          { color: 'text-brand-muted bg-brand-soft border-brand-border-soft', dot: 'bg-brand-muted' },
   'Позиционирование': { color: 'text-brand-accent bg-brand-soft border-brand-border-soft', dot: 'bg-brand-accent' },
 }
+
+// Ключи рубрик хранятся в плане (content_plans.plan) и уходят в генерацию: их не меняем,
+// на экране и в выгрузке человеческое имя через pillarLabel (общий словарь в TopicIdeas, 17.11)
 
 function getPillarMeta(pillar: string) {
   return PILLAR_META[pillar] || { color: 'text-gray-600 bg-gray-50 border-gray-200', dot: 'bg-gray-400' }
@@ -123,14 +126,15 @@ function ExportMenu({ plan }: { plan: DayItem[] }) {
   const [copied, setCopied] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [exportFailed, setExportFailed] = useState(false)
 
   const copyAsText = () => {
     const text = plan.map(day =>
 `День ${day.day}
-Рубрика: ${day.pillar}
+Рубрика: ${pillarLabel(day.pillar)}
 Формат: ${day.format_name || day.format}
 Тема: ${day.topic}
-${day.hook ? `Хук: ${day.hook}` : ''}
+${day.hook ? `Первая строка: ${day.hook}` : ''}
 ---`
     ).join('\n\n')
 
@@ -141,10 +145,10 @@ ${day.hook ? `Хук: ${day.hook}` : ''}
   }
 
   const exportToCSV = () => {
-    const headers = ['День', 'Рубрика', 'Формат', 'Тема', 'Хук', 'Статус']
+    const headers = ['День', 'Рубрика', 'Формат', 'Тема', 'Первая строка', 'Статус']
     const rows = plan.map(day => [
       day.day,
-      `"${day.pillar}"`,
+      `"${pillarLabel(day.pillar)}"`,
       `"${(day.format_name || day.format).replace(/"/g, '""')}"`,
       `"${day.topic.replace(/"/g, '""')}"`,
       `"${(day.hook || '').replace(/"/g, '""')}"`,
@@ -156,7 +160,7 @@ ${day.hook ? `Хук: ${day.hook}` : ''}
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `content-plan-${new Date().toISOString().split('T')[0]}.csv`
+    link.download = `plan-tem-${new Date().toISOString().split('T')[0]}.csv`
     link.click()
     URL.revokeObjectURL(url)
     setShowMenu(false)
@@ -164,12 +168,13 @@ ${day.hook ? `Хук: ${day.hook}` : ''}
 
   const exportToPDF = async () => {
     setExporting(true)
+    setExportFailed(false)
     setShowMenu(false)
     try {
       await generatePDF(plan)
     } catch (error) {
       console.error('PDF export error:', error)
-      alert('Ошибка при создании PDF')
+      setExportFailed(true)
     } finally {
       setExporting(false)
     }
@@ -178,13 +183,19 @@ ${day.hook ? `Хук: ${day.hook}` : ''}
   return (
     <div className="relative">
       <button
-        onClick={() => setShowMenu(!showMenu)}
+        onClick={() => { setExportFailed(false); setShowMenu(!showMenu) }}
         disabled={exporting}
+        aria-label="Скачать план тем"
         className="flex items-center justify-center w-11 h-11 md:w-auto md:h-auto md:gap-2 md:px-4 md:py-2 text-sm font-medium text-brand-text-secondary hover:text-brand-text bg-white border border-brand-border rounded-xl hover:border-brand-accent/50 transition cursor-pointer disabled:opacity-50"
       >
         {exporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
-        <span className="hidden md:inline">{exporting ? 'Создаю PDF...' : 'Экспорт'}</span>
+        <span className="hidden md:inline">{exporting ? 'PDF собирается...' : 'Скачать'}</span>
       </button>
+      {exportFailed && (
+        <p role="alert" className="absolute right-0 top-full mt-2 w-60 z-40 rounded-xl bg-brand-soft border border-brand-border-soft px-4 py-3 text-[15px] md:text-sm text-brand-text">
+          PDF не собрался. Попробуй скачать еще раз
+        </p>
+      )}
 
       {showMenu && (
         <>
@@ -192,7 +203,7 @@ ${day.hook ? `Хук: ${day.hook}` : ''}
           <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-brand-border rounded-xl shadow-lg z-50 overflow-hidden">
             <button onClick={copyAsText} className="w-full flex items-center gap-3 px-5 py-4 text-base md:text-sm text-brand-text hover:bg-brand-bg transition cursor-pointer text-left">
               {copied ? <Check className="w-5 h-5 text-brand-sage" /> : <Copy className="w-5 h-5 text-brand-text-secondary" />}
-              {copied ? 'Скопировано!' : 'Копировать текст'}
+              {copied ? 'Скопировано' : 'Скопировать текст'}
             </button>
             <button onClick={exportToCSV} className="w-full flex items-center gap-3 px-5 py-4 text-base md:text-sm text-brand-text hover:bg-brand-bg transition cursor-pointer text-left border-t border-brand-border">
               <FileSpreadsheet className="w-5 h-5 text-brand-sage shrink-0" />
@@ -205,7 +216,7 @@ ${day.hook ? `Хук: ${day.hook}` : ''}
               <FileText className="w-5 h-5 text-brand-sage shrink-0" />
               <div>
                 <p>Скачать PDF</p>
-                <p className="text-sm text-brand-text-secondary">Красивый дизайн</p>
+                <p className="text-sm text-brand-text-secondary">В оформлении PsyCont</p>
               </div>
             </button>
           </div>
@@ -242,7 +253,7 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
             {item.day}
           </span>
           <span className={`text-[15px] md:text-xs font-semibold px-3 py-1.5 md:px-2 md:py-0.5 rounded-full border ${pillar.color}`}>
-            {item.pillar}
+            {pillarLabel(item.pillar)}
           </span>
         </div>
         <button onClick={(e) => { e.stopPropagation(); onToggle(); }} className="cursor-pointer transition p-2 -mr-2 md:p-0 md:mr-0">
@@ -280,7 +291,7 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
       {/* Хук */}
       {item.hook && !item.done && (
         <div className="mx-5 mb-4 p-4 md:mx-4 md:mb-3 md:p-3 rounded-xl bg-brand-highlight/50 border border-brand-accent/20">
-          <p className="text-[13px] md:text-xs text-brand-text-muted uppercase tracking-wide font-semibold mb-1.5">Хук</p>
+          <p className="text-[13px] md:text-xs text-brand-text-muted uppercase tracking-wide font-semibold mb-1.5">Первая строка</p>
           <p className="text-[16px] md:text-sm text-brand-text italic leading-relaxed">«{item.hook}»</p>
         </div>
       )}
@@ -325,7 +336,7 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
       <div className="flex items-start justify-between mb-5">
         <div className="flex items-center gap-3">
           <span className="w-12 h-12 md:w-8 md:h-8 rounded-full bg-brand-highlight text-brand-accent text-xl md:text-sm font-bold flex items-center justify-center">{item.day}</span>
-          <span className={`text-[16px] md:text-xs font-semibold px-3 py-1.5 md:px-2 md:py-0.5 rounded-full border ${pillar.color}`}>{item.pillar}</span>
+          <span className={`text-[16px] md:text-xs font-semibold px-3 py-1.5 md:px-2 md:py-0.5 rounded-full border ${pillar.color}`}>{pillarLabel(item.pillar)}</span>
         </div>
         <button onClick={onClose} className="cursor-pointer text-brand-text-secondary hover:text-brand-text transition p-2 -mr-2 md:p-1 md:mr-0">
           <X className="w-7 h-7 md:w-5 md:h-5" />
@@ -341,7 +352,7 @@ function DetailPanel({ item, onClose, onGenerate }: { item: DayItem; onClose: ()
 
       {item.hook && (
         <div className="mb-5">
-          <p className="text-[13px] md:text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-2.5">Хук (первая строка)</p>
+          <p className="text-[13px] md:text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-2.5">Первая строка</p>
           <div className="p-4 md:p-3 bg-brand-highlight rounded-xl border border-brand-accent/20">
             <p className="text-[17px] md:text-sm text-brand-text italic leading-relaxed">«{item.hook}»</p>
           </div>
@@ -476,7 +487,9 @@ export default function ContentPlan() {
         if (data.complete) break
       }
     } catch (err: any) {
-      setError(err.message)
+      // сырой текст ошибки не показываем: fetch падает здесь при обрыве связи
+      void err
+      setError('Пропала связь. Проверь интернет и нажми еще раз')
     } finally {
       setGenerating(false)
       setCurrentBatch(0)
@@ -565,14 +578,14 @@ export default function ContentPlan() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 md:mb-8">
           <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-4 py-2 rounded-full text-[15px] md:text-sm font-medium mb-4">
             <CalendarDays className="w-5 h-5 md:w-4 md:h-4" />
-            Контент-план
+            План тем
           </div>
           <h1 className="text-[26px] md:text-4xl font-bold text-brand-text mb-2 leading-tight">
             Темы на 30 дней для&nbsp;твоего блога
           </h1>
           <Squiggle variant={1} width="55%" />
           <p className="text-[16px] md:text-base text-brand-text-secondary leading-relaxed mt-3">
-            Личный план на основе твоего паспорта бренда. Нажми на карточку, получишь готовый пост.
+            План под то, с чем ты работаешь. Нажми на карточку, и текст напишется по этой теме.
           </p>
         </motion.div>
         )}
@@ -614,12 +627,12 @@ export default function ContentPlan() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-2">
             <EmptyState
               variant={2}
-              title="Твой план на 30 дней"
-              subtitle="AI составит персональный контент-план с темами, форматами и хуками для каждого дня. Займет около 30-40 секунд."
-              actionLabel="Составить план"
+              title="План тем на месяц"
+              subtitle="Месяц тем под то, с чем ты работаешь: о чем писать и с какой первой строки. Собирается за минуту."
+              actionLabel="Составить план тем"
               onAction={handleGenerate}
             />
-            {needOnboarding && <div className="mt-4"><LimitNotice title="Сначала заполни профиль" message="Чтобы собрать контент-план под тебя, пройди короткую распаковку профиля." actionLabel="Заполнить профиль" actionHref="/onboarding/express" /></div>}
+            {needOnboarding && <div className="mt-4"><LimitNotice title="Сначала расскажи о себе" message="План тем собирается под то, с чем ты работаешь. Пять коротких вопросов, и можно составлять." actionLabel="Рассказать о себе" actionHref="/onboarding/express" /></div>}
             {serverError && <div className="mt-4"><ServerErrorNotice onRetry={handleGenerate} /></div>}
             {error && !needOnboarding && !serverError && <div className="mt-4 p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-[15px] md:text-sm">{error}</div>}
           </motion.div>
@@ -633,9 +646,9 @@ export default function ContentPlan() {
               <CalendarDays className="w-8 h-8 md:w-6 md:h-6 text-brand-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
             </div>
             <h2 className="text-[22px] md:text-xl font-bold text-brand-text mb-3">
-              Генерирую дни {currentDayStart}-{currentDayEnd}...
+              Собираются дни {currentDayStart}-{currentDayEnd}...
             </h2>
-            <p className="text-[17px] md:text-base text-brand-text-secondary mb-6">AI подбирает темы под твой голос и нишу</p>
+            <p className="text-[17px] md:text-base text-brand-text-secondary mb-6">Темы подбираются под твой голос и то, с чем ты работаешь</p>
 
                        <div className="max-w-md mx-auto px-4">
               <div className="flex justify-between text-[13px] md:text-xs text-brand-text-secondary mb-2">
@@ -656,8 +669,8 @@ export default function ContentPlan() {
             </div>
 
             {plan.length > 0 && (
-              <p className="text-[16px] md:text-sm text-brand-sage mt-4">
-                ✓ Готово: {plan.length} дней
+              <p className="inline-flex items-center gap-1.5 text-[16px] md:text-sm text-brand-text mt-4">
+                <Check className="w-4 h-4 text-brand-sage" aria-hidden="true" /> Готово дней: {plan.length}
               </p>
             )}
           </motion.div>
@@ -681,7 +694,7 @@ export default function ContentPlan() {
                     </div>
                     <div>
                       <p className="text-[28px] md:text-2xl font-bold text-brand-text">{progressPercent}%</p>
-                      <p className="text-[14px] md:text-xs text-brand-text-secondary">выполнено</p>
+                      <p className="text-[14px] md:text-xs text-brand-text-secondary">готово</p>
                     </div>
                   </div>
                 </div>
@@ -702,7 +715,7 @@ export default function ContentPlan() {
                         : 'bg-white border border-brand-border text-brand-text-secondary hover:border-brand-accent/50'
                     }`}
                   >
-                    {p === 'all' ? `Все ${plan.length}` : p}
+                    {p === 'all' ? `Все ${plan.length}` : pillarLabel(p)}
                   </button>
                 ))}
               </div>
@@ -778,7 +791,7 @@ export default function ContentPlan() {
               onClick={handleGenerate}
               className="block mx-auto mt-3 text-brand-accent hover:underline cursor-pointer text-[16px] md:text-sm"
             >
-              Попробовать снова
+              Попробовать еще раз
             </button>
           </div>
         )}

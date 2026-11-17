@@ -24,7 +24,7 @@ export function VoiceButton({ rec }: { rec: VoiceRecorder }) {
 
   const label =
     recording ? 'Остановить запись' :
-    state === 'transcribing' ? 'Расшифровываю голос' :
+    state === 'transcribing' ? 'Расшифровка' :
     'Записать голосом'
 
   const onClick = () => {
@@ -85,7 +85,7 @@ export function VoiceStatus({ rec }: { rec: VoiceRecorder }) {
     content = (
       <div className="flex items-center gap-2 text-brand-accent">
         <span className="tabular-nums shrink-0">{fmt(elapsed)}</span>
-        <span className="truncate">{nearLimit ? 'Заканчивай мысль, скоро остановлю' : 'Слушаю'}</span>
+        <span className="truncate">{nearLimit ? 'Заканчивай мысль, запись скоро остановится' : 'Идет запись'}</span>
         <button type="button" onClick={rec.cancel} className="shrink-0 ml-auto text-brand-muted hover:text-brand-text transition cursor-pointer">Отменить</button>
       </div>
     )
@@ -93,20 +93,20 @@ export function VoiceStatus({ rec }: { rec: VoiceRecorder }) {
     content = (
       <div className="flex items-center gap-2 text-brand-muted">
         <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
-        <span>Перевожу в текст, пару секунд</span>
+        <span>Расшифровка, пару секунд</span>
       </div>
     )
   } else if (errorKind === 'network') {
     content = (
       <div className="flex items-center gap-2 text-brand-text/80">
         <span className="truncate">Связь подвела. Попробуй записать еще раз.</span>
-        <button type="button" onClick={rec.retry} className="shrink-0 ml-auto text-brand-accent font-medium hover:underline cursor-pointer">Повторить</button>
+        <button type="button" onClick={rec.retry} className="shrink-0 ml-auto text-brand-accent font-medium cursor-pointer min-h-11 px-1">Повторить</button>
       </div>
     )
   } else if (errorKind === 'empty') {
     content = (
       <div className="flex items-center gap-2 text-brand-text/80">
-        <span className="truncate">Ничего не расслышал. Повтори чуть ближе к микрофону.</span>
+        <span className="truncate">Ничего не слышно. Попробуй еще раз, поближе к телефону</span>
         <button type="button" onClick={rec.reset} className="shrink-0 ml-auto text-brand-muted hover:text-brand-text transition cursor-pointer">Скрыть</button>
       </div>
     )

@@ -49,7 +49,7 @@ export default function DeleteAccount() {
   return (
     <div className="mt-10 pt-6 border-t border-brand-border">
       <button type="button" onClick={() => { setOpen(true); setError(null) }}
-        className="h-11 px-4 rounded-2xl border border-brand-border text-[15px] text-brand-text-secondary hover:text-brand-text hover:border-brand-text-secondary transition cursor-pointer">
+        className="h-11 px-2 -ml-2 rounded-xl text-[14px] text-brand-text-secondary hover:text-brand-text hover:bg-brand-soft-2 transition cursor-pointer">
         Удалить аккаунт
       </button>
 

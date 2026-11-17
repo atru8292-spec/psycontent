@@ -3,6 +3,7 @@
 // app_open этого захода делает «Ушла» активной в момент входа. Свои слова человека пишутся только в exit_surveys,
 // в события идут только коды причин. Без таблицы exit_surveys или events карточка молча не показывается.
 import { NextRequest, NextResponse } from 'next/server'
+import { errTag } from '@/lib/safe-error'
 import { getSessionUser } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/generation/db'
 import { serverTrack } from '@/lib/track-server'
@@ -37,7 +38,7 @@ export async function GET() {
     const st = decideStuck({ facts: churn.data.facts, stuckShown: (stuckShown.count || 0) > 0, stuckAnswered: !stuckAns.error && (stuckAns.count || 0) > 0, tookThisSession: (recent.count || 0) > 0 })
     if (st.show) {
       const mark = await db.from('events').insert({ user_id: user.id, event: 'exit_survey_shown', props: { place: 'stuck' } })
-      if (mark.error) { console.warn('exit_survey_shown:', mark.error.message); return NextResponse.json({ show: false }) }
+      if (mark.error) { console.warn('exit_survey_shown:', errTag(mark.error)); return NextResponse.json({ show: false }) }
       return NextResponse.json({ show: true, place: 'stuck', paymentsOn: PRICING_FLAGS.paymentsOn })
     }
     const d = decideSurvey({
@@ -52,10 +53,10 @@ export async function GET() {
     // показ отмечаем сразу и дожидаемся записи: с этого момента 60 дней тишины. Не записалось: не показываем,
     // иначе карточка всплывала бы на каждом заходе (reviewer 24.10)
     const mark = await db.from('events').insert({ user_id: user.id, event: 'exit_survey_shown', props: { place: 'cooling' } })
-    if (mark.error) { console.warn('exit_survey_shown:', mark.error.message); return NextResponse.json({ show: false }) }
+    if (mark.error) { console.warn('exit_survey_shown:', errTag(mark.error)); return NextResponse.json({ show: false }) }
     return NextResponse.json({ show: true, place: 'cooling', paymentsOn: PRICING_FLAGS.paymentsOn })
   } catch (e: any) {
-    console.warn('exit-survey GET:', e?.message)
+    console.warn('exit-survey GET:', errTag(e))
     return NextResponse.json({ show: false })
   }
 }
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
   const { error } = await db.from('exit_surveys')
     .insert({ user_id: user.id, place, reasons: a.reasons, other_text: a.other, can_contact: a.contact })
   if (error) {
-    console.warn('exit_surveys insert:', error.message)
+    console.warn('exit_surveys insert:', errTag(error))
     return NextResponse.json({ error: 'server_error' }, { status: 500 })
   }
   serverTrack(user.id, 'exit_survey_sent', { place, reasons: codesForEvent(a.reasons), own: !!a.other, contact: a.contact })

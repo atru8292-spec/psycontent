@@ -1,7 +1,7 @@
 'use client'
 
 // Секция «Мое оформление» в настройках: как выглядят обложка и последний слайд каждой новой карусели,
-// и данные автора на них (ник, имя, строка о себе, фото). Сам вид запоминается из карусели кнопкой «Запомнить вид».
+// и данные автора на них (ник, имя, строка о себе, фото). Сам вид сохраняется из карусели кнопкой «Сохранить оформление».
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
@@ -89,12 +89,12 @@ export default function MyCarouselDesign() {
               </figure>
             ))}
           </div>
-          <p className="text-sm text-brand-text">Стиль: {mine.label}. Поменять можно в любой карусели: выбери другой вид и нажми «Оставить этот вид».</p>
+          <p className="text-sm text-brand-text">Стиль: {mine.label}. Поменять можно в любой карусели: выбери другой стиль и нажми «Сохранить оформление».</p>
         </div>
       ) : (
         <div className="rounded-2xl bg-brand-soft p-4 space-y-3">
-          <p className="text-sm text-brand-text">Пока не настроено. Сделай первую карусель, выбери стиль, и он появится здесь.</p>
-          <Link href="/dashboard/make?format=carousel" className="inline-flex items-center gap-2 text-brand-accent font-semibold text-sm">Сделать карусель <ArrowRight className="w-4 h-4" /></Link>
+          <p className="text-sm text-brand-text">Пока не настроено. Напиши первую карусель, выбери стиль и нажми «Сохранить оформление», оно появится здесь.</p>
+          <Link href="/dashboard/make?format=carousel" className="min-h-11 inline-flex items-center gap-2 text-brand-accent font-semibold text-sm">Написать карусель <ArrowRight className="w-4 h-4" /></Link>
         </div>
       )}
 
@@ -119,8 +119,8 @@ export default function MyCarouselDesign() {
         )}
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full overflow-hidden bg-brand-soft border border-brand-border shrink-0">{avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <span className="w-full h-full flex items-center justify-center text-sm font-bold text-brand-text">{initialsOf(name)}</span>}</div>
-          <button type="button" onClick={() => avatarRef.current?.click()} disabled={!!busy} className="text-sm font-semibold text-brand-accent hover:underline cursor-pointer">
-            {busy === 'avatar' ? 'Загружаю' : avatar ? 'Сменить фото' : 'Твое фото'}
+          <button type="button" onClick={() => avatarRef.current?.click()} disabled={!!busy} className="min-h-11 text-sm font-semibold text-brand-accent cursor-pointer">
+            {busy === 'avatar' ? 'Загрузка' :avatar ? 'Сменить фото' : 'Твое фото'}
           </button>
           <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={e => upload(e.target.files)} />
         </div>
@@ -128,7 +128,7 @@ export default function MyCarouselDesign() {
           <button type="button" onClick={save} disabled={!!busy} className="px-5 h-11 rounded-xl text-sm font-semibold bg-brand-accent text-white hover:bg-brand-accent-hover disabled:opacity-60 cursor-pointer">
             {busy === 'save' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Сохранить'}
           </button>
-          {saved && <span className="text-sm text-brand-text" role="status"><Check className="w-4 h-4 inline -mt-0.5 mr-1 text-brand-sage" />Сохранила</span>}
+          {saved && <span className="text-sm text-brand-text" role="status"><Check className="w-4 h-4 inline -mt-0.5 mr-1 text-brand-sage" />Сохранено</span>}
         </div>
         {error && <p className="text-sm text-brand-text bg-brand-soft rounded-xl px-3 py-2" role="alert">{error}</p>}
       </div>

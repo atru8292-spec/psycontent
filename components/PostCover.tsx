@@ -25,7 +25,7 @@ export default function PostCover({ postId, text }: { postId: string; text: stri
         body: JSON.stringify({ postId, action: 'cover', text }),
       })
       const d = await r.json()
-      if (!r.ok) throw new Error(d.error || 'Не получилось')
+      if (!r.ok) throw new Error(typeof d.error === 'string' && d.error ? d.error : 'Обложка не собралась. Попробуй еще раз')
       setCovers(d.covers)
       setCoverText(d.covers[0]?.text || '')
       setImgLoading(true)
@@ -44,12 +44,12 @@ export default function PostCover({ postId, text }: { postId: string; text: stri
     return (
       <div className="rounded-2xl border border-brand-border bg-white p-4 sm:p-5 space-y-2">
         <p className="text-sm font-semibold text-brand-text">Обложка к посту</p>
-        <p className="text-xs text-brand-muted">В Instagram пост идет с картинкой, и по ней решают, читать ли дальше. Придумаю надпись и нарисую обложку в твоих цветах.</p>
+        <p className="text-xs text-brand-muted">В Instagram пост идет с картинкой, и по ней решают, читать ли дальше. Надпись придумается, обложка соберется в цветах твоих каруселей.</p>
         <button type="button" onClick={ask} disabled={loading}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-brand-accent text-white hover:bg-brand-accent-hover disabled:opacity-60 cursor-pointer">
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />} {loading ? 'Придумываю' : 'Сделать обложку'}
+          className="inline-flex items-center gap-2 min-h-11 px-4 rounded-xl text-sm font-semibold bg-brand-accent text-white hover:bg-brand-accent-hover disabled:opacity-60 cursor-pointer">
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />} {loading ? 'Обложка собирается' : 'Собрать обложку'}
         </button>
-        {error && <p className="text-xs text-red-600">{error}</p>}
+        {error && <p className="text-[13px] text-brand-text" role="status">{error}</p>}
       </div>
     )
   }
@@ -63,20 +63,20 @@ export default function PostCover({ postId, text }: { postId: string; text: stri
         <div className="flex flex-wrap gap-2">
           {covers.map(c => (
             <button key={c.text} type="button" title={c.why} onClick={() => { setCoverText(c.text); setImgLoading(true) }}
-              className={`px-3 py-1.5 rounded-full text-sm border transition cursor-pointer text-left ${clean === c.text ? 'bg-brand-accent text-white border-brand-accent' : 'bg-white text-brand-text-secondary border-brand-border hover:border-brand-accent'}`}
+              className={`min-h-11 px-3 py-1.5 rounded-full text-sm border transition cursor-pointer text-left break-words ${clean === c.text ? 'bg-brand-accent text-white border-brand-accent' : 'bg-white text-brand-text-secondary border-brand-border hover:border-brand-accent'}`}
             >{c.text}</button>
           ))}
         </div>
         <input value={coverText} onChange={e => setCoverText(e.target.value)} onBlur={() => setImgLoading(true)} maxLength={120}
-          className="w-full px-3 py-2 rounded-xl border border-brand-border text-sm text-brand-text focus:outline-none focus:border-brand-accent" />
+          aria-label="Надпись на обложке" className="w-full h-11 px-3 rounded-xl border border-brand-border text-[16px] text-brand-text focus:outline-none focus:border-brand-accent" />
       </div>
 
       <div className="space-y-2">
         <p className="text-xs text-brand-muted">Стиль</p>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {TEMPLATE_STYLES.map(s => (
             <button key={s} type="button" onClick={() => { setStyle(s); setImgLoading(true) }}
-              className={`px-2.5 py-1 rounded-full text-xs border transition cursor-pointer ${style === s ? 'border-brand-text text-brand-text bg-brand-soft' : 'border-brand-border text-brand-text-secondary hover:border-brand-accent'}`}
+              className={`min-h-11 px-3.5 rounded-full text-[13px] border transition cursor-pointer ${style === s ? 'border-brand-text text-brand-text bg-brand-soft' : 'border-brand-border text-brand-text-secondary hover:border-brand-accent'}`}
             >{STYLES[s].label}</button>
           ))}
         </div>
@@ -91,11 +91,11 @@ export default function PostCover({ postId, text }: { postId: string; text: stri
           </div>
           <div className="flex flex-col gap-2">
             <button type="button" onClick={() => { setVariant((variant + 1) % VARIANTS); setImgLoading(true) }}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm border border-brand-border text-brand-text-secondary hover:border-brand-accent hover:text-brand-accent cursor-pointer">
+              className="inline-flex items-center gap-2 min-h-11 px-3 rounded-xl text-sm border border-brand-border text-brand-text-secondary hover:border-brand-accent hover:text-brand-accent cursor-pointer">
               <Shuffle className="w-4 h-4" /> Другая компоновка
             </button>
             <a href={url(true)} download="oblozhka.png"
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold bg-brand-accent text-white hover:bg-brand-accent-hover cursor-pointer">
+              className="inline-flex items-center gap-2 min-h-11 px-3 rounded-xl text-sm font-semibold bg-brand-accent text-white hover:bg-brand-accent-hover cursor-pointer">
               <Download className="w-4 h-4" /> Скачать PNG
             </a>
             <p className="text-xs text-brand-muted max-w-[220px]">Цвета и фон как в твоих каруселях, поменять их можно в оформлении любой карусели.</p>

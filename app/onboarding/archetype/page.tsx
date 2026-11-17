@@ -28,11 +28,11 @@ const SHADOW_HOVER = 'shadow-[0_4px_10px_-4px_rgba(59,42,34,0.12),0_20px_44px_-1
 // Тексты около-экранные (микрокопи через copywriter-psycont). Вопросы в lib/archetype-quiz.
 const T = {
   introTitle: 'Узнай свой архетип',
-  introSub: 'У Мудреца одна и та же мысль выходит спокойным разбором «почему мы так устроены», у Шута она же звучит легко, через смех о тяжелом. Пройди тест, поймем твой, и посты будут собираться в этом голосе.',
+  introSub: 'У Мудреца одна и та же мысль выходит спокойным разбором «почему мы так устроены», у Шута она же звучит легко, через смех о тяжелом. Тест покажет, какой ты автор, и посты будут собираться в этом голосе.',
   promise: 'Минут семь, любой вопрос можно пропустить, все по пути сохранится.',
   start: 'Начать',
   exit: 'Пока пропустить',
-  breakTitle: 'Почти собрали. Осталось услышать тебя живьем',
+  breakTitle: 'Почти готово. Осталось услышать тебя живьем',
   breakBody: 'Дальше три вопроса своими словами, выбирать ничего не надо. Отвечай как думаешь, ошибиться тут нельзя.',
   breakTeaser: 'Почерк уже почти сложился, осталось чуть-чуть',
   voicePlate: 'Можно наговорить голосом, нажми на микрофон',
@@ -40,8 +40,8 @@ const T = {
   skipPart: 'Пропустить эту часть',
   skipOne: 'Пропустить этот',
   toResult: 'К результату',
-  finishing: ['Собираем твой почерк', 'Смотрим, как ты думаешь и говоришь', 'Еще пара секунд, уже почти'],
-  errorTitle: 'Тут запнулось на сборке. Твои ответы никуда не делись, попробуем собрать еще раз.',
+  finishing: ['Почерк собирается', 'Ответы складываются в картину', 'Еще пара секунд, уже почти'],
+  errorTitle: 'Почерк не собрался из-за сбоя в PsyCont. Ответы на месте, можно собрать еще раз.',
   errorBtn: 'Собрать еще раз',
 }
 
@@ -467,7 +467,7 @@ export default function ArchetypeTest() {
                         <div className="mb-6">
                           {storyState === 'loading' && (
                             <div>
-                              <p className="text-sm text-brand-muted mb-4">Читаю твой почерк, минутку.</p>
+                              <p className="text-sm text-brand-muted mb-4">Разбор собирается, минутку.</p>
                               <div className="space-y-2.5">
                                 {[0, 1, 2, 3, 4].map((i) => <div key={i} className="h-3.5 rounded-full bg-brand-soft/70 animate-pulse" style={{ width: i === 4 ? '55%' : '100%' }} />)}
                               </div>
@@ -478,7 +478,7 @@ export default function ArchetypeTest() {
                           ))}
                           {storyState === 'error' && (
                             <div className="rounded-2xl bg-brand-soft border border-brand-border-soft p-4 text-center">
-                              <p className="text-sm text-brand-muted mb-3">Разбор соберу через минуту, почерк уже сохранен.</p>
+                              <p className="text-sm text-brand-muted mb-3">Разбор не собрался, почерк уже сохранен. Попробуй через минуту.</p>
                               <button onClick={fetchStory} className="text-sm font-semibold text-brand-accent hover:text-brand-accent-hover transition cursor-pointer">Собрать разбор</button>
                             </div>
                           )}

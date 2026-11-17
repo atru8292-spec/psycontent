@@ -1,6 +1,7 @@
 // Данные кабинета для аналитики 2: опрос при уходе и вкладка «Тексты». Только сервер, service_role, только админу.
 // Свои слова из опроса показываются в кабинете (их люди написали нам), но почт рядом нет: почта только в карточке.
 import { getSupabaseAdmin } from '@/lib/generation/db'
+import { errTag } from '@/lib/safe-error'
 import { adminOrNull, internalEmails } from '@/lib/admin'
 import type { AdminOpts } from './admin-types'
 import type { Loaded } from './admin-data'
@@ -95,7 +96,7 @@ export async function loadExitStats(o: AdminOpts): Promise<Loaded<ExitStats>> {
     const [shown, dismissed] = await Promise.all([list('exit_survey_shown'), list('exit_survey_dismiss')])
     return { data: { ...splitReach(shown, dismissed, answers), answers }, error: null }
   } catch (e: any) {
-    console.warn('admin exit events', e?.message)
+    console.warn('admin exit events', errTag(e))
     return { data: null, error: 'failed' }
   }
 }

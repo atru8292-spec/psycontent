@@ -311,7 +311,7 @@ export async function canConsume(userId: string, operation: string, units = 1): 
 
   if (op.requiresDeepAccess && !plan.deep_analysis && !trialLeft) {
     const message = plan.code === 'free'
-      ? 'Пробный разбор конкурента уже был. Глубокий разбор есть на платном тарифе, оплату я еще подключаю.'
+      ? 'Пробный разбор конкурента уже был. Глубокий разбор есть на платном тарифе.'
       : 'Глубокий разбор конкурента в твой тариф не входит. Он есть на тарифе выше.'
     return refuse({ ok: false, mode: 'blocked', operation, cost, reason: 'no_access', message })
   }
@@ -321,7 +321,7 @@ export async function canConsume(userId: string, operation: string, units = 1): 
   const balance = await getBalance(userId)
   if (balance < cost) {
     const message = plan.code === 'free'
-      ? 'Пробный разбор конкурента уже был. Глубокий разбор есть на платном тарифе, оплату я еще подключаю.'
+      ? 'Пробный разбор конкурента уже был. Глубокий разбор есть на платном тарифе.'
       : 'На разбор конкурента не хватает остатка на этот месяц. Он обновится в начале месяца, а еще можно перейти на тариф выше.'
     return refuse({ ok: false, mode: 'blocked', operation, cost, reason: 'insufficient', message, balance })
   }

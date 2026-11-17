@@ -25,6 +25,16 @@ const SMOOTH = [
 ]
 const EXPLAIN_Q = 'Как ты объясняешь клиенту, почему нельзя просто взять и перестать тревожиться? Расскажи так, как говоришь в кабинете.'
 
+// Ошибки на экране голоса: свой текст без сырого ответа сервера и без «я» сервиса (словарь 17.11)
+const NET_ERR = 'Пропала связь. Проверь интернет и нажми еще раз'
+function importErrorText(status: number, err: unknown): string {
+  const e = typeof err === 'string' ? err : ''
+  if (status === 400 && /ссылк/i.test(e)) return 'Ссылка не похожа на канал. Нужна вида t.me/имя_канала'
+  if (status === 400 && /открыл/i.test(e)) return 'Канал не открылся. Он точно открытый?'
+  if (status === 400 && /пост/i.test(e)) return 'В канале нет постов длиннее пары строк'
+  return 'Посты не загрузились из-за сбоя в PsyCont. Попробуй через минуту'
+}
+
 type Heard = { summary: string; signatures: string[]; updatedAt: string | null; changeLine: string; tgChannel: string; samplesCount: number }
 
 async function postEvent(body: Record<string, unknown>): Promise<boolean> {
@@ -225,8 +235,8 @@ export default function VoicePage() {
     await loadHeard()
     setHeardVerdict(null)
     setMessage(d?.needMoreSamples
-      ? 'Послушала. Живых текстов пока мало, поэтому описание примерное. Любой способ выше его уточнит.'
-      : 'Послушала. Проверь сверху, так ли я тебя слышу.')
+      ? 'Готово. Живых текстов пока мало, поэтому описание примерное. Любой способ выше его уточнит.'
+      : 'Готово. Проверь наверху, похоже ли описание на тебя.')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -236,10 +246,10 @@ export default function VoicePage() {
     try {
       const r = await fetch('/api/voice-import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: tg.trim() }) })
       const d = await r.json().catch(() => ({}))
-      if (!r.ok) throw new Error(d.error || 'Не получилось открыть канал')
+      if (!r.ok) { setMessage(importErrorText(r.status, d?.error)); return }
       await afterRebuild(d)
-    } catch (e: any) {
-      setMessage(e.message)
+    } catch {
+      setMessage(NET_ERR)
     } finally {
       setImporting(false)
     }
@@ -254,12 +264,12 @@ export default function VoicePage() {
         body: JSON.stringify({ samples: texts.filter(t => t.trim()) }),
       })
       const d = await r.json().catch(() => ({}))
-      if (!r.ok) throw new Error(d.error || 'Не получилось')
+      if (!r.ok) { setMessage(typeof d?.error === 'string' && d.error.startsWith('Пока нет') ? 'Пока не из чего услышать голос: вставь хотя бы один свой пост' : 'Голос не собрался из-за сбоя в PsyCont. Попробуй через минуту'); return }
       setTexts([''])
       setPasteOpen(false)
       await afterRebuild(d)
-    } catch (e: any) {
-      setMessage(e.message)
+    } catch {
+      setMessage(NET_ERR)
     } finally {
       setBuilding(false)
     }
@@ -282,7 +292,7 @@ export default function VoicePage() {
     if (!userId) return
     setToneSaved(null)
     const { error } = await supabase.from('onboarding_profiles').update(patch).eq('user_id', userId)
-    setToneSaved(error ? 'Не сохранилось, попробуй еще раз' : 'Запомнила, следующие посты будут так')
+    setToneSaved(error ? 'Не сохранилось, попробуй еще раз' : 'Сохранено, следующие посты будут так')
   }
 
   // звездочки сохраняются сразу, как мат и эмоции
@@ -290,7 +300,7 @@ export default function VoicePage() {
     if (!userId) return
     setMatZvezdy(v); setToneSaved(null)
     const ok = await saveExtra(userId, { mat_zvezdy: v })
-    setToneSaved(ok ? 'Запомнила, следующие посты будут так' : 'Не сохранилось, попробуй еще раз')
+    setToneSaved(ok ? 'Сохранено, следующие посты будут так' : 'Не сохранилось, попробуй еще раз')
   }
 
   const kodTrim = kod.trim()
@@ -298,7 +308,7 @@ export default function VoicePage() {
 
   const saveSettings = async () => {
     if (!userId) return
-    if (kodBad) { setKodTouched(true); setMessage('В кодовом слове должно быть от 2 до 40 знаков. Поправь, и я сохраню.'); return }
+    if (kodBad) { setKodTouched(true); setMessage('В кодовом слове должно быть от 2 до 40 знаков. Поправь, и можно сохранять.'); return }
     setSaving(true); setMessage(null); setSavedAt(false)
     const { error } = await supabase.from('onboarding_profiles').update({
       author_gender: gender,
@@ -340,21 +350,21 @@ export default function VoicePage() {
 
         <div>
           <h1 className="text-2xl font-bold text-brand-text">Покажи, как ты говоришь</h1>
-          <p className="text-sm text-brand-muted mt-1 leading-relaxed">Хватит любого одного способа. Остальное я доберу сама из постов, которые ты правишь перед публикацией.</p>
+          <p className="text-sm text-brand-muted mt-1 leading-relaxed">Хватит любого одного способа. Остальное доберется из постов, которые ты правишь перед публикацией.</p>
         </div>
 
         {/* Как я тебя слышу */}
         <section className="rounded-3xl bg-brand-soft p-5 sm:p-6 space-y-3">
-          <h2 className="text-lg font-bold text-brand-text">Вот как я тебя слышу</h2>
+          <h2 className="text-lg font-bold text-brand-text">Как звучит твой голос</h2>
           {heard?.summary ? (
             <>
               <p className="text-sm text-brand-text leading-relaxed whitespace-pre-wrap">{heard.summary}</p>
               {heard.signatures.length > 0 && (
                 <p className="text-sm text-brand-text-secondary">Твои словечки: {heard.signatures.map(s => `«${s}»`).join(', ')}</p>
               )}
-              {heard.updatedAt && <p className="text-xs text-brand-muted">Обновила {new Date(heard.updatedAt).toLocaleDateString('ru-RU')}</p>}
-              {heardVerdict === 'ok' && <p className="text-sm text-brand-text">Отлично, так и пишу.</p>}
-              {heardVerdict === 'sent' && <p className="text-sm text-brand-text">Поняла, поправлю. Следующие посты будут с этим.</p>}
+              {heard.updatedAt && <p className="text-xs text-brand-muted">Обновлено {new Date(heard.updatedAt).toLocaleDateString('ru-RU')}</p>}
+              {heardVerdict === 'ok' && <p className="text-sm text-brand-text">Отлично, посты пишутся так.</p>}
+              {heardVerdict === 'sent' && <p className="text-sm text-brand-text">Принято, это учтется в следующих постах.</p>}
               {heardVerdict === null && (
                 <div className="flex items-center gap-3">
                   <button type="button" onClick={() => sendHeardFeedback(true)} className="px-4 py-2 rounded-xl text-sm font-semibold bg-white text-brand-text border border-brand-border hover:border-brand-accent cursor-pointer">Похоже</button>
@@ -369,7 +379,7 @@ export default function VoicePage() {
               )}
             </>
           ) : (
-            <p className="text-sm text-brand-text-secondary leading-relaxed">Пока слышу мало. Выбери способ ниже, и тут появится, как я поняла твою манеру. Сможешь поправить, если мимо.</p>
+            <p className="text-sm text-brand-text-secondary leading-relaxed">Пока голоса мало. Выбери способ ниже, и тут появится описание твоей манеры. Если мимо, его можно поправить.</p>
           )}
         </section>
 
@@ -378,7 +388,7 @@ export default function VoicePage() {
           <h2 className="text-lg font-bold text-brand-text">Как ты звучишь</h2>
           <div className="space-y-2">
             <p className="text-sm font-semibold text-brand-text">Мат</p>
-            <p className="text-xs text-brand-muted leading-relaxed">Мы за то, чтобы ты говорила как думаешь. Если в жизни ты можешь сказать «да пошло оно все», посты тоже могут. Никто тут не осудит.</p>
+            <p className="text-xs text-brand-muted leading-relaxed">Мат разрешен, если он есть в твоей речи. Если в жизни можешь сказать «да пошло оно все», посты тоже могут. Тут никто не осудит.</p>
             <Choice value={profanity} onChange={v => { setProfanity(v); saveTone({ profanity: v }) }} options={[
               { v: 'no', label: 'Без мата' },
               { v: 'light', label: zh6Ui ? 'Иногда' : 'Иногда, со звездочкой' },
@@ -404,7 +414,7 @@ export default function VoicePage() {
               { v: 'live', label: 'Живо, как в разговоре' },
               { v: 'hot', label: 'На эмоциях, с огоньком' },
             ]} />
-            <p className="text-xs text-brand-muted">{intensity === 'hot' ? 'Можно резко, с иронией, иногда капсом одно слово.' : intensity === 'calm' ? 'Без восклицаний и резких слов, мягко и по делу.' : intensity === 'live' ? 'Разговорные словечки, немного восклицаний, как говоришь с подругой.' : 'Не выбрала, значит беру по твоим постам.'}</p>
+            <p className="text-xs text-brand-muted">{intensity === 'hot' ? 'Можно резко, с иронией, иногда капсом одно слово.' : intensity === 'calm' ? 'Без восклицаний и резких слов, мягко и по делу.' : intensity === 'live' ? 'Разговорные словечки, немного восклицаний, как в разговоре с близкими.' : 'Если не выбрано, эмоции берутся по твоим постам.'}</p>
           </div>
           <ToneSteps tone={tone} profanity={profanity} intensity={intensity}
             onChange={(axis, v) => { setTone(t => ({ ...t, [axis]: v })); saveTone({ [axis]: v }) }} />
@@ -416,19 +426,19 @@ export default function VoicePage() {
         {/* Скажи по-своему */}
         <section className={card}>
           <h2 className="text-lg font-bold text-brand-text">Скажи по-своему</h2>
-          <p className="text-sm text-brand-muted leading-relaxed">Так пишут все. Как бы ты сказала это клиенту? Голосом или текстом, как выйдет.</p>
+          <p className="text-sm text-brand-muted leading-relaxed">Так пишут все. Как ты скажешь это клиенту? Голосом или текстом, как выйдет.</p>
           <p className="text-base font-semibold text-brand-text">«{SMOOTH[phraseIdx]}»</p>
           <VoiceTextarea value={phraseAnswer} onChange={setPhraseAnswer} minHeight={90} placeholder="Твоими словами" />
           <div className="flex flex-wrap items-center gap-3">
             <button type="button" disabled={!phraseAnswer.trim()} onClick={sendPhrase} className={primary(!!phraseAnswer.trim())}>Готово</button>
             <button type="button" onClick={() => { setPhraseAnswer(''); setPhraseIdx(i => (i + 1) % SMOOTH.length) }} className="text-sm text-brand-muted hover:text-brand-text cursor-pointer">Другую фразу</button>
-            {phrasesDone > 0 && <span className="text-xs text-brand-muted">Запомнила {phrasesDone} из {SMOOTH.length}</span>}
+            {phrasesDone > 0 && <span className="text-xs text-brand-muted">Сохранено {phrasesDone} из {SMOOTH.length}</span>}
           </div>
 
           <div className="pt-3 border-t border-brand-border-soft space-y-2">
             <p className="text-sm font-semibold text-brand-text">Что ты чаще всего повторяешь клиентам?</p>
             {repeatSaved ? (
-              <p className="text-sm text-brand-text-secondary">Запомнила. Буду иногда вставлять, не в каждый пост.</p>
+              <p className="text-sm text-brand-text-secondary">Сохранено. Эти фразы будут иногда появляться в постах, не в каждом.</p>
             ) : (
               <>
                 <VoiceTextarea value={repeat} onChange={setRepeat} minHeight={70} placeholder="Одна-две фразы, как говоришь вслух" />
@@ -443,7 +453,7 @@ export default function VoicePage() {
           <h2 className="text-lg font-bold text-brand-text">Объясни голосом</h2>
           <p className="text-sm text-brand-muted leading-relaxed">{EXPLAIN_Q}</p>
           {explainSaved ? (
-            <p className="text-sm text-brand-text-secondary">Спасибо, это самое ценное. По такой речи я слышу тебя лучше всего.</p>
+            <p className="text-sm text-brand-text-secondary">Спасибо, это самое ценное. По живой речи голос слышно лучше всего.</p>
           ) : (
             <>
               <VoiceTextarea value={explain} onChange={setExplain} minHeight={120} placeholder="Нажми на микрофон и говори минуту-две" />
@@ -455,12 +465,12 @@ export default function VoicePage() {
 
         {/* Блог */}
         <section className={card}>
-          <h2 className="text-lg font-bold text-brand-text">У меня есть блог</h2>
-          <p className="text-sm text-brand-muted leading-relaxed">Дай ссылку на открытый телеграм-канал, я прочитаю последние посты. Темы брать не буду, только манеру.</p>
+          <h2 className="text-lg font-bold text-brand-text">Есть блог</h2>
+          <p className="text-sm text-brand-muted leading-relaxed">Дай ссылку на открытый Telegram-канал, прочитаются последние посты. Темы не берутся, только манера.</p>
           <div className="flex flex-col sm:flex-row gap-2">
             <input value={tg} onChange={e => setTg(e.target.value)} placeholder="t.me/твой_канал" className={field} />
             <button type="button" disabled={!tg.trim() || importing} onClick={importTg} className={`${primary(!!tg.trim() && !importing)} shrink-0`}>
-              {importing ? <><Loader2 className="w-4 h-4 animate-spin" /> Читаю</> : 'Прочитать'}
+              {importing ? <><Loader2 className="w-4 h-4 animate-spin" /> Читается</> : 'Прочитать'}
             </button>
           </div>
           <button type="button" onClick={() => setPasteOpen(!pasteOpen)} className="text-sm text-brand-accent hover:underline cursor-pointer">
@@ -492,7 +502,7 @@ export default function VoicePage() {
               )}
               <div>
                 <button type="button" onClick={buildFromPasted} disabled={building || filled === 0} className={primary(!building && filled > 0)}>
-                  {building ? <><Loader2 className="w-4 h-4 animate-spin" /> Читаю</> : 'Послушать мои посты'}
+                  {building ? <><Loader2 className="w-4 h-4 animate-spin" /> Читается</> : 'Послушать мои посты'}
                 </button>
               </div>
             </div>
@@ -517,7 +527,7 @@ export default function VoicePage() {
 
           <div className="space-y-2">
             <p className="text-sm font-semibold text-brand-text">О себе пишешь</p>
-            <Choice value={gender} onChange={setGender} options={[{ v: 'female', label: '«я устала»' }, { v: 'male', label: '«я устал»' }]} />
+            <Choice value={gender} onChange={setGender} options={[{ v: 'female', label: 'В женском роде: я заметила' }, { v: 'male', label: 'В мужском роде: я заметил' }]} />
           </div>
 
           <div className="space-y-2">
@@ -551,7 +561,7 @@ export default function VoicePage() {
         {/* Материал */}
         <section className="rounded-3xl bg-brand-card border border-brand-border p-5 sm:p-6 space-y-5">
           <h2 className="text-lg font-bold text-brand-text">Что знаешь только ты</h2>
-          <p className="text-sm text-brand-muted leading-relaxed -mt-3">Без этого я не выдумываю: если посту нужна твоя история или мнение, спрошу или оставлю место «добавь».</p>
+          <p className="text-sm text-brand-muted leading-relaxed -mt-3">Твои истории и мнения за тебя не придумываются: если посту они нужны, появится вопрос или место «добавь».</p>
 
           <div className="space-y-2">
             <p className="text-sm font-semibold text-brand-text">С чем ты споришь, что бесит в профессии</p>
@@ -590,7 +600,7 @@ export default function VoicePage() {
 
           {zh6Ui && <div className="space-y-2">
             <label htmlFor="kod-slovo" className="block text-sm font-semibold text-brand-text">Кодовое слово, если есть</label>
-            <p id="kod-slovo-hint" className="text-xs text-brand-muted -mt-1">Позову читателей написать это слово тебе в директ или в комментарии, так им проще записаться. Нет слова, позову просто написать тебе в директ.</p>
+            <p id="kod-slovo-hint" className="text-xs text-brand-muted -mt-1">Посты позовут читателей написать это слово тебе в директ или в комментарии, так им проще записаться. Нет слова, позовут просто написать в директ.</p>
             <input id="kod-slovo" value={kod} onChange={e => setKod(e.target.value)} onBlur={() => setKodTouched(true)} maxLength={40} placeholder="Например, встреча"
               aria-describedby="kod-slovo-hint" aria-invalid={(kodTouched && kodBad) || undefined} className={field} />
             {kodTouched && kodBad && <p className="text-xs text-brand-text" role="status">В кодовом слове должно быть от 2 до 40 знаков</p>}
@@ -602,7 +612,7 @@ export default function VoicePage() {
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm font-semibold text-brand-text">Твой сквозной персонаж, если есть</p>
+            <p className="text-sm font-semibold text-brand-text">Персонаж, который часто бывает в твоих постах, если есть</p>
             <input value={character} onChange={e => setCharacter(e.target.value)} placeholder="Например: внутренняя Лида, вечно недовольная и смешная" className={field} />
           </div>
         </section>
@@ -620,7 +630,7 @@ export default function VoicePage() {
         </div>
         </>)}
 
-        <p className="text-xs text-brand-muted text-center pb-4">Только твой голос, без клиентов. Аудио удаляем сразу после расшифровки.</p>
+        <p className="text-xs text-brand-muted text-center pb-4">Только твой голос, без клиентов. Аудио удаляется сразу после расшифровки.</p>
       </div>
     </div>
   )
@@ -661,10 +671,10 @@ function ToneSteps({ tone, profanity, intensity, onChange }: {
               {[0, 1, 2, 3, 4, 5, 6].map(i => <span key={i} className={`rounded-full ${i === 3 ? 'w-2 h-2' : 'w-1 h-1'} ${i === pos ? 'bg-brand-accent' : 'bg-brand-border'}`} />)}
             </div>
             <p className="text-xs text-brand-muted">
-              {st.overriddenBy === 'intensity' && st.word ? `В постах: ${st.word}. Сильнее не стану, у тебя «Спокойно и ровно»`
-                : st.overriddenBy === 'intensity' ? `Ты выбрала «На эмоциях», поэтому будет ${ax.key === 'tone_cautious' ? 'прямее' : 'разговорнее'}. Ползунок пока не действует`
-                : st.overriddenBy === 'profanity' ? 'Ты разрешила мат, поэтому будет разговорнее. Ползунок пока не действует'
-                : st.word ? `В постах: ${st.word}` : 'Посередине, беру по твоим постам'}
+              {st.overriddenBy === 'intensity' && st.word ? `В постах: ${st.word}. Сильнее не будет, выбрано «Спокойно и ровно»`
+                : st.overriddenBy === 'intensity' ? `Выбрано «На эмоциях», поэтому будет ${ax.key === 'tone_cautious' ? 'прямее' : 'разговорнее'}. Ползунок пока не действует`
+                : st.overriddenBy === 'profanity' ? 'Мат разрешен, поэтому будет разговорнее. Ползунок пока не действует'
+                : st.word ? `В постах: ${st.word}` : 'Посередине, тон берется по твоим постам'}
             </p>
           </div>
         )

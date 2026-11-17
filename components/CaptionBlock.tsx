@@ -12,7 +12,7 @@ export function splitCaption(text: string): { body: string; caption: string } {
   return { body: text.slice(0, m.index).trimEnd(), caption: text.slice(m.index + m[0].length).trim() }
 }
 
-export default function CaptionBlock({ caption, title = 'Описание к публикации', mark, format, postId }: { caption: string; title?: string; mark?: (s: string) => ReactNode; format?: string; postId?: string | null }) {
+export default function CaptionBlock({ caption, title = 'Описание', mark, format, postId }: { caption: string; title?: string; mark?: (s: string) => ReactNode; format?: string; postId?: string | null }) {
   const [copied, setCopied] = useState(false)
   if (!caption) return null
   const copy = () => {
@@ -22,15 +22,15 @@ export default function CaptionBlock({ caption, title = 'Описание к п�
     setTimeout(() => setCopied(false), 2000)
   }
   return (
-    <div className="rounded-xl border border-brand-soft px-4 py-3 space-y-1.5">
+    <div className="rounded-2xl bg-brand-soft-2 px-4 py-3 space-y-1.5 min-w-0">
       <div className="flex items-center justify-between gap-2">
-        <p className="min-w-0 text-[13px] font-semibold text-brand-muted">{title}</p>
+        <p className="min-w-0 text-[14px] font-semibold text-brand-text">{title}</p>
         <button type="button" onClick={copy}
-          className="min-h-11 -my-3 shrink-0 inline-flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-accent cursor-pointer">
-          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Скопировала' : 'Скопировать описание'}
+          className="min-h-11 -my-3 shrink-0 inline-flex items-center gap-1.5 text-[13px] font-medium text-brand-accent hover:text-brand-accent-hover cursor-pointer">
+          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Скопировано' : 'Скопировать описание'}
         </button>
       </div>
-      <p className="text-[15px] leading-relaxed text-brand-text-secondary whitespace-pre-wrap">{mark ? mark(caption) : caption}</p>
+      <p className="text-[15px] leading-relaxed text-brand-text-secondary whitespace-pre-wrap break-words">{mark ? mark(caption) : caption}</p>
     </div>
   )
 }

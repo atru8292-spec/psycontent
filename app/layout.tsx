@@ -33,10 +33,14 @@ export const metadata: Metadata = {
   // Публичные страницы открыты для индексации; кабинет, онбординг и админка переопределяют это noindex в своих layout.
   // canonical не здесь, а у каждой публичной страницы (главная: app/page.tsx), иначе он унаследуется всем страницам
   robots: { index: true, follow: true },
+  // favicon.ico лежит в app/ (16 и 32 px из psycont-favicon.png), Next отдает его сам; манифест PWA в app/manifest.ts
   icons: {
     icon: [{ url: '/brand/psycont-favicon.svg', type: 'image/svg+xml' }, { url: '/brand/psycont-favicon.png', type: 'image/png' }],
-    apple: '/brand/psycont-apple-touch-icon.png',
+    apple: [{ url: '/brand/psycont-apple-touch-icon.png', sizes: '180x180' }],
   },
+  // iPhone: с экрана «Домой» открывается без адресной строки, подпись под значком «PsyCont»
+  appleWebApp: { capable: true, title: 'PsyCont', statusBarStyle: 'default' },
+  applicationName: 'PsyCont',
 }
 
 // iPhone: контент под вырезом и домашней полоской (safe-area в шапке и таб-баре), масштаб пальцами не запрещаем

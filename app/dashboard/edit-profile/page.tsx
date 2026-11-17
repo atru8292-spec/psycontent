@@ -22,7 +22,8 @@ const blocks = [
   { id: 'outward', title: 'Как ты в блоге', icon: MapPin, color: 'text-brand-sage bg-brand-soft' },
 ]
 
-const GENDER_OPTIONS = ['«Я заметила»', '«Я заметил»']
+// только метки на экране: в базу идет female/male (prefill и сохранение сравнивают с этими строками)
+const GENDER_OPTIONS = ['В женском роде: я заметила', 'В мужском роде: я заметил']
 
 const questions = [
   // --- БЛОК 1: ТЫ И ПРАКТИКА ---
@@ -64,8 +65,8 @@ const questions = [
   {
     // род автора (16.11): генератор больше не угадывает его по имени; значения female/male, метки ниже
     block: 0, key: 'author_gender',
-    title: 'Как ты говоришь о себе?',
-    subtitle: 'Тексты пишутся от твоего лица, так глаголы будут в нужном роде',
+    title: 'Как пишешь о себе?',
+    subtitle: 'Посты пишутся от твоего лица, так в них не будет ошибок в роде',
     type: 'single',
     options: GENDER_OPTIONS,
   },
@@ -123,7 +124,7 @@ const questions = [
   {
     block: 1, key: 'client_result',
     title: 'Что меняется после работы с тобой?',
-    subtitle: 'Конкретное действие, которое человек начинает делать по другому. Можно голосом.',
+    subtitle: 'Конкретное действие, которое человек начинает делать по-другому. Можно голосом.',
     type: 'textarea',
     placeholder: 'Например: «перестала звонить бывшему ночью», «впервые взяла отпуск и не проверяла почту»'
   },
@@ -142,7 +143,7 @@ const questions = [
   {
     block: 2, key: 'anti_values',
     title: 'Что бесит тебя в индустрии?',
-    subtitle: 'Это твоя отстройка. Против чего ты.',
+    subtitle: 'Против чего ты. От этого будут отталкиваться посты.',
     type: 'multi',
     options: [
       'Инфоцыганство («вылечу за 1 сессию»)', 'Попсовая психология («мысли позитивно»)',
@@ -325,9 +326,9 @@ export default function EditProfile() {
           <div className="w-20 h-20 bg-brand-soft rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-brand-sage" />
           </div>
-          <h1 className="text-3xl font-bold text-brand-text mb-4">Готово, профиль обновила</h1>
+          <h1 className="text-3xl font-bold text-brand-text mb-4">Готово, профиль обновлен</h1>
           <p className="text-brand-text-secondary mb-6 leading-relaxed">
-            Данные сохранила. Паспорт бренда собирался по старым ответам, стоит пересобрать, чтобы он звучал по новому.
+            Ответы сохранены. Паспорт бренда собирался по старым ответам, его стоит пересобрать, чтобы он звучал по-новому.
           </p>
 
           <div className="bg-brand-soft border border-brand-border-soft rounded-xl p-4 mb-6 flex items-start gap-3">
@@ -505,7 +506,7 @@ export default function EditProfile() {
               {(q as any).videoToggle && (
                 <div className="pt-6 mt-6 border-t border-gray-100">
                   <p className="font-bold text-brand-text mb-1 text-lg">Снимаешь видео?</p>
-                  <p className="text-brand-text-secondary mb-4">Рилс, шортс, кружочки. Если да, будем предлагать сценарии под камеру.</p>
+                  <p className="text-brand-text-secondary mb-4">Рилс, шортс, кружочки. Если да, в темах появятся сценарии под камеру.</p>
                   <div className="grid grid-cols-2 gap-3 max-w-sm">
                     {[{ v: VIDEO_YES, label: 'Да' }, { v: VIDEO_NO, label: 'Нет' }].map((opt) => {
                       const isSelected = answers.video_attitude === opt.v
@@ -553,12 +554,12 @@ export default function EditProfile() {
           >
             {saving ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" /> Сохраняю...
+                <Loader2 className="w-5 h-5 animate-spin" /> Сохраняется...
               </>
             ) : step === questions.length - 1 ? (
               'Сохранить изменения'
             ) : (
-              <>Далее <ArrowRight className="w-5 h-5" /></>
+              <>Дальше <ArrowRight className="w-5 h-5" /></>
             )}
           </button>
         </div>
