@@ -151,6 +151,7 @@ revoke all on public.pay_mail_queue from anon, authenticated;
 grant all on public.pay_mail_queue to service_role;
 grant select on public.autopay_consents, public.payments, public.refunds to authenticated;
 -- способ оплаты: человек видит свои карты без токена ЮKassa (yk_method_id только сервер, ревью 17.11)
+revoke select on public.payment_methods from authenticated;  -- права по умолчанию Supabase дают всю таблицу
 grant select (id, user_id, type, title, card_last4, created_at) on public.payment_methods to authenticated;
 grant all on public.payment_methods, public.autopay_consents, public.payments, public.refunds, public.payment_events to service_role;
 
