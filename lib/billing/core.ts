@@ -399,7 +399,7 @@ export async function runBilling(d: Deps): Promise<Record<string, number>> {
       if (r === 'renewed') out.charged++; else if (r !== 'pending') out.failed++
     } catch { out.errors++ }
   }
-  // 4.5 согласия удаленных аккаунтов храним 3 года, потом удаляем (/privacy раздел 8)
+  // 4.5 согласия удаленных аккаунтов храним 3 года, потом удаляем (/privacy раздел 9)
   try { out.purged = await d.repo.purgeOrphanConsents(iso(new Date(now.getTime() - CONSENT_KEEP_DAYS * 24 * H))) } catch { out.errors++ }
   // 4.4 окно кончилось, продления нет (автопродление выключено или нет способа): тариф снова пробный
   for (const s of await d.repo.subsToExpire(iso(now))) {
