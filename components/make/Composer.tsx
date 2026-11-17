@@ -19,6 +19,7 @@ import { KARTY, AUTO_TEXT, KNOPKI } from './vid-cards'
 import VidKartinka, { useVidKartinki } from './VidKartinka'
 import { GRUPPY, gruppaOf, tipOf } from '@/lib/generation/zh6/gruppy'
 import { MAKE_FORMATS, DEFAULT_FORMATS, GOAL_OPTIONS, makeButtonText, type MakeFormat, type MakeGoal } from './formats'
+import { END, lowHint, type Materials } from '@/lib/limit-texts'
 
 export const DRAFT_KEY = 'psycont_make_draft'
 const FORMATS_KEY = 'psycont_make_formats'
@@ -56,7 +57,8 @@ function loadFormaty(): Promise<Zh6Format[]> {
 const readLS = (k: string) => { try { return localStorage.getItem(k) } catch { return null } }
 const writeLS = (k: string, v: string | null) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v) } catch {} }
 
-export default function Composer({ firstTime, topics, busy, onSubmit, initialText, initialFormats, askSampleText, onSampleCleared, plan }: {
+export default function Composer({ firstTime, topics, busy, onSubmit, initialText, initialFormats, askSampleText, onSampleCleared, plan, materials }: {
+  materials?: Materials | null // остаток материалов (16.11): при 0 главная кнопка неактивна, при 1-2 подсказка
   firstTime: boolean
   topics: string[]
   busy: boolean
@@ -223,7 +225,11 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
     setPickFor(null)
   }
 
+  const noMaterials = !!materials && materials.remaining <= 0
+  // форматов выбрано больше, чем осталось материалов: сервер откажет (text_limit_partial), поэтому кнопку выключаем сразу
+  const tooMany = !!materials && !noMaterials && formats.length > materials.remaining
   const submit = () => {
+    if (noMaterials || tooMany) return
     if (busy || !hasText || !formats.length || transcribing || (link && needText && !sozhe)) return
     writeLS(FORMATS_KEY, JSON.stringify(formats))
     // черновик стирает MakeFlow после первого готового формата: при ошибке мысль должна остаться
@@ -418,11 +424,11 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
             <span className="text-brand-text">{(GOAL_OPTIONS.find(g => g.id === goal)?.label || 'Любая').toLowerCase()}</span>
             <ChevronDown className="w-4 h-4 text-brand-muted" />
           </button>
-          <button type="button" onClick={submit} disabled={busy || !formats.length || transcribing || (!!link && needText && !sozhe)}
-            className={`mt-4 w-full h-[52px] rounded-2xl text-[16px] font-semibold transition cursor-pointer ${formats.length ? 'bg-brand-accent text-white hover:bg-brand-accent-hover disabled:opacity-60' : 'bg-brand-border text-brand-muted cursor-not-allowed'}`}>
-            {!formats.length ? 'Выбери хотя бы один формат' : (sozhe || link) ? 'Сделать так же' : makeButtonText(formats)}
+          <button type="button" onClick={submit} disabled={noMaterials || tooMany || busy || !formats.length || transcribing || (!!link && needText && !sozhe)}
+            className={`mt-4 w-full h-[52px] rounded-2xl text-[16px] font-semibold transition cursor-pointer ${formats.length && !noMaterials && !tooMany ? 'bg-brand-accent text-white hover:bg-brand-accent-hover disabled:opacity-60' : 'bg-brand-border text-brand-text/70 cursor-not-allowed'}`}>
+            {noMaterials ? END.disabled : tooMany ? END.tooMany : !formats.length ? 'Выбери хотя бы один формат' : (sozhe || link) ? 'Сделать так же' : makeButtonText(formats)}
           </button>
-          <p className="mt-2 text-center text-[13px] text-brand-muted">Все сохранится само в «Моих текстах»</p>
+          {!noMaterials && <p className="mt-2 text-center text-[13px] text-brand-muted">{(materials && lowHint(materials)) || 'Все сохранится само в «Моих текстах»'}</p>}
         </div>
       )}
 

@@ -8,6 +8,7 @@
 
 import { anonymize, deanonymize } from '@/lib/anonymize'
 import { logAiUsage, type OpenAIUsage } from '@/lib/energy'
+import { CodedError, openAiError } from '@/lib/safe-error'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 
@@ -27,13 +28,13 @@ function getOpenAIHeaders() {
 
 async function extractResult(response: Response): Promise<{ content: string; usage?: OpenAIUsage }> {
   const rawText = await response.text()
-  if (!response.ok) throw new Error(`OpenAI error ${response.status}: ${rawText}`)
+  if (!response.ok) throw openAiError(response.status, rawText)
 
   let data: any
   try {
     data = JSON.parse(rawText)
   } catch {
-    throw new Error(`OpenAI returned invalid JSON: ${rawText}`)
+    throw new CodedError('openai_bad_json')
   }
 
   const usage: OpenAIUsage | undefined = data?.usage
@@ -47,7 +48,7 @@ async function extractResult(response: Response): Promise<{ content: string; usa
     }).join('').trim()
     if (joined) return { content: joined, usage }
   }
-  throw new Error(`Empty model response: ${rawText}`)
+  throw new CodedError('openai_empty')
 }
 
 async function callOpenAI(body: Record<string, unknown>, timeoutMs = 55000) {

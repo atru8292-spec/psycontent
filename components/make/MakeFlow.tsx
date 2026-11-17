@@ -12,6 +12,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, Check, Loader2, X, Film, Layers, AlignLeft, Send, Smartphone } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { topicsFor } from '@/lib/first-topic'
+import { useDashboardMe } from '@/lib/dashboard-me'
+import { RESUME, END, TARIFF_HREF, isMaterials, type Materials } from '@/lib/limit-texts'
 import Composer, { DRAFT_KEY, type ComposerSubmit, type PlanPick } from './Composer'
 import FormatPane, { type PaneItem } from './FormatPane'
 import BottomSheet from './BottomSheet'
@@ -49,6 +51,41 @@ function shrinkImage(file: File, max = 1280): Promise<string> {
 
 const ICON: Record<string, any> = { reels: Film, carousel: Layers, post: AlignLeft, post_tg: Send, stories: Smartphone }
 const TOAST_KEY = 'psycont_saved_toast_groups'
+// Идущий запуск (16.11): страница обновилась или вкладка перезагрузилась, а сервер дописывает и сохраняет сам.
+// После загрузки показываем «доделываю» и подтягиваем готовое из базы, чтобы человек не запускал второй раз.
+const RUN_KEY = 'psycont_make_running'
+const RUN_WAIT_MS = 4 * 60 * 1000
+const RUN_POLL_MS = 4000
+type RunMark = { t: number; formats: MakeFormat[]; thought: string }
+function readRun(): RunMark | null {
+  try {
+    const r = JSON.parse(sessionStorage.getItem(RUN_KEY) || 'null')
+    if (!r || typeof r.t !== 'number' || !Array.isArray(r.formats) || !r.formats.length) return null
+    if (Date.now() - r.t > RUN_WAIT_MS) { sessionStorage.removeItem(RUN_KEY); return null }
+    const formats = r.formats.filter((f: string) => MAKE_FORMATS.some(m => m.id === f)) as MakeFormat[]
+    return formats.length ? { t: r.t, formats, thought: String(r.thought || '').slice(0, 200) } : null
+  } catch { return null }
+}
+// страница уходит (обновление, закрытие): оборванный поток не должен стереть отметку запуска в finally
+let pageLeaving = false
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', () => { pageLeaving = true })
+  window.addEventListener('pageshow', () => { pageLeaving = false })
+}
+function markRun(r: RunMark | null) {
+  if (!r && pageLeaving) return
+  try { if (r) sessionStorage.setItem(RUN_KEY, JSON.stringify(r)); else sessionStorage.removeItem(RUN_KEY) } catch {}
+}
+
+// Строка generated_posts в карточку результата (открытие из «Моих текстов» и продолжение после обновления)
+function rowToItem(r: any): Item {
+  return {
+    format: toMakeFormat(String(r.format || 'post')), code: String(r.format || 'post'), postId: r.id,
+    text: String(r.content || ''), baseline: String(r.content || ''), publishedAt: r.published_at || null, status: 'ready',
+    ...(typeof r.check_result?.zh4?.zh6?.formatName === 'string' ? { formatName: String(r.check_result.zh4.zh6.formatName).slice(0, 120) } : {}),
+    ...(typeof r.check_result?.zh4?.zh6?.ustr === 'string' ? { vid: String(r.check_result.zh4.zh6.ustr).slice(0, 40) } : {}),
+  }
+}
 
 // Ответ сервера человеческими словами: что случилось и что сохранилось
 function friendly(code?: string, message?: string): string {
@@ -69,6 +106,9 @@ function friendly(code?: string, message?: string): string {
 export default function MakeFlow() {
   const router = useRouter()
   const params = useSearchParams()
+  const { me, refresh: refreshMe } = useDashboardMe()
+  const materials: Materials | null = isMaterials(me?.materials) ? me.materials : null
+  const limitReached = !!materials && materials.remaining <= 0
   const [topics, setTopics] = useState<string[]>([])
   const [firstTime, setFirstTime] = useState(false)
   const [view, setView] = useState<View>('compose')
@@ -165,12 +205,7 @@ export default function MakeFlow() {
         if (g.data?.length) rows = g.data
       }
       if (!on) return
-      const list: Item[] = rows.map(r => ({
-        format: toMakeFormat(String(r.format || 'post')), code: String(r.format || 'post'), postId: r.id,
-        text: String(r.content || ''), baseline: String(r.content || ''), publishedAt: r.published_at || null, status: 'ready',
-        ...(typeof r.check_result?.zh4?.zh6?.formatName === 'string' ? { formatName: String(r.check_result.zh4.zh6.formatName).slice(0, 120) } : {}),
-        ...(typeof r.check_result?.zh4?.zh6?.ustr === 'string' ? { vid: String(r.check_result.zh4.zh6.ustr).slice(0, 40) } : {}),
-      }))
+      const list: Item[] = rows.map(rowToItem)
       setItems(list)
       setGroupId(one.data.group_id || null)
       setThought(String(one.data.core?.thought || one.data.topic || ''))
@@ -179,6 +214,68 @@ export default function MakeFlow() {
       setActive(idx)
       setView('result')
     })()
+    return () => { on = false }
+  }, [params])
+
+  // Продолжение после обновления страницы: запуск еще идет на сервере. Ждем строки в базе не дольше RUN_WAIT_MS
+  // от старта; готовое открываем как из «Моих текстов». Не трогаем, если открыт конкретный текст (?post=)
+  const [resumed, setResumed] = useState(false)
+  const resumeCancelled = useRef(false)
+  useEffect(() => {
+    if (params.get('post')) return
+    const run = readRun()
+    if (!run) return
+    let on = true
+    resumeCancelled.current = false
+    setResumed(true)
+    setThought(run.thought)
+    setItems(run.formats.map(f => ({ format: f, code: f, postId: null, text: '', baseline: '', publishedAt: null, status: 'pending' as const })))
+    setActive(0)
+    setView('progress')
+    track('feature_open', { feature: 'make_resume' })
+    const since = new Date(run.t - 60000).toISOString() // запас на расхождение часов телефона и сервера
+    // своя группа: самая свежая в окне, с той же темой (прошлый запуск минуту назад не подхватываем, ревью 16.11)
+    const norm = (v: unknown) => String(v || '').toLowerCase().replace(/\s+/g, ' ').trim().slice(0, 40)
+    const want = norm(run.thought)
+    const pick = (all: any[]): any[] => {
+      const mine = want ? all.filter(r => norm(r.topic) === want || (norm(r.topic) && want.startsWith(norm(r.topic)))) : all
+      const latest = [...mine].reverse().find(r => r.group_id)?.group_id
+      return latest ? mine.filter(r => r.group_id === latest) : mine.filter(r => !r.group_id).slice(-run.formats.length)
+    }
+    const load = async () => {
+      const { data } = await supabase.from('generated_posts').select('*').gte('created_at', since)
+        .not('format', 'eq', 'hooks').order('created_at', { ascending: true })
+      return pick(Array.isArray(data) ? data : [])
+    }
+    const finish = (rows: any[]) => {
+      markRun(null)
+      if (!on) return
+      setResumed(false)
+      if (!rows.length) {
+        setItems([]); setView('compose')
+        setError(RESUME.timeout)
+        return
+      }
+      setItems(rows.map(rowToItem)); setGroupId(rows[0].group_id || null); setActive(0); setView('result')
+    }
+    const tick = async () => {
+      if (!on) return
+      if (resumeCancelled.current) { setResumed(false); return } // «Назад»: больше не ждем
+      // отметку снял поток прошлого экрана (ушла в «Мои тексты» и вернулась без перезагрузки): он закончил,
+      // значит все уже в базе; последний раз читаем и открываем, иначе крутилки висели бы вечно (ревью 16.11)
+      const stillRunning = !!readRun()
+      const rows = await load()
+      if (!on) return
+      if (!stillRunning) { finish(rows); return }
+      if (rows.length) setItems(prev => prev.map(x => {
+        const r = rows.find(row => toMakeFormat(String(row.format || 'post')) === x.format)
+        return r && x.status === 'pending' ? rowToItem(r) : x
+      }))
+      const late = Date.now() - run.t > RUN_WAIT_MS
+      if (rows.length >= run.formats.length || late) { finish(rows); return }
+      window.setTimeout(tick, RUN_POLL_MS)
+    }
+    tick()
     return () => { on = false }
   }, [params])
 
@@ -198,6 +295,8 @@ export default function MakeFlow() {
     let opened = append
     const ac = new AbortController()
     abortRef.current = ac
+    // запуск идет: если страница обновится, после загрузки покажем «доделываю» (RUN_KEY). «Еще формат» не метим
+    if (!append) markRun({ t: Date.now(), formats, thought: String(body.topic || '').slice(0, 200) })
     try {
       const res = await fetch('/api/generate-post/group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, formats }), signal: ac.signal })
       if (!res.ok || !res.body) {
@@ -269,9 +368,12 @@ export default function MakeFlow() {
       else if (!append) { setItems(prev => prev.map(x => x.status === 'pending' ? { ...x, status: 'failed', error: msg } : x)) }
       else { setItems(prev => prev.map(x => x.status === 'pending' ? { ...x, status: 'failed', error: msg } : x)) }
     } finally {
+      // поток закончился здесь же (готово, сбой или «Назад»): ждать после обновления нечего
+      if (!append) markRun(null)
+      refreshMe?.() // остаток материалов в шапке и на «Сделать»
       if (abortRef.current === ac) { abortRef.current = null; setBusy(false) }
     }
-  }, [router])
+  }, [router, refreshMe])
 
   const submit = (s: ComposerSubmit) => {
     lastSubmit.current = s
@@ -337,6 +439,7 @@ export default function MakeFlow() {
 
 
   const backToCompose = () => {
+    markRun(null); setResumed(false); resumeCancelled.current = true
     abortRef.current?.abort(); abortRef.current = null; setBusy(false)
     setView('compose'); setItems([]); setThought(''); setGroupId(null); setSampleInfo(null); setAskSampleText(false); setRestoreText('')
     setComposerKey(k => k + 1); router.replace('/dashboard/make')
@@ -355,8 +458,19 @@ export default function MakeFlow() {
             </div>
           </div>
         )}
+        {limitReached && materials && (
+          <div className="max-w-[560px] mx-auto px-4 pt-4">
+            <div className="rounded-2xl bg-brand-card border border-brand-border px-4 py-4" role="status">
+              <p className="text-[17px] leading-6 font-semibold text-brand-text">{END[materials.kind].title(materials.cap)}</p>
+              <p className="mt-1 text-[15px] leading-[22px] text-brand-text-secondary">{END[materials.kind].text}</p>
+              {END[materials.kind].note && <p className="mt-1 text-[13px] leading-5 text-brand-muted">{END[materials.kind].note}</p>}
+              <button type="button" onClick={() => { track('paywall_view', { where: 'make_limit' }); router.push(TARIFF_HREF) }}
+                className="mt-3 w-full sm:w-auto h-12 px-5 rounded-2xl bg-brand-accent text-white text-[15px] font-semibold hover:bg-brand-accent-hover cursor-pointer">{END.button}</button>
+            </div>
+          </div>
+        )}
         <Composer key={composerKey} firstTime={firstTime} topics={topics} busy={busy} onSubmit={submit} askSampleText={askSampleText} onSampleCleared={() => setAskSampleText(false)}
-          initialText={initialTopic || restoreText || seed} initialFormats={initialFormats} plan={plan} />
+          initialText={initialTopic || restoreText || seed} initialFormats={initialFormats} plan={plan} materials={materials} />
       </div>
   )
 
@@ -369,7 +483,8 @@ export default function MakeFlow() {
         <button type="button" onClick={backToCompose} className="h-11 -ml-2 pl-1 pr-2 inline-flex items-center text-[15px] text-brand-text-secondary cursor-pointer">
           <ChevronLeft className="w-5 h-5" />Назад
         </button>
-        <h1 className="text-[22px] leading-7 font-semibold text-brand-text">Делаю {items.length} {pluralMaterial(items.length)}</h1>
+        <h1 className="text-[22px] leading-7 font-semibold text-brand-text">{resumed ? RESUME.title : 'Делаю'} {items.length} {pluralMaterial(items.length)}</h1>
+        {resumed && <p className="mt-1 text-[15px] leading-[22px] text-brand-text-secondary">{RESUME.line}</p>}
         <ul aria-live="polite" className="mt-4 divide-y divide-brand-border rounded-2xl bg-brand-card border border-brand-border">
           {items.map(x => {
             const Icon = ICON[x.format] || AlignLeft
@@ -384,7 +499,7 @@ export default function MakeFlow() {
             )
           })}
         </ul>
-        <p className="mt-3 text-[13px] text-brand-muted">Можно выйти, все сохранится в «Моих текстах»</p>
+        {!resumed && <p className="mt-3 text-[13px] text-brand-muted">Можно выйти, все сохранится в «Моих текстах»</p>}
       </div>
       </>
     )

@@ -5,6 +5,7 @@
 import { getSupabaseAdmin } from '@/lib/generation/db'
 import { isEventName } from '@/lib/analytics/events'
 import { sanitizeProps, cleanPath } from '@/lib/analytics/sanitize'
+import { errTag } from './safe-error'
 
 export function serverTrack(userId: string | null | undefined, event: string, props?: Record<string, unknown>, path?: string): void {
   try {
@@ -12,7 +13,7 @@ export function serverTrack(userId: string | null | undefined, event: string, pr
     const row = { user_id: userId, event, props: sanitizeProps(event, props || {}), path: path ? cleanPath(path) : null }
     getSupabaseAdmin().from('events').insert(row).then(({ error }) => {
       // пока миграция не применена, таблицы нет: тихо, одной строкой
-      if (error) console.warn('serverTrack:', event, error.code || error.message)
+      if (error) console.warn('serverTrack:', event, errTag(error))
     }, (e: unknown) => console.warn('serverTrack:', event, (e as Error)?.message))
   } catch (e) {
     console.warn('serverTrack:', event, (e as Error)?.message)

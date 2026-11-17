@@ -28,10 +28,9 @@ const DEFAULT_DEPS: GateDeps = { canConsume, commitConsume, recordRefusal, recor
 export const SOFT_FAIL_TEXT = 'Текст не получился из-за сбоя. Попробуй еще раз через минуту.'
 
 // В журнал только код или имя ошибки, без текста (там может быть ответ модели или кусок профиля).
-export function errTag(e: any): string {
-  const t = e?.code || e?.status || e?.name || typeof e
-  return String(t).replace(/[^A-Za-z0-9_.:-]/g, '').slice(0, 40) || 'unknown'
-}
+// Сама функция в lib/safe-error.ts, здесь реэкспорт для старых импортов.
+import { errTag } from './safe-error'
+export { errTag }
 
 // Ответ 500 для catch старых роутов: мягкий текст и код, без сырого сообщения.
 export function softFailResponse(): NextResponse {
@@ -43,7 +42,7 @@ export async function materialGate(userId: string, op: string, units = 1, deps: 
   if (!decision.ok) {
     // журнал отказа: его сбой отказ не отменяет и в 500 не превращается
     if (deps.recordRefusal) {
-      try { await deps.recordRefusal(userId, op) } catch (e: any) { console.warn('materialGate recordRefusal:', String(e?.message || '').slice(0, 60)) }
+      try { await deps.recordRefusal(userId, op) } catch (e: any) { console.warn('materialGate recordRefusal:', errTag(e)) }
     }
     const response = NextResponse.json(
       { error: decision.message || 'Материалы закончились', limit: true, code: decision.reason || 'limit' },
@@ -60,7 +59,7 @@ export async function materialGate(userId: string, op: string, units = 1, deps: 
       await deps.commitConsume(userId, op, decision)
     } catch (e: any) {
       // текст уже готов и отдан: сбой списания логируем, ответ не ломаем
-      console.error('materialGate commitConsume failed:', op, String(e?.code || e?.message || 'unknown').slice(0, 60))
+      console.error('materialGate commitConsume failed:', op, errTag(e))
     }
   }
   const fail = async () => {

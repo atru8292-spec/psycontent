@@ -197,7 +197,7 @@ ${pillar ? `Рубрика: ${pillar}` : ''}
     })
 
     if (insertError) {
-      console.warn('Failed to save carousel:', insertError.message)
+      console.warn('Failed to save carousel:', errTag(insertError))
     }
     await gate.commit()
 

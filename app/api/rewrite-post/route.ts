@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
       after(async () => {
         try {
           if (await recordEvent(supabase, userId, { kind: 'rewrite_input', after: sourceText.trim() })) await maybeRebuildVoice(supabase, userId)
-        } catch (e: any) { console.warn('rewrite sample:', e?.message) }
+        } catch (e: any) { console.warn('rewrite sample:', errTag(e)) }
       })
     }
 

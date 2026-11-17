@@ -12,6 +12,7 @@ import { NextRequest } from 'next/server'
 import { getSessionUser } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/generation/db'
 import { cleanBatch, MinuteLimiter, MAX_PER_MINUTE_USER, MAX_PER_MINUTE_ANON, MAX_PER_REQUEST_ANON, MAX_PER_MINUTE_ANON_TOTAL, MAX_BODY_ANON } from '@/lib/analytics/ingest'
+import { errTag } from '@/lib/safe-error'
 
 const perUser = new MinuteLimiter(MAX_PER_MINUTE_USER)
 const perIp = new MinuteLimiter(MAX_PER_MINUTE_ANON)
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
     }
     if (!rows.length) return empty()
     const { error } = await db.from('events').insert(rows.map(r => ({ ...r, user_id: user ? user.id : null })))
-    if (error) console.warn('api/ev insert:', error.code || error.message)
+    if (error) console.warn('api/ev insert:', errTag(error))
   } catch (e) {
     console.warn('api/ev:', (e as Error)?.message)
   }

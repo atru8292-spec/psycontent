@@ -5,6 +5,7 @@ import { useFeatureOpen, useTrackOnce } from '@/lib/analytics/hooks'
 import { useEffect, useRef, useState } from 'react'
 import { Check, X } from 'lucide-react'
 import { PLANS, PLAN_COMMON_LINE, formatRub, planPerks, planForDbCode, startLine, type PricePlan } from '@/lib/pricing'
+import { PAY_SOON } from '@/lib/limit-texts'
 
 // Витрина тарифов в настройках. Цены и пункты из lib/pricing.ts (тот же источник, что у лендинга).
 // Только показ и захват внимания, НИКАКИХ записей в БД и смены плана (план меняет только сервер,
@@ -30,7 +31,7 @@ export default function TariffSection({ currentCode }: { currentCode?: string })
       {/* Честная плашка про оплату, без urgency */}
       <div className="rounded-3xl bg-brand-soft border border-brand-border-soft p-4 sm:p-5 mb-4">
         <p className="text-sm text-brand-text leading-relaxed">
-          Оплату подключаем. Скоро можно будет переходить между тарифами прямо здесь, без анкет и звонков.
+          {PAY_SOON.line}
         </p>
       </div>
 
@@ -89,25 +90,25 @@ export default function TariffSection({ currentCode }: { currentCode?: string })
         >
           <div
             role="dialog"
-            aria-label="Оплата скоро"
+            aria-label={PAY_SOON.popTitle}
             onClick={(e) => e.stopPropagation()}
             className="w-full sm:max-w-md bg-brand-card rounded-t-3xl sm:rounded-3xl border border-brand-border p-6 shadow-xl"
           >
             <div className="flex items-start justify-between gap-3 mb-2">
-              <p className="text-lg font-bold text-brand-text">Оплата скоро</p>
+              <p className="text-lg font-bold text-brand-text">{PAY_SOON.popTitle}</p>
               <button type="button" aria-label="Закрыть" onClick={() => setPicked(null)} className="p-1 -m-1 text-brand-muted hover:text-brand-text transition cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <p className="text-sm text-brand-muted leading-relaxed">
-              Оплату еще подключаем. Когда заработает, перейти на «{picked.name}» можно будет здесь одной кнопкой, без анкет и звонков. Загляни чуть позже.
+              {PAY_SOON.popText(picked.name)}
             </p>
             <button
               type="button"
               onClick={() => setPicked(null)}
               className="mt-5 w-full bg-brand-accent text-white font-semibold rounded-2xl py-3 hover:bg-brand-accent-hover transition cursor-pointer"
             >
-              Хорошо
+              {PAY_SOON.popButton}
             </button>
           </div>
         </div>

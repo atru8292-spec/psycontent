@@ -5,6 +5,7 @@ import { anonymize, deanonymize, safeRestoredPrefix } from '@/lib/anonymize'
 import { getArchetypeContextFromProfile } from '@/lib/archetypes'
 import { iterateSSEData } from '@/lib/sse-stream'
 import { logAiUsage } from '@/lib/energy'
+import { errTag, openAiError } from '@/lib/safe-error'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -301,8 +302,7 @@ ${archetypeContext ? `\n${archetypeContext}\n` : ''}
           })
 
           if (!aiResponse.ok) {
-            const errText = await aiResponse.text()
-            throw new Error(`OpenAI error ${aiResponse.status}: ${errText}`)
+            throw openAiError(aiResponse.status, await aiResponse.text().catch(() => ''))
           }
 
           const reader = aiResponse.body!.getReader()
@@ -384,7 +384,8 @@ ${archetypeContext ? `\n${archetypeContext}\n` : ''}
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
           controller.close()
         } catch (err: any) {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: err.message })}\n\n`))
+          console.error('generate-passport stream:', errTag(err))
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'Не получилось, у меня сбой. Попробуй еще раз через минуту.' })}\n\n`))
           controller.close()
         }
       },
@@ -398,7 +399,7 @@ ${archetypeContext ? `\n${archetypeContext}\n` : ''}
       },
     })
   } catch (error: any) {
-    console.error('Generate passport error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Generate passport error:', errTag(error))
+    return NextResponse.json({ error: 'Не получилось, у меня сбой. Попробуй еще раз через минуту.', code: 'server_error' }, { status: 500 })
   }
 }

@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSessionUser } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/generation/db'
 import { loadBranding, PHOTO_BUCKET, MAX_PHOTOS } from '@/lib/carousel/server'
+import { errTag } from '@/lib/safe-error'
 
 export const runtime = 'nodejs'
 const MAX_BYTES = 4 * 1024 * 1024
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
   const path = `${user.id}/${kind}-${Date.now()}.${ext}`
   const up = await db.storage.from(PHOTO_BUCKET).upload(path, Buffer.from(await file.arrayBuffer()), { contentType: file.type, upsert: false })
   if (up.error) {
-    console.error('photo upload:', up.error.message)
+    console.error('photo upload:', errTag(up.error))
     return NextResponse.json({ error: 'Не получилось загрузить фото' }, { status: 500 })
   }
   if (kind === 'avatar') {

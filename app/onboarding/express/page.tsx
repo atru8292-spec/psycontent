@@ -47,7 +47,7 @@ const SITUATIONS = [
 // В проде переменная NODE_ENV = production, режим не включается.
 const isPreview = () => process.env.NODE_ENV !== 'production' && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1'
 
-type Answers = { name: string; approaches: string[]; nicheChip: string | null; nicheText: string; tone: string; pain: string; situation: number; situationFor?: string }
+type Answers = { name: string; gender?: 'female' | 'male' | null; approaches: string[]; nicheChip: string | null; nicheText: string; tone: string; pain: string; situation: number; situationFor?: string }
 // Первая реплика 4-го вопроса по нише из 3-го: чипы и свой текст по корням. Не совпало, последняя реплика
 // (про подругу: она подходит любой нише). «Другая ситуация» дальше идет по кругу со следующей.
 function situationFor(niche: string): number {
@@ -58,7 +58,7 @@ function situationFor(niche: string): number {
   return 2
 }
 
-const EMPTY: Answers = { name: '', approaches: [], nicheChip: null, nicheText: '', tone: '', pain: '', situation: 0 }
+const EMPTY: Answers = { name: '', gender: null, approaches: [], nicheChip: null, nicheText: '', tone: '', pain: '', situation: 0 }
 // 0 вход, 1-5 вопросы, 6 финал
 type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6
 
@@ -219,7 +219,7 @@ export default function ExpressOnboarding() {
 
   const niche = (a.nicheText.trim() || a.nicheChip || '')
   // на 4-м шаге «Дальше» ждет конца расшифровки, иначе текст придет после сохранения и потеряется
-  const valid: Record<number, boolean> = { 1: !!a.name.trim(), 2: a.approaches.length > 0, 3: !!niche, 4: !!a.tone.trim(), 5: true }
+  const valid: Record<number, boolean> = { 1: !!a.name.trim() && !!a.gender, 2: a.approaches.length > 0, 3: !!niche, 4: !!a.tone.trim(), 5: true }
 
   // запись голоса до минуты; текст встает в конец поля
   const appendTone = useCallback((t: string) => setA(x => ({ ...x, tone: x.tone.trim() ? `${x.tone.trim()} ${t}` : t })), [])
@@ -240,6 +240,8 @@ export default function ExpressOnboarding() {
     const profileData = {
       user_id: uid,
       full_name: a.name.trim(),
+      // род автора для текстов (16.11): генератор больше не угадывает его по имени
+      author_gender: a.gender === 'male' ? 'male' : 'female',
       approaches: a.approaches,
       niches: a.nicheChip && !a.nicheText.trim() ? [a.nicheChip] : [],
       one_niche: niche,
@@ -301,7 +303,7 @@ export default function ExpressOnboarding() {
   const inputCls = 'h-14 w-full rounded-[20px] bg-brand-card border-[1.5px] border-brand-border px-4 text-[16px] text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-accent focus:ring-[3px] focus:ring-brand-soft'
 
   const missing: Record<number, string> = {
-    1: 'Напиши имя, и пойдем дальше',
+    1: !a.name.trim() ? 'Напиши имя, и пойдем дальше' : 'Выбери, как ты говоришь о себе',
     2: 'Выбери хотя бы один подход',
     3: 'Впиши, с чем работаешь',
     4: transcribing ? 'Подожди, расшифровываю' : 'Наговори или напиши, что ответишь',
@@ -358,6 +360,14 @@ export default function ExpressOnboarding() {
         <input autoFocus value={a.name} onChange={e => setA({ ...a, name: e.target.value })} aria-label="Как тебя зовут"
           onKeyDown={e => { if (e.key === 'Enter') next() }} placeholder="Например, Анна" autoComplete="given-name" enterKeyHint="next"
           className={`mt-5 ${inputCls}`} />
+        {/* род автора (16.11, тексты copywriter-psycont): от него глаголы в текстах от ее или его лица */}
+        <p className="mt-6 text-[17px] leading-6 font-semibold text-brand-text">Как ты говоришь о себе?</p>
+        <p className="mt-1 text-[14px] leading-5 text-brand-muted">Тексты пишутся от твоего лица, так глаголы будут в нужном роде</p>
+        <div role="radiogroup" aria-label="Как ты говоришь о себе" className="mt-3 flex flex-wrap gap-2">
+          {([['female', '«Я заметила»'], ['male', '«Я заметил»']] as const).map(([g, label]) => (
+            <button key={g} type="button" role="radio" aria-checked={a.gender === g} onClick={() => setA({ ...a, gender: g })} className={chip(a.gender === g)}>{label}</button>
+          ))}
+        </div>
         {nextBlock()}
       </div>
     )

@@ -8,6 +8,7 @@ import { getSupabaseAdmin } from '@/lib/generation/db'
 import { adminTz, internalEmails, adminOrNull } from '@/lib/admin'
 import * as demo from './demo'
 import type { AdminOpts, Period, PersonRow, Overview, FunnelStep, Onboarding, MakeStats, Features, Costs, PersonDetail } from './admin-types'
+import { errTag } from '@/lib/safe-error'
 
 export type Loaded<T> = { data: T | null; error: null | 'no_migration' | 'failed' }
 
@@ -41,7 +42,7 @@ async function rpc<T>(fn: string, params: Record<string, unknown>): Promise<Load
     if (error) {
       // функции нет: миграция еще не применена
       const missing = error.code === 'PGRST202' || error.code === '42883' || error.code === '42P01'
-      if (!missing) console.warn('admin rpc', fn, error.code, error.message)
+      if (!missing) console.warn('admin rpc', fn, error.code, errTag(error))
       return { data: null, error: missing ? 'no_migration' : 'failed' }
     }
     return { data: data as T, error: null }
@@ -81,7 +82,7 @@ export async function loadLanding(o: AdminOpts): Promise<Loaded<LandingStats>> {
         .order('id', { ascending: true }).range(page * 1000, page * 1000 + 999)
       if (error) {
         const missing = error.code === '42P01' || error.code === 'PGRST205'
-        if (!missing) console.warn('admin landing', error.code, error.message)
+        if (!missing) console.warn('admin landing', error.code, errTag(error))
         return { data: null, error: missing ? 'no_migration' : 'failed' }
       }
       data.push(...(part || []))

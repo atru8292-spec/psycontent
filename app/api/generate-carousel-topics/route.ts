@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { generateWithAI } from '@/lib/openrouter'
 import { buildProfileContext } from '@/lib/profile-context'
 import { getSessionUser } from '@/lib/auth'
+import { errTag } from '@/lib/safe-error'
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -77,9 +78,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ topics })
 
   } catch (error: any) {
-    console.error('Generate carousel topics error:', error)
+    console.error('Generate carousel topics error:', errTag(error))
     return NextResponse.json(
-      { error: error?.message || 'Не удалось сгенерировать темы' },
+      { error: 'Не удалось подобрать темы, попробуй еще раз' },
       { status: 500 }
     )
   }

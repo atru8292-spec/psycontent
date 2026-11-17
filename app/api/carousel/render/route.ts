@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSessionUser } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/generation/db'
 import { loadBranding, loadDesign, loadImages, renderPng, isLongCarousel } from '@/lib/carousel/server'
+import { errTag } from '@/lib/safe-error'
 
 export const runtime = 'nodejs'
 
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
       },
     })
   } catch (e: any) {
-    console.error('carousel render:', e?.message)
+    console.error('carousel render:', errTag(e))
     return NextResponse.json({ error: 'Не получилось нарисовать слайд' }, { status: 500 })
   }
 }

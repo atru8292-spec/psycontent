@@ -12,6 +12,7 @@ import { zh6Popravit, zh6Write } from '@/lib/generation/zh6/write'
 import { formatByCode } from '@/lib/generation/zh6/formaty'
 import { zh6On, ZH6_ROLI } from '../new-pipeline'
 import { canConsume, commitConsume, recordRefusal } from '@/lib/energy'
+import { errTag } from '@/lib/safe-error'
 
 // «Другой заход» zh6 пишет целый текст: считаем как генерацию текста, как набор на «Сделать»
 const ZAHOD_OP = 'generate_post'
@@ -136,7 +137,7 @@ export async function POST(req: NextRequest) {
     await rememberButton(db, user.id, postId, action, profileRes.data)
     return NextResponse.json({ post })
   } catch (e: any) {
-    console.error('adjust error:', e?.message || e)
+    console.error('adjust error:', errTag(e))
     return NextResponse.json({ error: 'Не получилось поправить, попробуй еще раз' }, { status: 500 })
   }
 }

@@ -251,8 +251,8 @@ export async function POST(req: NextRequest) {
       supabase.from('brand_passports').select('content').eq('user_id', userId).single()
     ])
 
-    console.log('Profile fetch:', profileRes.error ? profileRes.error.message : 'OK')
-    console.log('Passport fetch:', passportRes.error ? passportRes.error.message : 'OK')
+    console.log('Profile fetch:', profileRes.error ? errTag(profileRes.error) : 'OK')
+    console.log('Passport fetch:', passportRes.error ? errTag(passportRes.error) : 'OK')
 
     const profile = profileRes.data || {}
 
@@ -299,7 +299,7 @@ export async function POST(req: NextRequest) {
     try {
       profileContext = buildProfileContext(profile)
     } catch (e: any) {
-      console.error('buildProfileContext error:', e)
+      console.error('buildProfileContext error:', errTag(e))
       profileContext = 'Профиль психолога не заполнен.'
     }
 
@@ -359,7 +359,7 @@ ${platformInstruction}
     })
 
     if (insertError) {
-      console.warn('Failed to save post to DB:', insertError.message)
+      console.warn('Failed to save post to DB:', errTag(insertError))
     }
     // текст готов и отдается человеку: материал засчитан (даже если запись в историю не удалась)
     await gate.commit()

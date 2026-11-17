@@ -50,14 +50,22 @@ export type AuthorSettings = {
 const arr = (v: unknown): string => (Array.isArray(v) ? v.filter(Boolean).join(', ') : v ? String(v) : '')
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n).replace(/\s+\S*$/, '') + '…' : s)
 
-// Пол автора: новое поле author_gender, иначе по имени (окончание на а/я), иначе женский.
-function genderOf(profile: any): 'female' | 'male' {
-  if (profile.author_gender === 'male' || profile.author_gender === 'female') return profile.author_gender
-  const first = String(profile.full_name || '').trim().split(/\s+/)[0] || ''
-  if (!first) return 'female'
-  const exceptionsMale = ['Илья', 'Никита', 'Кузьма', 'Фома', 'Савва', 'Лука', 'Муса', 'Иса']
-  if (exceptionsMale.includes(first)) return 'male'
-  return /[аяАЯ]$/.test(first) ? 'female' : 'male'
+// Род автора: поле author_gender (вопрос в знакомстве и в Профиле практики, 16.11), иначе женский.
+// По имени больше не угадываем (решение Арины 16.11): «Любовь», «Адель», «Тест» выходили мужчинами.
+export function genderOf(profile: any): 'female' | 'male' {
+  return profile?.author_gender === 'male' ? 'male' : 'female'
+}
+
+// Род читателя (16.11): по умолчанию читательница в женском роде (аудитория психологов в основном женщины).
+// Без рода, только если в «Кто тебя читает» или портрете клиента явно есть мужчины или пары; в мужском, если только мужчины.
+export function readerRuleOf(audience: string): string {
+  const women = /женщин|девушк|мам/i.test(audience)
+  const men = /мужчин|парн|отц|пап/i.test(audience)
+  // \b с кириллицей не работает (CLAUDE.md, грабли каруселей), граница слова через (?![а-яё])
+  const couples = /пар(?:[аыу]|ам|ами)?(?![а-яё])|супруг|семь/i.test(audience)
+  if (men && !women && !couples) return 'о читателе в мужском роде'
+  if ((men && women) || couples) return 'без родовых окончаний'
+  return 'о читательнице в женском роде'
 }
 
 // Обращение к читателю: новое поле reader_address, иначе по старому полю appeal.
@@ -171,7 +179,6 @@ export function buildAuthorSettings(profile: any, opts?: { rotation?: number }):
   // «Кто тебя читает» (экран голоса), иначе «Кто твой клиент» и «чем занимается» из профиля практики
   const audience = String(profile.audience || '').trim()
     || clip([String(profile.client_avatar || '').trim(), String(profile.client_job || '').trim()].filter(Boolean).join(', '), 200)
-  const womenAudience = /женщин|девушк|мам/i.test(audience) && !/мужчин|парн|пар[аы]/i.test(audience)
   const profanity = profile.profanity === 'free'
     ? 'свободно, как автор говорит в жизни; в Instagram со звездочкой в середине слова, в Telegram как у автора в образцах'
     : profile.profanity === 'light' ? 'иногда, точечно, со звездочкой в середине слова' : 'нет' // light в интерфейсе «Иногда, со звездочкой»
@@ -238,7 +245,7 @@ export function buildAuthorSettings(profile: any, opts?: { rotation?: number }):
     genderForms,
     address,
     profanityRule: profanity === 'нет' ? 'не использовать' : profile.profanity === 'free' ? 'автор матерится как в жизни, поэтому в материале мат обязательно есть, один-три раза, там где так сказали бы вслух: злость, шутка, облегчение, усталость; это короткая вспышка внутри живой фразы в момент, где правда бесит, своими словами под ситуацию, а не мат, пришитый к длинному аккуратному риторическому вопросу посреди объяснения; в речи рилса и в репликах слово целиком, как его произносят; в надписи на экране, описании, постах и слайдах для Instagram со звездочкой в середине слова' : 'можно точечно, там где автор злится или шутит, со звездочкой в середине слова',
-    readerGenderRule: womenAudience ? 'о читательнице в женском роде' : 'без родовых окончаний',
+    readerGenderRule: readerRuleOf(audience),
     disclosure,
     voiceCore,
     voiceCoreShort: voiceCoreShortOf(voiceCore),

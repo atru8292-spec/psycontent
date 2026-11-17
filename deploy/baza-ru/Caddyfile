@@ -31,6 +31,18 @@ db.psycont.ru {
 			}
 		}
 	}
+	# Регистрация по почте только через сайт (16.11, защита от ботов, app/api/auth/signup): прямые /auth/v1/signup,
+	# /auth/v1/otp и /auth/v1/magiclink (последние два тоже создают пользователя и шлют письмо) принимаем лишь с сервера
+	# сайта, остальным 404. Иначе бот обошел бы проверки сайта, создавал аккаунты без согласия и выедал лимит писем.
+	# Сайт /otp и /magiclink не использует; /resend (повторное письмо) и /recover (сброс пароля) открыты.
+	# Адрес сервера сайта менять здесь же (переезд сайта, раздел «Переезд сайта в Россию» в CLAUDE.md).
+	@signup_outside {
+		path /auth/v1/signup /auth/v1/otp /auth/v1/magiclink
+		not remote_ip 31.77.197.158
+	}
+	handle @signup_outside {
+		respond "Not found" 404
+	}
 	@api path /auth/v1/* /rest/v1/* /storage/v1/*
 	handle @api {
 		reverse_proxy api-gw:8000 {

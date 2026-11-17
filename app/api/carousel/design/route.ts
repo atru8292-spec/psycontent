@@ -17,6 +17,7 @@ import { parseDialog } from '@/lib/carousel/dialog'
 import { normPair } from '@/lib/carousel/pairs'
 import { suggestStyles } from '@/lib/carousel/suggest'
 import { brandVersion, loadBranding, loadDesign, designView, isCarouselPost, normDecor, normVariant, normOptions, variantFor, type Design } from '@/lib/carousel/server'
+import { errTag } from '@/lib/safe-error'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -108,7 +109,7 @@ export async function POST(req: NextRequest) {
   }
   const { data: saved, error } = await saveDesign(r => db.from('carousel_designs').upsert(r, { onConflict: 'post_id' }).select('*').single(), row)
   if (error || !saved) {
-    console.error('carousel design save:', error?.message)
+    console.error('carousel design save:', errTag(error))
     return NextResponse.json({ error: 'Не получилось сохранить оформление' }, { status: 500 })
   }
   return NextResponse.json({ design: viewOf({ ...saved, layout }, branding) })
@@ -155,7 +156,7 @@ function editLayout(d: Design, n: number, big: string, small: string): SlideLayo
 
 async function updateProfile(db: SupabaseClient, userId: string, patch: Record<string, any>) {
   const { error } = await db.from('onboarding_profiles').update(patch).eq('user_id', userId)
-  if (error) console.error('carousel profile update:', error.message)
+  if (error) console.error('carousel profile update:', errTag(error))
   return !error
 }
 
@@ -194,7 +195,7 @@ export async function PATCH(req: NextRequest) {
     // без миграции колонок нет: молча пропускаем, сохранению слайдов это не мешает
     const { error } = await db.from('carousel_designs').update({ export_count: (Number((d as any).export_count) || 0) + 1, exported_at: new Date().toISOString(), export_method: body.exported })
       .eq('id', d.id).eq('user_id', user.id)
-    if (error && !missingColumn(error)) console.error('carousel export mark:', error.message)
+    if (error && !missingColumn(error)) console.error('carousel export mark:', errTag(error))
     serverTrack(user.id, 'material_take', { how: body.exported, format: 'carousel', post: (d as any).post_id })
     return NextResponse.json({ ok: true })
   }

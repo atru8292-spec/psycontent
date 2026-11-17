@@ -1,5 +1,7 @@
 import { serverTrack } from './track-server'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { errTag } from './safe-error'
+import { LIMIT_REFUSAL } from './limit-texts'
 
 // Служебный клиент (service_role): энергией управляет ТОЛЬКО сервер.
 function admin(): SupabaseClient {
@@ -251,15 +253,13 @@ export async function canConsume(userId: string, operation: string, units = 1): 
       count = await usedForLimit(db, userId, plan.code)
     } catch (e: any) {
       // счетчик не прочитался (сбой базы): не пускаем молча мимо лимита; новый «Сделать» покажет свой текст о сбое
-      console.warn('canConsume: счетчик материалов не прочитан', String(e?.message || '').slice(0, 60))
+      console.warn('canConsume: счетчик материалов не прочитан', errTag(e))
       return { ok: false, mode: 'text', operation, cost: 0, reason: 'server_error', message: 'Не получилось проверить остаток материалов. Попробуй еще раз через минуту.' }
     }
     if (count >= cap) {
       // у бесплатного «пробные» (витрина: 10 без срока), у платных лимит месячный по календарю (periodKey). Тексты copywriter-psycont 11.11:
       // их же показывает новый «Сделать» (MakeFlow friendly), поэтому без глаголов от первого лица и без рода
-      const message = plan.code === 'free'
-        ? `Пробные материалы закончились, все ${cap} уже собраны. Чтобы писать дальше, нужен платный тариф. Оплата скоро появится, а голос и темы за это время никуда не денутся.`
-        : 'Материалы на этот месяц закончились, новые придут в начале следующего. Голос и темы сохранились.'
+      const message = plan.code === 'free' ? LIMIT_REFUSAL.trial(cap) : LIMIT_REFUSAL.month
       return refuse({ ok: false, mode: 'text', operation, cost: 0, reason: 'text_limit', message })
     }
     if (cap !== null && cap !== undefined && count + units > cap) {
@@ -285,7 +285,7 @@ export async function canConsume(userId: string, operation: string, units = 1): 
 
   if (op.requiresDeepAccess && !plan.deep_analysis && !trialLeft) {
     const message = plan.code === 'free'
-      ? 'Пробный разбор конкурента уже был. Глубокий разбор есть на платном тарифе, оплату скоро подключим.'
+      ? 'Пробный разбор конкурента уже был. Глубокий разбор есть на платном тарифе, оплату я еще подключаю.'
       : 'Глубокий разбор конкурента в твой тариф не входит. Он есть на тарифе выше.'
     return refuse({ ok: false, mode: 'blocked', operation, cost, reason: 'no_access', message })
   }
@@ -295,7 +295,7 @@ export async function canConsume(userId: string, operation: string, units = 1): 
   const balance = await getBalance(userId)
   if (balance < cost) {
     const message = plan.code === 'free'
-      ? 'Пробный разбор конкурента уже был. Глубокий разбор есть на платном тарифе, оплату скоро подключим.'
+      ? 'Пробный разбор конкурента уже был. Глубокий разбор есть на платном тарифе, оплату я еще подключаю.'
       : 'На разбор конкурента не хватает остатка на этот месяц. Он обновится в начале месяца, а еще можно перейти на тариф выше.'
     return refuse({ ok: false, mode: 'blocked', operation, cost, reason: 'insufficient', message, balance })
   }
@@ -357,6 +357,9 @@ export interface AccountSummary {
   plan: { code: string; name: string; isUnlimited: boolean; deepAnalysis: boolean }
   energy: { balance: number; monthlyAllowance: number; nextRefill: string | null } | null
   textTrial: { remaining: number; cap: number } | null
+  // Остаток материалов для показа (16.11, блок 1 запуска): пробный «без срока» или месячный у платных.
+  // null: тариф без предела (Тест) или счетчик не прочитался (тогда остаток просто не показываем)
+  materials: { remaining: number; cap: number; kind: 'trial' | 'month' } | null
 }
 
 export async function getAccountSummary(userId: string): Promise<AccountSummary> {
@@ -391,9 +394,17 @@ export async function getAccountSummary(userId: string): Promise<AccountSummary>
     if (used !== null) textTrial = { remaining: Math.max(0, plan.fair_use_text_cap - used), cap: plan.fair_use_text_cap }
   }
 
+  let materials: AccountSummary['materials'] = null
+  if (plan.code === 'free') materials = textTrial ? { ...textTrial, kind: 'trial' } : null
+  else if (!plan.is_unlimited && plan.fair_use_text_cap != null) {
+    const used = await usedForLimit(db, userId, plan.code).catch(() => null)
+    if (used !== null) materials = { remaining: Math.max(0, plan.fair_use_text_cap - used), cap: plan.fair_use_text_cap, kind: 'month' }
+  }
+
   return {
     plan: { code: plan.code, name: plan.name, isUnlimited: plan.is_unlimited, deepAnalysis: plan.deep_analysis },
     energy,
     textTrial,
+    materials,
   }
 }

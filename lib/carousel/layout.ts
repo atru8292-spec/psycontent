@@ -5,6 +5,7 @@ import { callJson } from '@/lib/generation/ai'
 import { fill } from '@/lib/generation/prompts'
 import { STYLES, type TemplateStyle } from './styles'
 import { isDialogText, isPose, POSES, POSE_RU, type Pose } from './dialog'
+import { errTag } from '@/lib/safe-error'
 
 export type SlideRole = 'cover' | 'text' | 'list' | 'pair' | 'final' | 'stop' | 'dialog'
 export type SlideLayout = {
@@ -216,7 +217,7 @@ export async function layoutWithModel(args: {
     const { layout, fixed } = checkLayout(args.slides, raw, args.style)
     return { layout, fixed, viaModel: true }
   } catch (e: any) {
-    console.warn('П7 не сработал, раскладка кодом:', e?.message)
+    console.warn('П7 не сработал, раскладка кодом:', errTag(e))
     return { layout: fallbackLayout(args.slides, args.style), fixed: args.slides.length, viaModel: false }
   }
 }

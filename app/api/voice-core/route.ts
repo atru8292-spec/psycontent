@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSessionUser } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/generation/db'
 import { recordEvent, rebuildVoice } from '@/lib/generation/learning'
+import { errTag } from '@/lib/safe-error'
 
 export async function GET() {
   const user = await getSessionUser()
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
     const r = await rebuildVoice(db, user.id, profile)
     return NextResponse.json({ ok: true, ...r })
   } catch (e: any) {
-    console.error('voice-core error:', e?.message || e)
+    console.error('voice-core error:', errTag(e))
     return NextResponse.json({ error: e?.message?.startsWith('Пока нет') ? e.message : 'Не получилось собрать голос, попробуй еще раз' }, { status: 500 })
   }
 }

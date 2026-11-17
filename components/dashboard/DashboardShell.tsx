@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { DashboardMeContext } from '@/lib/dashboard-me'
 import ScreenTracker from '@/components/analytics/ScreenTracker'
+import { isMaterials, pillText, pillAria, TARIFF_HREF, type Materials } from '@/lib/limit-texts'
 
 // старое меню: карусели, хуки, рилс, рерайт и анализ конкурентов спрятаны (сведены в «Сделать», _знания/lending-dogon/LISHNEE-NA-SAYTE.md
 // пункты 3 и 9); страницы открываются по прямой ссылке, старый «Сделать» сам ведет на карусели и рилс
@@ -77,12 +78,26 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     fetch('/api/me').then((r) => (r.ok ? r.json() : null)).then((j) => { if (on) setEnergy(j) }).catch(() => {}).finally(() => { if (on) setMeLoaded(true) })
     return () => { on = false }
   }, [])
+  // Перечитать сводку после генерации (остаток материалов в шапке, сайдбаре и на «Сделать»). Сбой оставляет прошлую
+  const refreshMe = useCallback(() => {
+    fetch('/api/me', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) setEnergy(j) }).catch(() => {})
+  }, [])
+  const materials: Materials | null = isMaterials(energy?.materials) ? energy.materials : null
 
   const newMenu = energy?.newPipeline === true
-  // В новом меню нет «Главной»: кабинет открывается на «Создать»
+  // В новом меню нет «Главной»: кабинет открывается на «Создать».
+  // Только после guard (status ready): иначе у человека без профиля этот переход перебивал уход
+  // в онбординг, guard уже стоял в 'redirecting', и кабинет навсегда оставался кружком (16.11)
   useEffect(() => {
-    if (newMenu && pathname === '/dashboard') router.replace('/dashboard/make')
-  }, [newMenu, pathname, router])
+    if (status === 'ready' && newMenu && pathname === '/dashboard') router.replace('/dashboard/make')
+  }, [status, newMenu, pathname, router])
+
+  // Уводим и страхуемся: если клиентский переход кто-то перебил и мы все еще здесь, уходим полной загрузкой
+  const leave = (to: string) => {
+    setStatus('redirecting')
+    router.replace(to)
+    window.setTimeout(() => { if (window.location.pathname !== to) window.location.replace(to) }, 2500)
+  }
 
   // Guard: в кабинет пускаем только юзера с заполненным профилем.
   // Используем тот же запрос профиля, что и для имени в сайдбаре.
@@ -90,12 +105,12 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     let active = true
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!active) return
-      if (!user) { setStatus('redirecting'); router.replace('/'); return }
-      supabase.from('onboarding_profiles').select('full_name').eq('user_id', user.id).single()
+      if (!user) { leave('/'); return }
+      supabase.from('onboarding_profiles').select('full_name').eq('user_id', user.id).maybeSingle()
         .then(({ data, error }) => {
           if (!active) return
-          // PGRST116 = строки нет (нет профиля) -> ведем на короткий онбординг
-          if (error && error.code === 'PGRST116') { setStatus('redirecting'); router.replace('/onboarding/express'); return }
+          // строки нет (нет профиля) -> ведем на короткий онбординг. maybeSingle не дает 406 в консоли
+          if (!error && !data) { leave('/onboarding/express'); return }
           // иная ошибка = сбой чтения (права/сеть). НЕ выкидываем на онбординг (была петля), показываем мягкий повтор
           if (error || !data) { setStatus('error'); return }
           setProfile(data)
@@ -191,6 +206,14 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             {collapsed && <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-brand-text text-white text-xs rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">Настройки</div>}
           </Link>}
 
+          {materials && (
+            <Link href={TARIFF_HREF} aria-label={pillAria(materials)} title={pillAria(materials)}
+              className={`flex items-center gap-2 min-h-11 px-3 rounded-2xl text-brand-text hover:bg-brand-soft transition ${collapsed ? 'justify-center px-0' : ''}`}>
+              <span className={`inline-flex items-center h-7 px-2.5 rounded-full text-[13px] font-semibold tabular-nums ${materials.remaining === 0 ? 'bg-brand-soft-2' : 'bg-brand-soft'}`}>{pillText(materials)}</span>
+              {!collapsed && <span className="text-[13px] text-brand-muted truncate">{materials.kind === 'trial' ? 'пробных' : 'в месяце'}</span>}
+            </Link>
+          )}
+
           <div className={`flex items-center gap-3 px-3 py-2.5 mt-1 rounded-2xl bg-brand-soft ${collapsed ? 'justify-center' : ''}`}>
             <div className="w-7 h-7 rounded-full bg-brand-soft-2 flex items-center justify-center shrink-0">
               <User className="w-3.5 h-3.5 text-brand-accent" />
@@ -222,7 +245,12 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             height={24}
             className="h-6 w-auto"
           />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            {materials && (
+              <Link href={TARIFF_HREF} aria-label={pillAria(materials)} className="h-11 flex items-center px-1">
+                <span className={`inline-flex items-center h-8 px-3 rounded-full text-[13px] font-semibold text-brand-text tabular-nums ${materials.remaining === 0 ? 'bg-brand-soft-2' : 'bg-brand-soft'}`}>{pillText(materials)}</span>
+              </Link>
+            )}
             {!newMenu && <Link href="/dashboard/settings" className="w-11 h-11 flex items-center justify-center text-brand-muted hover:text-brand-accent transition">
               <Settings className="w-5 h-5" />
             </Link>}
@@ -233,7 +261,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         </header>
 
         <ScreenTracker />
-        <DashboardMeContext.Provider value={{ me: energy, loaded: meLoaded, typing }}>{children}</DashboardMeContext.Provider>
+        <DashboardMeContext.Provider value={{ me: energy, loaded: meLoaded, typing, refresh: refreshMe }}>{children}</DashboardMeContext.Provider>
         {/* реквизиты и ссылки на оферту и политику под содержимым каждой страницы кабинета (ЮKassa проверяет ИНН на каждой странице) */}
         <LegalLine className={`mx-auto w-full max-w-3xl px-4 pt-10 md:px-6 ${pathname.startsWith('/dashboard/edit-profile') ? 'pb-32' : 'pb-6 max-lg:pb-24'}`} />
       </main>

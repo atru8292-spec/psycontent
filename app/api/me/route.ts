@@ -4,9 +4,8 @@ import { getAccountSummary } from '@/lib/energy'
 import { createClient } from '@/utils/supabase/server'
 import { isNewPipeline } from '@/lib/generation/context'
 
-// Read-only сводка по своему аккаунту (тариф + энергия + у Free остаток проб).
-// Только чтение и только свои данные. Скрытый счётчик текста платных и usage_log
-// клиенту не отдаём — это серверные данные (см. CLAUDE.md).
+// Read-only сводка по своему аккаунту (тариф, энергия, остаток материалов materials: пробные или месячные,
+// витрина 12.11 показывает 50/150). Только чтение и только свои данные; usage_log клиенту не отдаем.
 // newPipeline: включен ли новый мозг именно для этого человека. Считает сервер тем же
 // isNewPipeline, что и генерация, чтобы экран и генерация не расходились.
 export async function GET() {

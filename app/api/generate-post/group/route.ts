@@ -36,6 +36,7 @@ import {
   fetchTelegramPost, isInstagramUrl, isTelegramUrl, parseSample, sampleBlock, sourceLabel, overlap, sentencesWithChains, sentencesWithTrigrams,
   type SampleInput, type SampleSkeleton,
 } from '@/lib/generation/sample'
+import { errTag } from '@/lib/safe-error'
 
 export const maxDuration = 300
 
@@ -213,7 +214,7 @@ export async function POST(req: NextRequest) {
         // старый материал без группы становится первым в группе (без колонки просто не выйдет, это не мешает)
         if (origin && !origin.group_id) {
           await db.from('generated_posts').update({ group_id: groupId, core }).eq('id', origin.id).eq('user_id', userId)
-            .then(r => { if (r.error) console.warn('group_id on origin post failed:', r.error.message) })
+            .then(r => { if (r.error) console.warn('group_id on origin post failed:', errTag(r.error)) })
         }
 
         // Коды форматов: вид рилса выбираем заранее, чтобы блок ядра и соседи знали, сценка это или монолог
@@ -277,7 +278,7 @@ export async function POST(req: NextRequest) {
             const vidZamenen = (!!vidZaproshen && vzyat !== vidZaproshen) || (!!kartaZaproshena && !kartaZaproshena.includes(vzyat))
             return { f, ok: true as const, req: greq, text, plan, version, draftText, zh4, formatName, vidZamenen }
           } catch (e: any) {
-            console.error('group format failed:', f, e?.message || e)
+            console.error('group format failed:', f, errTag(e))
             serverTrack(userId, 'make_error', { code: 'format_failed', format: f })
             return { f, ok: false as const }
           }
@@ -354,7 +355,7 @@ export async function POST(req: NextRequest) {
         serverTrack(userId, 'make_done', { formats: fmtList, ms: Date.now() - t0, n_ok: results.filter(x => x.ok).length })
         send({ type: 'done', groupId })
       } catch (e: any) {
-        console.error('group generation error:', e?.message || e)
+        console.error('group generation error:', errTag(e))
         await recordFailure(userId, OP).catch(() => {})
         serverTrack(userId, 'make_error', { code: 'server', format: fmtList })
         send({ type: 'error', error: 'Не получилось собрать мысль. Попробуй еще раз' })

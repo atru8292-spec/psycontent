@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { track } from '@/lib/track'
 import AuthModal from '@/components/AuthModal'
 import { T } from '@/lib/auth-texts'
+import { X } from 'lucide-react'
 
 type Who = 'unknown' | 'anon' | 'noprofile' | 'profile'
 type Place = 'hero' | 'how' | 'pricing' | 'final' | 'header'
@@ -56,7 +57,9 @@ export default function LandingShell({ children }: { children: React.ReactNode }
       const wantsLogin = q.get('auth') === 'login'
       // /?auth=register&nado=soglasie: вход через Яндекс без аккаунта и без галочки согласия (app/auth/yandex/callback)
       const wantsRegister = q.get('auth') === 'register'
-      if (wantsLogin || wantsRegister) window.history.replaceState(null, '', window.location.pathname + window.location.hash)
+      // /?udalen=1: человек только что сам удалил аккаунт в Профиле (components/DeleteAccount.tsx)
+      if (q.get('udalen') === '1') setGoodbye(true)
+      if (wantsLogin || wantsRegister || q.get('udalen')) window.history.replaceState(null, '', window.location.pathname + window.location.hash)
       if (w === 'profile') router.replace('/dashboard')
       else if (w === 'anon' && wantsLogin) setModal({ mode: 'login' })
       else if (w === 'anon' && wantsRegister) setModal({ mode: 'register', note: q.get('nado') === 'soglasie' ? T.yandexNeedConsent : undefined })
@@ -73,10 +76,19 @@ export default function LandingShell({ children }: { children: React.ReactNode }
   }, [who, router])
 
   const login = useCallback(() => setModal({ mode: 'login' }), [])
+  const [goodbye, setGoodbye] = useState(false)
 
   return (
     <LandingCtx.Provider value={{ who, start, login, heroCtaGone, setHeroCtaGone }}>
       {children}
+      {goodbye && (
+        <div role="status" className="fixed inset-x-0 top-16 z-50 px-4 flex justify-center">
+          <div className="w-full max-w-md flex items-start gap-2 rounded-2xl bg-brand-card border border-brand-border shadow-lg px-4 py-3 text-[15px] leading-[22px] text-brand-text">
+            <p className="min-w-0 flex-1">Аккаунт и все данные удалены. Если захочется вернуться, можно зарегистрироваться заново, с чистого листа.</p>
+            <button type="button" onClick={() => setGoodbye(false)} aria-label="Закрыть" className="w-11 h-11 -m-2 flex items-center justify-center text-brand-muted hover:text-brand-text cursor-pointer shrink-0"><X className="w-5 h-5" /></button>
+          </div>
+        </div>
+      )}
       <AuthModal isOpen={!!modal} onClose={() => setModal(null)} initialMode={modal?.mode || 'register'} contextNote={modal?.note} />
     </LandingCtx.Provider>
   )
