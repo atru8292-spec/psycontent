@@ -39,6 +39,12 @@ export const EVENTS = {
   paywall_view: ['where'],                           // клиент: показан LimitNotice или блок тарифов
   account_delete: ['reason', 'days', 'materials'],  // сервер: человек удалил аккаунт сам (без user_id: аккаунт и его строки стерты). reason коды чипов через запятую
   plan_click: ['plan'],                              // клиент: нажала на тариф
+  pay_start: ['plan', 'auto', 'via'],                // сервер: человек ушел на страницу ЮKassa (via sbp|any, auto согласие на автопродление)
+  pay_done: ['plan', 'kind', 'via'],                 // сервер: платеж подтвержден API ЮKassa (kind first|renewal)
+  pay_failed: ['kind', 'reason'],                    // сервер: платеж отменен (код причины ЮKassa)
+  pay_autorenew_off: [],                             // сервер: человек выключил автопродление
+  pay_plan_change: ['plan', 'cancel'],               // сервер: смена тарифа со следующего списания (cancel: вернулась к текущему)
+  pay_method_delete: [],                             // сервер: человек удалил способ оплаты
 
   // ---- вход по ссылкам из писем (app/auth/podtverdit, app/auth/novyy-parol) ----
   // Пишутся только после того, как ссылка дала сессию: без входа /api/ev их не принимает.

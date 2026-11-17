@@ -3,7 +3,7 @@
 // Кнопка «Удалить аккаунт» внизу Профиля (16.11, блок 1 запуска). Удаляет сразу и навсегда: аккаунт, все тексты,
 // голос, темы и фото (POST /api/account/delete). Вопрос «что остановило» только чипами: свободный текст не храним,
 // аккаунта уже не будет, а в тексте могут быть личные данные. Тексты copywriter-psycont 16.11.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { X, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { REKV } from '@/lib/rekvizity'
@@ -22,6 +22,12 @@ export default function DeleteAccount() {
   const [picked, setPicked] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // оплаченный тариф (17.11): сказать, что дни пропадут и как вернуть деньги
+  const [paidUntil, setPaidUntil] = useState<string | null>(null)
+  useEffect(() => {
+    if (!open) return
+    fetch('/api/pay/me', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).then(j => setPaidUntil(j?.paid && j.until ? new Date(j.until).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' }) : null)).catch(() => {})
+  }, [open])
 
   const toggle = (id: string) => setPicked(p => (p.includes(id) ? p.filter(x => x !== id) : [...p, id]))
 
@@ -58,6 +64,7 @@ export default function DeleteAccount() {
               </button>
             </div>
             <p className="mt-2 text-[15px] leading-[22px] text-brand-text-secondary">Сразу удалятся аккаунт, все тексты, голос, темы и фото. Вернуть их потом не получится.</p>
+            {paidUntil && <p className="mt-2 rounded-2xl bg-brand-soft px-4 py-3 text-[15px] leading-[22px] text-brand-text">Тариф оплачен до {paidUntil}. Автопродление выключится, а оставшиеся дни пропадут. Вернуть деньги за них можно, если сначала написать на {REKV.email}.</p>}
 
             <p className="mt-5 text-[15px] text-brand-text">Если хочешь, расскажи, что остановило</p>
             <div className="mt-2 flex flex-wrap gap-2">

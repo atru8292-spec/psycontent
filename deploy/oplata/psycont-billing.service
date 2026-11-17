@@ -1,0 +1,13 @@
+# Таймер оплаты PsyCont (17.11): раз в час дергает /api/cron/billing на 127.0.0.1:3001 (сверка зависших платежей,
+# письма за 3 дня, продления, конец окна). pm2 и razbor-* не трогает. Секрет в /etc/psycont-billing.header (600, root),
+# тот же, что CRON_SECRET в /var/www/psycont/.env. Ставить: cp в /etc/systemd/system, systemctl daemon-reload,
+# systemctl enable --now psycont-billing.timer. Журнал: journalctl -u psycont-billing -n 20
+[Unit]
+Description=PsyCont billing run (renewals, reminders, reconcile)
+After=network-online.target
+
+[Service]
+Type=oneshot
+# секрет не в аргументах (их видно в ps): файл /etc/psycont-billing.header с одной строкой «X-Cron-Secret: <секрет>», права 600
+ExecStart=/usr/bin/curl -fsS --max-time 300 -X POST -H @/etc/psycont-billing.header http://127.0.0.1:3001/api/cron/billing
+Nice=10

@@ -11,6 +11,7 @@ import { ARCHETYPES, ARCHETYPE_ACCENT, archetypeLabel, flexibleLine, getArchetyp
 import { ArchetypeGlyph, FlexibleGlyph } from '@/lib/archetype-glyphs'
 import { isMaterials, profileLine } from '@/lib/limit-texts'
 import DeleteAccount from '@/components/DeleteAccount'
+import SubscriptionCard from '@/components/SubscriptionCard'
 
 const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
 
@@ -206,7 +207,8 @@ export default function SettingsPage() {
               {isMaterials((summary as any)?.materials) && (
                 <p className="-mt-1 mb-3 text-[15px] leading-[22px] text-brand-text-secondary">{profileLine((summary as any).materials)}</p>
               )}
-              <TariffSection currentCode={summary?.plan?.code} />
+              <SubscriptionCard />
+              <TariffSection currentCode={summary?.plan?.code} paymentsOn={(summary as any)?.paymentsOn === true} />
             </section>
             <DeleteAccount />
           </div>

@@ -87,18 +87,42 @@ interface PlanRow {
   deep_analysis: boolean
 }
 
-async function getPlanForUser(db: SupabaseClient, userId: string): Promise<PlanRow> {
-  const { data: sub } = await db.from('user_subscription').select('plan_id').eq('user_id', userId).maybeSingle()
+// windowKey (17.11, оплата): у оплаченной подписки лимит считается по окну [period_start, period_end), ключ счетчика
+// 'wYYYY-MM-DD' (день начала окна по Москве), а не по календарному месяцу. Пробные (ключи 'YYYY-MM') в окно не входят,
+// поэтому не съедают первый платный месяц. Окно кончилось или подписка expired: тариф снова free, даже если таймер
+// оплаты еще не успел переключить plan_id. Подписки без period_end (тариф выдан руками, «Тест») живут как раньше.
+type PlanCtx = PlanRow & { windowKey: string | null }
+export function windowKeyOf(periodStart: string | Date): string {
+  const msk = new Date(new Date(periodStart).getTime() + 3 * 3600000)
+  return `w${msk.toISOString().slice(0, 10)}`
+}
+
+async function getPlanForUser(db: SupabaseClient, userId: string): Promise<PlanCtx> {
+  let { data: sub, error: subErr } = await db.from('user_subscription').select('plan_id, status, period_start, period_end').eq('user_id', userId).maybeSingle()
+  // колонки status еще нет (код выкатили раньше миграции оплаты): читаем по-старому, без окна (ревью 17.11)
+  if (subErr && /42703|status|column/i.test(`${subErr.code} ${subErr.message}`)) {
+    const old = await db.from('user_subscription').select('plan_id, period_start, period_end').eq('user_id', userId).maybeSingle()
+    sub = old.data ? { ...old.data, status: 'trial' } as any : null
+  }
   let plan: PlanRow | null = null
+  let windowKey: string | null = null
   if (sub?.plan_id) {
     const { data } = await db.from('plans').select('*').eq('id', sub.plan_id).maybeSingle()
     plan = (data as PlanRow) ?? null
+    if (plan && plan.code !== 'free' && !plan.is_unlimited && sub.period_end) {
+      // пока идут повторы списания (past_due), тариф работает (решение Арины 17.11); expired: выключен
+      const over = sub.status === 'expired' || (sub.status !== 'past_due' && new Date(sub.period_end) <= new Date())
+      if (over) plan = null
+      else if (sub.period_start) windowKey = windowKeyOf(sub.period_start)
+    }
   }
   if (!plan) {
     const { data } = await db.from('plans').select('*').eq('code', 'free').maybeSingle()
     plan = data as PlanRow
   }
-  return plan
+  // тариф не прочитался (сбой базы): бросаем, как раньше; иначе пустой объект без предела пустил бы мимо лимита
+  if (!plan) throw Object.assign(new Error('plan'), { code: 'plan_read_failed' })
+  return { ...plan, windowKey }
 }
 
 export async function getBalance(userId: string): Promise<number> {
@@ -130,9 +154,11 @@ function periodKey(): string {
 // (витрина lib/pricing.ts: 10 материалов без срока): складываем счетчик за все месяцы. У платных лимит месячный
 // по календарю: только текущий месяц. Сам счетчик пишется по месяцам как раньше (incrementText), таблица та же.
 // Ошибка чтения бросается: иначе при сбое базы сумма 0 и лимит молча открыт (ревью 12.11); canConsume отказывает.
-export async function usedForLimit(db: SupabaseClient, userId: string, planCode: string): Promise<number> {
+export async function usedForLimit(db: SupabaseClient, userId: string, planCode: string, windowKey?: string | null): Promise<number> {
   let q = db.from('text_usage_counter').select('count').eq('user_id', userId)
-  if (planCode !== 'free') q = q.eq('period', periodKey())
+  // пробный: все календарные месяцы, без окон оплаченных подписок (иначе после конца подписки ее материалы съели бы пробные)
+  if (planCode === 'free') q = q.not('period', 'like', 'w%')
+  else q = q.eq('period', windowKey || periodKey())
   const { data, error } = await q
   if (error) throw new Error(`text_usage_counter: ${error.code || 'read_failed'}`)
   return (data || []).reduce((s: number, r: any) => s + (Number(r?.count) || 0), 0)
@@ -250,7 +276,7 @@ export async function canConsume(userId: string, operation: string, units = 1): 
     if (cap === null || cap === undefined) return { ok: true, mode: 'text', operation, cost: 0 }
     let count: number
     try {
-      count = await usedForLimit(db, userId, plan.code)
+      count = await usedForLimit(db, userId, plan.code, plan.windowKey)
     } catch (e: any) {
       // счетчик не прочитался (сбой базы): не пускаем молча мимо лимита; новый «Сделать» покажет свой текст о сбое
       console.warn('canConsume: счетчик материалов не прочитан', errTag(e))
@@ -312,7 +338,9 @@ export async function commitConsume(userId: string, operation: string, decision:
   const cost = decision.cost
 
   if (decision.mode === 'text') {
-    await incrementText(db, userId)
+    // ключ счетчика тот же, по которому считался лимит: окно оплаченной подписки или календарный месяц
+    const ctx = await getPlanForUser(db, userId).catch(() => null)
+    await incrementText(db, userId, ctx?.windowKey || periodKey())
     await logUsage(db, userId, operation, 0, 0, realCost)
     return { ok: true }
   }
@@ -390,14 +418,14 @@ export async function getAccountSummary(userId: string): Promise<AccountSummary>
   let textTrial: AccountSummary['textTrial'] = null
   if (plan.code === 'free' && plan.fair_use_text_cap != null) {
     // сводка не должна падать из-за сбоя чтения счетчика: тогда остаток просто не показываем
-    const used = await usedForLimit(db, userId, plan.code).catch(() => null)
+    const used = await usedForLimit(db, userId, plan.code, plan.windowKey).catch(() => null)
     if (used !== null) textTrial = { remaining: Math.max(0, plan.fair_use_text_cap - used), cap: plan.fair_use_text_cap }
   }
 
   let materials: AccountSummary['materials'] = null
   if (plan.code === 'free') materials = textTrial ? { ...textTrial, kind: 'trial' } : null
   else if (!plan.is_unlimited && plan.fair_use_text_cap != null) {
-    const used = await usedForLimit(db, userId, plan.code).catch(() => null)
+    const used = await usedForLimit(db, userId, plan.code, plan.windowKey).catch(() => null)
     if (used !== null) materials = { remaining: Math.max(0, plan.fair_use_text_cap - used), cap: plan.fair_use_text_cap, kind: 'month' }
   }
 
