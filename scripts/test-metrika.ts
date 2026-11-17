@@ -94,6 +94,20 @@ async function main() {
   go('/admin'); M.goal('plan_click'); assert.notEqual(calls.at(-1)![2], 'plan_click', 'в /admin цели не уходят')
   M.metrikaRoute(); assert.equal(g.__reloaded, true)
 
+  // оплата: цель после подтверждения сервером, один раз на платеж
+  go('/dashboard/oplata/itog'); g.location.search = '?p=0f8fad5b-d9cb-469f-a165-70867728950e'
+  n = calls.length
+  M.goalsFromTrack('feature_open', { feature: 'pay_itog_checking' })
+  M.goalsFromTrack('feature_open', { feature: 'pay_itog_done' }); M.goalsFromTrack('feature_open', { feature: 'pay_itog_done' })
+  assert.deepEqual(calls.slice(n).map(c => c[2]), ['pay_success'])
+  g.location.search = ''
+
+  // токены из адресов входа в Метрику не уходят, метки остаются
+  assert.equal(M.cleanUrl('https://psycont.ru/auth/podtverdit?token_hash=abc&type=signup#access_token=x'), 'https://psycont.ru/auth/podtverdit')
+  assert.equal(M.cleanUrl('https://psycont.ru/?utm_source=vk&email=a@b.ru&yclid=5'), 'https://psycont.ru/?utm_source=vk&yclid=5')
+  go('/auth/novyy-parol'); g.location.href = 'https://psycont.ru/auth/novyy-parol?code=secret'; M.metrikaRoute()
+  assert.equal(calls.at(-1)![2], 'https://psycont.ru/auth/novyy-parol')
+
   // идентификаторы целей ровно как в Метрике
   assert.deepEqual([...M.GOALS].sort(), ['first_copy', 'first_material', 'land_cta', 'land_signup_open', 'login_yandex', 'make_first_click',
     'onb_done', 'onb_step_1', 'onb_step_2', 'onb_step_3', 'onb_step_4', 'onb_step_5', 'pay_success', 'paywall_view', 'plan_click',

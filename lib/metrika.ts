@@ -44,6 +44,20 @@ function hostAllowed(): boolean {
   } catch { return false }
 }
 
+// Адрес для Метрики: без hash и без query, кроме меток рекламы. В адресах входа лежат одноразовые токены
+// (/auth/podtverdit?token_hash=..., #access_token=...), в Метрику они уйти не должны
+const KEEP = /^(utm_[a-z]+|yclid|gclid|ysclid)$/i
+export function cleanUrl(href: string): string {
+  try {
+    const u = new URL(href)
+    const q = new URLSearchParams()
+    u.searchParams.forEach((v, k) => { if (KEEP.test(k)) q.append(k, v) })
+    const s = q.toString()
+    return `${u.origin}${u.pathname}${s ? '?' + s : ''}`
+  } catch { return '' }
+}
+const here = () => cleanUrl(location.href)
+
 let loaded = false
 let lastUrl = ''
 export const metrikaLoaded = () => loaded
@@ -52,7 +66,7 @@ export const metrikaLoaded = () => loaded
 export function rememberLandingUrl() {
   try {
     if (sessionStorage.getItem(LAND_URL_KEY)) return
-    if (/[?&](utm_[a-z]+|yclid|gclid)=/i.test(location.search)) sessionStorage.setItem(LAND_URL_KEY, JSON.stringify({ url: location.href, ref: document.referrer }))
+    if (/[?&](utm_[a-z]+|yclid|gclid)=/i.test(location.search)) sessionStorage.setItem(LAND_URL_KEY, JSON.stringify({ url: here(), ref: cleanUrl(document.referrer) }))
   } catch {}
 }
 
@@ -74,15 +88,16 @@ export function loadMetrika(): boolean {
   // с метками (визит и источник считаются верно), вторым текущая страница
   let saved: { url?: string; ref?: string } | null = null
   try { saved = JSON.parse(sessionStorage.getItem(LAND_URL_KEY) || 'null') } catch {}
-  const first = saved?.url && saved.url !== location.href ? saved.url : location.href
+  const now = here()
+  const first = saved?.url && saved.url !== now ? saved.url : now
   w.ym(METRIKA_ID, 'init', {
     ssr: true, webvisor: true, clickmap: true, ecommerce: 'dataLayer',
-    referrer: first === location.href ? document.referrer : saved?.ref || '', url: first, accurateTrackBounce: true, trackLinks: true,
+    referrer: first === now ? cleanUrl(document.referrer) : saved?.ref || '', url: first, accurateTrackBounce: true, trackLinks: true,
   })
-  if (first !== location.href) w.ym(METRIKA_ID, 'hit', location.href, { referer: first })
+  if (first !== now) w.ym(METRIKA_ID, 'hit', now, { referer: first })
   try { sessionStorage.removeItem(LAND_URL_KEY) } catch {}
   loaded = true
-  lastUrl = location.href
+  lastUrl = now
   if (location.pathname.startsWith('/dashboard')) prepareFirsts()
   return true
 }
@@ -92,9 +107,10 @@ export function metrikaRoute() {
   if (typeof window === 'undefined') return
   if (!metrikaPathAllowed(location.pathname)) { if (loaded) location.reload(); return }
   if (!loaded) { loadMetrika(); return }
-  if (location.href === lastUrl) return
-  ;(window as any).ym(METRIKA_ID, 'hit', location.href, { referer: lastUrl })
-  lastUrl = location.href
+  const now = here()
+  if (now === lastUrl) return
+  ;(window as any).ym(METRIKA_ID, 'hit', now, { referer: lastUrl })
+  lastUrl = now
   if (location.pathname.startsWith('/dashboard')) prepareFirsts()
 }
 
@@ -164,6 +180,18 @@ export function goalsFromTrack(event: string, props?: Record<string, string | nu
     case 'paywall_view': goal('paywall_view'); break
     case 'plan_click': goal('plan_click'); break
     case 'auth_link_ok': if (props?.kind === 'signup') goal('signup_done'); break
+    // Оплата (ветка feat/oplata): экран итога пишет feature_open pay_itog_done только после ответа сервера
+    // «succeeded» (/api/pay/status), а не при возврате со страницы ЮKassa. Один раз на платеж (номер платежа ?p=).
+    case 'feature_open':
+      if (props?.feature === 'pay_itog_done') {
+        try {
+          const p = new URLSearchParams(location.search).get('p') || ''
+          if (!/^[0-9a-f-]{36}$/.test(p) || localStorage.getItem(`psy_g_pay_${p}`) === '1') break
+          localStorage.setItem(`psy_g_pay_${p}`, '1')
+          goal('pay_success')
+        } catch {}
+      }
+      break
     case 'material_take': if (String(props?.how || '').startsWith('copy')) void goalFirst('copy'); break
   }
 }
