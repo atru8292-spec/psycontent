@@ -9,6 +9,6 @@ import { DRAFT } from './mail-texts'
 export function billingReady(): boolean {
   if (!ykConfigured()) return false
   if (process.env.NODE_ENV !== 'production') return true
-  if (process.env.BILLING_DRAFT_OK === '1') return true
-  return !DRAFT && smtpConfigured()
+  // BILLING_DRAFT_OK снимает только проверку черновиков; без SMTP оплата не включается никогда (ревью 17.11)
+  return (process.env.BILLING_DRAFT_OK === '1' || !DRAFT) && smtpConfigured()
 }

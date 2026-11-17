@@ -396,6 +396,18 @@ function setup(start = '2026-11-17T09:00:00Z') {
     assert.equal(t.m.consents.length, 2)
   }
   {
+    // 16. письмо «за 3 дня» не ушло (SMTP): отметка снята, списания нет, следующий прогон шлет снова
+    const t = setup(); await paidWithCard(t)
+    const orig = t.d.mail; t.d.mail = async (kind, to, data) => (kind === 'reminder' ? false : orig(kind, to, data))
+    t.at('2026-12-14T10:00:00Z'); await B.runBilling(t.d)
+    assert.equal((await t.m.repo.getSub(U))!.reminder_sent_for, null)
+    t.at('2026-12-17T09:30:00Z'); await B.runBilling(t.d)
+    assert.equal(t.f.calls.filter(c => c.body?.payment_method_id).length, 0, 'без письма не списываем')
+    t.d.mail = orig
+    t.at('2026-12-17T10:30:00Z'); await B.runBilling(t.d)
+    assert.equal(t.mails.at(-1)!.kind, 'reminder', 'письмо ушло, когда SMTP ожил')
+  }
+  {
     // 13.9 цены из lib/pricing.ts
     const { PLANS } = await import('../lib/pricing')
     for (const code of ['start', 'practice'] as const) assert.equal(B.PAID_PLANS[code].price, PLANS.find(p => p.dbCodes[0] === code)!.price)

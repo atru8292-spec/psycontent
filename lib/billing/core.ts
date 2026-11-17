@@ -246,7 +246,8 @@ export async function processPayment(d: Deps, api: YkPayment): Promise<string> {
     const sub = await d.repo.getSub(row.user_id!)
     const to = row.email || await d.repo.userEmail(row.user_id!)
     const auto = !!sub?.auto_renew
-    if (to) await sent(d.mail('paid', to, { plan: planName(row.plan_code), amount: money(row.amount), until: dateRu(sub?.period_end || row.period_end!), next: auto && sub?.next_charge_at ? `Следующее списание ${dateRu(sub.next_charge_at)}, ${money(row.amount)}` : 'Автопродление выключено' }))
+    const paidSent = !!to && await sent(d.mail('paid', to, { plan: planName(row.plan_code), amount: money(row.amount), until: dateRu(sub?.period_end || row.period_end!), next: auto && sub?.next_charge_at ? `Следующее списание ${dateRu(sub.next_charge_at)}, ${money(row.amount)}` : 'Автопродление выключено' }))
+    if (!paidSent) d.log?.(`pay mail: письмо об оплате не ушло, платеж ${row.id}`)
     d.track?.(row.user_id, 'pay_done', { plan: row.plan_code, kind: row.kind, via: api.payment_method?.type || 'unknown' })
     if ((won.note || '').includes('double')) d.log?.('pay: двойная оплата, окно сложено, предложить возврат')
     return row.kind === 'first' ? 'activated' : 'renewed'
@@ -373,7 +374,13 @@ async function remind(d: Deps, s: SubRow, chargeAt: string): Promise<boolean> {
   const to = await d.repo.userEmail(s.user_id)
   const code = s.next_plan_code && isPaidCode(s.next_plan_code) ? s.next_plan_code : s.plan_code
   const plan = isPaidCode(code) ? PAID_PLANS[code] : null
-  if (to && plan) await sent(d.mail('reminder', to, { plan: plan.name, amount: money(plan.price), date: dateRu(chargeAt) }))
+  const ok = !!to && !!plan && await sent(d.mail('reminder', to, { plan: plan!.name, amount: money(plan!.price), date: dateRu(chargeAt) }))
+  if (!ok) {
+    // письмо не ушло (SMTP, нет почты): снимаем отметку, следующий прогон пошлет снова; списание ждет письма (оферта)
+    await d.repo.updateSub(s.user_id, { reminder_sent_for: null })
+    d.log?.('pay mail: напоминание не ушло, повтор на следующем прогоне')
+    return false
+  }
   return true
 }
 

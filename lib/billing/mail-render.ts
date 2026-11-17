@@ -33,12 +33,16 @@ export function renderPayMail(kind: string, data: Record<string, string>, site: 
   const paras = tpl.paras.map(p => ({ plain: plain(p), html: html1(p) })).filter(p => p.plain)
   const keyN = Math.min(tpl.key || 0, paras.length)
   const keyParas = paras.slice(0, keyN), bodyParas = paras.slice(keyN)
-  const button = tpl.button ? { label: tpl.button.label, href: safeHref(plain(tpl.button.href)) } : null
+  // кнопка только с настоящей https-ссылкой; чек без ссылки не отправляем вовсе (не подменяем на главную)
+  const btnHref = tpl.button ? plain(tpl.button.href) : ''
+  if (tpl.button && !/^https:\/\/[^\s"<>]+$/.test(btnHref)) return null
+  const button = tpl.button ? { label: tpl.button.label, href: btnHref } : null
   const note = tpl.note ? { before: tpl.note.before, link: tpl.note.link, href: safeHref(plain(tpl.note.href)), after: tpl.note.after } : null
   const preheader = (paras[0]?.plain || '').slice(0, 140)
   const title = esc(plain(tpl.subject))
   const offer = `https://${REKV.site}${OFFER_PATH}`, privacy = `https://${REKV.site}${PRIVACY_PATH}`
   const legal = `${REKV.fio}, самозанятая, ИНН ${REKV.inn}`
+  const legalHtml = `${esc(REKV.fio)}, самозанятая, ИНН&nbsp;${REKV.inn}`
 
   const P = (h: string, first: boolean) => `<p style="margin:0;${t(`font-size:17px;line-height:26px;color:${C.text};`)}${first ? '' : 'padding-top:12px;'}">${h}</p>`
   const keyBlock = keyParas.length ? `
@@ -51,7 +55,9 @@ ${keyParas.map((p, i) => `<p class="key" style="margin:0;${t(`font-size:18px;lin
   const btn = button ? `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;">
 <tr><td class="btn-bg" align="center" bgcolor="${C.green}" style="background-color:${C.green};background-image:linear-gradient(${C.green},${C.green});border-radius:16px;">
-<a class="btn-text" href="${button.href}" target="_blank" style="display:block;padding:18px 24px;${t('font-size:17px;line-height:20px;font-weight:700;')}color:#FFFFFF;text-decoration:none;text-align:center;border-radius:16px;">${esc(button.label)}</a>
+<!--[if mso]><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:18px 24px;"><![endif]-->
+<a class="btn-text" href="${button.href}" target="_blank" style="display:block;padding:18px 24px;mso-padding-alt:0;${t('font-size:17px;line-height:20px;font-weight:700;')}color:#FFFFFF;text-decoration:none;text-align:center;border-radius:16px;">${esc(button.label)}</a>
+<!--[if mso]></td></tr></table><![endif]-->
 </td></tr>
 </table>` : ''
   const noteHtml = note ? `<p class="note" style="margin:0;padding-top:12px;text-align:center;${t(`font-size:15px;line-height:22px;color:${C.muted};`)}">${esc(note.before)}<a href="${note.href}" target="_blank" style="color:${C.green};text-decoration:underline;">${esc(note.link)}</a>${esc(note.after)}</p>` : ''
@@ -82,16 +88,17 @@ ${keyParas.map((p, i) => `<p class="key" style="margin:0;${t(`font-size:18px;lin
 </style>
 </head>
 <body style="margin:0;padding:0;background:${C.bg};-webkit-text-size-adjust:100%;">
-<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:${C.bg};">${esc(preheader)}&#8203;&#847;&#8203;&#847;&#8203;&#847;&#8203;&#847;&#8203;&#847;&#8203;&#847;</div>
+<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:${C.bg};">${esc(preheader)}${'&#8203;&#847;'.repeat(50)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.bg}" style="background:${C.bg};">
 <tr><td class="wrap" align="center" style="padding:40px 16px 32px 16px;">
+<!--[if mso]><table role="presentation" width="560" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
 <tr><td align="center" style="padding:0 0 20px 0;">
 <a href="https://psycont.ru" style="text-decoration:none;"><img src="${IMG}/wordmark-email.png" width="132" height="36" alt="PsyCont" style="display:block;border:0;outline:none;width:132px;height:36px;${t(`font-size:18px;font-weight:700;color:${C.green};`)}"></a>
 </td></tr>
 <tr><td class="card" bgcolor="${C.card}" style="background:${C.card};border:1px solid ${C.border};border-radius:24px;padding:32px 36px;">
 
-<p class="h1" style="margin:0;${t(`font-size:26px;line-height:32px;font-weight:700;letter-spacing:-0.2px;color:${C.text};`)}">${title}</p>
+<h1 class="h1" style="margin:0;${t(`font-size:26px;line-height:32px;font-weight:700;letter-spacing:-0.2px;color:${C.text};`)}">${title}</h1>
 <img src="${IMG}/squiggle-lilac.png" width="96" height="10" alt="" style="display:block;border:0;width:96px;height:10px;margin:8px 0 18px 0;">
 ${keyBlock}
 ${body}
@@ -110,10 +117,11 @@ ${noteHtml}
 </td></tr>
 <tr><td align="center" style="padding:20px 8px 0 8px;">
 <p class="foot" style="margin:0;${t(`font-size:13px;line-height:20px;color:${C.muted};`)}">Это служебное письмо об оплате PsyCont</p>
-<p class="foot" style="margin:0;padding-top:6px;${t(`font-size:13px;line-height:20px;color:${C.muted};`)}">${esc(legal)}</p>
+<p class="foot" style="margin:0;padding-top:6px;${t(`font-size:13px;line-height:20px;color:${C.muted};`)}">${legalHtml}</p>
 <p class="foot" style="margin:0;padding-top:6px;${t(`font-size:13px;line-height:20px;color:${C.muted};`)}"><a href="${offer}" style="color:${C.green};text-decoration:underline;">Оферта</a> &middot; <a href="${privacy}" style="color:${C.green};text-decoration:underline;">Политика конфиденциальности</a></p>
 </td></tr>
 </table>
+<!--[if mso]></td></tr></table><![endif]-->
 </td></tr>
 </table>
 </body>
