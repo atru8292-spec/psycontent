@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Eye, EyeOff, Shield } from 'lucide-react'
 import { RESEND_COOLDOWN_S, T } from '@/lib/auth-texts'
 import { LegalLine } from '@/components/site/SiteFooter'
+import { PRIVATE_FIELD } from '@/lib/metrika'
 
 // Оболочка страниц входа по ссылке из письма (designer-psycont, 10.11): без шапки кабинета,
 // на мобилке карточка прижата к верху (центр прыгает при открытой клавиатуре), на десктопе по центру.
@@ -84,7 +85,7 @@ export function PasswordInput({
         readOnly={readOnly}
         autoFocus={autoFocus}
         onFocus={(e) => { const el = e.currentTarget; setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300) }}
-        className="input pl-10 pr-12 scroll-mb-28"
+        className={`input pl-10 pr-12 scroll-mb-28 ${PRIVATE_FIELD}`}
       />
       <button
         type="button"

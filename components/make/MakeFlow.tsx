@@ -6,6 +6,7 @@
 // открываются по ?post=<id> (из «Моих текстов»), вся мысль целиком, если у материала есть группа.
 
 import { track } from '@/lib/track'
+import { goalFirst } from '@/lib/metrika'
 import { normFormat } from '@/lib/analytics/events'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -196,6 +197,7 @@ export default function MakeFlow() {
         ...formats.map(f => ({ format: f, code: f, postId: null, text: '', baseline: '', publishedAt: null, status: 'pending' as const }))])
     }
     let opened = append
+    if (!append) void goalFirst('make') // цель Метрики: первое нажатие «Сделать» (один раз на человека)
     const ac = new AbortController()
     abortRef.current = ac
     try {
@@ -234,6 +236,7 @@ export default function MakeFlow() {
               : x))
             if (ev.ok && !opened) {
               opened = true
+              void goalFirst('material') // цель Метрики: первый готовый текст
               setPlan(null) // формат и задача из плана ушли вместе с этой темой, второй раз не шлем
               // мысль превратилась в текст: черновик и мысль из демо больше не нужны
               try { localStorage.removeItem(DRAFT_KEY); localStorage.removeItem('psycont_seed_thought') } catch {}

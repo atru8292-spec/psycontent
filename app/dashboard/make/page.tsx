@@ -4,6 +4,7 @@
 // (_знания/мозг-генератора/09-PUT-POLZOVATELYA.md, раздел 3). Старый адрес /dashboard/post-generator ведет сюда.
 
 import { track } from '@/lib/track'
+import { goalFirst } from '@/lib/metrika'
 import { normFormat } from '@/lib/analytics/events'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -389,6 +390,7 @@ function MakeContent() {
       const data = await r.json()
       if (!r.ok) throw new Error(data.error || 'Не получилось доработать черновик')
       setResult(data.post)
+      void goalFirst('material') // цель Метрики: первый готовый текст
       setBaseline(data.post)
       if (data.postId) setPostId(data.postId)
       setGeneratedFormat(formatCode)
@@ -418,6 +420,7 @@ function MakeContent() {
       return
     }
     setGenerating(true)
+    void goalFirst('make') // цель Метрики: первое нажатие «Сделать» (один раз на человека)
     resetResult()
     if (!extra?.userDetail && !extra?.skipDetail) { setNeedDetail(null); setPendingPlan(null); setDetailAnswer('') }
     const userDetail = extra?.userDetail || (newGen && detail.trim() ? detail.trim() : undefined)
@@ -457,6 +460,7 @@ function MakeContent() {
       setPendingPlan(null)
       setDetailAnswer('')
       setResult(data.post)
+      void goalFirst('material') // цель Метрики: первый готовый текст
       setBaseline(data.post)
       if (data.postId) setPostId(data.postId)
       if (data.checking && data.postId) {

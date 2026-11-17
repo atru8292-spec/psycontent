@@ -13,6 +13,7 @@ import { requestLink } from '@/components/auth/request-link'
 import YandexIdButton from '@/components/auth/YandexIdButton'
 import Link from 'next/link'
 import { OFFER_PATH, PRIVACY_PATH, CONSENT_PATH, CONSENT_VERSION } from '@/lib/rekvizity'
+import { goal, PRIVATE_FIELD } from '@/lib/metrika'
 
 type Mode = 'login' | 'register' | 'forgot'
 
@@ -55,6 +56,8 @@ export default function AuthModal({
   useEffect(() => {
     if (isOpen) { setMode(initialMode); setAwaiting(''); setError(''); setUnconfirmed(false); setResent(false); setAgree(false); setConsentErr(false) }
   }, [isOpen, initialMode])
+  // цель Метрики: открыла регистрацию (окно открыто в режиме регистрации или переключено на нее)
+  useEffect(() => { if (isOpen && mode === 'register') goal('land_signup_open') }, [isOpen, mode])
 
   const switchMode = (m: Mode) => { setMode(m); setError(''); setUnconfirmed(false); setResent(false); setAwaiting('') }
 
@@ -87,6 +90,7 @@ export default function AuthModal({
 
     try {
       if (mode === 'register') {
+        goal('signup_submit')
         const { data, error: signUpError } = await supabase.auth.signUp({
           email, password,
           // отметка согласия: дата и версия политики, остаются в аккаунте
@@ -175,7 +179,7 @@ export default function AuthModal({
             <div className="text-center flex flex-col items-center">
               <StateIcon><Mail className="w-5 h-5" /></StateIcon>
               <h3 className="text-base sm:text-lg font-bold text-brand-text">{T.checkEmailTitle}</h3>
-              <p className="text-sm text-brand-muted mt-1.5 leading-relaxed break-words" aria-live="polite">
+              <p className={`text-sm text-brand-muted mt-1.5 leading-relaxed break-words ${PRIVATE_FIELD}`} aria-live="polite">
                 {resent ? T.resentConfirm(awaiting) : T.checkEmail(awaiting)}
               </p>
               {error && <div className="mt-3 w-full text-left"><Notice kind="error">{error}</Notice></div>}
@@ -273,7 +277,7 @@ export default function AuthModal({
                         onChange={(e) => setEmail(e.target.value)}
                         required
                         autoComplete="email"
-                        className="input pl-10"
+                        className={`input pl-10 ${PRIVATE_FIELD}`}
                       />
                     </div>
                     <PasswordInput

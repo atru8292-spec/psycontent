@@ -5,6 +5,7 @@ import { Loader2, Mail } from 'lucide-react'
 import { T } from '@/lib/auth-texts'
 import { requestLink } from './request-link'
 import { Notice, StateIcon, useCooldown } from './AuthShell'
+import { PRIVATE_FIELD } from '@/lib/metrika'
 
 // Запросить письмо со ссылкой: сброс пароля (recovery) или повтор подтверждения почты (signup).
 // Ответ одинаковый, есть такой аккаунт или нет: по нему нельзя проверить чужую почту.
@@ -48,7 +49,7 @@ export default function RequestLinkForm({
       <div className="text-center flex flex-col items-center">
         <StateIcon><Mail className="w-5 h-5" /></StateIcon>
         <h2 className="text-base sm:text-lg font-bold text-brand-text">{sentTitle}</h2>
-        <p className="text-sm text-brand-muted mt-1.5 leading-relaxed" aria-live="polite">
+        <p className={`text-sm text-brand-muted mt-1.5 leading-relaxed ${PRIVATE_FIELD}`} aria-live="polite">
           {sentText(email.trim())}
         </p>
         {error && <div className="mt-3 w-full text-left"><Notice kind="error">{error}</Notice></div>}
@@ -79,7 +80,7 @@ export default function RequestLinkForm({
           autoComplete="email"
           enterKeyHint="send"
           autoFocus={!initialEmail}
-          className="input pl-10"
+          className={`input pl-10 ${PRIVATE_FIELD}`}
         />
       </div>
       {error && <Notice kind="error">{error}</Notice>}

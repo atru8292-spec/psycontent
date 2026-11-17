@@ -5,6 +5,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { REKV, OFFER_PATH, PRIVACY_PATH } from '@/lib/rekvizity'
+import { CookieSettingsLink } from './CookieBanner'
 
 const LINK = 'underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none'
 
@@ -34,6 +35,7 @@ export default function SiteFooter({ slogan }: { slogan?: string }) {
           <p className="flex flex-wrap gap-x-5 gap-y-1 text-brand-bg">
             <Link href={OFFER_PATH} className={LINK}>Оферта</Link>
             <Link href={PRIVACY_PATH} className={LINK}>Политика конфиденциальности</Link>
+            <CookieSettingsLink className={LINK} />
           </p>
           <Rekvizity className="text-brand-on-dark" />
           <p className="text-[14px] text-brand-on-dark-muted">© {year} PsyCont</p>
@@ -51,6 +53,7 @@ export function LegalLine({ className = '' }: { className?: string }) {
       <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
         <Link href={OFFER_PATH} className={LINK}>Оферта</Link>
         <Link href={PRIVACY_PATH} className={LINK}>Политика конфиденциальности</Link>
+        <CookieSettingsLink className={LINK} />
       </p>
     </div>
   )

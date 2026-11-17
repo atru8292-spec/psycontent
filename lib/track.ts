@@ -9,6 +9,7 @@
 
 import type { EventName } from './analytics/events'
 import { cleanPath } from './analytics/sanitize'
+import { goalsFromTrack } from './metrika'
 
 export type TrackProps = Record<string, string | number | boolean>
 
@@ -128,6 +129,8 @@ export function track(event: EventName | string, props?: TrackProps): void {
       save({ ...s, o: true })
     }
     queue.push({ event, props, path, session_id: s.id, ts: now })
+    // цели Метрики, совпадающие с событиями (только после согласия на cookie, см. lib/metrika.ts)
+    goalsFromTrack(String(event), props)
     // eslint-disable-next-line no-console
     if (isDev) console.debug('[track]', event, props || {})
     if (queue.length >= MAX_BATCH) flush()
