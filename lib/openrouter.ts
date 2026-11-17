@@ -9,6 +9,7 @@
 import { anonymize, deanonymize } from '@/lib/anonymize'
 import { logAiUsage, type OpenAIUsage } from '@/lib/energy'
 import { CodedError, openAiError } from '@/lib/safe-error'
+import { noteOpenAiError } from '@/lib/bot/incidents'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 
@@ -28,7 +29,7 @@ function getOpenAIHeaders() {
 
 async function extractResult(response: Response): Promise<{ content: string; usage?: OpenAIUsage }> {
   const rawText = await response.text()
-  if (!response.ok) throw openAiError(response.status, rawText)
+  if (!response.ok) { const err = openAiError(response.status, rawText); noteOpenAiError(err); throw err }
 
   let data: any
   try {

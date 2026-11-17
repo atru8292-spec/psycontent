@@ -6,6 +6,7 @@ import { getArchetypeContextFromProfile } from '@/lib/archetypes'
 import { iterateSSEData } from '@/lib/sse-stream'
 import { logAiUsage } from '@/lib/energy'
 import { errTag, openAiError } from '@/lib/safe-error'
+import { noteOpenAiError } from '@/lib/bot/incidents'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -302,7 +303,9 @@ ${archetypeContext ? `\n${archetypeContext}\n` : ''}
           })
 
           if (!aiResponse.ok) {
-            throw openAiError(aiResponse.status, await aiResponse.text().catch(() => ''))
+            const err = openAiError(aiResponse.status, await aiResponse.text().catch(() => ''))
+            noteOpenAiError(err)
+            throw err
           }
 
           const reader = aiResponse.body!.getReader()

@@ -56,6 +56,10 @@ export const EVENTS = {
   error_shown: ['code', 'screen'],                   // клиент: показана плашка ошибки
   feature_open: ['feature'],                         // клиент: открыта функция из FEATURES
 
+  // ---- экран «Помощь» (/dashboard/pomosch) ----
+  help_tg_click: ['with_label'],                     // клиент: нажала «Написать в Telegram»; with_label true, если в ссылке была метка аккаунта
+  help_faq_open: ['q'],                              // клиент: раскрыла вопрос; q короткий код из lib/help-faq.ts, текст вопроса не идет
+
   // ---- опрос при уходе (аналитика 2, lib/analytics/exit-survey.ts); свои слова человека сюда не попадают никогда ----
   exit_survey_shown: ['place'],                      // сервер: карточку решили показать (place cooling|delete|cancel)
   exit_survey_open: ['place'],                       // клиент: раскрыла карточку («Рассказать»)

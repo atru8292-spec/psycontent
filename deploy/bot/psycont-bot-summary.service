@@ -1,0 +1,21 @@
+# Утренняя сводка бота поддержки PsyCont (18.11, ветка feat/bot): POST /api/cron/bot-summary на 127.0.0.1:3001.
+# Сводка за прошлые сутки по Москве уходит Арине в Telegram (TELEGRAM_ADMIN_CHAT_ID). pm2 и razbor-* не трогает.
+# Секрет тот же, что у таймера оплаты: файл /etc/psycont-billing.header (одна строка «X-Cron-Secret: <CRON_SECRET>»,
+# права 600, root). Если таймера оплаты на сервере еще нет, создать этот файл по deploy/oplata/VYKATKA.md.
+#
+# Ставить (на сервере сайта, от root):
+#   cp deploy/bot/psycont-bot-*.service deploy/bot/psycont-bot-*.timer /etc/systemd/system/
+#   systemctl daemon-reload
+#   systemctl enable --now psycont-bot-summary.timer psycont-bot-signals.timer
+#   systemctl list-timers 'psycont-bot-*'
+# Проверить руками: systemctl start psycont-bot-summary.service; journalctl -u psycont-bot-summary -n 20
+# Старую сводку убрать: строку cron со scripts/digest.ts (crontab -l), иначе утром придут два сообщения.
+[Unit]
+Description=PsyCont bot: morning summary to Telegram
+After=network-online.target
+
+[Service]
+Type=oneshot
+# секрет не в аргументах (их видно в ps), а в файле заголовка
+ExecStart=/usr/bin/curl -fsS --max-time 120 -X POST -H @/etc/psycont-billing.header http://127.0.0.1:3001/api/cron/bot-summary
+Nice=10

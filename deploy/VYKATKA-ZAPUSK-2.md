@@ -15,6 +15,15 @@
    - Проверка, что Caddy отдает новое: `sudo docker exec supabase-caddy wget -qO- http://localhost:8088/confirmation.html | grep -c "сразу соберу"` (1); так же сверить `email_change.html` с файлом из репо (`wget -qO- ... | cmp - <файл>`).
    - Gotrue подхватывает шаблон по адресу при отправке; если в течение 10 минут пробное письмо приходит старым, `docker compose restart auth` (это не перезапуск базы).
    - Пробное письмо: регистрация atru8292+shablon@gmail.com на сайте, проверить письмо подтверждения в почте Арины (только чтение), потом удалить тестовый аккаунт.
+4а. **Бот поддержки (ветка feat/bot сливается в release/zapusk-2).**
+   - Миграция `supabase/migrations/20261118100000_bot.sql` после копии базы (шаг 2): показать Арине, применить на сервере базы.
+   - В `/var/www/psycont/.env` (копия и cmp до правки): TELEGRAM_BOT_TOKEN, TELEGRAM_ADMIN_CHAT_ID, TELEGRAM_WEBHOOK_SECRET (новый, от 32 знаков), BOT_LINK_SECRET (новый, от 32 знаков), BOT_INCIDENTS=1. Перезапустить только psycont.
+   - `npx tsx --env-file=.env scripts/tg-set-webhook.ts`, потом `--info` (вебхук https://psycont.ru/api/tg/webhook).
+   - Таймеры из `deploy/bot/` (сводка 9:00 МСК, сигналы раз в 5 минут) по комментариям в файлах; проверить `systemd --version` (от 235).
+   - Убрать cron старой сводки `scripts/digest.ts`, если стоит, иначе утром придут две сводки.
+   - Проверка: Арина пишет боту с экрана «Помощь» тестового аккаунта и отвечает реплаем; `systemctl start psycont-bot-summary.service` присылает сводку; /svodka, /oshibki.
+   - Проверить, что nginx ставит X-Real-IP на всех location (на нем держатся cron-роуты и проверка IP ЮKassa).
+   - /privacy и /offer: правки по `_proverka/zapusk/bot/PRIVACY-BYLO-STALO.md` после «да» Арины, с DOCS_DATE и OFFER_VERSION.
 5. **Проверка на проде** тестовым аккаунтом atru8292+...@gmail.com (служебный вход по ссылке): «Написать», «Мои тексты», «Настройки» с блоком «Тариф», «Помощь», «Темы» на 390 и 1440; обычный аккаунт видит «Оплата скоро». Тестовый аккаунт atru8292+oplata@gmail.com для ЮKassa не трогать.
 6. **Итог** в CLAUDE.md, раздел «Последняя передача дел».
 

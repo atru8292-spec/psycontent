@@ -200,7 +200,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
         <nav aria-label="Разделы" className={`flex flex-col gap-1 ${slim ? 'items-center' : ''}`}>
           {NAV.map((item) => {
-            const active = isActive(item)
+            // в меню слева у «Помощи» свой пункт внизу, «Настройки» на ней не подсвечиваем (на телефоне вход через «Настройки»)
+            const active = isActive(item) && !pathname.startsWith(HELP_HREF)
             return (
               <Link key={item.href} href={item.href} aria-current={active ? 'page' : undefined} aria-label={slim ? item.label : undefined}
                 className={`group relative flex items-center rounded-xl text-brand-text transition focus-visible:outline-2 focus-visible:outline-brand-accent ${slim ? 'w-12 h-11 justify-center' : 'h-11 gap-3 px-3 text-[15px] font-medium'} ${active ? 'bg-brand-soft' : 'hover:bg-brand-soft-2'}`}>

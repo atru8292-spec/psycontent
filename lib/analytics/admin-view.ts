@@ -8,7 +8,7 @@ import type { PersonRow, TimelineItem, Period } from './admin-types'
 
 export const FEATURE_RU: Record<string, string> = {
   ideas: 'Темы, идеи', plan: 'Темы, план', voice: 'Голос', sozhe: 'Сделать так же', texts: 'Мои тексты',
-  carousel_design: 'Оформление карусели', archetype_test: 'Тест-архетип', passport: 'Бренд-паспорт',
+  carousel_design: 'Оформление карусели', archetype_test: 'Тест-архетип', passport: 'Бренд-паспорт', help: 'Помощь',
 }
 export const SCREEN_RU: Record<string, string> = {
   make: 'Сделать', themes: 'Темы', texts: 'Мои тексты', profile: 'Настройки', voice: 'Голос', edit_profile: 'Профиль практики',
