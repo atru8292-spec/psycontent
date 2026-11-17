@@ -1,6 +1,7 @@
 'use client'
 
 import NewBrainRedirect from '@/components/dashboard/NewBrainRedirect'
+import { readMakeParam } from '@/lib/make-handoff'
 import { track } from '@/lib/track'
 import { normFormat } from '@/lib/analytics/events'
 import { useState, useEffect } from 'react'
@@ -62,7 +63,7 @@ function ReelsGeneratorOld() {
   // Тема с экрана «Сделать» (?topic=): подставляем своей темой, чтобы не потерялась
   useEffect(() => {
     try {
-      const t = new URLSearchParams(window.location.search).get('topic')
+      const t = readMakeParam('topic') // адрес или передача без текста в адресе (lib/make-handoff.ts)
       if (t) { setCustomTopic(t); setUseCustom(true) }
     } catch {}
   }, [])

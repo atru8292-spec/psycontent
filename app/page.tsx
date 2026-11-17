@@ -18,7 +18,6 @@ import { EXAMPLES, COMPARE_TOPIC, COMPARE_CHATGPT, COMPARE_PSYCONT } from '@/com
 import { jsonLdString } from '@/lib/structured-data'
 import { PLANS, PLAN_COMMON_LINE, MATERIAL_NOTE, formatRub, planPerks, startLine } from '@/lib/pricing'
 import SiteFooter from '@/components/site/SiteFooter'
-import CookieNote from '@/components/site/CookieNote'
 
 // Год в подвале берется из даты сборки; пересобираем страницу раз в сутки, чтобы он сменился сам
 export const revalidate = 86400
@@ -299,7 +298,6 @@ export default function Home() {
 
       {/* Подвал на шоколаде: реквизиты и ссылки на оферту и политику, общий со страницами /offer и /privacy */}
       <SiteFooter slogan={FOOTER.slogan} />
-      <CookieNote />
     </LandingShell>
   )
 }

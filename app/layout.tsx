@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from 'next'
 import { Onest } from 'next/font/google'
 import './globals.css'
+import { Suspense } from 'react'
 import { SITE_TITLE, SITE_DESCRIPTION } from '@/lib/site'
+import CookieBanner from '@/components/site/CookieBanner'
 
 const onest = Onest({
   subsets: ['latin', 'cyrillic'],
@@ -54,6 +56,8 @@ export default function RootLayout({
     <html lang="ru" className={onest.variable}>
       <body className="antialiased">
         {children}
+        {/* Баннер cookie и Яндекс Метрика: скрипт грузится только после «Принять» (components/site/CookieBanner.tsx) */}
+        <Suspense fallback={null}><CookieBanner /></Suspense>
       </body>
     </html>
   )

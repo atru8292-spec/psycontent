@@ -3,7 +3,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import SiteFooter from './SiteFooter'
-import CookieNote from './CookieNote'
 import DocView from './DocView'
 import { DOCS_DATE } from '@/lib/rekvizity'
 
@@ -28,7 +27,6 @@ export default function LegalPage({ title, lead, doc, children }: { title: strin
         </article>
       </main>
       <SiteFooter />
-      <CookieNote />
     </>
   )
 }

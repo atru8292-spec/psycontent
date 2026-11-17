@@ -14,6 +14,7 @@ import YandexIdButton from '@/components/auth/YandexIdButton'
 import { useSmartCaptcha } from '@/components/auth/SmartCaptcha'
 import Link from 'next/link'
 import { OFFER_PATH, PRIVACY_PATH, CONSENT_PATH, CONSENT_VERSION } from '@/lib/rekvizity'
+import { goal, PRIVATE_FIELD } from '@/lib/metrika'
 
 type Mode = 'login' | 'register' | 'forgot'
 
@@ -60,6 +61,12 @@ export default function AuthModal({
   useEffect(() => {
     if (isOpen) { setMode(initialMode); setAwaiting(''); setError(''); setUnconfirmed(false); setResent(false); setAgree(false); setConsentErr(false); openedAt.current = Date.now() }
   }, [isOpen, initialMode])
+  // цель Метрики: открыла регистрацию (окно открыто в режиме регистрации или переключено на нее)
+  const signupGoal = useRef(false)
+  useEffect(() => {
+    if (!isOpen) { signupGoal.current = false; return }
+    if (mode === 'register' && !signupGoal.current) { signupGoal.current = true; goal('land_signup_open') } // один раз за открытие
+  }, [isOpen, mode])
 
   const switchMode = (m: Mode) => { setMode(m); setError(''); setUnconfirmed(false); setResent(false); setAwaiting('') }
 
@@ -93,6 +100,7 @@ export default function AuthModal({
     try {
       if (mode === 'register') {
         // регистрация через сайт: проверки от ботов, потом GoTrue шлет письмо подтверждения (app/api/auth/signup)
+        goal('signup_submit') // цель Метрики перед капчей (решение Арины 17.11)
         const token = await captcha.getToken()
         const r = await fetch('/api/auth/signup', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -177,7 +185,7 @@ export default function AuthModal({
             <div className="text-center flex flex-col items-center">
               <StateIcon><Mail className="w-5 h-5" /></StateIcon>
               <h3 className="text-base sm:text-lg font-bold text-brand-text">{T.checkEmailTitle}</h3>
-              <p className="text-sm text-brand-muted mt-1.5 leading-relaxed break-words" aria-live="polite">
+              <p className={`text-sm text-brand-muted mt-1.5 leading-relaxed break-words ${PRIVATE_FIELD}`} aria-live="polite">
                 {resent ? T.resentConfirm(awaiting) : T.checkEmail(awaiting)}
               </p>
               {error && <div className="mt-3 w-full text-left"><Notice kind="error">{error}</Notice></div>}
@@ -276,7 +284,7 @@ export default function AuthModal({
                         onChange={(e) => setEmail(e.target.value)}
                         required
                         autoComplete="email"
-                        className="input pl-10"
+                        className={`input pl-10 ${PRIVATE_FIELD}`}
                       />
                     </div>
                     {/* ловушка для ботов: человек это поле не видит и не заполняет */}

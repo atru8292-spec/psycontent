@@ -139,5 +139,9 @@ export async function GET(req: Request) {
       .maybeSingle()
     if (prof) dest = '/dashboard'
   }
-  return NextResponse.redirect(`${origin}${dest}`)
+  const res = NextResponse.redirect(`${origin}${dest}`)
+  // Цели Метрики после редиректа с сервера: короткая cookie только с кодами целей, клиент отправит их (если человек
+  // принял cookie) и сразу сотрет (lib/metrika.ts goalsFromCookie). Новый аккаунт через Яндекс тоже «аккаунт создан».
+  res.cookies.set('psy_goal', newId || justMade ? 'login_yandex,signup_done' : 'login_yandex', { path: '/', maxAge: 600, sameSite: 'lax', secure: true, httpOnly: false })
+  return res
 }

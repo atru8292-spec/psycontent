@@ -63,7 +63,8 @@ export const EVENTS = {
   land_faq_open: ['q'],                              // открыли вопрос: короткий код вроде q_chatgpt, текст вопроса не идет
   land_more_open: ['place'],                         // раскрыли свернутый текст: place compare_gpt|compare_ours|ex_yulia|ex_mihail|ex_olga
   land_doc_view: ['doc'],                            // открыли документ: doc offer|privacy|soglasie
-  land_cookie_ok: [],                                // нажали «Понятно» в плашке про cookie
+  land_cookie_ok: [],                                // нажали «Принять» в плашке про cookie (Яндекс Метрика)
+  land_cookie_no: [],                                // нажали «Отказаться» в плашке про cookie
 } as const satisfies Record<string, readonly string[]>
 
 // События лендинга пишутся и без входа (user_id пустой, только session_id от track)

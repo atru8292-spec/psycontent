@@ -4,9 +4,11 @@
 // (_знания/мозг-генератора/09-PUT-POLZOVATELYA.md, раздел 3). Старый адрес /dashboard/post-generator ведет сюда.
 
 import { track } from '@/lib/track'
+import { goalFirst } from '@/lib/metrika'
 import { normFormat } from '@/lib/analytics/events'
 import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+import { useMakeParams, makeHref } from '@/lib/make-handoff'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -228,7 +230,7 @@ function MakeContent() {
   const [voiceDismissAt, setVoiceDismissAt] = useState<number | null>(null)
 
   const router = useRouter()
-  const searchParams = useSearchParams()
+  const searchParams = useMakeParams() // адрес + тексты из sessionStorage (lib/make-handoff.ts)
 
   useEffect(() => {
     const topic = searchParams.get('topic')
@@ -389,6 +391,7 @@ function MakeContent() {
       const data = await r.json()
       if (!r.ok) throw new Error(data.error || 'Не получилось доработать черновик')
       setResult(data.post)
+      void goalFirst('material') // цель Метрики: первый готовый текст
       setBaseline(data.post)
       if (data.postId) setPostId(data.postId)
       setGeneratedFormat(formatCode)
@@ -414,10 +417,11 @@ function MakeContent() {
     const fmt = extra?.format || formatCode
     // Без нового движка карусель и Reels пишут старые страницы
     if (!newGen && (fmt === 'carousel' || fmt.startsWith('reels'))) {
-      router.push(`${OLD_PAGES[fmt === 'carousel' ? 'carousel' : 'reels']}?topic=${encodeURIComponent(String(topicVal).trim())}&from=make`)
+      router.push(makeHref({ topic: String(topicVal).trim(), from: 'make' }, OLD_PAGES[fmt === 'carousel' ? 'carousel' : 'reels']))
       return
     }
     setGenerating(true)
+    void goalFirst('make') // цель Метрики: первое нажатие «Сделать» (один раз на человека)
     resetResult()
     if (!extra?.userDetail && !extra?.skipDetail) { setNeedDetail(null); setPendingPlan(null); setDetailAnswer('') }
     const userDetail = extra?.userDetail || (newGen && detail.trim() ? detail.trim() : undefined)
@@ -457,6 +461,7 @@ function MakeContent() {
       setPendingPlan(null)
       setDetailAnswer('')
       setResult(data.post)
+      void goalFirst('material') // цель Метрики: первый готовый текст
       setBaseline(data.post)
       if (data.postId) setPostId(data.postId)
       if (data.checking && data.postId) {
