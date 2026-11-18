@@ -10,6 +10,7 @@ import { loadMemory } from '@/lib/generation/memory'
 import { zh6Plan, ZH6_BATCH } from '@/lib/generation/zh6/write'
 import { formatByCode } from '@/lib/generation/zh6/formaty'
 import { errTag } from '@/lib/safe-error'
+import { nishaProfilya, parseKlienty } from '@/lib/anketa'
 
 // ---------- zh6 (PROMPT_HYP=zh6 и новый мозг): план тем через zh6Plan, пачки по 10 дней ----------
 const ZH6_TOTAL_BATCHES = 3
@@ -123,9 +124,10 @@ export async function POST(request: NextRequest) {
     const daysCount = endDay - startDay + 1
 
     // Имена колонок берём из реальной схемы onboarding_profiles (niches — массив).
-    const nicheText = profile.one_niche
-      || (Array.isArray(profile.niches) ? profile.niches.join(', ') : profile.niches)
-      || 'общая практика'
+    // анкета 2 (19.11): группы и до 40 отмеченных тем (на 30 дней плана), без групп как было
+    const nisha = nishaProfilya(profile)
+    const temyPlana = Array.isArray(profile.niches) && parseKlienty(profile.klienty).groups.length ? profile.niches.map(String).slice(0, 40) : []
+    const nicheText = (temyPlana.length ? `${nisha}. Темы: ${temyPlana.join(', ')}` : nisha) || 'общая практика'
     const clientPains = profile.client_pain_phrases || nicheText || 'тревога, отношения, самооценка'
     const audienceText = profile.client_avatar || profile.client_job || 'взрослые 25-45'
 

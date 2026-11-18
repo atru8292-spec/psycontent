@@ -13,6 +13,7 @@
 // правили (editedText отличается от сохраненного), ядро сначала пересобираем из правленой версии.
 // Счет: каждый готовый формат как одна текстовая генерация (lib/energy.ts, kind text). Упавший не считаем.
 
+import { anketaTopics } from '@/lib/first-topic'
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
@@ -137,6 +138,7 @@ export async function POST(req: NextRequest) {
   // «так же» без своей темы: «подберу сама» из боли клиентов или ниши в профиле
   const sampleTopic = sample && !topic
     ? (String(profile.client_pain_phrases || '').split(/\n|;/).map((x: string) => x.trim()).find((x: string) => x.length > 6)
+      || anketaTopics(Array.isArray(profile.niches) ? profile.niches.map(String) : [])[0]
       || String(profile.one_niche || '').trim() || 'то, с чем ко мне приходят чаще всего').slice(0, 200)
     : ''
   const topicFinal = topic || sampleTopic

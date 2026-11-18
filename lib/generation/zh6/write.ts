@@ -390,6 +390,16 @@ export function temyZhivyeFor(s: AuthorSettings, r = 0): string[] {
 export const formatyAvtora = (s: AuthorSettings) => FORMATY.filter(f => f.for[0] !== 'stories' && goditsya(f, authorVoice(s), s.snimaetVideo !== false))
 const formatLine = (f: Format6) => `- ${f.code}: ${f.name} (${f.for[0] === 'reels' ? 'рилс' : f.for[0] === 'post' ? 'пост' : 'карусель'}${f.talking_head ? ', говорящая голова' : ''}${f.short ? ', короткий' : ''}${f.scene ? ', сценка' : ''})`
 
+// Темы из анкеты (19.11): на план n тем отдаем следующие n отмеченных по кругу (rotation = номер пачки),
+// чтобы за месяц прошли все отмеченные темы, а не первая. Без тем анкеты строки нет, промпт как раньше.
+export function temyAnketyLine(s: AuthorSettings, n: number, rotation: number): string {
+  const all = s.temyAnkety || []
+  if (!all.length) return ''
+  const k = all.length > n ? (rotation * n) % all.length : 0
+  const pick = [...all.slice(k), ...all.slice(0, k)].slice(0, Math.max(n, 1))
+  return `<темы_автора>\nО чем автор хочет писать (одна тема на материал, по порядку; тема это сфера, конкретную ситуацию придумай сам):\n${pick.map(t => `- ${t}`).join('\n')}\n</темы_автора>`
+}
+
 export function temyPrompt(s: AuthorSettings, o: { n: number; recent?: string[]; rotation?: number }): { system: string; user: string; zhivye: string[] } {
   const r = o.rotation || 0
   const zhivye = temyZhivyeFor(s, r)
@@ -397,6 +407,7 @@ export function temyPrompt(s: AuthorSettings, o: { n: number; recent?: string[];
   const user = [
     `<автор>\n${authorBlock(s)}\n${s.position ? `Взгляд автора: ${s.position}\n` : ''}${s.clientPhrases ? `Как говорят клиенты автора: ${s.clientPhrases}\n` : ''}Аудитория: ${(s.baseSettings.match(/Аудитория: ([^\n]+)/) || [])[1] || 'не указана'}\n</автор>`,
     own.length ? `<тексты_автора>\nКак автор пишет (начала его текстов, для голоса):\n\n${own.join('\n\n')}\n</тексты_автора>` : '',
+    temyAnketyLine(s, o.n, r),
     `<форматы>\n${formatyAvtora(s).map(formatLine).join('\n')}\n</форматы>`,
     `<как_звучат_темы>\n${TEMY_ZHIVYE_HEAD}\n${zhivye.map(x => `- ${x}`).join('\n')}\n</как_звучат_темы>`,
     o.recent?.length ? `<уже_были>\nЭти темы у автора уже были, не повторяй их и близкие к ним:\n${o.recent.map(x => `- ${x}`).join('\n')}\n</уже_были>` : '',

@@ -2,6 +2,7 @@
 // Новые поля профиля (миграция 20260930120000_generation_brain.sql) необязательны: пока их нет,
 // работают разумные умолчания из старых полей.
 
+import { nishaProfilya, parseKlienty } from '../anketa'
 import { toneText } from './tone'
 import { getArchetypeContextFromProfile } from '../archetypes'
 import { buildBaseSettings } from './prompts'
@@ -42,6 +43,7 @@ export type AuthorSettings = {
   // zh6 (10.11): поля только для PROMPT_HYP=zh6, старый генератор их не читает
   approach?: string                 // метод (approaches) для представления «Я Захар, гештальт-терапевт»
   blogAbout?: string                // про что блог (поля в базе нет, есть у тестовых авторов)
+  temyAnkety?: string[]             // анкета 2 (19.11): отмеченные темы (niches при группах в klienty), план берет из них по кругу
   snimaetVideo?: boolean            // false при «Пока без видео» (edit-profile пишет video_attitude строкой)
   matZvezdyVybor?: boolean | null   // явный выбор «ставить звездочки в мате» (onboarding_profiles.mat_zvezdy или habits)
   kodovoeSlovo?: string             // кодовое слово для приглашения (onboarding_profiles.kodovoe_slovo или habits)
@@ -191,7 +193,9 @@ export function buildAuthorSettings(profile: any, opts?: { rotation?: number }):
   const genderForms = gender === 'female' ? 'женском роде' : 'мужском роде'
 
   const approach = arr(profile.approaches)
-  const niche = String(profile.one_niche || '').trim() ? clip(String(profile.one_niche), 200) : arr(profile.niches)
+  // анкета 2 (19.11): с группами «с чем работает» это названия групп, а не первая из десятков отмеченных тем
+  // (иначе «главная тема блога» у всех текстов была бы первой темой списка); без групп как было
+  const niche = clip(nishaProfilya(profile), 200)
 
   const baseSettings = buildBaseSettings({
     gender_word: gender === 'female' ? 'психолог-женщина' : 'психолог-мужчина',
@@ -270,6 +274,7 @@ export function buildAuthorSettings(profile: any, opts?: { rotation?: number }):
     ].filter(Boolean).join('\n'),
     approach: arr(profile.approaches) || undefined,
     blogAbout: profile.blog_about ? String(profile.blog_about) : undefined,
+    temyAnkety: parseKlienty(profile.klienty).groups.length && Array.isArray(profile.niches) ? profile.niches.map(String).filter(Boolean) : undefined,
     snimaetVideo: !/без\s+видео|не\s+снима|категорически\s+нет/iu.test(String(profile.video_attitude || '')),
     matZvezdyVybor: typeof profile.mat_zvezdy === 'boolean' ? profile.mat_zvezdy : typeof profile.habits?.mat_zvezdy === 'boolean' ? profile.habits.mat_zvezdy : null,
     // habits пишет клиент без проверки базы: от 2 до 40 знаков, как CHECK у колонки

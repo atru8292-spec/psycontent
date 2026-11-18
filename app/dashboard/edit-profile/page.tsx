@@ -6,13 +6,13 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ArrowRight, ArrowLeft, CheckCircle, User,
+  ArrowRight, ArrowLeft, Check, CheckCircle, User,
   Heart, MapPin, Loader2, AlertTriangle
 } from 'lucide-react'
 import VoiceTextarea from '@/components/VoiceTextarea'
 import { syncEmailName } from '@/lib/auth-name'
-import { KtoPrihodit, PickChips } from '@/components/anketa/AnketaBlocks'
-import { EMPTY_KLIENTY, frazyDlya, parseKlienty, temyDlya, type Klienty } from '@/lib/anketa'
+import { KtoPrihodit, PickChips, SChemRabotaesh, chipCls } from '@/components/anketa/AnketaBlocks'
+import { EMPTY_KLIENTY, frazyDlya, gruppaTemy, parseKlienty, temyPoKrugu, type Klienty } from '@/lib/anketa'
 
 // Профиль практики (этап 5.5 шаг 2): только ФАКТЫ о работе. Стиль и личность теперь
 // целиком держит тест-архетип, поэтому стилевые вопросы (тон, ценности, суперсилы,
@@ -76,17 +76,18 @@ const questions = [
   // --- БЛОК 2: ТВОЙ КЛИЕНТ ---
   // Анкета 2 (19.11): вместо одной ниши и портрета клиента те же блоки, что в экспресс-анкете (components/anketa).
   // Портрет клиента («Кто твой клиент?») больше не спрашиваем: старые client_avatar и client_job сохраняются как были.
+  // версия 2 (19.11): «с чем работаешь» группами с раскрытием тем, потом необязательное «кто приходит»
+  {
+    block: 1, key: 'niches',
+    title: 'С чем работаешь?',
+    subtitle: 'Отметь группы, все их темы выберутся сами. Стрелка покажет темы, лишние можно снять.',
+    type: 'temy',
+  },
   {
     block: 1, key: 'klienty',
     title: 'Кто к тебе приходит?',
-    subtitle: 'Отметь направления, можно несколько. От них зависят темы и фразы дальше.',
+    subtitle: 'Возраст, пол и формат. Можно пропустить.',
     type: 'klienty',
-  },
-  {
-    block: 1, key: 'niches',
-    title: 'О чем хочешь писать?',
-    subtitle: 'Отсюда возьму темы постов. Отметь от одной до пяти.',
-    type: 'temy',
   },
   {
     block: 1, key: 'client_pain_phrases',
@@ -160,7 +161,6 @@ export default function EditProfile() {
   // своя тема и своя фраза: поле под чипами, при сохранении встают в конец списков
   const [ownTopic, setOwnTopic] = useState('')
   const [ownPhrase, setOwnPhrase] = useState('')
-  const [topicLimit, setTopicLimit] = useState(false)
   const router = useRouter()
 
   // Загрузка существующего профиля. Префилим только поля, которые форма спрашивает.
@@ -232,8 +232,9 @@ export default function EditProfile() {
     const singleKey = (currentQuestion as any).singleKey
     const optionsKey = (currentQuestion as any).optionsKey
 
-    if (type === 'klienty') return ((answers.klienty as Klienty | undefined)?.groups.length || 0) > 0
-    if (type === 'temy') { const n = (answers.niches || []).length + (ownTopic.trim() ? 1 : 0); return n > 0 && n <= 5 }
+    if (type === 'klienty') return true
+    // старые пользователи без групп: их ниши засчитываются, перезаполнять не нужно
+    if (type === 'temy') return ((answers.klienty as Klienty | undefined)?.groups.length || 0) > 0 || (answers.niches || []).length > 0 || !!ownTopic.trim()
     if (type === 'frazy') return true
     if (type === 'text' || type === 'textarea') return (answers[key]?.length > 2)
     if (type === 'single') return !!answers[key]
@@ -266,7 +267,7 @@ export default function EditProfile() {
 
     // Пишем только факты профиля практики. Остальных колонок тут нет намеренно, чтобы
     // .update не затер стиль (live_voice/values) и результат теста-архетипа.
-    const topics = [...(answers.niches || []), ...(ownTopic.trim() ? [ownTopic.trim()] : [])]
+    const topics = [...new Set([...temyPoKrugu((answers.klienty as Klienty | undefined)?.groups || [], answers.niches || []), ...(ownTopic.trim() ? [ownTopic.trim()] : [])])]
     const phrases = [...(answers.client_pain_phrases || []), ...(ownPhrase.trim() ? [ownPhrase.trim()] : [])]
     const profileData: Record<string, unknown> = {
       full_name: answers.full_name || '',
@@ -426,15 +427,27 @@ export default function EditProfile() {
                 </div>
               )}
               {q.type === 'temy' && (() => {
+                const k: Klienty = answers.klienty || EMPTY_KLIENTY
                 const picked: string[] = answers.niches || []
-                // старые темы, которых нет в списке направлений, остаются видны отмеченными: их можно снять
-                const options = [...picked.filter(x => !temyDlya(answers.klienty?.groups || []).includes(x)), ...temyDlya(answers.klienty?.groups || [])]
+                // темы прошлой анкеты, которых нет в группах: видны отмеченными, их можно снять
+                const starye = picked.filter(t => !gruppaTemy(t))
                 return (
                   <div className="max-w-xl">
-                    <PickChips options={options} selected={picked} max={5} first={12} onLimit={() => setTopicLimit(true)}
-                      onChange={v => { setTopicLimit(false); setAnswers({ ...answers, niches: v }) }}
-                      own={ownTopic} onOwn={setOwnTopic} ownPlaceholder="Своя тема" ownLabel="Своя тема" />
-                    {topicLimit && <p className="mt-2 text-[14px] text-brand-muted" role="status">Можно до пяти. Сними одну, чтобы выбрать другую</p>}
+                    {starye.length > 0 && (
+                      <div className="mb-4">
+                        <p className="mb-1.5 text-[14px] font-semibold text-brand-text">Твои темы из прошлой анкеты</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {starye.map(t => (
+                            <button key={t} type="button" aria-pressed={true} onClick={() => setAnswers({ ...answers, niches: picked.filter(x => x !== t) })} className={chipCls(true, false, 'sm')}>
+                              <Check className="w-4 h-4 shrink-0 text-brand-accent" /><span className="min-w-0">{t}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <SChemRabotaesh groups={k.groups} topics={picked}
+                      onChange={v => setAnswers({ ...answers, klienty: { ...k, groups: v.groups }, niches: v.topics })}
+                      own={ownTopic} onOwn={setOwnTopic} />
                   </div>
                 )
               })()}

@@ -1,6 +1,7 @@
-// Анкета 2 (19.11): кто приходит к психологу и о чем он хочет писать. Данные собраны из каталога живых находок
-// (_знания/anketa-2/ANKETA-DANNYE.json, тут облегченная копия без id находок). Психолог видит темы и фразы
-// только отмеченных групп и общие: детский психолог не получит тем про бизнес, пока сам не отметит обе группы.
+// Анкета 2 (19.11, версия 2 по TEMY-SPISOK.md): с чем работает психолог и кто к нему приходит. Данные собраны
+// из каталога живых находок (_знания/anketa-2/ANKETA-DANNYE.json, тут облегченная копия без id находок).
+// Психолог отмечает группы (тап по группе отмечает все ее темы, внутри можно снять); общие темы есть у всех
+// и на экране не показываются. Названия тем во всех группах разные, поэтому тема однозначно знает свою группу.
 
 import dannye from './dannye.json'
 
@@ -14,12 +15,6 @@ export const OBSHAYA: Gruppa = (dannye.gruppy as Gruppa[]).find(g => g.obshaya)!
 export const KTO = dannye.kto_prihodit as { vozrast: string[]; pol: string[]; format: string[] }
 // подписи чипов пола короче значений (на 375 px три чипа в одну строку)
 export const POL_KOROTKO: Record<string, string> = { 'В основном женщины': 'Чаще женщины', 'В основном мужчины': 'Чаще мужчины', 'Все': 'Все' }
-
-// короткая подпись на карточке направления (полная подсказка в dannye.json не влезает в половину ширины 375)
-export const KOROTKO: Record<string, string> = {
-  a: 'тревога, самооценка', b: 'пары и абьюз', v: 'дети и родители',
-  g: 'карьера и деньги', d: 'утраты, расставания', n: 'развитие, учеба, мозг',
-}
 
 export const EMPTY_KLIENTY: Klienty = { groups: [], age: [], gender: null, format: [] }
 
@@ -35,15 +30,39 @@ export function parseKlienty(v: unknown): Klienty {
 }
 
 const gruppyPo = (kody: string[]) => kody.map(k => GRUPPY.find(g => g.kod === k)).filter((g): g is Gruppa => !!g)
+export const temyGruppy = (kod: string) => GRUPPY.find(g => g.kod === kod)?.temy.map(t => t.tema) || []
+// группа темы (своя тема и старые ниши без группы)
+export const gruppaTemy = (tema: string) => GRUPPY.find(g => g.temy.some(t => t.tema === tema))?.kod || null
 
-// Темы отмеченных групп по кругу (первая тема каждой группы, потом вторые...), общие в конце.
-// Так в первых восьми чипах есть темы каждой отмеченной группы.
-export function temyDlya(kody: string[]): string[] {
-  const gs = gruppyPo(kody)
+// Выбор на шаге «С чем работаешь»: группа и все ее темы разом; снятие группы снимает ее темы
+export function vybratGruppu(groups: string[], topics: string[], kod: string): { groups: string[]; topics: string[] } {
+  const svoi = temyGruppy(kod)
+  if (groups.includes(kod)) return { groups: groups.filter(k => k !== kod), topics: topics.filter(t => !svoi.includes(t)) }
+  return { groups: [...groups, kod], topics: [...topics.filter(t => !svoi.includes(t)), ...svoi] }
+}
+
+// Тема внутри раскрытой группы: снять или вернуть. Последняя снятая тема снимает группу,
+// тема у неотмеченной группы отмечает группу с одной этой темой
+export function vybratTemu(groups: string[], topics: string[], tema: string): { groups: string[]; topics: string[] } {
+  const kod = gruppaTemy(tema)
+  if (!kod) return { groups, topics }
+  if (topics.includes(tema)) {
+    const rest = topics.filter(t => t !== tema)
+    const left = temyGruppy(kod).some(t => rest.includes(t))
+    return { groups: left ? groups : groups.filter(k => k !== kod), topics: rest }
+  }
+  return { groups: groups.includes(kod) ? groups : [...groups, kod], topics: [...topics, tema] }
+}
+
+// Темы для сохранения в niches: по кругу между отмеченными группами (первая тема каждой группы, потом вторые...),
+// своя тема в конце. Так one_niche и первые темы не съедены одной группой.
+export function temyPoKrugu(groups: string[], topics: string[]): string[] {
+  const po = gruppyPo(groups).map(g => g.temy.map(t => t.tema).filter(t => topics.includes(t)))
   const out: string[] = []
-  const max = Math.max(0, ...gs.map(g => g.temy.length))
-  for (let i = 0; i < max; i++) for (const g of gs) if (g.temy[i]) out.push(g.temy[i].tema)
-  return [...new Set([...out, ...OBSHAYA.temy.map(t => t.tema)])]
+  const max = Math.max(0, ...po.map(x => x.length))
+  for (let i = 0; i < max; i++) for (const x of po) if (x[i]) out.push(x[i])
+  // темы без группы (старые ниши, своя тема из прошлой правки) не теряем
+  return [...new Set([...out, ...topics.filter(t => !out.includes(t))])]
 }
 
 export function frazyDlya(kody: string[]): string[] {
@@ -60,7 +79,7 @@ export function replikiDlya(kody: string[]): string[] {
   return [...new Set([...first, ...GRUPPY.map(g => g.replika), OBSHAYA.replika])]
 }
 
-// Ситуации темы: для первой темы поста (lib/first-topic.ts)
+// Ситуации темы: для темы поста (lib/first-topic.ts)
 export function situaciiTemy(tema: string): string[] {
   const t = tema.trim().toLowerCase()
   for (const g of [...GRUPPY, OBSHAYA]) {
@@ -68,4 +87,15 @@ export function situaciiTemy(tema: string): string[] {
     if (hit) return hit.situacii
   }
   return []
+}
+
+// «С чем работает» для настроек автора в генераторе. С новой анкетой это названия отмеченных групп
+// (длинный список тем в строку «главная тема блога» не годится, а первая тема перекосила бы все тексты к себе);
+// у старых пользователей без групп как было: одна ниша, иначе список ниш.
+export function nishaProfilya(profile: { klienty?: unknown; one_niche?: unknown; niches?: unknown }): string {
+  const gs = gruppyPo(parseKlienty(profile.klienty).groups).map(g => g.imya.replace(/\s*\(.*\)$/, ''))
+  if (gs.length) return gs.join(', ')
+  const one = String(profile.one_niche || '').trim()
+  if (one) return one
+  return Array.isArray(profile.niches) ? profile.niches.map(String).filter(Boolean).join(', ') : String(profile.niches || '')
 }

@@ -1,10 +1,11 @@
 'use client'
 
 // Экспресс-онбординг карточками (задача onbording; верстка по спецификации designer-psycont): вход с Верой,
-// 6 вопросов по одному на экран, финал с первой темой. Анкета 2 (19.11): вместо одной ниши и портрета клиента
-// психолог отмечает, кто к нему приходит (направления, возраст, пол, формат), темы для постов и фразы клиентов
-// (lib/anketa, данные из каталога живых находок). Темы ложатся в niches, первая в one_niche, фразы в
-// client_pain_phrases через перенос строки (прод-генератор без правок), «кто приходит» в новое поле klienty. Порядок от легкого к тяжелому: первые шаги
+// 6 вопросов по одному на экран, финал с первой темой. Анкета 2 (19.11, версия 2): имя, подход, «с чем работаешь»
+// (8 групп, тап отмечает группу со всеми темами, стрелка раскрывает темы), «кто приходит» (возраст, пол, формат,
+// можно пропустить), фразы клиентов (можно пропустить), ответ клиентке. Данные lib/anketa. Темы ложатся в niches
+// по кругу между группами, первая в one_niche, фразы в client_pain_phrases через перенос строки, группы и «кто
+// приходит» в поле klienty. Порядок от легкого к тяжелому: первые шаги
 // пролетают за секунды. Ответы живут в sessionStorage (перезагрузка и «Назад» ничего не стирают), в базу один
 // upsert в конце с теми же полями, что раньше. Ползунки тона отсюда убраны (они на экране голоса): тон не пишем,
 // в базе остается значение по умолчанию, генерация середину ползунка не выводит.
@@ -18,8 +19,8 @@ import { supabase } from '@/lib/supabase'
 import { useVoiceRecorder } from '@/lib/use-voice-recorder'
 import VoiceSheet from '@/components/make/VoiceSheet'
 import { firstTopic } from '@/lib/first-topic'
-import { EMPTY_KLIENTY, frazyDlya, replikiDlya, temyDlya, type Klienty } from '@/lib/anketa'
-import { KtoPrihodit, PickChips } from '@/components/anketa/AnketaBlocks'
+import { EMPTY_KLIENTY, frazyDlya, parseKlienty, replikiDlya, temyPoKrugu, type Klienty } from '@/lib/anketa'
+import { KtoPrihodit, PickChips, SChemRabotaesh } from '@/components/anketa/AnketaBlocks'
 import { track } from '@/lib/track'
 import { syncEmailName } from '@/lib/auth-name'
 
@@ -35,8 +36,6 @@ const TOP_APPROACHES = ['КПТ', 'Гештальт', 'Психоанализ', 
 const ALL_APPROACHES = [...TOP_APPROACHES, ...APPROACHES.filter(x => !TOP_APPROACHES.includes(x))]
 const STORE = 'psycont_onb_express'
 const TOTAL = 6
-// тем можно отметить от одной до пяти вместе со своей
-const MAX_TOPICS = 5
 const VOICE_LIMIT = 60
 // Просмотр для проверки верстки: только в dev-сборке, ?preview=1 пропускает проверку профиля и ничего не пишет в базу.
 // В проде переменная NODE_ENV = production, режим не включается.
@@ -130,7 +129,8 @@ export default function ExpressOnboarding() {
       if (restored && restored.uid !== user.id) { restored = null; try { sessionStorage.removeItem(STORE) } catch {} }
       if (restored?.a) {
         // старая форма ответов (до 19.11) без новых полей: недостающее берется из EMPTY
-        setA({ ...EMPTY, ...restored.a, klienty: { ...EMPTY_KLIENTY, ...(restored.a.klienty || {}) } })
+        // группы чистятся по нынешним данным (коды групп первой версии анкеты больше не существуют)
+        setA({ ...EMPTY, ...restored.a, klienty: parseKlienty(restored.a.klienty) })
       } else {
         // имя из метаданных входа (Яндекс и почта обычно отдают)
         const metaName = String(user.user_metadata?.full_name || user.user_metadata?.name || '')
@@ -216,11 +216,11 @@ export default function ExpressOnboarding() {
   const done = (n: number) => track('onb_step_done', { step: n, ms: Date.now() - stepStart.current })
   const back = () => { if (step >= 1 && step <= TOTAL && !moving) go((step - 1) as Step) }
 
-  // темы: отмеченные чипы и своя тема в конце; фразы так же
-  const topics = [...a.topics, ...(a.ownTopic.trim() ? [a.ownTopic.trim()] : [])]
+  // темы: отмеченные по кругу между группами и своя тема в конце; фразы так же
+  const topics = [...new Set([...temyPoKrugu(a.klienty.groups, a.topics), ...(a.ownTopic.trim() ? [a.ownTopic.trim()] : [])])]
   const phrases = [...a.phrases, ...(a.ownPhrase.trim() ? [a.ownPhrase.trim()] : [])]
   // на 6-м шаге «Дальше» ждет конца расшифровки, иначе текст придет после сохранения и потеряется
-  const valid: Record<number, boolean> = { 1: !!a.name.trim() && !!a.gender, 2: a.approaches.length > 0, 3: a.klienty.groups.length > 0, 4: topics.length > 0 && topics.length <= MAX_TOPICS, 5: true, 6: !!a.tone.trim() }
+  const valid: Record<number, boolean> = { 1: !!a.name.trim() && !!a.gender, 2: a.approaches.length > 0, 3: a.klienty.groups.length > 0, 4: true, 5: true, 6: !!a.tone.trim() }
 
   // запись голоса до минуты; текст встает в конец поля
   const appendTone = useCallback((t: string) => setA(x => ({ ...x, tone: x.tone.trim() ? `${x.tone.trim()} ${t}` : t })), [])
@@ -314,19 +314,30 @@ export default function ExpressOnboarding() {
   const missing: Record<number, string> = {
     1: !a.name.trim() ? 'Напиши имя, и пойдем дальше' : 'Выбери, как ты говоришь о себе',
     2: 'Выбери хотя бы один подход',
-    3: 'Отметь хотя бы одно направление',
-    4: topics.length > MAX_TOPICS ? 'Можно до пяти тем' : 'Отметь от одной до пяти тем',
+    3: 'Отметь хотя бы одну группу',
     6: transcribing ? 'Подожди, расшифровываю' : 'Наговори или напиши, что ответишь',
   }
   const nextBlock = (label = 'Дальше') => (
-    <div ref={actionRef} className={step === 6 ? 'mt-3' : step === 3 || step === 4 ? 'mt-4' : 'mt-5'}>
+    // прилипает к низу экрана, если карточка длиннее окна (длинный список групп на 375×667)
+    <div ref={actionRef} className={`sticky bottom-0 z-10 bg-brand-bg pt-2 pb-[max(4px,env(safe-area-inset-bottom))] ${step === 6 ? 'mt-1' : step === 3 ? 'mt-2' : 'mt-3'}`}>
       <button type="button" onClick={next} aria-disabled={!valid[step] || saving} aria-describedby="onb-missing"
         className={valid[step] && !saving ? green : 'w-full h-[52px] rounded-2xl text-[16px] font-semibold bg-brand-border text-brand-muted cursor-not-allowed'}>
         {saving ? <span className="inline-flex items-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />Сохраняю</span> : label}
       </button>
       <p id="onb-missing" className="mt-2 min-h-[18px] text-center text-[13px] text-brand-muted" role="status">
-        {limitHint ? (step === 4 ? 'Можно до пяти. Сними одну, чтобы выбрать другую' : 'Можно до трех. Сними один, чтобы выбрать другой') : !valid[step] ? missing[step] || '' : ''}
+        {limitHint ? 'Можно до трех. Сними один, чтобы выбрать другой' : !valid[step] ? missing[step] || '' : ''}
       </p>
+    </div>
+  )
+  // необязательный шаг: ничего не отмечено = «Пропустить», есть ответ = «Дальше» (один слот)
+  const skipBlock = (n: 4 | 5, has: boolean) => (
+    <div ref={actionRef} className="sticky bottom-0 z-10 bg-brand-bg pt-2 pb-[max(4px,env(safe-area-inset-bottom))] mt-3">
+      <button type="button" disabled={moving}
+        onClick={() => { if (has) next(); else { track('onb_skip', { step: n }); done(n); go((n + 1) as Step) } }}
+        className={has ? green : outline}>
+        {has ? 'Дальше' : 'Пропустить'}
+      </button>
+      <p className="mt-2 text-center text-[13px] text-brand-muted">Можно дописать потом в профиле</p>
     </div>
   )
   const title = (t: string, hint?: string) => (
@@ -412,22 +423,24 @@ export default function ExpressOnboarding() {
   } else if (step === 3) {
     body = (
       <div>
-        {title('Кто к тебе приходит?', 'Отметь направления, можно несколько')}
+        {title('С чем работаешь?', 'Отметь группы, все их темы выберутся сами. Стрелка покажет темы')}
         <div className="mt-3">
-          <KtoPrihodit value={a.klienty} onChange={v => setA({ ...a, klienty: v })} />
+          <SChemRabotaesh groups={a.klienty.groups} topics={a.topics} onChange={v => setA({ ...a, klienty: { ...a.klienty, groups: v.groups }, topics: v.topics })}
+            own={a.ownTopic} onOwn={v => setA({ ...a, ownTopic: v })} />
         </div>
         {nextBlock()}
       </div>
     )
   } else if (step === 4) {
+    const k = a.klienty
+    const has = k.age.length > 0 || !!k.gender || k.format.length > 0
     body = (
       <div>
-        {title('О чем хочешь писать?', 'Отсюда возьму темы постов, их можно поменять в профиле')}
-        <div className="mt-3" />
-        <PickChips options={temyDlya(a.klienty.groups)} selected={a.topics} max={MAX_TOPICS} onLimit={() => setLimitHint(true)}
-          onChange={v => { setLimitHint(false); setA({ ...a, topics: v }) }}
-          own={a.ownTopic} onOwn={v => setA({ ...a, ownTopic: v })} ownPlaceholder="Своя тема" ownLabel="Своя тема" />
-        {nextBlock()}
+        {title('Кто к тебе приходит?', 'Можно пропустить')}
+        <div className="mt-1">
+          <KtoPrihodit value={a.klienty} onChange={v => setA({ ...a, klienty: v })} />
+        </div>
+        {skipBlock(4, has)}
       </div>
     )
   } else if (step === 5) {
@@ -441,15 +454,7 @@ export default function ExpressOnboarding() {
             onChange={v => setA({ ...a, phrases: v })}
             own={a.ownPhrase} onOwn={v => setA({ ...a, ownPhrase: v })} ownPlaceholder="Своя фраза клиента" ownLabel="Своя фраза клиента" />
         </div>
-        <div ref={actionRef} className="mt-4">
-          {/* один слот: ничего не отмечено = «Пропустить», есть фразы = «Дальше» */}
-          <button type="button" disabled={moving}
-            onClick={() => { if (has) next(); else { track('onb_skip', { step: 5 }); done(5); go(6) } }}
-            className={has ? green : outline}>
-            {has ? 'Дальше' : 'Пропустить'}
-          </button>
-          <p className="mt-2 text-center text-[13px] text-brand-muted">Можно дописать потом в профиле</p>
-        </div>
+        {skipBlock(5, has)}
       </div>
     )
   } else if (step === 6) {
@@ -510,7 +515,7 @@ export default function ExpressOnboarding() {
 
   const q = step >= 1 && step <= TOTAL ? step : 0
   return (
-    <div className="min-h-dvh bg-brand-bg overflow-x-hidden flex flex-col">
+    <div className="min-h-dvh bg-brand-bg overflow-x-clip flex flex-col">
       {/* шапка сверху, карточка по центру оставшейся высоты, оптический центр чуть выше середины (снизу 10dvh) */}
       <div className="flex-1 w-full max-w-[440px] mx-auto px-4 pt-[max(8px,env(safe-area-inset-top))] flex flex-col">
         {/* шапка стоит на месте, двигается только тело */}
