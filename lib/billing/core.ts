@@ -13,10 +13,10 @@
 // - вторая оплата поверх живого окна не сжигает дни: окно складывается, платеж помечается для возврата в /admin;
 // - возврат за оставшиеся дни (lib/billing/period.ts), тариф выключается в день возврата.
 import { rub, methodTitle, type YkClient, type YkPayment } from './yookassa'
-import { addMonthAnchored, anchorDayOf, refundByDays } from './period'
+import { addMonthAnchored, anchorDayOf, refundByDays, manualWindow, mskDayStart, type ManualMode } from './period'
 import { isYooKassaIp } from './ip'
 import { PAID_PLANS, isPaidCode, consentText, type PaidCode } from './plans'
-import { methodPhrase } from './mail-texts'
+import { methodPhrase, PAID_NEXT_MANUAL } from './mail-texts'
 
 export { PAID_PLANS, isPaidCode, consentText, type PaidCode }
 
@@ -71,7 +71,11 @@ export interface Repo {
   // письмо «за 3 дня» отмечается условно: второй параллельный прогон его не повторит
   markReminded(userId: string, chargeAt: string): Promise<boolean>
   subsToCharge(nowIso: string): Promise<SubRow[]>
-  subsToExpire(nowIso: string): Promise<SubRow[]>
+  // all: и те, у кого стоит автопродление (при выключенных автоплатежах списаний нет, окно просто кончается)
+  subsToExpire(nowIso: string, all?: boolean): Promise<SubRow[]>
+  // ручное продление: оплаченный срок кончается в (now, until]; кончился в [from, to]
+  subsEnding(nowIso: string, untilIso: string): Promise<SubRow[]>
+  subsEnded(fromIso: string, toIso: string): Promise<SubRow[]>
   stalePayments(olderThanIso: string, newerThanIso: string): Promise<PaymentRow[]>
   lastPaid(userId: string): Promise<PaymentRow | null>
   insertRefund(row: { payment_id: string; user_id: string | null; amount: number; days_left: number; days_total: number; idempotence_key: string }): Promise<{ id: string }>
@@ -86,7 +90,7 @@ export interface Repo {
   mailDelay(id: string, untilIso: string): Promise<void>
 }
 
-export type MailKind = 'paid' | 'reminder' | 'charge_failed' | 'charge_failed_final' | 'autorenew_off' | 'refund' | 'receipt'
+export type MailKind = 'paid' | 'reminder' | 'charge_failed' | 'charge_failed_final' | 'autorenew_off' | 'refund' | 'receipt' | 'end_soon' | 'end_today' | 'ended'
 export interface Deps {
   now(): Date
   repo: Repo
@@ -97,7 +101,11 @@ export interface Deps {
   log?(msg: string): void
   siteUrl: string
   offerVersion: string
+  // автоплатежи (19.11): true как раньше (галочка, сохраненный способ, списания по таймеру); false ручное продление.
+  // Не задано: env AUTOPAY_ENABLED=1 (lib/billing/ready.ts autopayEnabled), иначе выключено
+  autopay?: boolean
 }
+export const autopayOn = (d: Pick<Deps, 'autopay'>) => d.autopay ?? process.env.AUTOPAY_ENABLED === '1'
 
 const iso = (d: Date) => d.toISOString()
 const money = (n: number) => `${n.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).replace(/\s/g, ' ')} ₽`
@@ -147,8 +155,12 @@ export async function startCheckout(d: Deps, a: { userId: string; email: string 
   const plan = PAID_PLANS[a.plan]
   const now = d.now()
   const sub = await d.repo.getSub(a.userId)
+  // автоплатежи выключены (19.11): способ не сохраняется, согласия на списания нет, платить можно в любой момент
+  // (продление заранее или другой тариф: окно считает processPayment, lib/billing/period.ts manualWindow)
+  const autopay = autopayOn(d)
+  if (!autopay) a = { ...a, autoRenew: false }
   // окно еще оплачено: новая оплата не нужна (вторую оплату поверх окна processPayment все равно сложит, ревью 17.11)
-  if (paidAccess(sub, now) && sub!.status !== 'past_due') return { ok: false, error: 'already_paid' }
+  if (autopay && paidAccess(sub, now) && sub!.status !== 'past_due') return { ok: false, error: 'already_paid' }
   const recent = await d.repo.recentPayments(a.userId, iso(new Date(now.getTime() - Math.max(CREATE_LIMIT.minutes, REUSE_PENDING_MIN) * 60000)))
   // тот же тариф, тот же выбор, платеж еще ждет оплаты: отдаем его, а не создаем второй (две вкладки, двойной клик)
   const fresh = recent.find(p => p.kind === 'first' && p.status === 'pending' && p.plan_code === plan.code && p.save_requested === a.autoRenew
@@ -159,7 +171,7 @@ export async function startCheckout(d: Deps, a: { userId: string; email: string 
   if (sub && sub.status === 'past_due') await d.repo.updateSub(a.userId, { next_charge_at: null, auto_renew: false, status: 'expired', plan_code: 'free' })
 
   const key = `first:${a.userId}:${crypto.randomUUID()}`
-  const row = await d.repo.insertPayment({ user_id: a.userId, email: a.email, kind: 'first', plan_code: plan.code, amount: plan.price, save_requested: a.autoRenew, idempotence_key: key, attempt: 1, note: `via:${a.via}` })
+  const row = await d.repo.insertPayment({ user_id: a.userId, email: a.email, kind: 'first', plan_code: plan.code, amount: plan.price, save_requested: a.autoRenew, idempotence_key: key, attempt: 1, note: `via:${a.via}${autopay ? '' : ',manual'}` })
   if (a.autoRenew) await d.repo.insertConsent({ user_id: a.userId, plan_code: plan.code, amount: plan.price, consent_text: consentText(plan), offer_version: d.offerVersion, ip: a.ip, payment_id: row.id })
   const body = (save: boolean, sbp = a.via === 'sbp') => ({
     amount: rub(plan.price),
@@ -194,6 +206,7 @@ export async function startCheckout(d: Deps, a: { userId: string; email: string 
     }
     const url = p.confirmation?.confirmation_url
     await d.repo.updatePayment(row.id, { yk_payment_id: p.id, confirmation_url: url || null, ...(saveDropped ? { note: `via:${a.via},nosave` } : {}), updated_at: iso(now) })
+    // при выключенных автоплатежах ЮKassa видит обычный платеж: save_payment_method не уходит никогда
     if (!url || !/^https:\/\//.test(url)) return { ok: false, error: 'yookassa' }
     d.track?.(a.userId, 'pay_start', { plan: plan.code, auto: a.autoRenew && !saveDropped, via: a.via })
     return { ok: true, url, paymentId: row.id, ...(saveDropped ? { saveDropped } : {}) }
@@ -206,7 +219,16 @@ export async function startCheckout(d: Deps, a: { userId: string; email: string 
 // Окно оплаты. Продление: с конца прошлого окна (повторы идут до 3 дней, тариф в это время работает). Первая оплата поверх
 // живого окна (две вкладки, СБП прошла позже карты): складываем с концом окна и помечаем двойную оплату.
 // Иначе с момента оплаты, и якорь дня тоже от момента оплаты (иначе после позднего повтора месяц был бы короче, ревью 17.11).
-function windowFor(row: PaymentRow, sub: SubRow | null, now: Date): { start: Date; end: Date; anchor: number; double: boolean } {
+function windowFor(row: PaymentRow, sub: SubRow | null, now: Date): { start: Date; end: Date; anchor: number; double: boolean; mode?: ManualMode } {
+  // ручная оплата (автоплатежи выключены): продление к концу оплаченного или смена тарифа с пересчетом остатка,
+  // по состоянию подписки в момент оплаты (lib/billing/period.ts manualWindow, ее же показывает экран оплаты)
+  if (row.kind === 'first' && (row.note || '').includes('manual') && isPaidCode(row.plan_code)) {
+    const cur = sub && sub.status !== 'expired' && isPaidCode(sub.plan_code) && sub.period_end
+      ? { planCode: sub.plan_code, price: PAID_PLANS[sub.plan_code].price, end: new Date(sub.period_end), anchor: sub.billing_anchor_day }
+      : null
+    const w = manualWindow(now, cur, PAID_PLANS[row.plan_code])
+    return { start: w.start, end: w.end, anchor: w.anchor, double: false, mode: w.mode }
+  }
   const prevEnd = sub?.period_end && sub.status !== 'expired' ? new Date(sub.period_end) : null
   const live = !!(prevEnd && prevEnd > now && sub!.plan_code !== 'free' && sub!.status !== 'past_due')
   if (row.kind === 'first' && live) {
@@ -227,9 +249,10 @@ async function applyWindow(d: Deps, row: PaymentRow, methodId: string | null): P
   const sub = await d.repo.getSub(row.user_id!)
   const end = new Date(row.period_end!)
   if (sub?.period_end && new Date(sub.period_end) > end && sub.status !== 'expired') return // уже применено окно новее
-  const double = (row.note || '').includes('double')
+  const double = (row.note || '').includes('double') || (row.note || '').includes('extend')
   if (double && sub) {
-    // двойная оплата: окно продлевается, начало и счетчик материалов прежние, способ оплаты прежний
+    // двойная оплата или ручное продление заранее: окно продлевается, начало прежнее (лимит текстов все равно по
+    // месяцам, lib/billing/period.ts monthSegmentStart), способ оплаты прежний
     await d.repo.updateSub(row.user_id!, { period_end: row.period_end, ...(sub.auto_renew ? { next_charge_at: row.period_end } : {}) })
     return
   }
@@ -262,7 +285,7 @@ export async function processPayment(d: Deps, api: YkPayment): Promise<string> {
     if (!row.period_start) {
       const sub = await d.repo.getSub(row.user_id)
       const w = windowFor(row, sub, now)
-      const note = `${row.note || ''},anchor:${w.anchor}${w.double ? ',double,refund_due' : ''}`
+      const note = `${row.note || ''},anchor:${w.anchor}${w.double ? ',double,refund_due' : ''}${w.mode && w.mode !== 'new' ? `,${w.mode}` : ''}`
       row = (await d.repo.setWindowOnce(row.id, { period_start: iso(w.start), period_end: iso(w.end), note })) || (await d.repo.getPayment(row.id))!
     }
     // 2) способ оплаты (повторяемо: upsert по id способа в ЮKassa)
@@ -278,7 +301,7 @@ export async function processPayment(d: Deps, api: YkPayment): Promise<string> {
     const sub = await d.repo.getSub(row.user_id!)
     const to = row.email || await d.repo.userEmail(row.user_id!)
     const auto = !!sub?.auto_renew
-    const paidSent = !!to && await sent(d.mail('paid', to, { plan: planName(row.plan_code), amount: money(row.amount), until: dateRu(sub?.period_end || row.period_end!), next: auto && sub?.next_charge_at ? `Следующее списание ${dateRu(sub.next_charge_at)}, ${money(row.amount)}.` : 'Автопродление выключено.', method: methodPhrase(api.payment_method?.type, api.payment_method?.card?.last4) }))
+    const paidSent = !!to && await sent(d.mail('paid', to, { plan: planName(row.plan_code), amount: money(row.amount), until: dateRu(sub?.period_end || row.period_end!), next: auto && sub?.next_charge_at ? `Следующее списание ${dateRu(sub.next_charge_at)}, ${money(row.amount)}.` : (row.note || '').includes('manual') ? PAID_NEXT_MANUAL : 'Автопродление выключено.', method: methodPhrase(api.payment_method?.type, api.payment_method?.card?.last4) }))
     if (!paidSent) d.log?.(`pay mail: письмо об оплате не ушло, платеж ${row.id}`)
     d.track?.(row.user_id, 'pay_done', { plan: row.plan_code, kind: row.kind, via: api.payment_method?.type || 'unknown' })
     if ((won.note || '').includes('double')) d.log?.('pay: двойная оплата, окно сложено, предложить возврат')
@@ -342,6 +365,9 @@ export async function handleWebhook(d: Deps, ip: string, body: any): Promise<{ s
 export async function runBilling(d: Deps): Promise<Record<string, number>> {
   const now = d.now()
   const out = { reconciled: 0, reminded: 0, charged: 0, failed: 0, postponed: 0, expired: 0, purged: 0, mailed: 0, errors: 0 }
+  // автоплатежи выключены (19.11): ни напоминаний о списании, ни списаний по сохраненному способу, ни писем о неудаче;
+  // вместо них письма ручного продления (manualMails)
+  const autopay = autopayOn(d)
   // 4.1 платежи без ответа дольше 10 минут (вебхук потерялся): сверяем по API
   for (const p of await d.repo.stalePayments(iso(new Date(now.getTime() - 10 * 60000)), iso(new Date(now.getTime() - 3 * 24 * H)))) {
     if (!p.yk_payment_id) continue
@@ -349,6 +375,8 @@ export async function runBilling(d: Deps): Promise<Record<string, number>> {
   }
   // 4.0 очередь писем: ночные и неотправленные (в окне 10:00-20:00 по Москве для писем о продлении)
   for (const q of await d.repo.dueMails(iso(now)).catch(() => [])) {
+    // старые письма о списаниях из очереди при выключенных автоплатежах не шлем (списаний нет), отмечаем закрытыми
+    if (!autopay && WINDOW_KINDS.includes(q.kind)) { await d.repo.mailSent(q.id, iso(now)); continue }
     if (WINDOW_KINDS.includes(q.kind) && !inMailWindow(now)) continue
     const to = q.user_id ? await d.repo.userEmail(q.user_id).catch(() => null) : null
     if (!to) { await d.repo.mailSent(q.id, iso(now)); continue } // аккаунта нет: письмо некому слать
@@ -356,12 +384,12 @@ export async function runBilling(d: Deps): Promise<Record<string, number>> {
     else await d.repo.mailDelay(q.id, iso(new Date(now.getTime() + H)))
   }
   // 4.2 письмо за 3 дня до списания (один раз на дату списания)
-  for (const s of await d.repo.subsToRemind(iso(now), iso(new Date(now.getTime() + REMIND_BEFORE_HOURS * H)))) {
+  if (autopay) for (const s of await d.repo.subsToRemind(iso(now), iso(new Date(now.getTime() + REMIND_BEFORE_HOURS * H)))) {
     if (!s.next_charge_at || s.reminder_sent_for === s.next_charge_at) continue
     if (await remind(d, s, s.next_charge_at)) out.reminded++
   }
   // 4.3 продления по сохраненному способу
-  for (const s0 of await d.repo.subsToCharge(iso(now))) {
+  if (autopay) for (const s0 of await d.repo.subsToCharge(iso(now))) {
     try {
       // перечитываем: человек мог отключить автопродление, пока таймер шел по списку (ревью 17.11)
       const s = await d.repo.getSub(s0.user_id)
@@ -402,11 +430,56 @@ export async function runBilling(d: Deps): Promise<Record<string, number>> {
   // 4.5 согласия удаленных аккаунтов храним 3 года, потом удаляем (/privacy раздел 9)
   try { out.purged = await d.repo.purgeOrphanConsents(iso(new Date(now.getTime() - CONSENT_KEEP_DAYS * 24 * H))) } catch { out.errors++ }
   // 4.4 окно кончилось, продления нет (автопродление выключено или нет способа): тариф снова пробный
-  for (const s of await d.repo.subsToExpire(iso(now))) {
+  for (const s of await d.repo.subsToExpire(iso(now), !autopay)) {
     await d.repo.updateSub(s.user_id, { status: 'expired', plan_code: 'free', auto_renew: false, next_charge_at: null })
     out.expired++
   }
+  // 4.6 письма ручного продления: за 3 дня, в последние сутки, на следующий день после конца
+  if (!autopay) { try { out.mailed += await manualMails(d, now) } catch { out.errors++ } }
   return out
+}
+
+// ── Ручное продление: письма (19.11) ──
+// Каждое письмо один раз на конец оплаченного срока: отметка в payment_events (ключ mail:<вид>:<человек>:<конец>).
+// Продлил: конец срока новый, письма для него придут заново, для старого конца уже не нужны. Письмо не ушло (SMTP):
+// отметка не закрыта, следующий прогон повторит. Только с 10:00 до 20:00 по Москве, как остальные письма о продлении.
+export const END_SOON_HOURS = 72
+export const ENDED_MAIL_DAYS = 7 // «Тариф закончился» шлем, только если конец был не раньше недели назад
+async function manualMails(d: Deps, now: Date): Promise<number> {
+  if (!inMailWindow(now)) return 0
+  let n = 0
+  for (const s of await d.repo.subsEnding(iso(now), iso(new Date(now.getTime() + END_SOON_HOURS * H)))) {
+    if (!s.period_end || !isPaidCode(s.plan_code)) continue
+    const end = new Date(s.period_end)
+    const kind: MailKind = end.getTime() - now.getTime() <= 24 * H ? 'end_today' : 'end_soon'
+    const day = mskDayStart(now).getTime() === mskDayStart(end).getTime() ? 'Сегодня' : 'Завтра'
+    if (await mailOnce(d, s.user_id, s.period_end, kind, s.plan_code, { day })) n++
+  }
+  for (const s of await d.repo.subsEnded(iso(new Date(now.getTime() - ENDED_MAIL_DAYS * 24 * H)), iso(now))) {
+    if (!s.period_end || paidAccess(s, now)) continue
+    // на следующий день по Москве после конца срока
+    if (mskDayStart(now).getTime() <= mskDayStart(new Date(s.period_end)).getTime()) continue
+    // тариф выключен возвратом: письмо «закончился» не нужно (человек сам просил)
+    const last = await d.repo.lastPaid(s.user_id)
+    if (!last || !isPaidCode(last.plan_code) || (last.note || '').includes('refunded')) continue
+    if (await mailOnce(d, s.user_id, s.period_end, 'ended', last.plan_code, {})) n++
+  }
+  return n
+}
+const mailKey = (kind: MailKind, userId: string, end: string) => `mail:${kind}:${userId}:${new Date(end).toISOString()}`
+async function mailOnce(d: Deps, userId: string, end: string, kind: MailKind, code: PaidCode, extra: Record<string, string>): Promise<boolean> {
+  const key = mailKey(kind, userId, end)
+  if (!(await d.repo.claimEvent(key, `mail_${kind}`, userId))) return false
+  const to = await d.repo.userEmail(userId)
+  if (!to) { await d.repo.finishEvent(key, 'no_email'); return false }
+  const plan = PAID_PLANS[code]
+  if (await sent(d.mail(kind, to, { plan: plan.name, code: plan.code, date: dateRu(end), ...extra }))) {
+    await d.repo.finishEvent(key, 'sent')
+    d.track?.(userId, 'pay_mail', { kind })
+    return true
+  }
+  d.log?.(`pay mail: письмо ${kind} не ушло, повтор на следующем прогоне`)
+  return false
 }
 
 async function remind(d: Deps, s: SubRow, chargeAt: string): Promise<boolean> {
@@ -493,7 +566,10 @@ export async function refundPayment(d: Deps, paymentId: string): Promise<RefundR
   // деньги ЮKassa приняла: дальше ничего не пишем как «не вышло», каждый шаг сам по себе (ревью 17.11)
   const step = async (f: () => Promise<unknown>, what: string) => { try { await f() } catch { d.log?.(`refund: шаг ${what} не записан, деньги уже возвращаются`) } }
   await step(() => d.repo.updateRefund(ref!.id, { yk_refund_id: r.id, status: r.status, updated_at: iso(now) }), 'refund')
-  if (p.user_id) await step(() => d.repo.updateSub(p.user_id!, { status: 'expired', plan_code: 'free', auto_renew: false, next_charge_at: null, period_end: iso(now) }), 'sub')
+  // продление заранее еще не началось (окно платежа в будущем, 19.11): возвращаем его целиком, а текущий оплаченный
+  // месяц работает до своего конца
+  const future = !!p.period_start && new Date(p.period_start).getTime() > now.getTime()
+  if (p.user_id) await step(() => d.repo.updateSub(p.user_id!, future ? { period_end: p.period_start } : { status: 'expired', plan_code: 'free', auto_renew: false, next_charge_at: null, period_end: iso(now) }), 'sub')
   // чек уже выбит: аннулировать и выбить новый на остаток; еще не выбит: выбить сразу на остаток (пометка refunded:сумма)
   await step(() => d.repo.updatePayment(p.id, { receipt_status: p.receipt_status === 'done' ? 'annul_need' : p.receipt_status, note: `${(p.note || '').replace(/,?refund_due/g, '')},refunded:${ref!.amount}` }), 'payment')
   const to = p.email || (p.user_id ? await d.repo.userEmail(p.user_id).catch(() => null) : null)
@@ -519,7 +595,11 @@ export async function adminExtend(d: Deps, userId: string, days: number, plan: s
 }
 
 export async function adminDisable(d: Deps, userId: string): Promise<'ok'> {
-  await d.repo.updateSub(userId, { status: 'expired', plan_code: 'free', auto_renew: false, next_charge_at: null, period_end: iso(d.now()) })
+  const end = iso(d.now())
+  await d.repo.updateSub(userId, { status: 'expired', plan_code: 'free', auto_renew: false, next_charge_at: null, period_end: end })
+  // выключила Арина: письмо «Тариф закончился» на следующий день не нужно
+  const key = mailKey('ended', userId, end)
+  if (await d.repo.claimEvent(key, 'mail_ended', userId).catch(() => false)) await d.repo.finishEvent(key, 'skip_admin').catch(() => {})
   return 'ok'
 }
 

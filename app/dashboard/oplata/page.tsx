@@ -8,11 +8,13 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, Check, Loader2 } from 'lucide-react'
-import { PAY, rubles, dateRu } from '@/lib/billing/pay-texts'
+import { PAY, MANUAL, rubles, dateRu } from '@/lib/billing/pay-texts'
+import { manualWindow } from '@/lib/billing/period'
 import { consentText, PAID_PLANS, type PaidCode } from '@/lib/billing/plans'
 import { track } from '@/lib/track'
 
-type Me = { payments: boolean; paid: boolean; plan: { name: string } | null; until: string | null }
+// autopay false (19.11): галочки нет, платят за месяц сами; продлить или сменить тариф можно при оплаченном
+type Me = { payments: boolean; paid: boolean; plan: { code?: string; name: string; price?: number } | null; until: string | null; autopay?: boolean; anchor?: number | null }
 
 function Oplata() {
   const router = useRouter()
@@ -31,6 +33,14 @@ function Oplata() {
     return () => { if (timer.current) window.clearTimeout(timer.current) }
   }, [])
 
+  const manual = me?.autopay === false
+  // то же окно, что посчитает сервер (lib/billing/period.ts manualWindow): продлить, сменить или новый месяц
+  const win = manual && me ? manualWindow(new Date(),
+    me.paid && me.plan?.code && me.until ? { planCode: me.plan.code, price: me.plan.price || 0, end: new Date(me.until), anchor: me.anchor ?? null } : null, p) : null
+  const winLine = !win ? '' : win.mode === 'extend' ? MANUAL.renewLine(dateRu(me!.until!), dateRu(win.end))
+    : win.mode === 'switch' ? MANUAL.switchLine(p.name, me!.plan!.name, win.daysLeft, win.bonusDays, dateRu(win.end))
+    : MANUAL.newLine(dateRu(win.end))
+
   const choose = (code: PaidCode) => { if (!busy) router.replace(`/dashboard/oplata?plan=${code}`, { scroll: false }) }
 
   const pay = async (via: 'sbp' | 'any') => {
@@ -39,7 +49,7 @@ function Oplata() {
     // если перехода нет 10 с (медленная сеть), кнопки снова доступны
     timer.current = window.setTimeout(() => setBusy(null), 10000)
     try {
-      const r = await fetch('/api/pay/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan, autoRenew: agree, via }) })
+      const r = await fetch('/api/pay/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan, autoRenew: manual ? false : agree, via }) })
       const d = await r.json().catch(() => ({}))
       if (r.status === 429) { setError(true); setBusy(null); return }
       if (r.status === 409) { setMe(m => (m ? { ...m, paid: true } : m)); setBusy(null); fetch('/api/pay/me', { cache: 'no-store' }).then(x => x.json()).then(setMe).catch(() => {}); return }
@@ -74,7 +84,7 @@ function Oplata() {
     )
   }
 
-  if (me.paid && me.plan && me.until) {
+  if (!manual && me.paid && me.plan && me.until) {
     return (
       <div className="max-w-[560px] mx-auto px-4 pt-2 pb-8">
         {backBtn}
@@ -94,7 +104,7 @@ function Oplata() {
     <div className="min-h-[100dvh] lg:min-h-0 flex flex-col">
       <div className="flex-1 max-w-[560px] w-full mx-auto px-4 pt-2 pb-4">
         {backBtn}
-        <h1 className="mt-1 text-[24px] leading-8 lg:text-[28px] font-bold text-brand-text">{PAY.title}</h1>
+        <h1 className="mt-1 text-[24px] leading-8 lg:text-[28px] font-bold text-brand-text">{win?.mode === 'extend' ? MANUAL.renewTitle : PAY.title}</h1>
 
         <div role="radiogroup" aria-label="Тариф" className="mt-4 space-y-2">
           {(Object.keys(PAID_PLANS) as PaidCode[]).map(code => {
@@ -119,7 +129,14 @@ function Oplata() {
           })}
         </div>
 
-        {me.payments && (
+        {me.payments && manual && win && (
+          <div className="mt-5 rounded-2xl bg-brand-card border border-brand-border p-4">
+            <p className="text-[15px] leading-[22px] font-semibold text-brand-text">{winLine}</p>
+            <p className="mt-2 text-[13px] leading-5 text-brand-muted">{MANUAL.note}</p>
+          </div>
+        )}
+
+        {me.payments && !manual && (
           <div className="mt-5 rounded-2xl bg-brand-card border border-brand-border p-4">
             <label className="flex items-start gap-3 cursor-pointer">
               <span className="w-11 h-11 -m-2.5 flex items-center justify-center shrink-0">

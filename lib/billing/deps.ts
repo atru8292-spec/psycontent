@@ -5,6 +5,7 @@ import { serverTrack } from '@/lib/track-server'
 import { OFFER_VERSION } from '@/lib/rekvizity'
 import { httpYk } from './yookassa'
 import { sendPayMail } from './mailer'
+import { autopayEnabled } from './ready'
 import type { Deps, Repo, SubRow, PaymentRow, MethodRow } from './core'
 
 const SITE = (process.env.SITE_PUBLIC_URL || 'https://psycont.ru').replace(/\/$/, '')
@@ -100,9 +101,17 @@ export const supabaseRepo: Repo = {
     const r = must(await db().from('user_subscription').select(SUB_COLS).eq('auto_renew', true).in('status', ['active', 'past_due']).lte('next_charge_at', now), 'charge') as any[]
     return r.map(toSub)
   },
-  async subsToExpire(now) {
+  async subsToExpire(now, all) {
     const r = must(await db().from('user_subscription').select(SUB_COLS).in('status', ['active', 'canceled', 'past_due']).lte('period_end', now), 'expire') as any[]
-    return r.map(toSub).filter(s => !(s.auto_renew && s.next_charge_at))
+    return r.map(toSub).filter(s => all || !(s.auto_renew && s.next_charge_at))
+  },
+  async subsEnding(now, until) {
+    const r = must(await db().from('user_subscription').select(SUB_COLS).in('status', ['active', 'canceled', 'past_due']).gt('period_end', now).lte('period_end', until).limit(500), 'ending') as any[]
+    return r.map(toSub)
+  },
+  async subsEnded(from, to) {
+    const r = must(await db().from('user_subscription').select(SUB_COLS).gte('period_end', from).lte('period_end', to).limit(500), 'ended') as any[]
+    return r.map(toSub)
   },
   async stalePayments(older, newer) {
     const r = must(await db().from('payments').select(PAY_COLS).eq('status', 'pending').lte('created_at', older).gte('created_at', newer).not('yk_payment_id', 'is', null).limit(100), 'stale') as any[]
@@ -135,5 +144,6 @@ export function billingDeps(): Deps {
     track: (u, e, p) => serverTrack(u, e, p),
     siteUrl: SITE,
     offerVersion: OFFER_VERSION,
+    autopay: autopayEnabled(),
   }
 }

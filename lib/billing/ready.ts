@@ -24,3 +24,9 @@ export function payAllowedFor(email: string | null | undefined): boolean {
   return list.some(p => new RegExp('^' + p.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^@,\\s]*') + '$').test(e))
 }
 export const paymentsOnFor = (email: string | null | undefined) => billingReady() && payAllowedFor(email)
+
+// Автоплатежи (19.11): ЮKassa отказала магазину в сохранении карты и списаниях без участия человека (снова подать
+// можно через 3 месяца). По умолчанию выключено: человек платит месяц сам и продлевает сам. AUTOPAY_ENABLED=1
+// возвращает автопродление как было (галочка, сохраненный способ, списания по таймеру). Экраны узнают режим из /api/pay/me и /api/me (поле autopay).
+export const autopayEnabled = () => process.env.AUTOPAY_ENABLED === '1'
+export const AUTOPAY_OFF_MESSAGE = 'Автопродления сейчас нет: карта не сохраняется, тариф продлевается вручную в «Настройках» → «Тариф».'

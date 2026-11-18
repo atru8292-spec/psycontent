@@ -3,7 +3,7 @@
 // чек без ссылки не собирается. npx tsx scripts/test-pisma.ts
 import assert from 'node:assert/strict'
 import { renderPayMail } from '../lib/billing/mail-render'
-import { MAIL, DRAFT } from '../lib/billing/mail-texts'
+import { MAIL, DRAFT, PAID_NEXT_MANUAL } from '../lib/billing/mail-texts'
 
 const site = 'https://psycont.ru'
 const DATA: Record<string, Record<string, string>> = {
@@ -14,6 +14,9 @@ const DATA: Record<string, Record<string, string>> = {
   autorenew_off: { until: '17 декабря' },
   receipt: { url: 'https://lknpd.nalog.ru/api/v1/receipt/222260732304/200abc1234/print' },
   refund: { amount: '817 ₽', days: '19' },
+  end_soon: { plan: 'Спокойный ритм', code: 'start', date: '20 декабря' },
+  end_today: { plan: 'Спокойный ритм', code: 'start', date: '20 декабря', day: 'Сегодня' },
+  ended: { plan: 'Спокойный ритм', code: 'start', date: '20 декабря' },
 }
 assert.equal(DRAFT, false)
 assert.deepEqual(Object.keys(MAIL).sort(), Object.keys(DATA).sort(), 'все виды писем проверены')
@@ -43,4 +46,13 @@ assert.ok(renderPayMail('reminder', { ...DATA.reminder, method: ' через С�
 assert.ok(renderPayMail('charge_failed', DATA.charge_failed, site)!.text.includes('Банк не дал списать 1 290 ₽ за тариф'), 'без способа строка прежняя')
 assert.ok(renderPayMail('charge_failed', DATA.charge_failed, site)!.text.includes('за тариф «Спокойный ритм». Чаще всего на карте не хватило денег или у нее закончился срок.'), 'карта: прежняя причина')
 assert.ok(renderPayMail('charge_failed', { ...DATA.charge_failed, method: ' через СБП' }, site)!.text.includes('Банк не дал списать 1 290 ₽ через СБП за тариф «Спокойный ритм». Чаще всего на счете не хватило денег или банк временно не отвечает.'), 'СБП: своя причина')
+// ручное продление (19.11): кнопка ведет прямо на оплату тарифа, в письмах нет слов про списания и автопродление
+for (const k of ['end_soon', 'end_today', 'ended']) {
+  const m = renderPayMail(k, DATA[k], site)!
+  assert.ok(m.text.includes('https://psycont.ru/dashboard/oplata?plan=start'), `${k}: кнопка на оплату`)
+  assert.ok(!/автопродл|спишем|списани[ея]|карт[аыу]/i.test(m.subject + m.text), `${k}: без автосписаний`)
+}
+assert.ok(renderPayMail('end_today', DATA.end_today, site)!.subject.startsWith('Сегодня последний день тарифа'))
+const pm = renderPayMail('paid', { ...DATA.paid, next: PAID_NEXT_MANUAL }, site)!
+assert.ok(pm.text.includes('Сам тариф не продлится') && !/Следующее списание/.test(pm.text), 'paid без строки о следующем списании')
 console.log('test-pisma: все проверки прошли')

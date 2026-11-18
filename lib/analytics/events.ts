@@ -43,6 +43,7 @@ export const EVENTS = {
   pay_done: ['plan', 'kind', 'via'],                 // сервер: платеж подтвержден API ЮKassa (kind first|renewal)
   pay_failed: ['kind', 'reason'],                    // сервер: платеж отменен (код причины ЮKassa)
   pay_autorenew_off: [],                             // сервер: человек выключил автопродление
+  pay_mail: ['kind'],                                // сервер: ушло письмо ручного продления (end_soon|end_today|ended)
   pay_plan_change: ['plan', 'cancel'],               // сервер: смена тарифа со следующего списания (cancel: вернулась к текущему)
   pay_method_delete: [],                             // сервер: человек удалил способ оплаты
 

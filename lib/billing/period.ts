@@ -33,4 +33,43 @@ export function refundByDays(price: number, periodStart: Date, periodEnd: Date, 
   return { amount, daysLeft, daysTotal }
 }
 
-export const fmtDate = (d: Date | string) => new Date(d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' })
+// ── Ручное продление (19.11, автоплатежи выключены флагом AUTOPAY_ENABLED) ──
+// Окно новой оплаты по тому, что уже оплачено. Чистая функция: ее зовет сервер при оплате (lib/billing/core.ts) и экран
+// оплаты для подсказки «будет оплачено до», поэтому человек видит ровно то, что посчитает сервер.
+// - new: оплаченного нет (или кончилось): месяц с момента оплаты;
+// - extend: тот же тариф еще работает: месяц добавляется к концу оплаченного, с тем же днем месяца (якорь);
+// - switch: другой тариф, пока текущий работает: новый включается сразу, на месяц, а оставшееся время старого
+//   пересчитывается по цене в дни нового (12 дней по 1 290 ₽ = 6,2 дня по 2 490 ₽, округляем вверх, в пользу человека).
+export type ManualMode = 'new' | 'extend' | 'switch'
+export type ManualWin = { start: Date; end: Date; anchor: number; mode: ManualMode; daysLeft: number; bonusDays: number }
+export function manualWindow(now: Date, cur: { planCode: string; price: number; end: Date | null; anchor: number | null } | null, next: { code: string; price: number }): ManualWin {
+  const live = !!(cur && cur.end && cur.end.getTime() > now.getTime() && cur.price > 0)
+  if (live && cur!.planCode === next.code) {
+    const anchor = cur!.anchor || anchorDayOf(cur!.end!)
+    return { start: cur!.end!, end: addMonthAnchored(cur!.end!, anchor), anchor, mode: 'extend', daysLeft: 0, bonusDays: 0 }
+  }
+  const anchor = anchorDayOf(now)
+  const month = addMonthAnchored(now, anchor)
+  if (live) {
+    const leftMs = cur!.end!.getTime() - now.getTime()
+    const daysLeft = Math.ceil(leftMs / DAY)
+    const bonusDays = Math.ceil((leftMs * cur!.price) / next.price / DAY)
+    return { start: now, end: new Date(month.getTime() + bonusDays * DAY), anchor, mode: 'switch', daysLeft, bonusDays }
+  }
+  return { start: now, end: month, anchor, mode: 'new', daysLeft: 0, bonusDays: 0 }
+}
+
+// Начало текущего месяца внутри оплаченного окна: лимит текстов считается по месяцам, даже если окно длиннее месяца
+// (продлила заранее, двойная оплата, смена тарифа с пересчетом). Месяцы идут от начала окна с якорем.
+export function monthSegmentStart(periodStart: Date, anchor: number | null, now: Date): Date {
+  const a = anchor || anchorDayOf(periodStart)
+  let s = periodStart
+  for (let i = 0; i < 60; i++) {
+    const n = addMonthAnchored(s, a)
+    if (n.getTime() > now.getTime()) break
+    s = n
+  }
+  return s
+}
+
+export const fmtDate =(d: Date | string) => new Date(d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' })

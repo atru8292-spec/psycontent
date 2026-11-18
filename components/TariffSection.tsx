@@ -12,7 +12,9 @@ import { PAY_SOON } from '@/lib/limit-texts'
 // требование безопасности денег). Кнопка «Выбрать» открывает честный поповер «оплата скоро».
 
 // paymentsOn (17.11): оплата подключена (ключи ЮKassa на сервере): «Выбрать» ведет на /dashboard/oplata, плашки «скоро» нет
-export default function TariffSection({ currentCode, paymentsOn = false }: { currentCode?: string; paymentsOn?: boolean }) {
+// manual (19.11, автоплатежи выключены): другой платный тариф тоже можно «Выбрать» при оплаченном текущем, это просто
+// оплата другого тарифа (включится сразу, остаток пересчитается, экран оплаты покажет до какого числа)
+export default function TariffSection({ currentCode, paymentsOn = false, manual = false }: { currentCode?: string; paymentsOn?: boolean; manual?: boolean }) {
   const [picked, setPicked] = useState<PricePlan | null>(null)
   const current = planForDbCode(currentCode)
   // paywall_view, когда блок тарифов попал на экран
@@ -67,7 +69,7 @@ export default function TariffSection({ currentCode, paymentsOn = false }: { cur
                   <span className="block w-full text-center text-sm font-semibold text-brand-accent bg-brand-card border border-brand-accent/30 rounded-2xl py-2.5">
                     Ты здесь
                   </span>
-                ) : plan.price > 0 && !(paymentsOn && current && current.price > 0) ? (
+                ) : plan.price > 0 && (manual || !(paymentsOn && current && current.price > 0)) ? (
                   <button
                     type="button"
                     onClick={() => { track('plan_click', { plan: plan.dbCodes[0] || plan.id }); if (paymentsOn) window.location.assign(`/dashboard/oplata?plan=${plan.dbCodes[0] === 'practice' ? 'practice' : 'start'}`); else setPicked(plan) }}

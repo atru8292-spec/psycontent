@@ -3,7 +3,7 @@ import { getSessionUser } from '@/lib/auth'
 import { getAccountSummary } from '@/lib/energy'
 import { createClient } from '@/utils/supabase/server'
 import { isNewPipeline } from '@/lib/generation/context'
-import { paymentsOnFor } from '@/lib/billing/ready'
+import { paymentsOnFor, autopayEnabled } from '@/lib/billing/ready'
 
 // Read-only сводка по своему аккаунту (тариф, энергия, остаток материалов materials: пробные или месячные,
 // витрина 12.11 показывает 50/150). Только чтение и только свои данные; usage_log клиенту не отдаем.
@@ -20,5 +20,5 @@ export async function GET() {
     const { data: profile, error } = await db.from('onboarding_profiles').select('new_pipeline').eq('user_id', user.id).maybeSingle()
     if (!error) newPipeline = isNewPipeline(profile)
   } catch {}
-  return NextResponse.json({ ...summary, newPipeline, paymentsOn: paymentsOnFor(user.email) })
+  return NextResponse.json({ ...summary, newPipeline, paymentsOn: paymentsOnFor(user.email), autopay: autopayEnabled() })
 }

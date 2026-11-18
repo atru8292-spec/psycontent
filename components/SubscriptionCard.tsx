@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
 import { QUIET_BTN } from '@/lib/ui-classes'
-import { SUB, rubles, dateRu } from '@/lib/billing/pay-texts'
+import { SUB, MANUAL, rubles, dateRu } from '@/lib/billing/pay-texts'
 import { PAID_PLANS, consentText, type PaidCode } from '@/lib/billing/plans'
 import { planForDbCode } from '@/lib/pricing'
 import type { Materials } from '@/lib/limit-texts'
@@ -18,7 +18,10 @@ type PayMe = {
   payments: boolean; paid: boolean; status: string; until: string | null; autoRenew: boolean; nextChargeAt: string | null
   plan: { code: string; name: string; price: number } | null; method: { title: string; type: string } | null
   nextPlan: { code: string; name: string; price: number } | null
+  // ручное продление (19.11): autopay false, ended «Тариф закончился» с последним оплаченным тарифом
+  autopay?: boolean; ended?: { plan: { code: string; name: string; price: number }; at: string } | null
 }
+const DAY = 86400000
 
 type Props = {
   planCode?: string
@@ -49,6 +52,10 @@ export default function SubscriptionCard({ planCode, planName, materials, tariff
   const other = PAID_PLANS[otherCode]
   const nextDate = me?.nextChargeAt ? dateRu(me.nextChargeAt) : ''
   const name = (paidView && me?.plan?.name) || planForDbCode(planCode)?.name || planName || SUB.title
+  // ручное продление: автопродления нет, продлевают сами (кнопка «Продлить на месяц», новый месяц к концу оплаченного)
+  const manual = !!me && me.autopay === false
+  const daysLeft = me?.paid && me.until ? Math.max(1, Math.ceil((new Date(me.until).getTime() - Date.now()) / DAY)) : 0
+  const payHref = (code?: string) => `/dashboard/oplata?plan=${code === 'practice' ? 'practice' : 'start'}`
 
   const cancelChange = async () => {
     if (busy || !me?.plan) return
@@ -89,8 +96,25 @@ export default function SubscriptionCard({ planCode, planName, materials, tariff
   return (
     <section id="tariff" aria-labelledby="tariff-title" className={`scroll-mt-20 rounded-[20px] bg-brand-card border border-brand-border p-4 sm:p-6 ${className}`}>
       <h2 id="tariff-title" className="text-lg font-semibold text-brand-text">Тариф</h2>
-      <p className="mt-0.5 text-[15px] leading-[22px] text-brand-muted">{paidView && !pastDue ? SUB.planUntil(name, until) : name}</p>
+      <p className="mt-0.5 text-[15px] leading-[22px] text-brand-muted">{paidView && !pastDue && !manual ? SUB.planUntil(name, until) : manual && me?.ended && !me.paid ? me.ended.plan.name : name}</p>
+      {manual && me?.paid && until && <p className="mt-1 text-[16px] leading-6 font-semibold text-brand-text">{MANUAL.paidUntil(until)}</p>}
       {balance && <p className={`mt-1 text-[15px] leading-[22px] text-brand-text ${left !== 0 ? 'lg:hidden' : ''}`}>{balance}</p>}
+
+      {manual && me?.paid && me.plan && (
+        <div className="mt-4">
+          {daysLeft <= 3 && <p className="mb-3 rounded-2xl bg-brand-soft-2 px-4 py-3 text-[15px] leading-[22px] text-brand-text">{MANUAL.endingSoon(until, daysLeft)}</p>}
+          <Link href={payHref(me.plan.code)} className="h-12 w-full lg:w-auto lg:px-6 rounded-2xl bg-brand-accent text-white text-[16px] font-semibold hover:bg-brand-accent-hover transition inline-flex items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent">{MANUAL.renewBtn}</Link>
+          <p className="mt-2 text-[13px] leading-[18px] text-brand-muted">{MANUAL.renewHint}</p>
+        </div>
+      )}
+
+      {manual && me?.ended && !me.paid && (
+        <div className="mt-4 rounded-2xl bg-brand-soft-2 p-4">
+          <p className="text-[16px] leading-6 font-semibold text-brand-text">{MANUAL.endedTitle}</p>
+          <p className="mt-1 text-[15px] leading-[22px] text-brand-text">{MANUAL.endedText(me.ended.plan.name, dateRu(me.ended.at))}</p>
+          <Link href={payHref(me.ended.plan.code)} className="mt-3 h-12 w-full lg:w-auto lg:px-6 rounded-2xl bg-brand-accent text-white text-[16px] font-semibold hover:bg-brand-accent-hover transition inline-flex items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent">{MANUAL.payBtn}</Link>
+        </div>
+      )}
 
       {pastDue && me && (
         <div className="mt-4 rounded-2xl bg-brand-soft-2 p-4">
@@ -99,7 +123,7 @@ export default function SubscriptionCard({ planCode, planName, materials, tariff
         </div>
       )}
 
-      {paidView && me && (
+      {paidView && me && !manual && (
         <div className="mt-4 rounded-2xl border border-brand-border px-4 py-3">
           <p className="text-[15px] font-semibold text-brand-text">{me.method ? SUB.methodTitle(me.method.title) : `${SUB.method}: ${SUB.noMethod}`}</p>
           {me.paid && !pastDue && (

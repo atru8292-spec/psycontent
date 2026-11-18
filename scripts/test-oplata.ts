@@ -16,7 +16,7 @@ function setup(start = '2026-11-17T09:00:00Z') {
   const f = fakeYooKassa()
   const mails: { kind: string; to: string; data: any }[] = []
   const events: string[] = []
-  const d: B.Deps = { now: () => new Date(clock.t), repo: m.repo, yk: f.yk, siteUrl: 'https://psycont.ru', offerVersion: '2026-11-14',
+  const d: B.Deps = { now: () => new Date(clock.t), repo: m.repo, yk: f.yk, siteUrl: 'https://psycont.ru', offerVersion: '2026-11-14', autopay: true,
     mail: async (kind, to, data) => { mails.push({ kind, to, data }) }, track: (_u, e) => { events.push(e) } }
   const hook = (event: string, id: string, status: string, ip = YK_IP) => B.handleWebhook(d, ip, { type: 'notification', event, object: { id, status } })
   const at = (iso: string) => { clock.t = new Date(iso) }

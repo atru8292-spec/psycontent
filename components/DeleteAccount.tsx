@@ -65,7 +65,7 @@ export default function DeleteAccount() {
               </button>
             </div>
             <p className="mt-2 text-[15px] leading-[22px] text-brand-text-secondary">Сразу удалятся аккаунт, все тексты, голос, темы и фото. Вернуть их потом не получится.</p>
-            {paidUntil && <p className="mt-2 rounded-2xl bg-brand-soft px-4 py-3 text-[15px] leading-[22px] text-brand-text">Тариф оплачен до {paidUntil}. Автопродление выключится, а оставшиеся дни пропадут. Вернуть деньги за них можно, если сначала написать на {SUPPORT_EMAIL}.</p>}
+            {paidUntil && <p className="mt-2 rounded-2xl bg-brand-soft px-4 py-3 text-[15px] leading-[22px] text-brand-text">Тариф оплачен до {paidUntil}. Оставшиеся дни пропадут. Вернуть деньги за них можно, если сначала написать на {SUPPORT_EMAIL}.</p>}
 
             <p className="mt-5 text-[15px] text-brand-text">Если хочешь, расскажи, что остановило</p>
             <div className="mt-2 flex flex-wrap gap-2">

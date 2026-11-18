@@ -26,7 +26,7 @@ const [payScript, outDir] = process.argv.slice(2)
     getPayment: (id) => real.getPayment(id), createRefund: real.createRefund, getRefund: real.getRefund,
   }
   const mails: string[] = []
-  const d: B.Deps = { now: () => new Date(clock.t), repo: m.repo, yk, siteUrl: 'https://psycont.ru', offerVersion: '2026-11-17',
+  const d: B.Deps = { now: () => new Date(clock.t), repo: m.repo, yk, siteUrl: 'https://psycont.ru', offerVersion: '2026-11-17', autopay: true,
     mail: async (kind) => { mails.push(kind) }, log: (s) => console.log('  журнал:', s) }
   const step = (n: string, x = '') => console.log(`OK  ${n}${x ? ' · ' + x : ''}`)
   const waitFinal = async (id: string) => { for (let i = 0; i < 30; i++) { const p = await real.getPayment(id); if (p.status !== 'pending') return p; await new Promise(r => setTimeout(r, 2000)) } return real.getPayment(id) }

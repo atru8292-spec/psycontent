@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSessionUser } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/generation/db'
+import { autopayEnabled } from '@/lib/billing/ready'
 
 export async function GET(req: NextRequest) {
   const user = await getSessionUser()
@@ -18,5 +19,5 @@ export async function GET(req: NextRequest) {
     subAuto = !!sub.data?.auto_renew
     if (sub.data?.payment_method_id) method = (await getSupabaseAdmin().from('payment_methods').select('title').eq('id', sub.data.payment_method_id).maybeSingle()).data?.title || null
   }
-  return NextResponse.json({ status: data.status, plan: data.plan_code, amount: Number(data.amount), until: data.period_end, reason: data.cancellation_reason, saveRequested: data.save_requested, via: data.method_type, autoRenew: subAuto, method })
+  return NextResponse.json({ status: data.status, plan: data.plan_code, amount: Number(data.amount), until: data.period_end, reason: data.cancellation_reason, saveRequested: data.save_requested, via: data.method_type, autoRenew: subAuto, method, autopay: autopayEnabled() })
 }

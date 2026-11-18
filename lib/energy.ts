@@ -2,6 +2,7 @@ import { serverTrack } from './track-server'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { errTag } from './safe-error'
 import { LIMIT_REFUSAL } from './limit-texts'
+import { monthSegmentStart } from './billing/period'
 
 // Служебный клиент (service_role): энергией управляет ТОЛЬКО сервер.
 function admin(): SupabaseClient {
@@ -98,7 +99,7 @@ export function windowKeyOf(periodStart: string | Date): string {
 }
 
 async function getPlanForUser(db: SupabaseClient, userId: string): Promise<PlanCtx> {
-  let { data: sub, error: subErr } = await db.from('user_subscription').select('plan_id, status, period_start, period_end').eq('user_id', userId).maybeSingle()
+  let { data: sub, error: subErr } = await db.from('user_subscription').select('plan_id, status, period_start, period_end, billing_anchor_day').eq('user_id', userId).maybeSingle()
   // колонки status еще нет (код выкатили раньше миграции оплаты): читаем по-старому, без окна (ревью 17.11)
   if (subErr && /42703|status|column/i.test(`${subErr.code} ${subErr.message}`)) {
     const old = await db.from('user_subscription').select('plan_id, period_start, period_end').eq('user_id', userId).maybeSingle()
@@ -113,7 +114,8 @@ async function getPlanForUser(db: SupabaseClient, userId: string): Promise<PlanC
       // пока идут повторы списания (past_due), тариф работает (решение Арины 17.11); expired: выключен
       const over = sub.status === 'expired' || (sub.status !== 'past_due' && new Date(sub.period_end) <= new Date())
       if (over) plan = null
-      else if (sub.period_start) windowKey = windowKeyOf(sub.period_start)
+      // окно длиннее месяца (продление заранее, смена тарифа с пересчетом, 19.11): счетчик свой на каждый месяц окна
+      else if (sub.period_start) windowKey = windowKeyOf(monthSegmentStart(new Date(sub.period_start), (sub as any).billing_anchor_day ?? null, new Date()))
     }
   }
   if (!plan) {

@@ -108,5 +108,30 @@ export const SUB = {
   refund: (date: string) => `Хочешь вернуть деньги за оставшиеся дни? Напиши на ${SUPPORT_EMAIL} или позвони ${REKV.phone}. Вернуть можно деньги за дни, которые остались до ${date}. В день возврата тариф выключится, а деньги придут в течение 10 дней.`,
 }
 
+// Ручное продление (19.11, автоплатежи выключены флагом AUTOPAY_ENABLED), тексты copywriter-psycont 19.11
+export const days = (n: number) => {
+  const a = Math.abs(n) % 100, b = a % 10
+  return `${n} ${a > 10 && a < 20 ? 'дней' : b === 1 ? 'день' : b >= 2 && b <= 4 ? 'дня' : 'дней'}`
+}
+export const MANUAL = {
+  // экран оплаты
+  note: 'Это оплата одного месяца, сама она не повторится. За 3 дня до конца срока придет письмо, продлить можно будет здесь же.',
+  renewTitle: 'Продлить тариф',
+  renewLine: (cur: string, next: string) => `Сейчас оплачено до ${cur}. После оплаты будет до ${next}.`,
+  switchLine: (newName: string, oldName: string, left: number, bonus: number, until: string) =>
+    `«${newName}» включится сразу. Остаток «${oldName}» (${days(left)}) пересчитается по цене нового тарифа, это еще ${days(bonus)}. Будет оплачено до ${until}.`,
+  newLine: (until: string) => `Тариф будет работать до ${until}.`,
+  // итог оплаты
+  okManual: (date: string) => `Продлить можно в «Настройках» в любой момент. За 3 дня до ${date} придет письмо.`,
+  // блок «Тариф» в настройках
+  paidUntil: (date: string) => `Оплачено до ${date}`,
+  renewBtn: 'Продлить на месяц',
+  renewHint: 'Новый месяц добавится к концу оплаченного. Сам тариф не продлевается, за 3 дня до конца придет письмо.',
+  endingSoon: (date: string, n: number) => `Тариф работает до ${date}, это еще ${days(n)}. Продлить можно уже сейчас, тогда перерыва не будет.`,
+  endedTitle: 'Тариф закончился',
+  endedText: (plan: string, date: string) => `Тариф «${plan}» закончился ${date}. Тексты, темы и голос на месте.`,
+  payBtn: 'Оплатить тариф',
+}
+
 export const rubles = (n: number) => `${n.toLocaleString('ru-RU').replace(/\s/g, ' ')} ₽`
 export const dateRu = (d: string | Date) => new Date(d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' })

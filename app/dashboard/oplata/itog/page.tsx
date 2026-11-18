@@ -8,12 +8,12 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { ITOG, reasonText, rubles, dateRu } from '@/lib/billing/pay-texts'
+import { ITOG, MANUAL, reasonText, rubles, dateRu } from '@/lib/billing/pay-texts'
 import { PAID_PLANS, isPaidCode } from '@/lib/billing/plans'
 import { track } from '@/lib/track'
 import { useDashboardMe } from '@/lib/dashboard-me'
 
-type St = { status: 'pending' | 'waiting_for_capture' | 'succeeded' | 'canceled'; plan: string; amount: number; until: string | null; reason: string | null; saveRequested: boolean; via: string | null; autoRenew: boolean; method: string | null }
+type St = { status: 'pending' | 'waiting_for_capture' | 'succeeded' | 'canceled'; plan: string; amount: number; until: string | null; reason: string | null; saveRequested: boolean; via: string | null; autoRenew: boolean; method: string | null; autopay?: boolean }
 
 function Itog() {
   const params = useSearchParams()
@@ -77,10 +77,10 @@ function Itog() {
         <dl className="mt-5 rounded-2xl bg-brand-card border border-brand-border px-4 text-left divide-y divide-brand-border">
           <div className="py-3 flex justify-between gap-3 text-[15px]"><dt className="text-brand-muted">Тариф</dt><dd className="text-brand-text font-semibold text-right">{planName}</dd></div>
           <div className="py-3 flex justify-between gap-3 text-[15px]"><dt className="text-brand-muted">Работает до</dt><dd className="text-brand-text text-right">{until}</dd></div>
-          <div className="py-3 flex justify-between gap-3 text-[15px]"><dt className="text-brand-muted">Автопродление</dt><dd className="text-brand-text text-right">{st.autoRenew ? 'включено' : 'выключено'}</dd></div>
+          {st.autopay !== false && <div className="py-3 flex justify-between gap-3 text-[15px]"><dt className="text-brand-muted">Автопродление</dt><dd className="text-brand-text text-right">{st.autoRenew ? 'включено' : 'выключено'}</dd></div>}
         </dl>
         <p className="mt-3 text-[13px] leading-5 text-brand-muted text-left">
-          {st.autoRenew ? ITOG.okAuto(until, rubles(st.amount)) : st.saveRequested ? ITOG.okNotSaved(until) : ITOG.okNoAuto(until)}
+          {st.autopay === false ? MANUAL.okManual(until) : st.autoRenew ? ITOG.okAuto(until, rubles(st.amount)) : st.saveRequested ? ITOG.okNotSaved(until) : ITOG.okNoAuto(until)}
         </p>
         <p className="mt-1 text-[13px] leading-5 text-brand-muted text-left">{ITOG.okReceipt}</p>
       </>
@@ -112,7 +112,7 @@ function Itog() {
   } else if (state === 'lost') {
     title = ITOG.lostTitle
     body = <p className="mt-2 text-[15px] leading-[22px] text-brand-text-secondary">{ITOG.lostText}</p>
-    actions = <Link href="/dashboard/settings#tariff" className={primary}>Открыть Профиль</Link>
+    actions = <Link href="/dashboard/settings#tariff" className={primary}>Открыть настройки</Link>
   }
 
   return (

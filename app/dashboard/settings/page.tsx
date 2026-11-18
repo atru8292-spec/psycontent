@@ -179,7 +179,7 @@ export default function SettingsPage() {
           {/* ── Витрина тарифов: под блоком тарифа на телефоне, во всю ширину внизу на компьютере ── */}
           {tariffsOpen && (
             <section id="tariff-list" aria-label="Тарифы" className="order-2 lg:col-span-2 lg:row-start-4 scroll-mt-20 lg:mt-6">
-              <TariffSection currentCode={summary?.plan?.code} paymentsOn={summary?.paymentsOn === true} />
+              <TariffSection currentCode={summary?.plan?.code} paymentsOn={summary?.paymentsOn === true} manual={summary?.autopay === false} />
             </section>
           )}
 
