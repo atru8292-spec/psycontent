@@ -3,6 +3,11 @@
 # копия в v1.json), переносит находки и ситуации тем по смыслу, дописывает ситуации тем со звездочкой и фразы.
 # Без вызовов модели.  python3 perestroit.py
 import json, os, re
+from neytral import SIT, FRAZY, REPLIKI
+USED = set()
+def nt(x, d):
+    if x in d: USED.add(x); return d[x]
+    return x
 HERE = os.path.dirname(os.path.abspath(__file__))
 V1 = json.load(open(os.path.join(HERE, 'v1.json')))
 OLD = {}  # (kod, тема) -> тема
@@ -167,18 +172,18 @@ for kod, imya, podsk, replika, temy in GR:
         sit = (sit + [s for s in dop if s not in sit])[:5]
         assert (3 if zv else 1) <= len(sit) <= 5, (name, sit)
         if len(sit) < 3: print("мало ситуаций:", name, len(sit))
-        e = {'tema': chk(name), 'nahodki': ids, 'situacii': [chk(s) for s in sit]}
+        e = {'tema': chk(name), 'nahodki': ids, 'situacii': [chk(nt(s, SIT)) for s in sit]}
         if zv: e['net_nahodok'] = True; e['dopisano'] = True
-        elif dop: e['situacii_dopisany'] = [chk(s) for s in dop]
+        elif dop: e['situacii_dopisany'] = [chk(nt(s, SIT)) for s in dop]
         out.append(e)
     fr = []
     for f in FR[kod]:
-        if isinstance(f, tuple): fr.append({'fraza': chk(f[1]), 'nahodka': None, 'dopisano': True})
+        if isinstance(f, tuple): fr.append({'fraza': chk(nt(f[1], FRAZY)), 'nahodka': None, 'dopisano': True, **({'bylo': f[1]} if f[1] in FRAZY else {})})
         else:
             n = OLDF[ALIAS.get(f, f)]
-            fr.append({'fraza': chk(f), 'nahodka': n, **({} if n else {'dopisano': True})})
+            fr.append({'fraza': chk(nt(f, FRAZY)), 'nahodka': n, **({} if n else {'dopisano': True}), **({'bylo': f} if f in FRAZY else {})})
     for f in fr: assert len(f['fraza'].split()) <= 10, f
-    gruppy.append({'kod': kod, 'imya': imya, 'podskazka': podsk, 'obshaya': kod == 'obshie', 'temy': out, 'frazy': fr, 'replika_klientki': chk(replika)})
+    gruppy.append({'kod': kod, 'imya': imya, 'podskazka': podsk, 'obshaya': kod == 'obshie', 'temy': out, 'frazy': fr, 'replika_klientki': chk(nt(replika, REPLIKI))})
 
 # что из старых тем никуда не вошло (находки остались в раскладке, но тем нет)
 used = {k for _, _, _, _, temy in GR for _, src, _ in temy for k in src}
@@ -223,4 +228,7 @@ for g in gruppy:
 L += ['## Из первой версии не вошли в список тем', '', 'Их находки остались в каталоге, к темам анкеты не привязаны.', ''] + [f'- {x}' for x in ne_voshli]
 open(os.path.join(HERE, '..', 'ANKETA-DANNYE.md'), 'w').write('\n'.join(L) + '\n')
 print({g['kod']: (len(g['temy']), len(g['frazy'])) for g in gruppy})
+ne = [x for x in list(SIT) + list(FRAZY) + list(REPLIKI) if x not in USED]
+assert not ne, ('замена не нашла строку', ne)
+print('замен', len(USED))
 print('не вошли:', ne_voshli)
