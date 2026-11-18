@@ -432,13 +432,13 @@ export default function EditProfile() {
               {q.type === 'temy' && (() => {
                 const k: Klienty = answers.klienty || EMPTY_KLIENTY
                 const picked: string[] = answers.niches || []
-                // темы прошлой анкеты, которых нет в группах: видны отмеченными, их можно снять
+                // свои темы и темы прошлой анкеты, которых нет в группах: видны отмеченными, их можно снять
                 const starye = picked.filter(t => !gruppaTemy(t))
                 return (
                   <div className="max-w-xl">
                     {starye.length > 0 && (
                       <div className="mb-4">
-                        <p className="mb-1.5 text-[14px] font-semibold text-brand-text">Твои темы из прошлой анкеты</p>
+                        <p className="mb-1.5 text-[14px] font-semibold text-brand-text">Свои темы</p>
                         <div className="flex flex-wrap gap-1.5">
                           {starye.map(t => (
                             <button key={t} type="button" aria-pressed={true} onClick={() => setAnswers({ ...answers, niches: picked.filter(x => x !== t) })} className={chipCls(true, false, 'sm')}>
