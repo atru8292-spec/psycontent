@@ -31,7 +31,7 @@
   {
    "kod": "trevoga",
    "imya": "Тревога и стресс",
-   "podskazka": "тревога, паника, стресс, сон",
+   "podskazka": "тревога, стресс, апатия, сон",
    "obshaya": false,
    "temy": [
     {
@@ -143,6 +143,26 @@
      ]
     },
     {
+     "tema": "Депрессия и апатия",
+     "nahodki": [
+      "zh6-primery:r64",
+      "zh6-primery:Ddim9eaxFOc",
+      "live-bank:r26",
+      "live-bank:r48",
+      "live-bank:r55",
+      "rils:55_reels_AQOrOEFPQK5Hhh3",
+      "rils:64_reels_AQPmOAoVUVFOORl",
+      "rils26:Dd_jXM3u2ZG.txt"
+     ],
+     "situacii": [
+      "считаешь себя ленивой, а это депрессия",
+      "боишься психиатра и таблеток",
+      "знакомые говорят «возьми себя в руки»",
+      "что человек с депрессией делает, когда остается один",
+      "близкие не понимают, как с тобой быть"
+     ]
+    },
+    {
      "tema": "Мысли перед сном и бессонница",
      "nahodki": [],
      "situacii": [
@@ -212,7 +232,7 @@
   {
    "kod": "samoocenka",
    "imya": "Самооценка и отношение к себе",
-   "podskazka": "критик внутри, стыд, сравнение",
+   "podskazka": "внутренний критик, стыд, сравнение",
    "obshaya": false,
    "temy": [
     {
@@ -634,6 +654,22 @@
      ],
      "situacii_dopisany": [
       "он зарабатывает больше и считает, что вправе решать за двоих"
+     ]
+    },
+    {
+     "tema": "«С тобой сложно»",
+     "nahodki": [
+      "kar10:Карусель 2. 1453-1464",
+      "insta:DcssKtJDaOC",
+      "insta:Dcn4-z0Fu1E"
+     ],
+     "situacii": [
+      "тебе говорят «ты слишком сложная», и думаешь, как стать попроще",
+      "непонятно, тебя надо учитывать или обслуживать",
+      "партнер говорит «с тобой тяжело», и ты стараешься быть незаметнее"
+     ],
+     "situacii_dopisany": [
+      "партнер говорит «с тобой тяжело», и ты стараешься быть незаметнее"
      ]
     },
     {
@@ -1569,6 +1605,20 @@
      ]
     },
     {
+     "tema": "Дружба: близость и разрывы",
+     "nahodki": [
+      "kar10:4. ID 1145-1154",
+      "kar10:6. ID 1180-1189",
+      "zh6-primery:t1145",
+      "zh6-primery:t1180"
+     ],
+     "situacii": [
+      "подруга исчезла и ответила «никто никому ничего не должен»",
+      "быстро сблизились, а потом она сказала «мы чужие»",
+      "заботу назвали нарушением границ"
+     ]
+    },
+    {
      "tema": "Обида",
      "nahodki": [],
      "situacii": [
@@ -1758,6 +1808,10 @@
      "nahodka": "rils26:DeHiyzAO3yz.txt"
     },
     {
+     "fraza": "Мы же дружили. Куда это все исчезло?",
+     "nahodka": "kar10:4. ID 1145-1154"
+    },
+    {
      "fraza": "Зачем мне терапия, если можно поговорить с подругой?",
      "nahodka": null,
      "dopisano": true
@@ -1922,6 +1976,12 @@
   "insta:Dci7wfSN0Un": [
    "otnosheniya"
   ],
+  "insta:Dcn4-z0Fu1E": [
+   "otnosheniya"
+  ],
+  "insta:DcssKtJDaOC": [
+   "otnosheniya"
+  ],
   "insta:Dd00fGhu7lI": [
    "roditeli"
   ],
@@ -2000,6 +2060,9 @@
   "kar10:4. 1341-1348": [
    "samoocenka"
   ],
+  "kar10:4. ID 1145-1154": [
+   "obshie"
+  ],
   "kar10:5. 1350-1355 + 1357": [
    "obshie"
   ],
@@ -2010,6 +2073,9 @@
   ],
   "kar10:6. 1359-1367": [
    "otnosheniya"
+  ],
+  "kar10:6. ID 1180-1189": [
+   "obshie"
   ],
   "kar10:6. IDs 1238-1245": [
    "obshie"
@@ -2025,6 +2091,9 @@
   ],
   "kar10:Карусель 1. IDs 1369-1376": [
    "samoocenka"
+  ],
+  "kar10:Карусель 2. 1453-1464": [
+   "otnosheniya"
   ],
   "kar10:Карусель 2. IDs 1380-1388": [
    "obshie"
@@ -2102,6 +2171,9 @@
   "live-bank:r23": [
    "otnosheniya"
   ],
+  "live-bank:r26": [
+   "trevoga"
+  ],
   "live-bank:r27": [
    "roditeli"
   ],
@@ -2135,11 +2207,17 @@
   "live-bank:r47": [
    "otnosheniya"
   ],
+  "live-bank:r48": [
+   "trevoga"
+  ],
   "live-bank:r52": [
    "otnosheniya"
   ],
   "live-bank:r54": [
    "otnosheniya"
+  ],
+  "live-bank:r55": [
+   "trevoga"
   ],
   "live-bank:r59": [
    "roditeli"
@@ -2214,6 +2292,9 @@
   ],
   "rils26:DdVUtRHMZj6.txt": [
    "samoocenka"
+  ],
+  "rils26:Dd_jXM3u2ZG.txt": [
+   "trevoga"
   ],
   "rils26:Ddl7R4Pta_U.txt": [
    "deti"
@@ -2375,6 +2456,9 @@
   "rils:54_reels_AQOpwSXAwOPBb5B": [
    "otnosheniya"
   ],
+  "rils:55_reels_AQOrOEFPQK5Hhh3": [
+   "trevoga"
+  ],
   "rils:56_reels_AQOx05taevaaSYt": [
    "samoocenka"
   ],
@@ -2390,6 +2474,9 @@
   ],
   "rils:63_reels_AQPYjNMVJUz0Vkd": [
    "otnosheniya"
+  ],
+  "rils:64_reels_AQPmOAoVUVFOORl": [
+   "trevoga"
   ],
   "rils:66_reels_AQPp6h3ag0I_puC": [
    "samoocenka"
@@ -2426,6 +2513,9 @@
   ],
   "zh6-primery:DdbjqUquylA": [
    "roditeli"
+  ],
+  "zh6-primery:Ddim9eaxFOc": [
+   "trevoga"
   ],
   "zh6-primery:Det9JvFNiY5": [
    "rabota",
@@ -2482,6 +2572,9 @@
   "zh6-primery:r61": [
    "trevoga"
   ],
+  "zh6-primery:r64": [
+   "trevoga"
+  ],
   "zh6-primery:r66": [
    "samoocenka"
   ],
@@ -2493,6 +2586,12 @@
   ],
   "zh6-primery:reel_akademiya": [
    "deti"
+  ],
+  "zh6-primery:t1145": [
+   "obshie"
+  ],
+  "zh6-primery:t1180": [
+   "obshie"
   ],
   "zh6-primery:t1271": [
    "rabota"
@@ -2508,9 +2607,6 @@
   ]
  },
  "ne_voshli_iz_v1": [
-  "a: Депрессия",
-  "b: Дружба: близость и разрывы",
-  "b: «С тобой сложно»",
   "d: Вина перед умершим",
   "d: Смерть родителя во взрослом возрасте",
   "d: Перинатальная потеря",
