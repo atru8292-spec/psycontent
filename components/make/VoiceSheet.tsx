@@ -1,8 +1,8 @@
 'use client'
 
-// Лист записи голоса на «Сделать»: до 3 минут, за 20 секунд предупреждение, волна по громкости.
+// Лист записи голоса на «Написать»: до 3 минут, за 20 секунд предупреждение, волна по громкости.
 // Запись и расшифровку ведет хук useVoiceRecorder в Composer: лист закрывается на «Готово», а поле
-// показывает «Расшифровываю...». Расшифровка своим Whisper, ничего не считаем.
+// показывает «Расшифровка...». Расшифровка своим Whisper, ничего не считаем.
 
 import { useEffect, useRef, useState } from 'react'
 import BottomSheet from './BottomSheet'
@@ -49,7 +49,7 @@ function Wave({ rec }: { rec: VoiceRecorder }) {
   )
 }
 
-export default function VoiceSheet({ open, rec, onClose, onWriteText, maxSeconds = VOICE_MAX, prompt = 'Говори, как подруге. Паузы не страшны.' }: {
+export default function VoiceSheet({ open, rec, onClose, onWriteText, maxSeconds = VOICE_MAX, prompt = 'Говори как обычно, паузы не страшны.' }: {
   open: boolean
   rec: VoiceRecorder
   onClose: () => void
@@ -99,7 +99,7 @@ export default function VoiceSheet({ open, rec, onClose, onWriteText, maxSeconds
     body = <p className="text-[16px] leading-6 text-brand-text py-4">{isIosSafari() ? 'Микрофон выключен. Включи его: Настройки → Safari → Микрофон. Или напиши текстом' : 'Микрофон выключен. Включи его в настройках браузера для этого сайта. Или напиши текстом'}</p>
     footer = <button type="button" onClick={onWriteText} className={`w-full ${btn} bg-brand-accent text-white hover:bg-brand-accent-hover`}>Написать текстом</button>
   } else if (empty) {
-    body = <p className="text-[16px] leading-6 text-brand-text py-4">Ничего не записалось. Попробуешь еще раз?</p>
+    body = <p className="text-[16px] leading-6 text-brand-text py-4">Ничего не слышно. Попробуй еще раз, поближе к телефону</p>
     footer = <button type="button" onClick={again} className={`w-full ${btn} bg-brand-accent text-white hover:bg-brand-accent-hover`}>Еще раз</button>
   } else {
     const left = maxSeconds - rec.elapsed

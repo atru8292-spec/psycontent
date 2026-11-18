@@ -1,12 +1,13 @@
 // Форматы и цели экрана «Сделать» под флагом нового мозга. Коды совпадают с lib/generation/group.ts
 // (GROUP_FORMATS, GOALS), сервер их же и проверяет.
 
+// Порядок как в чипах «Что написать» (макет A1, 17.11): пост, карусель, рилс, сторис, Telegram
 export const MAKE_FORMATS = [
-  { id: 'reels', label: 'Рилс', one: 'рилс' },
-  { id: 'carousel', label: 'Карусель', one: 'карусель' },
   { id: 'post', label: 'Пост', one: 'пост' },
-  { id: 'post_tg', label: 'Telegram', one: 'пост для Telegram' },
+  { id: 'carousel', label: 'Карусель', one: 'карусель' },
+  { id: 'reels', label: 'Рилс', one: 'рилс' },
   { id: 'stories', label: 'Сторис', one: 'сторис' },
+  { id: 'post_tg', label: 'Telegram', one: 'пост для Telegram' },
 ] as const
 export type MakeFormat = typeof MAKE_FORMATS[number]['id']
 export const DEFAULT_FORMATS: MakeFormat[] = ['post', 'carousel']
@@ -29,12 +30,13 @@ export function toMakeFormat(raw: string): MakeFormat {
   return 'post'
 }
 
+// «Зачем пишешь» (словарь 17.11, строка 12): коды прежние, сервер их проверяет
 export const GOAL_OPTIONS = [
-  { id: null, label: 'Любая' },
+  { id: null, label: 'Подобрать по теме' },
   { id: 'znakomstvo', label: 'Познакомить с собой' },
-  { id: 'zapis', label: 'Записать на консультацию' },
   { id: 'obyasnit', label: 'Объяснить тему' },
   { id: 'podderzhat', label: 'Поддержать' },
+  { id: 'zapis', label: 'Позвать на консультацию' },
 ] as const
 export type MakeGoal = 'znakomstvo' | 'zapis' | 'obyasnit' | 'podderzhat' | null
 
@@ -45,7 +47,15 @@ export function pluralMaterial(n: number): string {
   return 'текстов'
 }
 
+// Главная кнопка «Написать» (словарь 17.11, строка 2): один формат по имени, два через «и», от трех числом
+export const formatOne = (f: string) => MAKE_FORMATS.find(x => x.id === f)?.one || f
 export function makeButtonText(formats: MakeFormat[]): string {
-  if (formats.length === 1) return `Сделать ${MAKE_FORMATS.find(f => f.id === formats[0])?.one || 'пост'}`
-  return `Сделать ${formats.length} ${pluralMaterial(formats.length)}`
+  if (formats.length === 1) return `Написать ${formatOne(formats[0])}`
+  if (formats.length === 2) return `Написать ${formatOne(formats[0])} и ${formatOne(formats[1])}`
+  return `Написать ${formats.length} ${pluralMaterial(formats.length)}`
+}
+// Формат дня из плана тем (post, carousel, reels, stories) в чип; неизвестный формат плана: пост
+export function planFormat(raw: string | null | undefined): MakeFormat | undefined {
+  if (!raw) return undefined
+  return toMakeFormat(String(raw))
 }

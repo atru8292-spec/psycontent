@@ -12,16 +12,20 @@ export const REKV = {
   site: 'psycont.ru',
 }
 
+// Почта поддержки (экран «Помощь», ответы в частых вопросах, бот). Пока личная почта, когда появится hello@psycont.ru,
+// поменять только здесь.
+export const SUPPORT_EMAIL = REKV.email
+
 export const OFFER_PATH = '/offer'
 export const PRIVACY_PATH = '/privacy'
 // Текст согласия на обработку данных отдельной страницей: по 152-ФЗ согласие оформляется отдельно от других документов
 export const CONSENT_PATH = '/soglasie'
 
 // Дата редакции оферты и политики. Менять при каждой правке текста этих страниц.
-export const DOCS_DATE = '17 ноября 2026 года'
+export const DOCS_DATE = '18 ноября 2026 года'
 // Версия текста согласия (app/soglasie/page.tsx): пишется в аккаунт вместе с датой, когда человек поставил галочку.
 // Менять при любой правке текста согласия.
-export const CONSENT_VERSION = '2026-11-14'
+export const CONSENT_VERSION = '2026-11-18'
 // Версия оферты: пишется в согласие на автопродление (autopay_consents.offer_version). Менять вместе с текстом /offer
-export const OFFER_VERSION = '2026-11-17'
+export const OFFER_VERSION = '2026-11-18'
 

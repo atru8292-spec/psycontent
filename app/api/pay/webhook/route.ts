@@ -6,6 +6,8 @@ import { billingDeps } from '@/lib/billing/deps'
 import { handleWebhook } from '@/lib/billing/core'
 import { ykConfigured } from '@/lib/billing/yookassa'
 import { errTag } from '@/lib/safe-error'
+import { logIncident } from '@/lib/bot/incidents'
+import { payWebhookIncident } from '@/lib/bot/pay-signal'
 
 export async function POST(req: NextRequest) {
   if (!ykConfigured()) return NextResponse.json({ error: 'not_ready' }, { status: 503 })
@@ -15,11 +17,18 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
   try {
     const r = await handleWebhook(billingDeps(), ip, body)
-    if (r.status !== 200) console.warn('pay webhook:', r.status, r.result)
+    if (r.status !== 200) {
+      console.warn('pay webhook:', r.status, r.result)
+      // сигнал Арине только с адреса ЮKassa (bad_ip от сканеров только в журнал pm2), lib/bot/pay-signal.ts
+      const inc = payWebhookIncident(ip, r.status, r.result)
+      if (inc) logIncident('pay_webhook', inc)
+    }
     else console.info('pay webhook:', r.result)
     return NextResponse.json({ ok: r.status === 200 }, { status: r.status })
   } catch (e) {
     console.error('pay webhook error:', errTag(e))
+    const inc = payWebhookIncident(ip, 'exception', errTag(e))
+    if (inc) logIncident('pay_webhook', inc)
     return NextResponse.json({ ok: false }, { status: 500 })
   }
 }

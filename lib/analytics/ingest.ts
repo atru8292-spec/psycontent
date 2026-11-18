@@ -4,7 +4,7 @@
 // без входа 60 в минуту на IP. IP только ключ счетчика в памяти: в базу и в лог не попадает.
 
 import { sanitizeEvent, type CleanEvent } from './sanitize'
-import { isLandingEvent } from './events'
+import { isLandingEvent, SERVER_ONLY } from './events'
 
 export const MAX_PER_REQUEST = 50
 export const MAX_PER_MINUTE_USER = 300
@@ -16,7 +16,7 @@ export const MAX_BODY_ANON = 32 * 1024
 export function cleanBatch(raw: unknown[], hasUser: boolean): CleanEvent[] {
   return raw.slice(0, MAX_PER_REQUEST)
     .map(sanitizeEvent)
-    .filter((e): e is CleanEvent => !!e && (hasUser || isLandingEvent(e.event)))
+    .filter((e): e is CleanEvent => !!e && !SERVER_ONLY.has(e.event) && (hasUser || isLandingEvent(e.event)))
 }
 
 export class MinuteLimiter {

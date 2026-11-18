@@ -2,6 +2,7 @@
 // П1 план → П2 текст → П3 код → П4 проверка → П5 правка → П4-мини и П3 по измененному → finalNet.
 // Первая часть (draft) отдается психологу сразу, вторая (refine) идет фоном и подменяет текст.
 
+import { activeHyps } from './hypotheses'
 import {
   INTENT_CARDS, FORMAT_CARDS, INTENT_CODES, BUTTONS, P0_SYSTEM, P1_SYSTEM, P4_SYSTEM,
   buildP1User, buildP2System, buildP2User, buildP4User, buildP4MiniUser, buildP5System, buildP5User,
@@ -172,7 +173,7 @@ export async function runText(ctx: GenContext, plan: Plan, req: GenRequest, rewr
     intent_card: INTENT_CARDS[plan.intent],
     format_card: FORMAT_CARDS[req.format],
     material_from_plan: materialFromPlan(ctx, plan, req),
-    plan_json: JSON.stringify(plan, null, 2),
+    plan_json: planJson(plan),
     last_openings: mv.last_openings,
     used_signature_phrases: mv.used_signature_phrases,
     used_details: mv.used_details,
@@ -265,7 +266,7 @@ function reviewVars(ctx: GenContext, plan: Plan, req: GenRequest, text: string, 
     intent_card: INTENT_CARDS[plan.intent],
     format_card: FORMAT_CARDS[req.format],
     material_from_plan: materialFromPlan(ctx, plan, req),
-    plan_json: JSON.stringify(plan, null, 2),
+    plan_json: planJson(plan),
     guard_findings_json: JSON.stringify(findings.filter(f => f.rule !== 'zaglushka')),
     text_after_autofix: text,
     edit_pairs: ctx.editPairs,
@@ -340,7 +341,7 @@ export async function runFix(ctx: GenContext, plan: Plan, req: GenRequest, text:
     intent_card: INTENT_CARDS[plan.intent],
     format_card: FORMAT_CARDS[req.format],
     material_from_plan: materialFromPlan(ctx, plan, req),
-    plan_json: JSON.stringify(plan, null, 2),
+    plan_json: planJson(plan),
     text,
     issues_json: JSON.stringify(issues, null, 2),
     edit_pairs: ctx.editPairs,
@@ -472,6 +473,9 @@ export async function coverTexts(ctx: GenContext, text: string): Promise<{ text:
 }
 
 // Поля для записи в generated_posts (миграция 20260930120000_generation_brain.sql).
+// план в промпт без служебного prompt_hyp (вариант промпта для аналитики, модели он не нужен)
+const planJson = (plan: Plan) => { const { prompt_hyp: _h, ...rest } = plan as Plan & { prompt_hyp?: string }; void _h; return JSON.stringify(rest, null, 2) }
+
 export function postFields(ctx: GenContext, plan: Plan, req: GenRequest, text: string) {
   return {
     format_code: req.format,
@@ -485,7 +489,8 @@ export function postFields(ctx: GenContext, plan: Plan, req: GenRequest, text: s
     client_phrase_used: plan.client_phrase_used || null,
     signatures_used: findSignatures(text, ctx.settings.signatures),
     topic_for_text: plan.topic_for_text,
-    plan,
+    // вариант промпта (PROMPT_HYP или DEFAULT_HYPS) пишем в план: вкладка «Тексты» в /admin считает сигналы по варианту
+    plan: { ...plan, prompt_hyp: [...activeHyps()].sort().join(',') || 'h0' },
     pipeline_version: PIPELINE_VERSION,
   }
 }

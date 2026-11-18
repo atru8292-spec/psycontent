@@ -134,6 +134,11 @@ export const STYLES: Record<TemplateStyle, StyleMeta> = {
 
 export const isTemplateStyle = (s: unknown): s is TemplateStyle => typeof s === 'string' && (TEMPLATE_STYLES as string[]).includes(s)
 
+// Стили, которые не предлагаем первыми в «Подходят этому тексту» (решение Арины 17.11): на мини-обложке
+// у них разводы, мрамор или дымка, это читается как шаблон. В «Все стили» они остаются, рендер не меняется.
+export const NOT_SUGGESTED: TemplateStyle[] = ['t_citata', 't_vozduh', 't_zapiska']
+export const isSuggestable = (s: TemplateStyle) => !NOT_SUGGESTED.includes(s)
+
 // Готовые палитры: подходят к любому стилю. Спокойные и сочные, без кислотных.
 export const PALETTES: { name: string; p: Palette }[] = [
   { name: 'Бумага', p: { bg: '#F7F3EC', text: '#2E2A45', accent: '#5B4FA0' } },

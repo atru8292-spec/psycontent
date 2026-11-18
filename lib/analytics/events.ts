@@ -32,7 +32,7 @@ export const EVENTS = {
 
   // ---- взяла текст в работу (главный сигнал ценности) ----
   material_take: ['how', 'format', 'post'],          // how copy|copy_caption|copy_text|share|zip|single|list|published, post = id материала
-  material_adjust: ['action', 'format'],             // «Поправить», «Другой заход», «Еще формат» (сервер, /api/generate-post/adjust и group)
+  material_adjust: ['action', 'format', 'post'],     // «Поправить», «Другой заход», «Еще формат» (сервер, /api/generate-post/adjust и group); post = id материала (с 24.10, для правок по тексту во вкладке «Тексты»)
 
   // ---- деньги и лимиты ----
   limit_hit: ['reason', 'plan', 'op'],               // сервер: canConsume отказал (lib/energy.ts)
@@ -56,6 +56,16 @@ export const EVENTS = {
   error_shown: ['code', 'screen'],                   // клиент: показана плашка ошибки
   feature_open: ['feature'],                         // клиент: открыта функция из FEATURES
 
+  // ---- экран «Помощь» (/dashboard/pomosch) ----
+  help_tg_click: ['with_label'],                     // клиент: нажала «Написать в Telegram»; with_label true, если в ссылке была метка аккаунта
+  help_faq_open: ['q'],                              // клиент: раскрыла вопрос; q короткий код из lib/help-faq.ts, текст вопроса не идет
+
+  // ---- опрос при уходе (аналитика 2, lib/analytics/exit-survey.ts); свои слова человека сюда не попадают никогда ----
+  exit_survey_shown: ['place'],                      // сервер: карточку решили показать (place cooling|delete|cancel)
+  exit_survey_open: ['place'],                       // клиент: раскрыла карточку («Рассказать»)
+  exit_survey_sent: ['place', 'reasons', 'own', 'contact'], // сервер: ответ записан; reasons коды через запятую, own true|false (написала ли свои слова)
+  exit_survey_dismiss: ['place'],                    // клиент: «Не сейчас» или крестик
+
   // ---- лендинг (app/page.tsx): единственные события, которые сервер принимает без входа ----
   land_view: [],                                     // открыли главную, один раз за загрузку
   land_cta_click: ['place', 'plan'],                 // кнопка в регистрацию: place hero|how|pricing|final|header, plan free|calm|daily
@@ -69,6 +79,9 @@ export const EVENTS = {
 
 // События лендинга пишутся и без входа (user_id пустой, только session_id от track)
 export const isLandingEvent = (e: string) => e.startsWith('land_')
+// События, которые пишет только сервер (serverTrack): из браузера через /api/ev не принимаются, иначе человек
+// мог бы подделать свои счетчики «показали» и «ответили» в опросе
+export const SERVER_ONLY = new Set(['exit_survey_shown', 'exit_survey_sent'])
 
 export type EventName = keyof typeof EVENTS
 export const EVENT_NAMES = Object.keys(EVENTS) as EventName[]
@@ -111,6 +124,8 @@ export const FEATURES = [
   'archetype_test',   // тест-архетип
   'passport',         // бренд-паспорт
   'format_pick',      // zh6: открыла выбор формата каталога внутри чипа на «Сделать»
+  'help',             // экран «Помощь» (/dashboard/pomosch)
+  'add_home',         // раскрыла подсказку «PsyCont на экран Домой» в «Настройках»
 ] as const
 export type Feature = typeof FEATURES[number]
 

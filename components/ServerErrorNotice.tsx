@@ -32,16 +32,16 @@ export function ServerErrorNotice({
         <RefreshCw className="w-5 h-5 text-brand-sage" />
       </div>
       <div>
-        <p className="font-semibold text-brand-text mb-1">Что-то пошло не так на нашей стороне</p>
+        <p className="font-semibold text-brand-text mb-1">Не получилось из-за сбоя в PsyCont</p>
         <p className="text-sm text-brand-text leading-relaxed">
-          Это временно и не связано с вами. Попробуйте еще раз через минуту.
+          Это временно, с твоей стороны все в порядке. Попробуй еще раз через минуту.
         </p>
         <button
           onClick={onRetry}
           disabled={!ready}
           className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-brand-accent text-white text-sm font-semibold transition cursor-pointer disabled:opacity-50 disabled:cursor-default hover:bg-brand-accent-hover"
         >
-          {ready ? 'Попробовать снова' : `Попробовать снова (${left})`}
+          {ready ? 'Попробовать еще раз' : `Попробовать еще раз (${left})`}
         </button>
       </div>
     </div>

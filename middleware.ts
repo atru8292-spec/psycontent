@@ -12,6 +12,6 @@ export const config = {
   // боты приходят без куки, им не нужна проверка сессии, и эти адреса всегда отвечают 200.
   // Только три файла точным адресом: общее исключение .txt/.xml пустило бы мимо сессии любой будущий роут с таким концом.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|robots\\.txt$|sitemap\\.xml$|llms\\.txt$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest\\.webmanifest$|robots\\.txt$|sitemap\\.xml$|llms\\.txt$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 }

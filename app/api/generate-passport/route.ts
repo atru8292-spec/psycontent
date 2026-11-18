@@ -6,6 +6,7 @@ import { getArchetypeContextFromProfile } from '@/lib/archetypes'
 import { iterateSSEData } from '@/lib/sse-stream'
 import { logAiUsage } from '@/lib/energy'
 import { errTag, openAiError } from '@/lib/safe-error'
+import { noteOpenAiError } from '@/lib/bot/incidents'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -211,7 +212,7 @@ export async function POST(request: NextRequest) {
     // НИКОГДА не врём юзеру «заполните профиль» из-за серверной поломки.
     if (profileError && profileError.code !== 'PGRST116') {
       console.error('generate-passport: profile read failed', userId, profileError)
-      return NextResponse.json({ error: 'server_error', message: 'Что-то пошло не так на нашей стороне. Попробуйте через минуту.' }, { status: 500 })
+      return NextResponse.json({ error: 'server_error', message: 'Сбой в PsyCont. Попробуй через минуту.' }, { status: 500 })
     }
     if (!profile) {
       return NextResponse.json({ error: 'need_onboarding', message: 'Сначала заполни профиль', redirect: '/onboarding' }, { status: 404 })
@@ -302,7 +303,9 @@ ${archetypeContext ? `\n${archetypeContext}\n` : ''}
           })
 
           if (!aiResponse.ok) {
-            throw openAiError(aiResponse.status, await aiResponse.text().catch(() => ''))
+            const err = openAiError(aiResponse.status, await aiResponse.text().catch(() => ''))
+            noteOpenAiError(err)
+            throw err
           }
 
           const reader = aiResponse.body!.getReader()

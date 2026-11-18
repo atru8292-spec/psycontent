@@ -1,5 +1,6 @@
 'use client'
 
+import { QUIET_BTN } from '@/lib/ui-classes'
 import { useState, useEffect } from 'react'
 import { makeHref } from '@/lib/make-handoff'
 import NextImage from 'next/image'
@@ -33,7 +34,7 @@ const FORMAT_META: Record<string, { icon: any; label: string; color: string; bg:
   post:     { icon: AlignLeft, label: 'Пост',     color: 'text-brand-accent', bg: 'bg-brand-soft' },
   carousel: { icon: Image,     label: 'Карусель',  color: 'text-brand-accent', bg: 'bg-brand-soft' },
   reels:    { icon: Film,      label: 'Рилс',      color: 'text-brand-sage',  bg: 'bg-brand-soft' },
-  stories:  { icon: FileText,  label: 'Stories',   color: 'text-brand-muted', bg: 'bg-brand-soft' },
+  stories:  { icon: FileText,  label: 'Сторис',    color: 'text-brand-muted', bg: 'bg-brand-soft' },
 }
 
 const PILLAR_COLORS: Record<string, string> = {
@@ -44,8 +45,16 @@ const PILLAR_COLORS: Record<string, string> = {
   'Позиционирование': 'bg-brand-soft text-brand-accent',
 }
 
+// Ключи рубрик (pillar) хранятся в данных и уходят в генерацию: не меняем, на экране показываем
+// человеческое имя (словарь 17.11). Им же пользуется план тем (app/dashboard/content-plan)
+const PILLAR_LABEL: Record<string, string> = {
+  'Психообразование': 'Объясняю',
+  'Позиционирование': 'О себе и подходе',
+}
+export const pillarLabel = (pillar: string) => PILLAR_LABEL[pillar] || pillar
+
 const BLOCK_META: Record<string, { label: string, icon: any, color: string }> = {
-  'trend': { label: 'Тренды 2025', icon: TrendingUp, color: 'text-brand-sage' },
+  'trend': { label: 'О чем сейчас говорят', icon: TrendingUp, color: 'text-brand-sage' },
   'science': { label: 'Исследования', icon: BookOpen, color: 'text-brand-accent' },
   'quote': { label: 'Цитаты', icon: Quote, color: 'text-brand-text' }
 }
@@ -72,7 +81,7 @@ function TopicCard({ topic, index, onGenerate }: { topic: Topic; index: number; 
              <span className={`text-xs font-bold uppercase tracking-wider ${blk.color}`}>{blk.label}</span>
           </div>
           <span className={`text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${pillarColor}`}>
-            {topic.pillar}
+            {pillarLabel(topic.pillar)}
           </span>
           <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${fmt.bg}`}>
             <Icon className={`w-3 h-3 ${fmt.color}`} />
@@ -90,7 +99,7 @@ function TopicCard({ topic, index, onGenerate }: { topic: Topic; index: number; 
       <div className="p-3 rounded-xl bg-brand-highlight border border-brand-accent/20 mb-3">
         <div className="flex items-center gap-1.5 mb-1.5">
           <Zap className="w-3.5 h-3.5 text-brand-accent" />
-          <span className="text-xs font-bold text-brand-accent uppercase tracking-wide">Хук</span>
+          <span className="text-xs font-bold text-brand-accent uppercase tracking-wide">Первая строка</span>
         </div>
         <p className="text-xs text-brand-text italic leading-relaxed">«{topic.hook}»</p>
       </div>
@@ -179,13 +188,14 @@ export default function TopicIdeas({ embedded = false }: { embedded?: boolean })
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id, action: 'generate' }),
       })
-      const data = await res.json()
+      // 504 от nginx приходит HTML-страницей: без разбора и без сырого текста ошибки, мягкая плашка с повтором
+      const data = await res.json().catch(() => null)
       if (data?.error === 'need_onboarding') { setNeedOnboarding(true); return }
-      if (data?.error === 'server_error') { setServerError(true); return }
-      if (!res.ok) throw new Error(data.error || 'Ошибка поиска')
+      if (!data || data?.error === 'server_error' || !res.ok) { setServerError(true); return }
       setTopics(data.topics)
-    } catch (err: any) {
-      setError(err.message)
+    } catch {
+      // fetch падает здесь при обрыве связи
+      setError('Пропала связь. Проверь интернет и нажми еще раз')
     } finally {
       setSearching(false)
     }
@@ -198,7 +208,7 @@ export default function TopicIdeas({ embedded = false }: { embedded?: boolean })
 
   const blocks = [
      { id: 'all', label: 'Все темы' },
-     { id: 'trend', label: 'Тренды' },
+     { id: 'trend', label: 'О чем говорят' },
      { id: 'science', label: 'Исследования' },
      { id: 'quote', label: 'Цитаты' }
   ]
@@ -230,7 +240,7 @@ export default function TopicIdeas({ embedded = false }: { embedded?: boolean })
               <button
                 onClick={handleSearch}
                 disabled={searching}
-                className="flex items-center gap-2 text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-3 py-1.5 rounded-lg hover:bg-brand-highlight"
+                className={QUIET_BTN}
               >
                 <RefreshCw className={`w-4 h-4 ${searching ? 'animate-spin' : ''}`} />
                 Обновить
@@ -250,14 +260,14 @@ export default function TopicIdeas({ embedded = false }: { embedded?: boolean })
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-5 sm:mb-8">
           <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-4 py-2 rounded-full text-sm font-medium mb-4">
             <TrendingUp className="w-4 h-4" />
-            Исследовательский модуль
+            Идеи тем
           </div>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-text mb-2">
-            Идеи на базе данных и трендов
+            Темы из жизни, науки и цитат
           </h1>
           <Squiggle variant={0} width="55%" />
           <p className="text-brand-text-secondary max-w-xl mt-3">
-            Три подборки под твою нишу: о чем сейчас говорят люди, свежие исследования и редкие цитаты.
+            Три подборки под то, с чем ты работаешь: о чем сейчас говорят люди, свежие исследования и редкие цитаты.
           </p>
         </motion.div>
         )}
@@ -267,14 +277,14 @@ export default function TopicIdeas({ embedded = false }: { embedded?: boolean })
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-2">
             <EmptyState
               variant={1}
-              title="Темы из трендов и науки"
-              subtitle="Нажми кнопку, и сервис поищет в интернете, о чем сейчас говорят люди, что нового пишут в научных журналах и какие цитаты подойдут. Все под твою нишу и подход. Займет около минуты."
-              actionLabel="Провести исследование"
+              title="Темы из жизни и науки"
+              subtitle="Найдутся темы, о которых сейчас говорят люди, свежие исследования и цитаты, которые подойдут. Все под то, с чем ты работаешь, и твой подход. Около минуты."
+              actionLabel="Найти темы"
               onAction={handleSearch}
             />
             {needOnboarding && (
               <div className="mt-4">
-                <LimitNotice title="Сначала заполни профиль" message="Темы подбираем под твою нишу из профиля. Пройди короткую распаковку, и подберем идеи для тебя." actionLabel="Заполнить профиль" actionHref="/onboarding/express" />
+                <LimitNotice title="Сначала расскажи о себе" message="Темы подбираются под то, с чем ты работаешь. Пять коротких вопросов, и можно искать." actionLabel="Рассказать о себе" actionHref="/onboarding/express" />
               </div>
             )}
             {serverError && (
@@ -295,14 +305,14 @@ export default function TopicIdeas({ embedded = false }: { embedded?: boolean })
               <Loader2 className="w-16 h-16 text-brand-accent animate-spin" />
               <Globe className="w-6 h-6 text-brand-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
             </div>
-            <h2 className="text-xl font-bold text-brand-text mb-2">Глубокий ресерч запущен...</h2>
-            <p className="text-brand-text-secondary mb-6">Ищем свежие тренды, исследования и цитаты в твоей нише</p>
+            <h2 className="text-xl font-bold text-brand-text mb-2">Идет поиск тем...</h2>
+            <p className="text-brand-text-secondary mb-6">Свежие темы, исследования и цитаты под то, с чем ты работаешь</p>
             <div className="flex flex-col items-center gap-2 text-sm text-brand-text-secondary">
               {[
-                'Поиск тем, о которых говорят люди...',
-                'Поиск научных статей за 2023-2026 год...',
-                'Подбор цитат классиков и современников...',
-                'Генерация сильных хуков...',
+                'Темы, о которых говорят люди...',
+                'Научные статьи за 2023-2026 годы...',
+                'Цитаты классиков и современников...',
+                'Первые строки к темам...',
               ].map((s, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse" style={{ animationDelay: `${i * 0.5}s` }} />

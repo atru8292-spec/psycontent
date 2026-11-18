@@ -1,0 +1,14 @@
+# Срочные сигналы бота поддержки PsyCont (18.11, ветка feat/bot): POST /api/cron/bot-signals на 127.0.0.1:3001.
+# Проверяет базу, сбои генерации, OpenAI, уведомления ЮKassa и таймер оплаты; один и тот же сигнал не чаще
+# раза в 30 минут. Заодно чистит просроченные метки, переписку старше 12 месяцев и журнал сбоев старше 60 дней.
+# Секрет: /etc/psycont-billing.header (как у таймера оплаты). Ставить: см. psycont-bot-summary.service.
+# Журнал: journalctl -u psycont-bot-signals -n 20
+# Если сайт (pm2 psycont) лежит, curl падает и сигнала нет: это видит UptimeRobot снаружи.
+[Unit]
+Description=PsyCont bot: urgent signals
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/curl -fsS --max-time 60 -X POST -H @/etc/psycont-billing.header http://127.0.0.1:3001/api/cron/bot-signals
+Nice=10

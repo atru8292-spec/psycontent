@@ -298,7 +298,7 @@ export default function ExpressOnboarding() {
   if (!ready) {
     return (
       <div className="min-h-dvh bg-brand-bg flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-brand-accent animate-spin" aria-label="Загружаю" />
+        <Loader2 className="w-8 h-8 text-brand-accent animate-spin" aria-label="Загрузка" />
       </div>
     )
   }
@@ -312,17 +312,17 @@ export default function ExpressOnboarding() {
   const inputCls = 'h-14 w-full rounded-[20px] bg-brand-card border-[1.5px] border-brand-border px-4 text-[16px] text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-accent focus:ring-[3px] focus:ring-brand-soft'
 
   const missing: Record<number, string> = {
-    1: !a.name.trim() ? 'Напиши имя, и пойдем дальше' : 'Выбери, как ты говоришь о себе',
+    1: !a.name.trim() ? 'Напиши имя' : 'Выбери, как пишешь о себе',
     2: 'Выбери хотя бы один подход',
     3: 'Отметь хотя бы одну группу',
-    6: transcribing ? 'Подожди, расшифровываю' : 'Наговори или напиши, что ответишь',
+    6: transcribing ? 'Секунду, идет расшифровка' : 'Наговори или напиши, что ответишь',
   }
   const nextBlock = (label = 'Дальше') => (
     // прилипает к низу экрана, если карточка длиннее окна (длинный список групп на 375×667)
     <div ref={actionRef} className={`sticky bottom-0 z-10 bg-brand-bg pt-2 pb-[max(4px,env(safe-area-inset-bottom))] ${step === 6 ? 'mt-1' : step === 3 ? 'mt-2' : 'mt-3'}`}>
       <button type="button" onClick={next} aria-disabled={!valid[step] || saving} aria-describedby="onb-missing"
         className={valid[step] && !saving ? green : 'w-full h-[52px] rounded-2xl text-[16px] font-semibold bg-brand-border text-brand-muted cursor-not-allowed'}>
-        {saving ? <span className="inline-flex items-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />Сохраняю</span> : label}
+        {saving ? <span className="inline-flex items-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />Сохраняется</span> : label}
       </button>
       <p id="onb-missing" className="mt-2 min-h-[18px] text-center text-[13px] text-brand-muted" role="status">
         {limitHint ? 'Можно до трех. Сними один, чтобы выбрать другой' : !valid[step] ? missing[step] || '' : ''}
@@ -337,7 +337,7 @@ export default function ExpressOnboarding() {
         className={has ? green : outline}>
         {has ? 'Дальше' : 'Пропустить'}
       </button>
-      <p className="mt-2 text-center text-[13px] text-brand-muted">Можно дописать потом в профиле</p>
+      <p className="mt-2 text-center text-[13px] text-brand-muted">Можно дописать потом в настройках</p>
     </div>
   )
   const title = (t: string, hint?: string) => (
@@ -352,12 +352,12 @@ export default function ExpressOnboarding() {
   const voiceField = (value: string, onChange: (v: string) => void, placeholder: string, label: string, primaryMic: boolean) => (
     <div className="rounded-[20px] bg-brand-card border-[1.5px] border-brand-border focus-within:border-brand-accent focus-within:ring-[3px] focus-within:ring-brand-soft transition">
       <textarea ref={fieldRef} value={value} onChange={e => onChange(e.target.value)} readOnly={transcribing} rows={2} aria-label={label}
-        placeholder={transcribing ? 'Расшифровываю...' : placeholder}
+        placeholder={transcribing ? 'Идет расшифровка...' : placeholder}
         className={`block w-full ${big ? 'min-h-[88px]' : 'min-h-[72px]'} max-h-[144px] resize-none bg-transparent px-4 pt-3.5 text-[16px] leading-6 text-brand-text placeholder:text-brand-muted focus:outline-none ${transcribing ? 'animate-pulse' : ''}`} />
       <div className="h-16 flex items-center justify-end pr-1.5">
         <button type="button" onClick={() => { rec.reset(); setVoiceOpen(true) }} disabled={transcribing}
           className={`h-[52px] px-5 rounded-full inline-flex items-center gap-2 text-[16px] font-semibold cursor-pointer transition disabled:opacity-60 ${primaryMic ? 'bg-brand-accent text-white hover:bg-brand-accent-hover' : 'bg-brand-card border-[1.5px] border-brand-accent text-brand-accent'}`}>
-          {transcribing ? <><Loader2 className="w-[22px] h-[22px] animate-spin" />Слушаю</> : <><Mic className="w-[22px] h-[22px]" />Наговорить</>}
+          {transcribing ? <><Loader2 className="w-[22px] h-[22px] animate-spin" />Расшифровка</> : <><Mic className="w-[22px] h-[22px]" />Наговорить</>}
         </button>
       </div>
     </div>
@@ -371,7 +371,7 @@ export default function ExpressOnboarding() {
         <Vera src="/vera/privet.webp" h={120} w={93} tilt="-rotate-2" delay={!reduce} caption="Вера · помогаю вести блог">
           <p className="text-[16px] leading-[22px]">Расскажи о своей практике. Шесть коротких вопросов, пара минут, один можно наговорить голосом. Остальное берет PsyCont</p>
         </Vera>
-        <button type="button" onClick={() => { if (!moving) go(1) }} className={`mt-8 ${green}`}>Начнем</button>
+        <button type="button" onClick={() => { if (!moving) go(1) }} className={`mt-8 ${green}`}>Начать</button>
       </div>
     )
   } else if (step === 1) {
@@ -382,13 +382,23 @@ export default function ExpressOnboarding() {
           onKeyDown={e => { if (e.key === 'Enter') next() }} placeholder="Например, Анна" autoComplete="given-name" enterKeyHint="next"
           className={`mt-5 ${inputCls}`} />
         {/* род автора (16.11, тексты copywriter-psycont): от него глаголы в текстах от ее или его лица */}
-        <p className="mt-6 text-[17px] leading-6 font-semibold text-brand-text">Как ты говоришь о себе?</p>
-        <p className="mt-1 text-[14px] leading-5 text-brand-muted">Тексты пишутся от твоего лица, так глаголы будут в нужном роде</p>
-        <div role="radiogroup" aria-label="Как ты говоришь о себе" className="mt-3 flex flex-wrap gap-2">
-          {([['female', '«Я заметила»'], ['male', '«Я заметил»']] as const).map(([g, label]) => (
-            <button key={g} type="button" role="radio" aria-checked={a.gender === g} onClick={() => setA({ ...a, gender: g })} className={chip(a.gender === g)}>{label}</button>
-          ))}
+        {/* 17.11 (словарь, вариант А): ничего не выбрано заранее, «Дальше» ждет выбора (valid[1]) */}
+        <p id="onb-gender" className="mt-6 text-[17px] leading-6 font-semibold text-brand-text">Как пишешь о себе?</p>
+        <div role="radiogroup" aria-labelledby="onb-gender" aria-describedby="onb-gender-why" className="mt-3 flex flex-col gap-2">
+          {([['female', 'В женском роде', 'я заметила'], ['male', 'В мужском роде', 'я заметил']] as const).map(([g, label, sample]) => {
+            const on = a.gender === g
+            return (
+              <button key={g} type="button" role="radio" aria-checked={on} aria-label={`${label}: ${sample}`} onClick={() => setA({ ...a, gender: g })}
+                className={`w-full min-h-[56px] rounded-[20px] px-4 py-2.5 text-left cursor-pointer transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent ${on ? 'bg-brand-soft border-[1.5px] border-brand-accent' : 'bg-brand-card border border-brand-border'}`}>
+                <span className="flex items-center gap-2 text-[16px] leading-[22px] font-semibold text-brand-text">
+                  {on && <Check className="w-4 h-4 text-brand-accent shrink-0" aria-hidden="true" />}{label}
+                </span>
+                <span className="block text-[15px] leading-5 text-brand-muted">{sample}</span>
+              </button>
+            )
+          })}
         </div>
+        <p id="onb-gender-why" className="mt-2 text-[14px] leading-5 text-brand-muted">Посты пишутся от твоего лица, так в них не будет ошибок в роде</p>
         {nextBlock()}
       </div>
     )
@@ -472,7 +482,7 @@ export default function ExpressOnboarding() {
           const n = ((a.situation || 0) + 1) % repliki.length
           setA({ ...a, situation: n })
           track('onb_situation_change', { index: n })
-        }} className="h-11 -ml-1 px-1 text-[15px] text-brand-accent font-semibold underline underline-offset-4 cursor-pointer">Другая ситуация</button>
+        }} className="h-11 px-4 rounded-xl border border-brand-border bg-brand-card text-[15px] text-brand-accent font-semibold cursor-pointer hover:bg-brand-soft-2">Другая ситуация</button>
         {/* Вера 80 px, справа ее пузырь и строка-задание: так блок ниже и влезает на 375×667 */}
         <div className="flex items-start gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -506,9 +516,9 @@ export default function ExpressOnboarding() {
           <p className="text-[13px] leading-[18px] text-brand-muted">Первая тема под тебя:</p>
           <p className="mt-1 text-[18px] leading-6 font-semibold text-brand-text line-clamp-3 break-words">{topic}</p>
         </div>
-        <button type="button" onClick={startFirst} disabled={newGen === null} className={`mt-5 ${green} disabled:opacity-60`}>{newGen === false ? 'Сделать пост' : 'Сделать пост и карусель'}</button>
+        <button type="button" onClick={startFirst} disabled={newGen === null} className={`mt-5 ${green} disabled:opacity-60`}>{newGen === false ? 'Написать пост' : 'Написать пост и карусель'}</button>
         <button type="button" onClick={() => router.push('/dashboard/make?first=1')}
-          className="mt-1 h-11 w-full text-center text-[15px] text-brand-muted underline underline-offset-4 cursor-pointer">Или начни со своей мысли</button>
+          className="mt-2 h-12 w-full rounded-2xl border border-brand-border bg-brand-card text-center text-[15px] font-semibold text-brand-text cursor-pointer hover:bg-brand-soft-2">Или начни со своей мысли</button>
       </div>
     )
   }
@@ -525,16 +535,16 @@ export default function ExpressOnboarding() {
               <ChevronLeft className="w-6 h-6" />
             </button>
           ) : <span className="w-11 h-11 -ml-2.5 shrink-0" />}
-          {/* 7 сегментов: «Аккаунт» закрашен сразу (регистрация пройдена), дальше 6 вопросов */}
+          {/* делений столько же, сколько шагов в подписи «Шаг N из 6» (17.11) */}
           <div className="flex-1 flex gap-1" aria-hidden="true">
-            {Array.from({ length: TOTAL + 1 }, (_, i) => {
-              const filled = i === 0 || i < q || step === 7
-              const current = !filled && i === q
+            {Array.from({ length: TOTAL }, (_, i) => {
+              const filled = i < q - 1 || step === 7
+              const current = !filled && i === q - 1
               return <span key={i} className={`h-1.5 flex-1 rounded-full transition-colors duration-200 ${filled ? 'bg-brand-accent' : current ? 'bg-brand-lilac ring-1 ring-inset ring-brand-accent' : 'bg-brand-border'}`} />
             })}
           </div>
         </div>
-        {q > 0 && <p className="pl-12 mt-0.5 text-[13px] leading-[18px] text-brand-muted tabular-nums">Вопрос {q} из {TOTAL}</p>}
+        {q > 0 && <p className="pl-12 mt-0.5 text-[13px] leading-[18px] text-brand-muted tabular-nums">Шаг {q} из {TOTAL}</p>}
 
         {/* Правило Арины: мало контента, блок по центру (чуть выше середины, снизу 10dvh); много, сверху сразу под
             счетчиком. Решаем по высоте блока (меньше 60% доступной высоты), а не списком экранов. При открытой

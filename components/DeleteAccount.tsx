@@ -5,8 +5,9 @@
 // аккаунта уже не будет, а в тексте могут быть личные данные. Тексты copywriter-psycont 16.11.
 import { useEffect, useState } from 'react'
 import { X, Loader2 } from 'lucide-react'
+import { QUIET_BTN_MUTED } from '@/lib/ui-classes'
 import { supabase } from '@/lib/supabase'
-import { REKV } from '@/lib/rekvizity'
+import { SUPPORT_EMAIL } from '@/lib/rekvizity'
 
 const REASONS: { id: string; label: string }[] = [
   { id: 'tekst', label: 'Тексты не про меня' },
@@ -41,7 +42,7 @@ export default function DeleteAccount() {
       await supabase.auth.signOut().catch(() => {})
       window.location.replace('/?udalen=1')
     } catch {
-      setError(`Удалить аккаунт не получилось. Попробуй еще раз через пару минут, а если снова не выйдет, напиши на ${REKV.email}.`)
+      setError(`Удалить аккаунт не получилось. Попробуй еще раз через пару минут, а если снова не выйдет, напиши на ${SUPPORT_EMAIL}.`)
       setBusy(false)
     }
   }
@@ -49,7 +50,7 @@ export default function DeleteAccount() {
   return (
     <div className="mt-10 pt-6 border-t border-brand-border">
       <button type="button" onClick={() => { setOpen(true); setError(null) }}
-        className="h-11 px-4 rounded-2xl border border-brand-border text-[15px] text-brand-text-secondary hover:text-brand-text hover:border-brand-text-secondary transition cursor-pointer">
+        className={QUIET_BTN_MUTED}>
         Удалить аккаунт
       </button>
 
@@ -64,7 +65,7 @@ export default function DeleteAccount() {
               </button>
             </div>
             <p className="mt-2 text-[15px] leading-[22px] text-brand-text-secondary">Сразу удалятся аккаунт, все тексты, голос, темы и фото. Вернуть их потом не получится.</p>
-            {paidUntil && <p className="mt-2 rounded-2xl bg-brand-soft px-4 py-3 text-[15px] leading-[22px] text-brand-text">Тариф оплачен до {paidUntil}. Автопродление выключится, а оставшиеся дни пропадут. Вернуть деньги за них можно, если сначала написать на {REKV.email}.</p>}
+            {paidUntil && <p className="mt-2 rounded-2xl bg-brand-soft px-4 py-3 text-[15px] leading-[22px] text-brand-text">Тариф оплачен до {paidUntil}. Автопродление выключится, а оставшиеся дни пропадут. Вернуть деньги за них можно, если сначала написать на {SUPPORT_EMAIL}.</p>}
 
             <p className="mt-5 text-[15px] text-brand-text">Если хочешь, расскажи, что остановило</p>
             <div className="mt-2 flex flex-wrap gap-2">

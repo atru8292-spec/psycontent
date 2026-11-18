@@ -50,3 +50,5 @@ _sekrety/
 deploy/baza-ru/backup/backup.env
 /.next-novaya/
 /.next-staraya/
+# локальные цепочки шаблонности (scripts/quality-week.ts --show-chains), только на этой машине
+_знания/kachestvo/

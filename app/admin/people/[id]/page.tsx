@@ -7,6 +7,8 @@ import { optsFrom, loadPerson } from '@/lib/analytics/admin-data'
 import type { PersonDetail, AdminOpts } from '@/lib/analytics/admin-types'
 import { RISK_LEVEL_RU, reasonText, fmtNum, plural } from '@/lib/analytics/definitions'
 import { FEATURE_RU, formatRu, opRu, srcRu, voiceKindRu, timelineLine, onbStepRu } from '@/lib/analytics/admin-view'
+import { loadPersonExit, type PersonExit } from '@/lib/analytics/admin-a2'
+import { PersonExitSection } from '@/components/admin/ExitBlocks'
 import { Card, Section, RiskPill, StatusBadge, PageHead, DownloadLink, LoadError, Bar, href, rub, when, dayKey, dayLabel, timeOf, duration } from '@/components/admin/ui'
 
 type Params = Promise<{ id: string }>
@@ -20,7 +22,7 @@ export default async function PersonPage({ params, searchParams }: { params: Par
   const o = optsFrom(sp)
   const tz = adminTz()
   const now = new Date()
-  const r = await loadPerson(o, id)
+  const [r, ex] = await Promise.all([loadPerson(o, id), loadPersonExit(o, id)])
   if (r.error) return <><Back o={o} /><div className="mt-4"><LoadError kind={r.error} /></div></>
   if (!r.data) notFound()
   const p = r.data
@@ -32,17 +34,25 @@ export default async function PersonPage({ params, searchParams }: { params: Par
       <PageHead title={p.email} o={o} path={`/admin/people/${id}`} exportQuery={{ what: 'person', id }} exportDesktopOnly />
       <Head p={p} tz={tz} now={now} />
       <div className="mt-6 flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_360px] lg:gap-6 lg:items-start">
-        <div className="order-2 lg:order-1"><Timeline p={p} tz={tz} now={now} o={o} full={full} /></div>
+        <div className="order-3 lg:order-1"><Timeline p={p} tz={tz} now={now} o={o} full={full} /></div>
         <div className="contents lg:block lg:order-2 lg:space-y-4">
           <div className="order-1"><Onboarding p={p} /></div>
-          <div className="order-3"><Uses p={p} /></div>
-          <div className="order-4"><Voice p={p} /></div>
-          <div className="order-5"><Money p={p} /></div>
+          <ExitBlock d={ex.data} error={ex.error} tz={tz} now={now} />
+          <div className="order-4"><Uses p={p} /></div>
+          <div className="order-5"><Voice p={p} /></div>
+          <div className="order-6"><Money p={p} /></div>
         </div>
       </div>
       <div className="lg:hidden mt-6"><DownloadLink href={href('/api/admin/export', o, { what: 'person', id })}>Скачать таблицу</DownloadLink></div>
     </>
   )
+}
+
+// Опрос при уходе: после онбординга (на мобилке вторым). Не показывали: секции нет; без таблицы молчим,
+// чтобы карточка человека не пестрила плашками про миграцию (она видна на Сводке)
+function ExitBlock({ d, error, tz, now }: { d: PersonExit | null; error: null | 'no_migration' | 'failed'; tz: string; now: Date }) {
+  if (error || !d || (!d.answers.length && !d.shownAt)) return null
+  return <div className="order-2"><PersonExitSection d={d} tz={tz} now={now} /></div>
 }
 
 function Back({ o }: { o: AdminOpts }) {

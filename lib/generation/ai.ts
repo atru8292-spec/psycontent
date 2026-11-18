@@ -9,6 +9,7 @@ import { appendFileSync } from 'node:fs'
 import { anonymize, deanonymize } from '@/lib/anonymize'
 import { logAiUsage, type OpenAIUsage } from '@/lib/energy'
 import { CodedError, openAiError } from '@/lib/safe-error'
+import { noteOpenAiError } from '@/lib/bot/incidents'
 import { DEFAULT_MODEL } from '@/lib/openrouter'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
@@ -88,7 +89,7 @@ export async function callModel(o: CallOpts): Promise<string> {
     res = await send()
     raw = await res.text()
   }
-  if (!res.ok) throw openAiError(res.status, raw)
+  if (!res.ok) { const err = openAiError(res.status, raw); noteOpenAiError(err, o.userId); throw err }
   let data: any
   try { data = JSON.parse(raw) } catch { throw new CodedError('openai_bad_json') }
   const usage: OpenAIUsage | undefined = data?.usage

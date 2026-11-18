@@ -1,0 +1,11 @@
+# Раз в 5 минут. Без Persistent: пропущенные проверки после простоя догонять не нужно.
+[Unit]
+Description=PsyCont bot: urgent signals every 5 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

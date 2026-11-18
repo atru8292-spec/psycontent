@@ -8,6 +8,7 @@
 import { track } from '@/lib/track'
 import { useState, type ReactNode } from 'react'
 import { Copy, Check, Video, ChevronDown } from 'lucide-react'
+import { QUIET_BTN_SM } from '@/lib/ui-classes'
 import CaptionBlock from './CaptionBlock'
 import { gruppaOf } from '@/lib/generation/zh6/gruppy'
 import { KARTY } from './make/vid-cards'
@@ -17,11 +18,11 @@ import { parse, screenGroups, overlayOf, reelsSpeech, roleKey, splitRole, HOW_TO
 const KIND: Record<string, { name: string; how: string }> = {
   reels_monolog: { name: 'Говоришь в камеру', how: 'Смотришь в камеру и говоришь текст ниже. Можно читать с телефона, держа его рядом с камерой.' },
   reels_otvet: { name: 'Говоришь в камеру', how: 'Смотришь в камеру и отвечаешь на вопрос с надписи. Текст можно читать с телефона.' },
-  reels_poslanie: { name: 'Говоришь в камеру', how: 'Смотришь в камеру и говоришь зрителю напрямую, спокойно, как подруге. Текст можно читать с телефона.' },
+  reels_poslanie: { name: 'Говоришь в камеру', how: 'Смотришь в камеру и говоришь зрителю напрямую, спокойно, как близкому человеку. Текст можно читать с телефона.' },
   reels_istoriya: { name: 'Говоришь в камеру', how: 'Рассказываешь свою историю в камеру, одним куском. Текст можно читать с телефона.' },
   reels_spisok: { name: 'Список', how: 'Говоришь в камеру по пунктам. Номер пункта добавь надписью в Instagram, когда начинаешь новый.' },
   reels_rol: { name: 'Играешь роль', how: 'Говоришь от лица персонажа с серьезным лицом, это шутка. Такие ролики чаще пересылают.' },
-  reels_malysh: { name: 'Объясняю как маленькому', how: 'Говоришь в камеру ласково и медленно, как ребенку, про взрослую штуку. Серьезное лицо и детские слова, в этом весь эффект. Если в тексте есть «Рисую», рисуй на листе по ходу.' },
+  reels_malysh: { name: 'Объясняешь как ребенку', how: 'Говоришь в камеру ласково и медленно, как ребенку, про взрослую штуку. Серьезное лицо и детские слова, в этом весь эффект. Если в тексте есть «рисуешь», рисуй на листе по ходу.' },
   reels_bez_slov: { name: 'Только надписи', how: 'Говорить не нужно. Сними, как пьешь чай, идешь по улице или просто смотришь в камеру. Звук убери или поставь музыку, а надписи ниже наложи на видео по очереди.' },
   reels_scenka: { name: 'Сценка', how: 'Все роли твои. Сними реплики каждого героя по очереди: для другой роли хватит повернуться, надеть очки или пересесть. Потом склей по порядку в CapCut или в Instagram.' },
   reels_doska: { name: 'Рисуешь и объясняешь', how: 'Говоришь и рисуешь схему на листе или доске по подсказкам ниже.' },
@@ -86,7 +87,7 @@ export default function ReelsScript({ text, mark, format, postId, title, vid }: 
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 min-w-0">
       {karta ? (
         // zh6: тот же «как снять», что в карточке вида на «Сделать». Свернут в одну строку, чтобы сам текст был
         // на первом экране; кремовый, не сиреневый: сиреневая только плашка, которую копируют
@@ -124,10 +125,10 @@ export default function ReelsScript({ text, mark, format, postId, title, vid }: 
       )}
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <p className="min-w-0 text-[13px] font-semibold text-brand-muted">{bezSlov && screens ? 'Что написать на экране' : 'Что сказать'}</p>
+          <p className="min-w-0 text-[13px] font-semibold text-brand-muted">{bezSlov && screens ? 'Надписи на видео' : 'Что сказать'}</p>
           <button type="button" onClick={copySpeech}
-            className="min-h-11 -my-3 inline-flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-accent cursor-pointer shrink-0">
-            {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Скопировала' : 'Скопировать текст'}
+            className={`-my-1 shrink-0 ${QUIET_BTN_SM}`}>
+            {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Скопировано' : 'Скопировать текст'}
           </button>
         </div>
 
@@ -186,7 +187,7 @@ export default function ReelsScript({ text, mark, format, postId, title, vid }: 
         </div>
       )}
 
-      <CaptionBlock caption={caption} title="Описание под рилсом" mark={mark} format={format} postId={postId} />
+      <CaptionBlock caption={caption} title="Описание" mark={mark} format={format} postId={postId} />
     </div>
   )
 }

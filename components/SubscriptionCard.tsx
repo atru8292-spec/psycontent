@@ -1,13 +1,18 @@
 'use client'
 
-// Блок «Подписка» в Профиле над витриной тарифов (17.11). Только у платных (оплаченное окно или продление на повторах).
-// «Отключить автопродление» и «Удалить карту» срабатывают сразу после одного подтверждения (оферта). Включить
-// автопродление обратно можно только новой оплатой. Спецификация designer-psycont, тексты lib/billing/pay-texts.ts.
+// Блок «Тариф» в «Настройках» (вариант А, макеты A8 справа и A11 первым блоком; 17.11).
+// Показывается всем: на пробном тариф и остаток, на платном до какого числа, карта, автопродление.
+// «Отключить автопродление», «Удалить карту» и «Сменить тариф» срабатывают сразу после одного подтверждения (оферта).
+// Включить автопродление обратно можно только новой оплатой. Тексты lib/billing/pay-texts.ts.
+// «Посмотреть тарифы» раскрывает витрину TariffSection (ее рисует страница настроек, тут только кнопка).
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
+import { QUIET_BTN } from '@/lib/ui-classes'
 import { SUB, rubles, dateRu } from '@/lib/billing/pay-texts'
 import { PAID_PLANS, consentText, type PaidCode } from '@/lib/billing/plans'
+import { planForDbCode } from '@/lib/pricing'
+import type { Materials } from '@/lib/limit-texts'
 
 type PayMe = {
   payments: boolean; paid: boolean; status: string; until: string | null; autoRenew: boolean; nextChargeAt: string | null
@@ -15,7 +20,16 @@ type PayMe = {
   nextPlan: { code: string; name: string; price: number } | null
 }
 
-export default function SubscriptionCard() {
+type Props = {
+  planCode?: string
+  planName?: string
+  materials?: Materials | null
+  tariffsOpen?: boolean
+  onToggleTariffs?: () => void
+  className?: string
+}
+
+export default function SubscriptionCard({ planCode, planName, materials, tariffsOpen = false, onToggleTariffs, className = '' }: Props) {
   const [me, setMe] = useState<PayMe | null>(null)
   const [ask, setAsk] = useState<null | 'off' | 'del' | 'plan'>(null)
   const [agree, setAgree] = useState(false)
@@ -26,18 +40,18 @@ export default function SubscriptionCard() {
   const load = () => fetch('/api/pay/me', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).then(j => setMe(j)).catch(() => {})
   useEffect(() => { load() }, [])
 
-  if (!me) return null
-  const pastDue = me.status === 'past_due'
-  if (!me.paid && !pastDue) return null
-
-  const until = me.until ? dateRu(me.until) : ''
-  const sbp = me.method?.type === 'sbp'
+  const pastDue = me?.status === 'past_due'
+  const paidView = !!me && (me.paid || pastDue)
+  const until = me?.until ? dateRu(me.until) : ''
+  const sbp = me?.method?.type === 'sbp'
   // смена тарифа: другой из двух; со следующего списания
-  const otherCode: PaidCode = me.plan?.code === 'practice' ? 'start' : 'practice'
+  const otherCode: PaidCode = me?.plan?.code === 'practice' ? 'start' : 'practice'
   const other = PAID_PLANS[otherCode]
-  const nextDate = me.nextChargeAt ? dateRu(me.nextChargeAt) : ''
+  const nextDate = me?.nextChargeAt ? dateRu(me.nextChargeAt) : ''
+  const name = (paidView && me?.plan?.name) || planForDbCode(planCode)?.name || planName || SUB.title
+
   const cancelChange = async () => {
-    if (busy || !me.plan) return
+    if (busy || !me?.plan) return
     setBusy(true)
     try {
       const r = await fetch('/api/pay/plan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan: me.plan.code, consent: false }) })
@@ -63,51 +77,62 @@ export default function SubscriptionCard() {
     } catch { setErr(true) } finally { setBusy(false) }
   }
 
-  const row = (label: string, value: string) => (
-    <div className="py-3 flex justify-between gap-3 text-[15px]"><dt className="text-brand-muted">{label}</dt><dd className="text-brand-text text-right">{value}</dd></div>
-  )
-  const btn = 'h-11 px-4 rounded-2xl border border-brand-border text-brand-text text-[15px] hover:bg-brand-soft transition cursor-pointer'
+  // остаток: на телефоне тут (на компьютере он один раз, внизу меню); конец текстов виден везде
+  const left = materials ? Math.max(0, materials.remaining) : null
+  const balance = materials && left !== null
+    ? (materials.kind === 'trial'
+      ? (left === 0 ? SUB.trialEnd : SUB.trialLeft(left, materials.cap))
+      : (left === 0 ? SUB.monthEnd : SUB.monthLeft(left, materials.cap)))
+    : ''
+  const btn = 'h-11 px-4 rounded-2xl border-[1.5px] border-brand-accent text-brand-accent text-[15px] font-semibold bg-brand-card hover:bg-brand-soft-2 transition cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent disabled:opacity-60'
 
   return (
-    <div className="mb-4">
-      <div className="rounded-3xl bg-brand-card border border-brand-border p-5 sm:p-6">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <p className="text-[20px] leading-7 font-bold text-brand-text">{me.plan?.name || SUB.title}</p>
-          {me.plan && <p className="text-[15px] text-brand-muted tabular-nums">{rubles(me.plan.price)} в месяц</p>}
+    <section id="tariff" aria-labelledby="tariff-title" className={`scroll-mt-20 rounded-[20px] bg-brand-card border border-brand-border p-4 sm:p-6 ${className}`}>
+      <h2 id="tariff-title" className="text-lg font-semibold text-brand-text">Тариф</h2>
+      <p className="mt-0.5 text-[15px] leading-[22px] text-brand-muted">{paidView && !pastDue ? SUB.planUntil(name, until) : name}</p>
+      {balance && <p className={`mt-1 text-[15px] leading-[22px] text-brand-text ${left !== 0 ? 'lg:hidden' : ''}`}>{balance}</p>}
+
+      {pastDue && me && (
+        <div className="mt-4 rounded-2xl bg-brand-soft-2 p-4">
+          <p className="text-[15px] leading-[22px] text-brand-text">{SUB.pastDue(nextDate)}</p>
+          {me.plan && <Link href={`/dashboard/oplata?plan=${me.plan.code === 'practice' ? 'practice' : 'start'}`} className={`mt-3 inline-flex items-center ${btn}`}>{SUB.payNow}</Link>}
         </div>
+      )}
 
-        {pastDue && (
-          <div className="mt-4 rounded-2xl bg-brand-soft border border-brand-border-soft p-4">
-            <p className="text-[15px] leading-[22px] text-brand-text">{SUB.pastDue(me.nextChargeAt ? dateRu(me.nextChargeAt) : '')}</p>
-            {me.plan && <Link href={`/dashboard/oplata?plan=${me.plan.code === 'practice' ? 'practice' : 'start'}`} className={`mt-3 inline-flex items-center ${btn}`}>{SUB.payNow}</Link>}
-          </div>
-        )}
+      {paidView && me && (
+        <div className="mt-4 rounded-2xl border border-brand-border px-4 py-3">
+          <p className="text-[15px] font-semibold text-brand-text">{me.method ? SUB.methodTitle(me.method.title) : `${SUB.method}: ${SUB.noMethod}`}</p>
+          {me.paid && !pastDue && (
+            <p className="mt-0.5 text-[13px] leading-[18px] text-brand-muted">
+              {me.autoRenew && me.nextChargeAt && me.plan ? SUB.autoOn(nextDate, rubles(me.plan.price)) : me.autoRenew ? '' : SUB.autoOff(until)}
+            </p>
+          )}
+        </div>
+      )}
+      {me?.paid && !pastDue && me.autoRenew && <p className="mt-2 text-[13px] leading-[18px] text-brand-muted">{SUB.autoHint}</p>}
 
-        <dl className="mt-3 divide-y divide-brand-border">
-          {me.paid && !pastDue && row(SUB.paidUntil, until)}
-          {me.paid && me.autoRenew && me.nextChargeAt && me.plan && row(SUB.next, `${dateRu(me.nextChargeAt)}, ${rubles(me.plan.price)}`)}
-          {row(SUB.method, me.method?.title || SUB.noMethod)}
-        </dl>
-        {me.paid && !pastDue && <p className="mt-3 text-[13px] leading-5 text-brand-muted">{me.autoRenew ? SUB.autoHint : SUB.autoOff(until)}</p>}
+      {me?.nextPlan && nextDate && (
+        <div className="mt-3 rounded-2xl bg-brand-soft-2 p-4">
+          <p className="text-[15px] leading-[22px] text-brand-text">{SUB.planned(nextDate, me.nextPlan.name, rubles(me.nextPlan.price))}</p>
+          <button type="button" disabled={busy} onClick={cancelChange} className={`mt-3 ${btn}`}>{SUB.cancelChange(me.plan?.name || '')}</button>
+        </div>
+      )}
 
-        {me.nextPlan && nextDate && (
-          <div className="mt-3 rounded-2xl bg-brand-soft border border-brand-border-soft p-4">
-            <p className="text-[15px] leading-[22px] text-brand-text">{SUB.planned(nextDate, me.nextPlan.name, rubles(me.nextPlan.price))}</p>
-            <button type="button" disabled={busy} onClick={cancelChange} className={`mt-3 ${btn}`}>{SUB.cancelChange(me.plan?.name || '')}</button>
-          </div>
+      <div className="mt-4 flex flex-col lg:flex-row lg:flex-wrap gap-2">
+        {me?.autoRenew && !me.nextPlan && me.plan && <button type="button" onClick={() => { setErr(false); setAgree(false); setAsk('plan') }} className={btn}>{SUB.changeBtn}</button>}
+        {me?.autoRenew && <button type="button" onClick={() => { setErr(false); setAsk('off') }} className={btn}>{SUB.offBtn}</button>}
+        {me?.method && <button type="button" onClick={() => { setErr(false); setAsk('del') }} className={btn}>{SUB.delBtn(sbp)}</button>}
+        {onToggleTariffs && (
+          <button type="button" onClick={onToggleTariffs} aria-expanded={tariffsOpen} aria-controls="tariff-list"
+            className={`lg:self-start ${QUIET_BTN}`}>
+            {tariffsOpen ? SUB.hideTariffs : SUB.seeTariffs}
+          </button>
         )}
-        {(me.autoRenew || me.method) && (
-          <div className="mt-4 flex flex-col sm:flex-row gap-2">
-            {me.autoRenew && !me.nextPlan && me.plan && <button type="button" onClick={() => { setErr(false); setAgree(false); setAsk('plan') }} className={btn}>{SUB.changeBtn}</button>}
-            {me.autoRenew && <button type="button" onClick={() => { setErr(false); setAsk('off') }} className={btn}>{SUB.offBtn}</button>}
-            {me.method && <button type="button" onClick={() => { setErr(false); setAsk('del') }} className={btn}>{SUB.delBtn(sbp)}</button>}
-          </div>
-        )}
-        {me.paid && <p className="mt-4 text-[13px] leading-5 text-brand-muted">{SUB.refund(until)}</p>}
       </div>
+      {me?.paid && <p className="mt-4 text-[13px] leading-5 text-brand-muted">{SUB.refund(until)}</p>}
       {toast && <p role="status" className="mt-2 text-[13px] text-brand-text">{toast}</p>}
 
-      {ask && (
+      {ask && me && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-brand-text/40 p-0 sm:p-4" onClick={() => !busy && setAsk(null)}>
           <div role="dialog" aria-modal="true" aria-labelledby="sub-ask" onClick={e => e.stopPropagation()}
             className="w-full sm:max-w-md bg-brand-card rounded-t-3xl sm:rounded-3xl border border-brand-border p-6 pb-[calc(24px+env(safe-area-inset-bottom))] shadow-xl">
@@ -138,6 +163,6 @@ export default function SubscriptionCard() {
           </div>
         </div>
       )}
-    </div>
+    </section>
   )
 }

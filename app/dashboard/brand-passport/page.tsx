@@ -1,5 +1,6 @@
 'use client'
 
+import { QUIET_BTN } from '@/lib/ui-classes'
 import { useFeatureOpen, useTrackOnce } from '@/lib/analytics/hooks'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -404,10 +405,10 @@ export default function BrandPassport() {
         >
           <div className="inline-flex items-center gap-2 bg-brand-soft text-brand-accent px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium mb-3 sm:mb-4">
             <Map className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            Карта бренда
+            Паспорт бренда
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-brand-text mb-2 sm:mb-3">
-            Карта твоего бренда
+            Паспорт твоего бренда
           </h1>
           <div className="flex justify-center">
             <Squiggle variant={0} width="55%" />
@@ -415,7 +416,7 @@ export default function BrandPassport() {
           <p className="text-brand-text-secondary max-w-xl mx-auto text-sm sm:text-base mt-3">
             Кто ты, чем отличаешься, как звучишь и для кого пишешь, собрано в один документ.
             Можно скачать PDF и держать перед глазами. Посты собираются по твоему профилю,
-            карта нужна для ясности, не для генерации.
+            паспорт нужен для ясности, не для генерации.
           </p>
         </motion.div>
 
@@ -424,14 +425,14 @@ export default function BrandPassport() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
             <EmptyState
               variant={1}
-              title="Собрать карту бренда"
+              title="Собрать паспорт бренда"
               subtitle="Твое позиционирование, тон и аватар клиента на одной фирменной странице. Можно скачать PDF и держать под рукой, когда ведешь блог или работаешь с дизайнером. По желанию, в любой момент."
-              actionLabel="Собрать карту"
+              actionLabel="Собрать паспорт"
               onAction={handleGenerate}
             />
             {needOnboarding && (
               <div className="mt-4">
-                <LimitNotice title="Сначала заполни профиль" message="Карта бренда строится на твоей распаковке. Пройди короткий онбординг, и мы соберем документ о тебе." actionLabel="Заполнить профиль" actionHref="/onboarding/express" />
+                <LimitNotice title="Сначала расскажи о себе" message="Паспорт бренда собирается из того, что ты рассказываешь о себе. Пять коротких вопросов, и можно собирать." actionLabel="Рассказать о себе" actionHref="/onboarding/express" />
               </div>
             )}
             {serverError && (
@@ -453,7 +454,7 @@ export default function BrandPassport() {
             <div className="flex items-center gap-3 mb-6">
               <Loader2 className="w-5 h-5 text-brand-accent animate-spin shrink-0" />
               <h2 className="text-base sm:text-lg font-bold text-brand-text">
-                Собираю твою карту бренда...
+                Паспорт бренда собирается...
               </h2>
             </div>
             <div className="max-w-md space-y-3">
@@ -504,21 +505,21 @@ export default function BrandPassport() {
                   Личный документ на основе твоей распаковки
                 </p>
               </div>
-              <div className="flex items-center gap-1 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={handleCopy}
-                  className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-2.5 sm:px-3 py-2 rounded-lg hover:bg-brand-highlight"
+                  className={QUIET_BTN}
                 >
                   {copied
-                    ? <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-sage" />
+                    ? <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-accent" />
                     : <Copy  className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   }
-                  {copied ? 'Скопировано!' : 'Копировать'}
+                  {copied ? 'Скопировано' : 'Копировать'}
                 </button>
 
                 <button
                   onClick={handleDownloadTxt}
-                  className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-2.5 sm:px-3 py-2 rounded-lg hover:bg-brand-highlight"
+                  className={QUIET_BTN}
                 >
                   <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   TXT
@@ -527,12 +528,12 @@ export default function BrandPassport() {
                 <button
                   onClick={handleDownloadPDF}
                   disabled={generatingPDF}
-                  className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-white bg-brand-accent hover:bg-brand-accent-hover transition cursor-pointer px-3 sm:px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1.5 text-[14px] font-semibold min-h-11 text-white bg-brand-accent hover:bg-brand-accent-hover transition cursor-pointer px-4 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {generatingPDF ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
-                      Создаю PDF...
+                      PDF собирается
                     </>
                   ) : (
                     <>
@@ -544,7 +545,7 @@ export default function BrandPassport() {
 
                 <button
                   onClick={handleGenerate}
-                  className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-brand-text-secondary hover:text-brand-accent transition cursor-pointer px-2.5 sm:px-3 py-2 rounded-lg hover:bg-brand-highlight"
+                  className={QUIET_BTN}
                 >
                   <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   Заново
@@ -562,7 +563,7 @@ export default function BrandPassport() {
             {/* CTA */}
             <div className="mt-6 sm:mt-8 p-4 sm:p-6 bg-brand-accent rounded-xl sm:rounded-2xl text-white text-center">
               <h3 className="text-base sm:text-lg font-bold mb-1.5 sm:mb-2">
-                Карта бренда готова
+                Паспорт бренда готов
               </h3>
               <p className="text-white/80 mb-3 sm:mb-4 text-xs sm:text-sm">
                 Скачай PDF и держи под рукой. А можно сразу написать пост.

@@ -1,0 +1,11 @@
+# 9:00 по Москве каждый день (часовой пояс задан в OnCalendar, от пояса сервера не зависит).
+# Persistent: если сервер в 9:00 был выключен, сводка уйдет сразу после включения.
+[Unit]
+Description=PsyCont bot: morning summary at 09:00 MSK
+
+[Timer]
+OnCalendar=*-*-* 09:00:00 Europe/Moscow
+Persistent=true
+
+[Install]
+WantedBy=timers.target
