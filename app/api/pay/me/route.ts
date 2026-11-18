@@ -17,7 +17,8 @@ export async function GET() {
     const autopay = autopayEnabled()
     const sub = await supabaseRepo.getSub(user.id)
     const now = new Date()
-    const method = autopay && sub?.payment_method_id ? await supabaseRepo.getMethod(sub.payment_method_id) : null
+    // карта отдается и при выключенных автоплатежах, только если осталась с прошлого режима: чтобы ее можно было удалить
+    const method = sub?.payment_method_id ? await supabaseRepo.getMethod(sub.payment_method_id) : null
     const paid = paidAccess(sub, now)
     const pastDue = sub?.status === 'past_due'
     const planOf = (code: string) => (isPaidCode(code) ? { code, name: PAID_PLANS[code].name, price: PAID_PLANS[code].price } : null)

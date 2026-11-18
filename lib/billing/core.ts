@@ -219,7 +219,7 @@ export async function startCheckout(d: Deps, a: { userId: string; email: string 
 // Окно оплаты. Продление: с конца прошлого окна (повторы идут до 3 дней, тариф в это время работает). Первая оплата поверх
 // живого окна (две вкладки, СБП прошла позже карты): складываем с концом окна и помечаем двойную оплату.
 // Иначе с момента оплаты, и якорь дня тоже от момента оплаты (иначе после позднего повтора месяц был бы короче, ревью 17.11).
-function windowFor(row: PaymentRow, sub: SubRow | null, now: Date): { start: Date; end: Date; anchor: number; double: boolean; mode?: ManualMode } {
+function windowFor(row: PaymentRow, sub: SubRow | null, now: Date): { start: Date; end: Date; anchor: number; double: boolean; mode?: ManualMode; bonusDays?: number } {
   // ручная оплата (автоплатежи выключены): продление к концу оплаченного или смена тарифа с пересчетом остатка,
   // по состоянию подписки в момент оплаты (lib/billing/period.ts manualWindow, ее же показывает экран оплаты)
   if (row.kind === 'first' && (row.note || '').includes('manual') && isPaidCode(row.plan_code)) {
@@ -227,7 +227,7 @@ function windowFor(row: PaymentRow, sub: SubRow | null, now: Date): { start: Dat
       ? { planCode: sub.plan_code, price: PAID_PLANS[sub.plan_code].price, end: new Date(sub.period_end), anchor: sub.billing_anchor_day }
       : null
     const w = manualWindow(now, cur, PAID_PLANS[row.plan_code])
-    return { start: w.start, end: w.end, anchor: w.anchor, double: false, mode: w.mode }
+    return { start: w.start, end: w.end, anchor: w.anchor, double: false, mode: w.mode, bonusDays: w.bonusDays }
   }
   const prevEnd = sub?.period_end && sub.status !== 'expired' ? new Date(sub.period_end) : null
   const live = !!(prevEnd && prevEnd > now && sub!.plan_code !== 'free' && sub!.status !== 'past_due')
@@ -248,9 +248,16 @@ function windowFor(row: PaymentRow, sub: SubRow | null, now: Date): { start: Dat
 async function applyWindow(d: Deps, row: PaymentRow, methodId: string | null): Promise<void> {
   const sub = await d.repo.getSub(row.user_id!)
   const end = new Date(row.period_end!)
-  if (sub?.period_end && new Date(sub.period_end) > end && sub.status !== 'expired') return // уже применено окно новее
+  const switched = (row.note || '').includes('switch')
+  if (switched) {
+    // смена тарифа (19.11): новый конец может быть раньше прежнего (дорогой тариф, оплачено вперед больше двух
+    // месяцев, остаток пересчитан по цене), поэтому «окно новее» тут не признак. Уже применено: то же начало и тариф
+    if (sub && sub.period_start && new Date(sub.period_start).getTime() === new Date(row.period_start!).getTime() && sub.plan_code === row.plan_code) return
+  } else if (sub?.period_end && new Date(sub.period_end) > end && sub.status !== 'expired') return // уже применено окно новее
   const double = (row.note || '').includes('double') || (row.note || '').includes('extend')
-  if (double && sub) {
+  // продление к живому окну того же тарифа; если тариф уже выключился (сбой посередине, таймер успел раньше
+  // повтора), ставим подписку целиком, иначе деньги взяты, а доступа нет (ревью 19.11)
+  if (double && sub && sub.status !== 'expired' && sub.plan_code === row.plan_code) {
     // двойная оплата или ручное продление заранее: окно продлевается, начало прежнее (лимит текстов все равно по
     // месяцам, lib/billing/period.ts monthSegmentStart), способ оплаты прежний
     await d.repo.updateSub(row.user_id!, { period_end: row.period_end, ...(sub.auto_renew ? { next_charge_at: row.period_end } : {}) })
@@ -283,14 +290,24 @@ export async function processPayment(d: Deps, api: YkPayment): Promise<string> {
     }
     // 1) окно считается и пишется в платеж один раз
     if (!row.period_start) {
-      const sub = await d.repo.getSub(row.user_id)
+      let sub = await d.repo.getSub(row.user_id)
+      const manual = (row.note || '').includes('manual')
+      // ручная оплата: конец оплаченного берем и по уже посчитанным окнам платежей (вторая вкладка оплатила чуть раньше,
+      // а подписка еще не записана), чтобы два продления не легли в одно и то же окно (ревью 19.11)
+      const recent = manual ? await d.repo.recentPayments(row.user_id, iso(new Date(now.getTime() - 400 * 24 * H))) : []
+      const latest = recent.filter(p => p.id !== row!.id && p.status !== 'canceled' && p.period_end && p.plan_code === row!.plan_code)
+        .reduce<string | null>((m, p) => (!m || p.period_end! > m ? p.period_end! : m), null)
+      if (manual && sub && latest && sub.status !== 'expired' && sub.plan_code === row.plan_code && (!sub.period_end || new Date(latest) > new Date(sub.period_end)) && new Date(latest) > now) sub = { ...sub, period_end: latest }
       const w = windowFor(row, sub, now)
-      const note = `${row.note || ''},anchor:${w.anchor}${w.double ? ',double,refund_due' : ''}${w.mode && w.mode !== 'new' ? `,${w.mode}` : ''}`
+      // вторая оплата того же тарифа через пару минут после первой: скорее случайная, пометка для /admin
+      const twice = manual && w.mode === 'extend' && recent.some(p => p.id !== row!.id && p.status === 'succeeded' && p.plan_code === row!.plan_code && now.getTime() - new Date(p.created_at).getTime() < REUSE_PENDING_MIN * 60000)
+      if (twice) d.log?.('pay: вторая оплата того же тарифа за 15 минут, проверить в /admin')
+      const note = `${row.note || ''},anchor:${w.anchor}${w.double ? ',double,refund_due' : ''}${w.mode && w.mode !== 'new' ? `,${w.mode}` : ''}${w.mode === 'switch' ? `,bonus:${w.bonusDays}` : ''}${twice ? ',check' : ''}`
       row = (await d.repo.setWindowOnce(row.id, { period_start: iso(w.start), period_end: iso(w.end), note })) || (await d.repo.getPayment(row.id))!
     }
     // 2) способ оплаты (повторяемо: upsert по id способа в ЮKassa)
     let methodId: string | null = null
-    if (row.kind === 'first' && row.save_requested && api.payment_method?.saved && api.payment_method.id && !(row.note || '').includes('double')) {
+    if (row.kind === 'first' && row.save_requested && autopayOn(d) && api.payment_method?.saved && api.payment_method.id && !(row.note || '').includes('double')) {
       methodId = (await d.repo.upsertMethod(row.user_id!, api.payment_method.id, api.payment_method.type, methodTitle(api.payment_method), api.payment_method.card?.last4 || null)).id
     } else if (row.kind === 'renewal') methodId = row.payment_method_id
     // 3) подписка по окну (повторяемо)
@@ -325,6 +342,12 @@ async function renewalFailed(d: Deps, row: PaymentRow, reason: string): Promise<
   if (!sub) return 'no_sub'
   const tries = sub.retry_count || 0
   if (tries >= row.attempt) return 'already' // эта попытка уже учтена (повтор вебхука или таймера)
+  // автоплатежи уже выключены (продление начато до выключения флага): повторов и писем о неудаче нет, подписка
+  // доживает до конца окна и кончается, на следующий день придет письмо «Тариф закончился»
+  if (!autopayOn(d)) {
+    await d.repo.updateSub(row.user_id!, { auto_renew: false, next_charge_at: null, retry_count: row.attempt, ...(sub.status === 'past_due' ? { status: 'expired', plan_code: 'free' } : {}) })
+    return 'autopay_off'
+  }
   const to = row.email || await d.repo.userEmail(row.user_id!)
   if (tries < RETRY_AFTER_HOURS.length && !HOPELESS.includes(reason) && sub.auto_renew) {
     const next = new Date(now.getTime() + RETRY_AFTER_HOURS[tries] * H)
@@ -538,14 +561,22 @@ export async function deletePaymentMethod(d: Deps, userId: string): Promise<'ok'
 }
 
 // ── 6. /admin: возврат за оставшиеся дни (по платежу), отключить автопродление, продлить, выключить ──
-export type RefundResult = { ok: true; amount: number; daysLeft: number; daysTotal: number; status: string } | { ok: false; error: 'no_payment' | 'nothing_left' | 'yookassa' | 'already_refunded' }
+export type RefundResult = { ok: true; amount: number; daysLeft: number; daysTotal: number; status: string } | { ok: false; error: 'no_payment' | 'nothing_left' | 'yookassa' | 'already_refunded' | 'not_latest' }
 export async function refundPayment(d: Deps, paymentId: string): Promise<RefundResult> {
   const now = d.now()
   const p = await d.repo.getPayment(paymentId)
   if (!p || p.status !== 'succeeded' || !p.yk_payment_id) return { ok: false, error: 'no_payment' }
-  // окно платежа (у платежа удаленного человека окна нет: возвращаем всю сумму)
+  // возврат только последнего платежа в цепочке: после него оплачены продления, вернуть его значит потерять их
+  // месяцы без денег (ручное продление заранее, ревью 19.11). Такой случай Арина разбирает руками.
+  if (p.user_id && p.period_end) {
+    const sub = await d.repo.getSub(p.user_id)
+    if (sub?.period_end && sub.status !== 'expired' && new Date(sub.period_end).getTime() > new Date(p.period_end).getTime() + 60000) return { ok: false, error: 'not_latest' }
+  }
+  // окно платежа (у платежа удаленного человека окна нет: возвращаем всю сумму). Смена тарифа: дни, пересчитанные из
+  // прошлого тарифа (bonus:N), в возврат этого платежа не входят, его цена делится на дни его месяца (оферта)
+  const bonus = Number((p.note || '').match(/bonus:(\d+)/)?.[1]) || 0
   const calc = p.period_start && p.period_end
-    ? refundByDays(Number(p.amount), new Date(p.period_start), new Date(p.period_end), now)
+    ? refundByDays(Number(p.amount), new Date(p.period_start), new Date(new Date(p.period_end).getTime() - bonus * 24 * H), now)
     : { amount: Number(p.amount), daysLeft: 0, daysTotal: 0 }
   if (calc.amount <= 0) return { ok: false, error: 'nothing_left' }
   const key = `refund:${p.id}`
@@ -569,7 +600,8 @@ export async function refundPayment(d: Deps, paymentId: string): Promise<RefundR
   // продление заранее еще не началось (окно платежа в будущем, 19.11): возвращаем его целиком, а текущий оплаченный
   // месяц работает до своего конца
   const future = !!p.period_start && new Date(p.period_start).getTime() > now.getTime()
-  if (p.user_id) await step(() => d.repo.updateSub(p.user_id!, future ? { period_end: p.period_start } : { status: 'expired', plan_code: 'free', auto_renew: false, next_charge_at: null, period_end: iso(now) }), 'sub')
+  const sub0 = future && p.user_id ? await d.repo.getSub(p.user_id).catch(() => null) : null
+  if (p.user_id) await step(() => d.repo.updateSub(p.user_id!, future ? { period_end: p.period_start, ...(sub0?.auto_renew && sub0.next_charge_at ? { next_charge_at: p.period_start } : {}) } : { status: 'expired', plan_code: 'free', auto_renew: false, next_charge_at: null, period_end: iso(now) }), 'sub')
   // чек уже выбит: аннулировать и выбить новый на остаток; еще не выбит: выбить сразу на остаток (пометка refunded:сумма)
   await step(() => d.repo.updatePayment(p.id, { receipt_status: p.receipt_status === 'done' ? 'annul_need' : p.receipt_status, note: `${(p.note || '').replace(/,?refund_due/g, '')},refunded:${ref!.amount}` }), 'payment')
   const to = p.email || (p.user_id ? await d.repo.userEmail(p.user_id).catch(() => null) : null)

@@ -119,7 +119,7 @@ export const MANUAL = {
   renewTitle: 'Продлить тариф',
   renewLine: (cur: string, next: string) => `Сейчас оплачено до ${cur}. После оплаты будет до ${next}.`,
   switchLine: (newName: string, oldName: string, left: number, bonus: number, until: string) =>
-    `«${newName}» включится сразу. Остаток «${oldName}» (${days(left)}) пересчитается по цене нового тарифа, это еще ${days(bonus)}. Будет оплачено до ${until}.`,
+    `«${newName}» включится сразу. Остаток тарифа «${oldName}» (${days(left)}) пересчитается по цене нового тарифа, это еще ${days(bonus)}. Будет оплачено до ${until}.`,
   newLine: (until: string) => `Тариф будет работать до ${until}.`,
   // итог оплаты
   okManual: (date: string) => `Продлить можно в «Настройках» в любой момент. За 3 дня до ${date} придет письмо.`,

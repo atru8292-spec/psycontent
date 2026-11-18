@@ -32,7 +32,7 @@ export default function AdminPay() {
     try {
       const r = await fetch('/api/admin/pay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const j = await r.json().catch(() => ({}))
-      setMsg(r.ok && j.ok !== false ? (body.action === 'refund' ? `Возврат ${j.amount} ₽ за ${j.daysLeft} из ${j.daysTotal} дней, статус ${j.status}. Аннулируй чек и выбей новый на остаток.` : 'Готово') : `Не вышло: ${j.error || r.status}`)
+      setMsg(r.ok && j.ok !== false ? (body.action === 'refund' ? `Возврат ${j.amount} ₽ за ${j.daysLeft} из ${j.daysTotal} дней, статус ${j.status}. Аннулируй чек и выбей новый на остаток.` : 'Готово') : j.error === 'not_latest' ? 'Не вышло: после этого платежа уже оплачены продления. Сначала верни последний платеж человека или разберись руками.' : `Не вышло: ${j.error || r.status}`)
       await load()
     } catch { setMsg('Не вышло: сеть') } finally { setBusy(false) }
   }

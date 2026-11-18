@@ -96,7 +96,7 @@ export default function SubscriptionCard({ planCode, planName, materials, tariff
   return (
     <section id="tariff" aria-labelledby="tariff-title" className={`scroll-mt-20 rounded-[20px] bg-brand-card border border-brand-border p-4 sm:p-6 ${className}`}>
       <h2 id="tariff-title" className="text-lg font-semibold text-brand-text">Тариф</h2>
-      <p className="mt-0.5 text-[15px] leading-[22px] text-brand-muted">{paidView && !pastDue && !manual ? SUB.planUntil(name, until) : manual && me?.ended && !me.paid ? me.ended.plan.name : name}</p>
+      <p className="mt-0.5 text-[15px] leading-[22px] text-brand-muted">{paidView && !pastDue && !manual ? SUB.planUntil(name, until) : name}</p>
       {manual && me?.paid && until && <p className="mt-1 text-[16px] leading-6 font-semibold text-brand-text">{MANUAL.paidUntil(until)}</p>}
       {balance && <p className={`mt-1 text-[15px] leading-[22px] text-brand-text ${left !== 0 ? 'lg:hidden' : ''}`}>{balance}</p>}
 

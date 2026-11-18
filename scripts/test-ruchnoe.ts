@@ -219,6 +219,108 @@ function setup(start = '2026-11-20T09:00:00Z', autopay = false) {
     assert.deepEqual(t2.mails.map(x => x.kind), ['refund'])
   }
 
+  // ── 12 (ревью). Смена на дорогой тариф при оплате вперед больше двух месяцев: тариф меняется, конец по пересчету ──
+  {
+    const t = setup()
+    await t.pay('start'); await t.pay('start'); await t.pay('start') // до 20 февраля, осталось ~92 дня
+    const before = (await t.m.repo.getSub(U))!
+    assert.equal(before.period_end, '2027-02-20T09:00:00.000Z')
+    t.at('2026-11-21T09:00:00Z')
+    assert.equal(await t.pay('practice'), 'activated')
+    const s = (await t.m.repo.getSub(U))!
+    // 91 день * 1290 / 2490 = 47,1 -> 48 дней; месяц до 21 декабря + 48 дней = 7 февраля
+    assert.equal(s.plan_code, 'practice', 'тариф сменился, хотя новый конец раньше прежнего')
+    assert.equal(s.period_end, '2027-02-07T09:00:00.000Z')
+    // повтор вебхука и сверки ничего не меняет
+    assert.equal(await B.processPayment(t.d, await t.f.yk.getPayment(t.m.payments.at(-1)!.yk_payment_id!)), 'already')
+    assert.equal((await t.m.repo.getSub(U))!.period_end, '2027-02-07T09:00:00.000Z')
+    assert.ok((t.m.payments.at(-1)!.note || '').includes('bonus:48'))
+  }
+
+  // ── 13 (ревью). Возврат не последнего продления не трогает оплаченные после него месяцы ──
+  {
+    const t = setup()
+    await t.pay('start')
+    t.at('2026-12-10T09:00:00Z'); await t.pay('start'); await t.pay('start') // E1 [20.12-20.01], E2 [20.01-20.02]
+    assert.equal((await B.refundPayment(t.d, t.m.payments[1].id) as any).error, 'not_latest')
+    assert.equal((await t.m.repo.getSub(U))!.period_end, '2027-02-20T09:00:00.000Z', 'ничего не обрезано')
+    assert.equal((await B.refundPayment(t.d, t.m.payments[0].id) as any).error, 'not_latest', 'текущий месяц при оплаченных продлениях тоже только руками')
+    const r = await B.refundPayment(t.d, t.m.payments[2].id)
+    assert.ok(r.ok && r.amount === 1290)
+    assert.equal((await t.m.repo.getSub(U))!.period_end, '2027-01-20T09:00:00.000Z', 'последнее продление вернули целиком')
+  }
+
+  // ── 14 (ревью). Возврат после смены тарифа: цена делится на дни месяца, пересчитанные дни не входят ──
+  {
+    const t = setup()
+    await t.pay('start')
+    t.at('2026-12-08T09:00:00Z'); await t.pay('practice') // 8.12-8.01 + 7 дней
+    t.at('2026-12-18T12:00:00Z')
+    const r = await B.refundRemaining(t.d, U) as any
+    assert.ok(r.ok); assert.equal(r.daysTotal, 31, 'месяц 8.12-8.01 без 7 пересчитанных дней'); assert.equal(r.daysLeft, 20)
+    assert.equal(r.amount, Math.floor(2490 * 20 / 31 * 100) / 100)
+  }
+
+  // ── 15 (ревью). Сбой посередине: окно записано, подписка нет, таймер успел выключить тариф; повтор возвращает доступ ──
+  {
+    const t = setup()
+    await t.pay('start')
+    t.at('2026-12-20T08:55:00Z')
+    const co = await B.startCheckout(t.d, { userId: U, email: null, plan: 'start', autoRenew: false, via: 'any', ip: null })
+    assert.ok(co.ok)
+    const row = t.m.payments.at(-1)!
+    t.f.finish(row.yk_payment_id!, { ok: true, type: 'bank_card' })
+    t.m.fail.applySub = true // upsertSub с period_start падает; updateSub (продление) тоже не дойдет
+    const realUpdate = t.m.repo.updateSub; t.m.repo.updateSub = async () => { throw new Error('db') }
+    await B.processPayment(t.d, await t.f.yk.getPayment(row.yk_payment_id!)).catch(() => 'fail')
+    t.m.repo.updateSub = realUpdate; t.m.fail.applySub = false
+    t.at('2026-12-20T09:03:00Z'); assert.equal((await B.runBilling(t.d)).expired, 1) // таймер: сверка зависшего еще рано (меньше 10 минут), окно кончилось
+    assert.equal((await t.m.repo.getSub(U))!.plan_code, 'free')
+    t.at('2026-12-20T09:40:00Z')
+    assert.equal(await B.processPayment(t.d, await t.f.yk.getPayment(row.yk_payment_id!)), 'activated')
+    const s = (await t.m.repo.getSub(U))!
+    assert.equal(s.plan_code, 'start'); assert.equal(s.status, 'active'); assert.equal(s.period_end, '2027-01-20T09:00:00.000Z')
+    assert.equal(B.paidAccess(s, t.d.now()), true, 'оплатил, доступ есть')
+  }
+
+  // ── 16 (ревью). Две вкладки, два разных платежа за продление, вебхуки подряд до записи подписки: два месяца ──
+  {
+    const t = setup()
+    await t.pay('start')
+    t.at('2026-12-15T12:00:00Z')
+    const a = await B.startCheckout(t.d, { userId: U, email: null, plan: 'start', autoRenew: false, via: 'any', ip: null })
+    const b = await B.startCheckout(t.d, { userId: U, email: null, plan: 'start', autoRenew: false, via: 'sbp', ip: null })
+    assert.ok(a.ok && b.ok)
+    const [ra, rb] = t.m.payments.slice(-2)
+    t.f.finish(ra.yk_payment_id!, { ok: true }); t.f.finish(rb.yk_payment_id!, { ok: true, type: 'sbp' })
+    await B.processPayment(t.d, await t.f.yk.getPayment(ra.yk_payment_id!))
+    await B.processPayment(t.d, await t.f.yk.getPayment(rb.yk_payment_id!))
+    assert.equal((await t.m.repo.getSub(U))!.period_end, '2027-02-20T09:00:00.000Z', 'оплачено два месяца, выдано два')
+    assert.ok((t.m.payments.at(-1)!.note || '').includes('check'), 'вторая оплата за 15 минут помечена для /admin')
+  }
+
+  // ── 17 (ревью). Продление, начатое при включенном флаге, отменилось после выключения: ни повтора, ни письма о неудаче ──
+  {
+    const t = setup('2026-11-20T09:00:00Z', true)
+    await t.pay('start')
+    t.at('2026-12-17T09:00:00Z'); await B.runBilling(t.d) // письмо за 3 дня
+    // списание ушло при включенном флаге, ответ «отменено» пришел уже после выключения
+    t.f.state.autopay = 'canceled'
+    const row2 = await t.m.repo.insertPayment({ user_id: U, email: null, kind: 'renewal', plan_code: 'start', amount: 1290, save_requested: true, idempotence_key: 'renew-test', attempt: 1, note: null })
+    const p2 = await t.f.yk.createPayment({ amount: { value: '1290.00', currency: 'RUB' }, capture: true, payment_method_id: 'pm-x', metadata: { payment_row: row2.id } }, 'renew-test')
+    await t.m.repo.updatePayment(row2.id, { yk_payment_id: p2.id })
+    t.d.autopay = false; t.mails.length = 0
+    t.at('2026-12-20T09:05:00Z')
+    assert.equal(await B.processPayment(t.d, p2), 'autopay_off')
+    let s = (await t.m.repo.getSub(U))!
+    assert.equal(s.next_charge_at, null); assert.equal(s.auto_renew, false)
+    for (let ms = Date.parse('2026-12-20T10:00:00Z'); ms <= Date.parse('2026-12-23T00:00:00Z'); ms += H) { t.at(new Date(ms).toISOString()); await B.runBilling(t.d) }
+    assert.ok(!t.mails.some(x => x.kind.startsWith('charge_failed') || x.kind === 'reminder'), 'писем о неудаче и повторе нет')
+    s = (await t.m.repo.getSub(U))!
+    assert.equal(s.status, 'expired')
+    assert.deepEqual(t.mails.map(x => x.kind), ['ended'])
+  }
+
   // якорь 31 числа при продлении заранее не съезжает
   assert.equal(manualWindow(new Date('2027-01-20T09:00:00Z'), { planCode: 'start', price: 1290, end: new Date('2027-01-31T09:00:00Z'), anchor: 31 }, { code: 'start', price: 1290 }).end.toISOString(), addMonthAnchored(new Date('2027-01-31T09:00:00Z'), 31).toISOString())
 
