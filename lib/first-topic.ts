@@ -2,6 +2,10 @@
 // и на карточку «Не знаю, о чем писать» на «Сделать»: сначала несделанные темы плана, потом темы ниши
 // с темой дня первой, потом фразы клиентов из профиля, в самом конце общая тема.
 // Темы это ситуации из жизни читателя, а не «Как перестать...»: так их и подает генератор.
+// Анкета 2 (19.11): психолог отмечает темы (niches), первая тема поста это ситуация из первой отмеченной темы
+// (lib/anketa, ситуации собраны из живых находок); своя тема идет как есть. Старая ниша и фразы остаются запасом.
+
+import { situaciiTemy } from './anketa'
 
 export const GENERIC_TOPIC = 'Почему клиенты бросают терапию на третьей встрече'
 
@@ -61,10 +65,31 @@ export function nicheTopics(niche: string | null | undefined): string[] {
   return [...hit.topics.slice(k), ...hit.topics.slice(0, k)]
 }
 
-export function topicsFor(args: { plan?: string[]; niche?: string | null; pain?: string | null }): string[] {
+const up = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+// Отмеченные темы анкеты: из каждой темы одна ситуация (ситуация дня по кругу), своя тема как есть
+export function anketaTopics(temy: string[] | null | undefined): string[] {
+  const list = (Array.isArray(temy) ? temy : []).map(t => String(t || '').trim()).filter(Boolean)
+  const d = dayIndex()
+  return list.flatMap(t => {
+    const sit = situaciiTemy(t)
+    if (sit.length) return [up(sit[d % sit.length])]
+    // старые чипы ниш (до 19.11) темой поста не годятся, для них дальше работает nicheTopics
+    return OLD_NICHE_CHIPS.has(t) ? [] : [t]
+  })
+}
+
+// чипы ниш старого экспресса и старой правки профиля: у старых пользователей лежат в niches
+const OLD_NICHE_CHIPS = new Set([
+  'Тревога и паника', 'Отношения и привязанность', 'Самооценка и самозванец', 'Выгорание и стресс', 'Травма', 'Депрессия и апатия',
+  'Детско-родительское', 'Психосоматика', 'Тревожные расстройства (ГТР, паника, ОКР)', 'Травма и ПТСР', 'Самооценка и синдром самозванца',
+  'Расстройства пищевого поведения', 'Зависимости', 'Горевание и утрата', 'Детская/подростковая психология',
+])
+
+export function topicsFor(args: { plan?: string[]; temy?: string[] | null; niche?: string | null; pain?: string | null }): string[] {
   const pain = String(args.pain || '').split(/\n|;/).map(s => s.trim()).filter(s => s.length > 6)
-  const list = [...(args.plan || []), ...nicheTopics(args.niche), ...pain]
+  const list = [...(args.plan || []), ...anketaTopics(args.temy), ...nicheTopics(args.niche), ...pain]
   return [...new Set(list.length ? list : [GENERIC_TOPIC])]
 }
 
-export const firstTopic = (niche?: string | null, pain?: string | null) => topicsFor({ niche, pain })[0]
+export const firstTopic = (niche?: string | null, pain?: string | null, temy?: string[] | null) => topicsFor({ temy, niche, pain })[0]

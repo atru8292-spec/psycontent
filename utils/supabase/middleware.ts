@@ -81,7 +81,10 @@ export async function updateSession(request: NextRequest) {
   const isProtected =
     path.startsWith('/dashboard') || path.startsWith('/onboarding')
 
-  if (!user && isProtected) {
+  // dev-просмотр анкеты без входа (снимки экранов на фиктивной базе): только вне production
+  const devPreview = process.env.NODE_ENV !== 'production' && path === '/onboarding/express' && request.nextUrl.searchParams.get('preview') === '1'
+
+  if (!user && isProtected && !devPreview) {
     // Незалогиненного на личных страницах отправляем на главную (там вход).
     // адрес только через publicOrigin: request.nextUrl за nginx дает https://localhost:3001
     return NextResponse.redirect(`${publicOrigin(request)}/`)

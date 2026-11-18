@@ -1,7 +1,10 @@
 'use client'
 
 // Экспресс-онбординг карточками (задача onbording; верстка по спецификации designer-psycont): вход с Верой,
-// 5 вопросов по одному на экран, финал с первой темой по нише. Порядок от легкого к тяжелому: первые шаги
+// 6 вопросов по одному на экран, финал с первой темой. Анкета 2 (19.11): вместо одной ниши и портрета клиента
+// психолог отмечает, кто к нему приходит (направления, возраст, пол, формат), темы для постов и фразы клиентов
+// (lib/anketa, данные из каталога живых находок). Темы ложатся в niches, первая в one_niche, фразы в
+// client_pain_phrases через перенос строки (прод-генератор без правок), «кто приходит» в новое поле klienty. Порядок от легкого к тяжелому: первые шаги
 // пролетают за секунды. Ответы живут в sessionStorage (перезагрузка и «Назад» ничего не стирают), в базу один
 // upsert в конце с теми же полями, что раньше. Ползунки тона отсюда убраны (они на экране голоса): тон не пишем,
 // в базе остается значение по умолчанию, генерация середину ползунка не выводит.
@@ -15,6 +18,8 @@ import { supabase } from '@/lib/supabase'
 import { useVoiceRecorder } from '@/lib/use-voice-recorder'
 import VoiceSheet from '@/components/make/VoiceSheet'
 import { firstTopic } from '@/lib/first-topic'
+import { EMPTY_KLIENTY, frazyDlya, replikiDlya, temyDlya, type Klienty } from '@/lib/anketa'
+import { KtoPrihodit, PickChips } from '@/components/anketa/AnketaBlocks'
 import { track } from '@/lib/track'
 import { syncEmailName } from '@/lib/auth-name'
 
@@ -28,40 +33,25 @@ const APPROACHES = [
 const TOP_APPROACHES = ['КПТ', 'Гештальт', 'Психоанализ', 'Схема-терапия', 'ACT', 'Интегративный']
 // раскрытый список: частые на своих местах, остальные после них
 const ALL_APPROACHES = [...TOP_APPROACHES, ...APPROACHES.filter(x => !TOP_APPROACHES.includes(x))]
-const NICHES = [
-  'Тревога и паника', 'Отношения и привязанность', 'Самооценка и самозванец', 'Выгорание и стресс',
-  'Травма', 'Депрессия и апатия', 'Детско-родительское', 'Психосоматика',
-]
 const STORE = 'psycont_onb_express'
-const TOTAL = 5
+const TOTAL = 6
+// тем можно отметить от одной до пяти вместе со своей
+const MAX_TOPICS = 5
 const VOICE_LIMIT = 60
-// 4-й вопрос: конкретная реплика клиентки вместо абстрактного «как ты говоришь». Реплики дала Арина, не менять.
-// Номера: 0 тревога, 1 «ленивая», 2 «зачем терапия» (любая другая ниша), 3 ребенок.
-// В профиль идет только ее ответ (tone_verbal), реплика в голос не попадает.
-const SITUATIONS = [
-  'Я понимаю, что тревожиться глупо, но не могу перестать',
-  'Мне кажется, я просто ленивая',
-  'Зачем мне терапия, если можно поговорить с подругой?',
-  'Я опять сорвалась на ребенка, я ужасная мать',
-]
 // Просмотр для проверки верстки: только в dev-сборке, ?preview=1 пропускает проверку профиля и ничего не пишет в базу.
 // В проде переменная NODE_ENV = production, режим не включается.
 const isPreview = () => process.env.NODE_ENV !== 'production' && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1'
 
-type Answers = { name: string; gender?: 'female' | 'male' | null; approaches: string[]; nicheChip: string | null; nicheText: string; tone: string; pain: string; situation: number; situationFor?: string }
-// Первая реплика 4-го вопроса по нише из 3-го: чипы и свой текст по корням. Не совпало, последняя реплика
-// (про подругу: она подходит любой нише). «Другая ситуация» дальше идет по кругу со следующей.
-function situationFor(niche: string): number {
-  const n = niche.toLowerCase()
-  if (/тревог|паник/u.test(n)) return 0
-  if (/выгоран|прокраст|самооцен|самозван|стресс/u.test(n)) return 1
-  if (/детск|ребен|ребён|родител|материн|мам/u.test(n)) return 3
-  return 2
+type Answers = {
+  name: string; gender?: 'female' | 'male' | null; approaches: string[]
+  klienty: Klienty; topics: string[]; ownTopic: string; phrases: string[]; ownPhrase: string
+  // 6-й вопрос: реплика клиентки по первой отмеченной группе (lib/anketa replikiDlya), «Другая ситуация» листает дальше
+  tone: string; situation: number; situationFor?: string
 }
 
-const EMPTY: Answers = { name: '', gender: null, approaches: [], nicheChip: null, nicheText: '', tone: '', pain: '', situation: 0 }
-// 0 вход, 1-5 вопросы, 6 финал
-type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6
+const EMPTY: Answers = { name: '', gender: null, approaches: [], klienty: EMPTY_KLIENTY, topics: [], ownTopic: '', phrases: [], ownPhrase: '', tone: '', situation: 0 }
+// 0 вход, 1-6 вопросы, 7 финал
+type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
 
 // Вера и ее реплика: стикер слева, пузырь с хвостиком к лицу
 function Vera({ src, h, w, tilt = '', children, delay, caption }: { src: string; h: number; w: number; tilt?: string; children: React.ReactNode; delay: boolean; caption?: string }) {
@@ -91,7 +81,6 @@ export default function ExpressOnboarding() {
   const [dir, setDir] = useState(1)
   const [moving, setMoving] = useState(false)
   const [a, setA] = useState<Answers>(EMPTY)
-  const [ownNiche, setOwnNiche] = useState(false)
   const [limitHint, setLimitHint] = useState(false)
   // остальные подходы под «Еще»; раскрыт сразу, если выбран кто-то из скрытых (вернулась на шаг)
   const [showAll, setShowAll] = useState(false)
@@ -115,6 +104,15 @@ export default function ExpressOnboarding() {
   // сессия, «профиль уже есть» (анти-цикл, как было) и восстановление ответов после перезагрузки
   useEffect(() => {
     let active = true
+    // dev-просмотр без входа и без базы: снимки экранов делаются на фиктивном Supabase
+    if (isPreview() && new URLSearchParams(window.location.search).get('nouser') === '1') {
+      uidRef.current = 'preview'
+      setNewGen(true)
+      const s = Number(new URLSearchParams(window.location.search).get('step'))
+      setStep((s >= 0 && s <= TOTAL ? s : 0) as Step)
+      setReady(true)
+      return () => { active = false }
+    }
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!active) return
       if (!user) { router.replace('/'); return }
@@ -131,8 +129,8 @@ export default function ExpressOnboarding() {
       try { restored = JSON.parse(sessionStorage.getItem(STORE) || 'null') } catch {}
       if (restored && restored.uid !== user.id) { restored = null; try { sessionStorage.removeItem(STORE) } catch {} }
       if (restored?.a) {
-        setA({ ...EMPTY, ...restored.a })
-        if (restored.a.nicheText) setOwnNiche(true)
+        // старая форма ответов (до 19.11) без новых полей: недостающее берется из EMPTY
+        setA({ ...EMPTY, ...restored.a, klienty: { ...EMPTY_KLIENTY, ...(restored.a.klienty || {}) } })
       } else {
         // имя из метаданных входа (Яндекс и почта обычно отдают)
         const metaName = String(user.user_metadata?.full_name || user.user_metadata?.name || '')
@@ -145,17 +143,17 @@ export default function ExpressOnboarding() {
     return () => { active = false }
   }, [router])
 
-  // на 4-й шаг с новой нишей: первая реплика по нише; уже листала для этой ниши, не сбиваем
+  // на 6-й шаг с новыми группами: первая реплика по первой группе; уже листала для этих групп, не сбиваем
   useEffect(() => {
-    if (step !== 4) return
-    const n = (a.nicheText.trim() || a.nicheChip || '')
-    if (a.situationFor !== n) setA(x => ({ ...x, situation: situationFor(n), situationFor: n }))
+    if (step !== 6) return
+    const n = a.klienty.groups.join(',')
+    if (a.situationFor !== n) setA(x => ({ ...x, situation: 0, situationFor: n }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step])
 
   // каждый шаг пишется в sessionStorage
   useEffect(() => {
-    if (!ready || step === 6) return
+    if (!ready || step === 7) return
     try { sessionStorage.setItem(STORE, JSON.stringify({ uid: uidRef.current, a, step })) } catch {}
   }, [a, step, ready])
 
@@ -218,16 +216,18 @@ export default function ExpressOnboarding() {
   const done = (n: number) => track('onb_step_done', { step: n, ms: Date.now() - stepStart.current })
   const back = () => { if (step >= 1 && step <= TOTAL && !moving) go((step - 1) as Step) }
 
-  const niche = (a.nicheText.trim() || a.nicheChip || '')
-  // на 4-м шаге «Дальше» ждет конца расшифровки, иначе текст придет после сохранения и потеряется
-  const valid: Record<number, boolean> = { 1: !!a.name.trim() && !!a.gender, 2: a.approaches.length > 0, 3: !!niche, 4: !!a.tone.trim(), 5: true }
+  // темы: отмеченные чипы и своя тема в конце; фразы так же
+  const topics = [...a.topics, ...(a.ownTopic.trim() ? [a.ownTopic.trim()] : [])]
+  const phrases = [...a.phrases, ...(a.ownPhrase.trim() ? [a.ownPhrase.trim()] : [])]
+  // на 6-м шаге «Дальше» ждет конца расшифровки, иначе текст придет после сохранения и потеряется
+  const valid: Record<number, boolean> = { 1: !!a.name.trim() && !!a.gender, 2: a.approaches.length > 0, 3: a.klienty.groups.length > 0, 4: topics.length > 0 && topics.length <= MAX_TOPICS, 5: true, 6: !!a.tone.trim() }
 
   // запись голоса до минуты; текст встает в конец поля
   const appendTone = useCallback((t: string) => setA(x => ({ ...x, tone: x.tone.trim() ? `${x.tone.trim()} ${t}` : t })), [])
   const rec = useVoiceRecorder(appendTone, { maxSeconds: VOICE_LIMIT, nearSeconds: VOICE_LIMIT - 10 })
   const transcribing = rec.state === 'transcribing'
   const transcribeFailed = rec.state === 'error' && rec.errorKind === 'network'
-  if (transcribing) valid[4] = false
+  if (transcribing) valid[6] = false
   useEffect(() => { if (rec.state === 'error' && rec.errorKind === 'denied') track('onb_mic_denied') }, [rec.state, rec.errorKind])
 
   const save = async () => {
@@ -237,22 +237,31 @@ export default function ExpressOnboarding() {
     // id взят при загрузке: повторный getUser при сбое сети выкинул бы на вход вместо «проверь связь»
     const uid = uidRef.current
     if (!uid) { router.replace('/'); return }
-    // те же поля, что раньше; тон ползунками больше не пишем
-    const profileData = {
+    // те же поля, что раньше; тон ползунками больше не пишем. Темы в niches, первая в one_niche, фразы строками
+    const profileData: Record<string, unknown> = {
       user_id: uid,
       full_name: a.name.trim(),
       // род автора для текстов (16.11): генератор больше не угадывает его по имени
       author_gender: a.gender === 'male' ? 'male' : 'female',
       approaches: a.approaches,
-      niches: a.nicheChip && !a.nicheText.trim() ? [a.nicheChip] : [],
-      one_niche: niche,
+      niches: topics,
+      one_niche: topics[0] || '',
       tone_verbal: a.tone.trim(),
-      client_pain_phrases: a.pain.trim(),
+      client_pain_phrases: phrases.join('\n'),
+      klienty: a.klienty,
     }
     // upsert, чтобы полная распаковка потом ДОПОЛНЯЛА строку, а не падала на дубле user_id
     let saveErr: unknown = null
     try {
-      if (!isPreview()) saveErr = (await supabase.from('onboarding_profiles').upsert(profileData, { onConflict: 'user_id' })).error
+      if (!isPreview()) {
+        saveErr = (await supabase.from('onboarding_profiles').upsert(profileData, { onConflict: 'user_id' })).error
+        // миграция klienty еще не применена: сохраняем все остальное без нового поля, ответы не теряются
+        if (saveErr && /klienty/.test(String((saveErr as { message?: string }).message || ''))) {
+          const { klienty: _k, ...rest } = profileData
+          void _k
+          saveErr = (await supabase.from('onboarding_profiles').upsert(rest, { onConflict: 'user_id' })).error
+        }
+      }
     } catch (e) { saveErr = e }
     if (saveErr) {
       setError('Не получилось сохранить. Проверь связь и нажми еще раз')
@@ -262,11 +271,11 @@ export default function ExpressOnboarding() {
     try { sessionStorage.removeItem(STORE) } catch {}
     // имя для писем входа («{имя}, привет!»), в фоне, без ожидания
     if (!isPreview()) void syncEmailName(a.name)
-    // тема дня по нише без модели: та же логика, что карточка «Не знаю, о чем писать» (lib/first-topic.ts)
-    setTopic(firstTopic(niche, a.pain))
+    // первая тема без модели: ситуация из первой отмеченной темы (та же логика, что «Не знаю, о чем писать»)
+    setTopic(firstTopic(topics[0], phrases.join('\n'), topics))
     track('onb_done')
     setSaving(false)
-    go(6)
+    go(7)
   }
 
   const next = () => {
@@ -297,32 +306,32 @@ export default function ExpressOnboarding() {
   // ---------- общие куски ----------
   const green = 'w-full h-[52px] rounded-2xl text-[16px] font-semibold bg-brand-accent text-white hover:bg-brand-accent-hover cursor-pointer transition'
   const outline = 'w-full h-[52px] rounded-2xl text-[16px] font-semibold border-[1.5px] border-brand-accent text-brand-accent bg-brand-card cursor-pointer transition'
-  // вопросы 2-4 (контента много, стоят сверху): крупнее, чтобы не было пустоты
-  const big = step >= 2 && step <= 4
-  // 3-й вопрос: девять чипов ниш вместе со «Свое» должны влезть на 375×667, поэтому там чипы 48 px и 16 px
-  const chip = (on: boolean, dim = false) => `${step === 3 ? 'min-h-[48px] px-4 text-[16px]' : big ? 'min-h-[52px] px-5 text-[17px]' : 'h-11 px-4 text-[15px]'} inline-flex items-center gap-1.5 rounded-full cursor-pointer transition ${on ? 'bg-brand-soft border-[1.5px] border-brand-accent text-brand-text font-semibold' : 'border border-brand-border text-brand-text'} ${dim ? 'opacity-50' : ''}`
+  // вопросы 2 и 6 крупнее, чтобы не было пустоты; на 3-5 свои плотные чипы (components/anketa), иначе не влезает в 375×667
+  const big = step === 2 || step === 6
+  const chip = (on: boolean, dim = false) => `${big ? 'min-h-[52px] px-5 text-[17px]' : 'h-11 px-4 text-[15px]'} inline-flex items-center gap-1.5 rounded-full cursor-pointer transition ${on ? 'bg-brand-soft border-[1.5px] border-brand-accent text-brand-text font-semibold' : 'border border-brand-border text-brand-text'} ${dim ? 'opacity-50' : ''}`
   const inputCls = 'h-14 w-full rounded-[20px] bg-brand-card border-[1.5px] border-brand-border px-4 text-[16px] text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-accent focus:ring-[3px] focus:ring-brand-soft'
 
   const missing: Record<number, string> = {
     1: !a.name.trim() ? 'Напиши имя, и пойдем дальше' : 'Выбери, как ты говоришь о себе',
     2: 'Выбери хотя бы один подход',
-    3: 'Впиши, с чем работаешь',
-    4: transcribing ? 'Подожди, расшифровываю' : 'Наговори или напиши, что ответишь',
+    3: 'Отметь хотя бы одно направление',
+    4: topics.length > MAX_TOPICS ? 'Можно до пяти тем' : 'Отметь от одной до пяти тем',
+    6: transcribing ? 'Подожди, расшифровываю' : 'Наговори или напиши, что ответишь',
   }
   const nextBlock = (label = 'Дальше') => (
-    <div ref={actionRef} className={step === 4 ? 'mt-3' : 'mt-5'}>
+    <div ref={actionRef} className={step === 6 ? 'mt-3' : step === 3 || step === 4 ? 'mt-4' : 'mt-5'}>
       <button type="button" onClick={next} aria-disabled={!valid[step] || saving} aria-describedby="onb-missing"
         className={valid[step] && !saving ? green : 'w-full h-[52px] rounded-2xl text-[16px] font-semibold bg-brand-border text-brand-muted cursor-not-allowed'}>
         {saving ? <span className="inline-flex items-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />Сохраняю</span> : label}
       </button>
       <p id="onb-missing" className="mt-2 min-h-[18px] text-center text-[13px] text-brand-muted" role="status">
-        {limitHint ? 'Можно до трех. Сними один, чтобы выбрать другой' : !valid[step] ? missing[step] || '' : ''}
+        {limitHint ? (step === 4 ? 'Можно до пяти. Сними одну, чтобы выбрать другую' : 'Можно до трех. Сними один, чтобы выбрать другой') : !valid[step] ? missing[step] || '' : ''}
       </p>
     </div>
   )
   const title = (t: string, hint?: string) => (
     <>
-      {/* заголовок и подсказка одного размера на всех пяти вопросах */}
+      {/* заголовок и подсказка одного размера на всех вопросах */}
       <h1 ref={titleRef} tabIndex={-1} className="text-[29px] leading-[34px] font-semibold text-brand-text outline-none">{t}</h1>
       {hint && <p className="mt-1.5 text-[16px] leading-[22px] text-brand-muted">{hint}</p>}
     </>
@@ -349,7 +358,7 @@ export default function ExpressOnboarding() {
     body = (
       <div>
         <Vera src="/vera/privet.webp" h={120} w={93} tilt="-rotate-2" delay={!reduce} caption="Вера · помогаю вести блог">
-          <p className="text-[16px] leading-[22px]">Расскажи о своей практике. Пять коротких вопросов, минута, один можно наговорить голосом. Остальное берет PsyCont</p>
+          <p className="text-[16px] leading-[22px]">Расскажи о своей практике. Шесть коротких вопросов, пара минут, один можно наговорить голосом. Остальное берет PsyCont</p>
         </Vera>
         <button type="button" onClick={() => { if (!moving) go(1) }} className={`mt-8 ${green}`}>Начнем</button>
       </div>
@@ -403,40 +412,49 @@ export default function ExpressOnboarding() {
   } else if (step === 3) {
     body = (
       <div>
-        {title('С чем работаешь чаще всего?', 'Отсюда возьму первые темы')}
-        <div className="mt-4 flex flex-wrap gap-2">
-          {NICHES.map(x => {
-            const on = a.nicheChip === x && !ownNiche
-            return (
-              <button key={x} type="button" aria-pressed={on}
-                onClick={() => {
-                  if (moving) return
-                  setOwnNiche(false)
-                  setA({ ...a, nicheChip: x, nicheText: '' })
-                  // тап сразу ведет дальше, через 250 мс, чтобы было видно выбор; повторные тапы это время не считаются
-                  setMoving(true)
-                  setTimeout(() => { done(3); go(4) }, 250)
-                }}
-                className={chip(on)}>
-                {on ? <Check className="w-4 h-4 text-brand-accent" /> : <Plus className="w-4 h-4 text-brand-muted" />}{x}
-              </button>
-            )
-          })}
-          <button type="button" aria-pressed={ownNiche} onClick={() => { setOwnNiche(true); setA({ ...a, nicheChip: null }) }} className={chip(ownNiche)}>
-            {ownNiche ? <Check className="w-4 h-4 text-brand-accent" /> : <Plus className="w-4 h-4 text-brand-muted" />}Свое
-          </button>
+        {title('Кто к тебе приходит?', 'Отметь направления, можно несколько')}
+        <div className="mt-3">
+          <KtoPrihodit value={a.klienty} onChange={v => setA({ ...a, klienty: v })} />
         </div>
-        {ownNiche && (
-          <input autoFocus value={a.nicheText} onChange={e => setA({ ...a, nicheText: e.target.value })} aria-label="С чем работаешь"
-            onKeyDown={e => { if (e.key === 'Enter') next() }} placeholder="Например, расставания" enterKeyHint="next"
-            className={`mt-3 ${inputCls}`} />
-        )}
-        {/* кнопка нужна только для своего варианта или когда вернулась назад с уже выбранной нишей */}
-        {(ownNiche || a.nicheChip) && nextBlock()}
+        {nextBlock()}
       </div>
     )
   } else if (step === 4) {
-    const sit = SITUATIONS[(a.situation || 0) % SITUATIONS.length]
+    body = (
+      <div>
+        {title('О чем хочешь писать?', 'Отсюда возьму темы постов, их можно поменять в профиле')}
+        <div className="mt-3" />
+        <PickChips options={temyDlya(a.klienty.groups)} selected={a.topics} max={MAX_TOPICS} onLimit={() => setLimitHint(true)}
+          onChange={v => { setLimitHint(false); setA({ ...a, topics: v }) }}
+          own={a.ownTopic} onOwn={v => setA({ ...a, ownTopic: v })} ownPlaceholder="Своя тема" ownLabel="Своя тема" />
+        {nextBlock()}
+      </div>
+    )
+  } else if (step === 5) {
+    const has = phrases.length > 0
+    body = (
+      <div>
+        {title('Что говорят клиенты?', 'Так посты заговорят их словами')}
+        {/* без микрофона: здесь слова клиента, а записи с микрофона идут в память ее голоса */}
+        <div className="mt-3">
+          <PickChips options={frazyDlya(a.klienty.groups)} selected={a.phrases} first={6}
+            onChange={v => setA({ ...a, phrases: v })}
+            own={a.ownPhrase} onOwn={v => setA({ ...a, ownPhrase: v })} ownPlaceholder="Своя фраза клиента" ownLabel="Своя фраза клиента" />
+        </div>
+        <div ref={actionRef} className="mt-4">
+          {/* один слот: ничего не отмечено = «Пропустить», есть фразы = «Дальше» */}
+          <button type="button" disabled={moving}
+            onClick={() => { if (has) next(); else { track('onb_skip', { step: 5 }); done(5); go(6) } }}
+            className={has ? green : outline}>
+            {has ? 'Дальше' : 'Пропустить'}
+          </button>
+          <p className="mt-2 text-center text-[13px] text-brand-muted">Можно дописать потом в профиле</p>
+        </div>
+      </div>
+    )
+  } else if (step === 6) {
+    const repliki = replikiDlya(a.klienty.groups)
+    const sit = repliki[(a.situation || 0) % repliki.length]
     body = (
       <div>
         {title('Как ты отвечаешь клиентке?')}
@@ -446,7 +464,7 @@ export default function ExpressOnboarding() {
           <p className="mt-1 text-[17px] leading-[23px] text-brand-text">«{sit}»</p>
         </div>
         <button type="button" onClick={() => {
-          const n = ((a.situation || 0) + 1) % SITUATIONS.length
+          const n = ((a.situation || 0) + 1) % repliki.length
           setA({ ...a, situation: n })
           track('onb_situation_change', { index: n })
         }} className="h-11 -ml-1 px-1 text-[15px] text-brand-accent font-semibold underline underline-offset-4 cursor-pointer">Другая ситуация</button>
@@ -470,27 +488,6 @@ export default function ExpressOnboarding() {
           </div>
         )}
         {nextBlock()}
-      </div>
-    )
-  } else if (step === 5) {
-    const hasPain = !!a.pain.trim()
-    body = (
-      <div>
-        {title('Какими словами клиент описывает боль?', 'Так посты заговорят словами твоих клиентов')}
-        {/* без микрофона: здесь слова клиента, а записи с микрофона идут в память ее голоса */}
-        <textarea value={a.pain} onChange={e => setA({ ...a, pain: e.target.value })} rows={3} aria-label="Какими словами клиент описывает боль"
-          placeholder="Например: устала быть сильной"
-          className="mt-5 block w-full min-h-[96px] resize-none rounded-[20px] bg-brand-card border-[1.5px] border-brand-border px-4 py-3.5 text-[16px] leading-6 text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-accent focus:ring-[3px] focus:ring-brand-soft" />
-        {error && <p className="mt-3 rounded-xl bg-brand-soft px-4 py-3 text-[15px] text-brand-text" role="alert">{error}</p>}
-        <div ref={actionRef} className="mt-5">
-          {/* один слот: пусто = «Пропустить», есть текст = «Дальше» */}
-          <button type="button" disabled={saving || moving}
-            onClick={() => { if (hasPain) next(); else { track('onb_skip', { step: 5 }); save() } }}
-            className={hasPain ? green : outline}>
-            {saving ? <span className="inline-flex items-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />Сохраняю</span> : hasPain ? 'Дальше' : 'Пропустить'}
-          </button>
-          <p className="mt-2 text-center text-[13px] text-brand-muted">Можно дописать потом в настройках</p>
-        </div>
       </div>
     )
   } else {
@@ -523,10 +520,10 @@ export default function ExpressOnboarding() {
               <ChevronLeft className="w-6 h-6" />
             </button>
           ) : <span className="w-11 h-11 -ml-2.5 shrink-0" />}
-          {/* 6 сегментов: «Аккаунт» закрашен сразу (регистрация пройдена), дальше 5 вопросов */}
+          {/* 7 сегментов: «Аккаунт» закрашен сразу (регистрация пройдена), дальше 6 вопросов */}
           <div className="flex-1 flex gap-1" aria-hidden="true">
             {Array.from({ length: TOTAL + 1 }, (_, i) => {
-              const filled = i === 0 || i < q || step === 6
+              const filled = i === 0 || i < q || step === 7
               const current = !filled && i === q
               return <span key={i} className={`h-1.5 flex-1 rounded-full transition-colors duration-200 ${filled ? 'bg-brand-accent' : current ? 'bg-brand-lilac ring-1 ring-inset ring-brand-accent' : 'bg-brand-border'}`} />
             })}
@@ -537,7 +534,7 @@ export default function ExpressOnboarding() {
         {/* Правило Арины: мало контента, блок по центру (чуть выше середины, снизу 10dvh); много, сверху сразу под
             счетчиком. Решаем по высоте блока (меньше 60% доступной высоты), а не списком экранов. При открытой
             клавиатуре всегда сверху. my-auto не обрезает верх: высокая карточка просто прокручивается с начала */}
-        <div ref={areaRef} className={`flex-1 flex flex-col ${centered ? 'pt-6 pb-[max(2rem,10dvh)]' : 'pt-4 pb-6'}`}>
+        <div ref={areaRef} className={`flex-1 flex flex-col ${centered ? 'pt-6 pb-[max(2rem,10dvh)]' : 'pt-4 pb-4'}`}>
         <div ref={blockRef} className={`${centered ? 'my-auto' : ''} w-full`}>
         <AnimatePresence mode="wait" initial={false} custom={dir}>
           {/* новая карточка смонтировалась: решаем по ее высоте сразу, до отрисовки (AnimatePresence держит старую до конца выхода) */}

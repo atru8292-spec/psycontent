@@ -187,7 +187,8 @@ export default function MakeFlow() {
       const p: any[] = Array.isArray(plan.data?.plan) ? plan.data!.plan : []
       const planTopics = p.filter((x: any) => !x.done && typeof x.topic === 'string').sort((a: any, b: any) => (a.day ?? 0) - (b.day ?? 0)).map((x: any) => String(x.topic))
       const niche = prof.data?.one_niche || (Array.isArray(prof.data?.niches) ? prof.data.niches[0] : '')
-      const list = topicsFor({ plan: planTopics, niche, pain: prof.data?.client_pain_phrases })
+      const temy = Array.isArray(prof.data?.niches) ? (prof.data.niches as unknown[]).map(String) : []
+      const list = topicsFor({ plan: planTopics, temy, niche, pain: prof.data?.client_pain_phrases })
       setTopics(list.slice(0, 12))
     })()
     return () => { on = false }

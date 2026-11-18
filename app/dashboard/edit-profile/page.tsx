@@ -11,6 +11,8 @@ import {
 } from 'lucide-react'
 import VoiceTextarea from '@/components/VoiceTextarea'
 import { syncEmailName } from '@/lib/auth-name'
+import { KtoPrihodit, PickChips } from '@/components/anketa/AnketaBlocks'
+import { EMPTY_KLIENTY, frazyDlya, parseKlienty, temyDlya, type Klienty } from '@/lib/anketa'
 
 // Профиль практики (этап 5.5 шаг 2): только ФАКТЫ о работе. Стиль и личность теперь
 // целиком держит тест-архетип, поэтому стилевые вопросы (тон, ценности, суперсилы,
@@ -48,20 +50,6 @@ const questions = [
     ]
   },
   {
-    block: 0, key: 'niches',
-    title: 'С чем работаешь чаще всего?',
-    subtitle: 'А если бы можно было выбрать только одну тему на всю жизнь, какую?',
-    type: 'multi_and_text',
-    options: [
-      'Тревожные расстройства (ГТР, паника, ОКР)', 'Депрессия и апатия', 'Отношения и привязанность',
-      'Травма и ПТСР', 'Выгорание и стресс', 'Самооценка и синдром самозванца',
-      'Расстройства пищевого поведения', 'Зависимости', 'Горевание и утрата',
-      'Детская/подростковая психология', 'Психосоматика'
-    ],
-    textKey: 'one_niche',
-    textPlaceholder: 'С этим я работаю глубже всего, потому что...'
-  },
-  {
     // род автора (16.11): генератор больше не угадывает его по имени; значения female/male, метки ниже
     block: 0, key: 'author_gender',
     title: 'Как ты говоришь о себе?',
@@ -86,21 +74,25 @@ const questions = [
   },
 
   // --- БЛОК 2: ТВОЙ КЛИЕНТ ---
+  // Анкета 2 (19.11): вместо одной ниши и портрета клиента те же блоки, что в экспресс-анкете (components/anketa).
+  // Портрет клиента («Кто твой клиент?») больше не спрашиваем: старые client_avatar и client_job сохраняются как были.
   {
-    block: 1, key: 'client_avatar',
-    title: 'Кто твой клиент?',
-    subtitle: 'После сессии с которым думаешь «вот ради этого я в профессии».',
-    type: 'single_and_text',
-    options: ['Женщина 25-35 лет', 'Женщина 35-45 лет', 'Мужчина 25-35 лет', 'Мужчина 35-45 лет', 'Подросток 14-18 лет', 'Пара', 'Семья'],
-    textKey: 'client_job',
-    textPlaceholder: 'Например: айти менеджер, мама в декрете, предприниматель'
+    block: 1, key: 'klienty',
+    title: 'Кто к тебе приходит?',
+    subtitle: 'Отметь направления, можно несколько. От них зависят темы и фразы дальше.',
+    type: 'klienty',
+  },
+  {
+    block: 1, key: 'niches',
+    title: 'О чем хочешь писать?',
+    subtitle: 'Отсюда возьму темы постов. Отметь от одной до пяти.',
+    type: 'temy',
   },
   {
     block: 1, key: 'client_pain_phrases',
-    title: 'Какими словами клиент описывает свою боль?',
-    subtitle: 'Одна две живые фразы, которые слышишь на первых сессиях. Можно наговорить голосом.',
-    type: 'textarea',
-    placeholder: 'Например: «устала быть сильной», «мозг не выключается», «живем как соседи»'
+    title: 'Что говорят твои клиенты?',
+    subtitle: 'Отметь фразы, которые слышишь, или допиши свою. Можно пропустить.',
+    type: 'frazy',
   },
   {
     block: 1, key: 'client_tried',
@@ -165,6 +157,10 @@ export default function EditProfile() {
   const [saveError, setSaveError] = useState(false)
   const [completed, setCompleted] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
+  // своя тема и своя фраза: поле под чипами, при сохранении встают в конец списков
+  const [ownTopic, setOwnTopic] = useState('')
+  const [ownPhrase, setOwnPhrase] = useState('')
+  const [topicLimit, setTopicLimit] = useState(false)
   const router = useRouter()
 
   // Загрузка существующего профиля. Префилим только поля, которые форма спрашивает.
@@ -193,14 +189,16 @@ export default function EditProfile() {
         author_gender: profile.author_gender === 'male' ? GENDER_OPTIONS[1] : GENDER_OPTIONS[0],
         appeal: profile.appeal || '',
         approaches: profile.approaches || [],
-        niches: profile.niches || [],
+        klienty: parseKlienty(profile.klienty),
+        niches: Array.isArray(profile.niches) ? profile.niches.map(String) : [],
         one_niche: profile.one_niche || '',
         experience: profile.experience || '',
         formats: profile.formats || [],
         price: profile.price || '',
         client_avatar: profile.client_avatar || '',
         client_job: profile.client_job || '',
-        client_pain_phrases: profile.client_pain_phrases || '',
+        // фразы хранятся строкой через перенос, в форме это список чипов
+        client_pain_phrases: String(profile.client_pain_phrases || '').split(/\n/).map((x: string) => x.trim()).filter(Boolean),
         client_tried: profile.client_tried || [],
         client_fear: profile.client_fear || [],
         client_result: profile.client_result || '',
@@ -234,6 +232,9 @@ export default function EditProfile() {
     const singleKey = (currentQuestion as any).singleKey
     const optionsKey = (currentQuestion as any).optionsKey
 
+    if (type === 'klienty') return ((answers.klienty as Klienty | undefined)?.groups.length || 0) > 0
+    if (type === 'temy') { const n = (answers.niches || []).length + (ownTopic.trim() ? 1 : 0); return n > 0 && n <= 5 }
+    if (type === 'frazy') return true
     if (type === 'text' || type === 'textarea') return (answers[key]?.length > 2)
     if (type === 'single') return !!answers[key]
     if (type === 'multi') return (answers[key]?.length > 0)
@@ -265,19 +266,22 @@ export default function EditProfile() {
 
     // Пишем только факты профиля практики. Остальных колонок тут нет намеренно, чтобы
     // .update не затер стиль (live_voice/values) и результат теста-архетипа.
-    const profileData = {
+    const topics = [...(answers.niches || []), ...(ownTopic.trim() ? [ownTopic.trim()] : [])]
+    const phrases = [...(answers.client_pain_phrases || []), ...(ownPhrase.trim() ? [ownPhrase.trim()] : [])]
+    const profileData: Record<string, unknown> = {
       full_name: answers.full_name || '',
       author_gender: answers.author_gender === GENDER_OPTIONS[1] ? 'male' : 'female',
       appeal: answers.appeal || '',
       approaches: answers.approaches || [],
-      niches: answers.niches || [],
-      one_niche: answers.one_niche || '',
+      niches: topics,
+      one_niche: topics[0] || '',
+      klienty: answers.klienty || EMPTY_KLIENTY,
       experience: answers.experience || '',
       formats: answers.formats || [],
       price: answers.price || '',
       client_avatar: answers.client_avatar || '',
       client_job: answers.client_job || '',
-      client_pain_phrases: answers.client_pain_phrases || '',
+      client_pain_phrases: phrases.join('\n'),
       client_tried: answers.client_tried || [],
       client_fear: answers.client_fear || [],
       client_result: answers.client_result || '',
@@ -287,10 +291,16 @@ export default function EditProfile() {
       video_attitude: answers.video_attitude || '',
     }
 
-    const { error } = await supabase
+    let { error } = await supabase
       .from('onboarding_profiles')
       .update(profileData)
       .eq('user_id', userId)
+    // миграция klienty еще не применена: остальное сохраняем без нового поля
+    if (error && /klienty/.test(error.message || '')) {
+      const { klienty: _k, ...rest } = profileData
+      void _k
+      ;({ error } = await supabase.from('onboarding_profiles').update(rest).eq('user_id', userId))
+    }
 
     if (error) {
       console.error('Update error:', error)
@@ -300,7 +310,7 @@ export default function EditProfile() {
     }
 
     // имя для писем входа («{имя}, привет!»), в фоне
-    void syncEmailName(profileData.full_name)
+    void syncEmailName(String(profileData.full_name || ""))
     setCompleted(true)
   }
 
@@ -408,6 +418,37 @@ export default function EditProfile() {
             {q.subtitle && <p className="text-lg text-brand-text-secondary mb-10">{q.subtitle}</p>}
 
             <div className="space-y-6">
+
+              {/* 0. Блоки анкеты 2: кто приходит, темы, фразы (те же, что в экспресс-анкете) */}
+              {q.type === 'klienty' && (
+                <div className="max-w-xl">
+                  <KtoPrihodit value={answers.klienty || EMPTY_KLIENTY} onChange={v => setAnswers({ ...answers, klienty: v })} />
+                </div>
+              )}
+              {q.type === 'temy' && (() => {
+                const picked: string[] = answers.niches || []
+                // старые темы, которых нет в списке направлений, остаются видны отмеченными: их можно снять
+                const options = [...picked.filter(x => !temyDlya(answers.klienty?.groups || []).includes(x)), ...temyDlya(answers.klienty?.groups || [])]
+                return (
+                  <div className="max-w-xl">
+                    <PickChips options={options} selected={picked} max={5} first={12} onLimit={() => setTopicLimit(true)}
+                      onChange={v => { setTopicLimit(false); setAnswers({ ...answers, niches: v }) }}
+                      own={ownTopic} onOwn={setOwnTopic} ownPlaceholder="Своя тема" ownLabel="Своя тема" />
+                    {topicLimit && <p className="mt-2 text-[14px] text-brand-muted" role="status">Можно до пяти. Сними одну, чтобы выбрать другую</p>}
+                  </div>
+                )
+              })()}
+              {q.type === 'frazy' && (() => {
+                const picked: string[] = answers.client_pain_phrases || []
+                const options = [...picked.filter(x => !frazyDlya(answers.klienty?.groups || []).includes(x)), ...frazyDlya(answers.klienty?.groups || [])]
+                return (
+                  <div className="max-w-xl">
+                    <PickChips options={options} selected={picked} first={12}
+                      onChange={v => setAnswers({ ...answers, client_pain_phrases: v })}
+                      own={ownPhrase} onOwn={setOwnPhrase} ownPlaceholder="Своя фраза клиента" ownLabel="Своя фраза клиента" />
+                  </div>
+                )
+              })()}
 
               {/* 1. Текстовый ввод (input для имени, VoiceTextarea для развернутых) */}
               {(q.type === 'text' || q.type === 'textarea' || q.type === 'text_and_single') && (
