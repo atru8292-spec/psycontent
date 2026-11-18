@@ -472,10 +472,10 @@ export default function ExpressOnboarding() {
     const sit = repliki[(a.situation || 0) % repliki.length]
     body = (
       <div>
-        {title('Как ты отвечаешь клиентке?')}
+        {title('Как ты ответишь на такое?')}
         {/* карточка-ситуация: как пузырь Веры, но с меткой */}
         <div className="mt-3 rounded-[20px] bg-brand-soft border border-brand-border-soft px-4 py-2.5">
-          <p className="text-[13px] leading-[18px] text-brand-muted">Клиентка говорит:</p>
+          <p className="text-[13px] leading-[18px] text-brand-muted">На сессии говорят:</p>
           <p className="mt-1 text-[17px] leading-[23px] text-brand-text">«{sit}»</p>
         </div>
         <button type="button" onClick={() => {
@@ -495,7 +495,7 @@ export default function ExpressOnboarding() {
             <p className="mt-2 text-[16px] leading-[22px] text-brand-muted">Ответь своими словами, как на сессии. Пары фраз хватит</p>
           </div>
         </div>
-        <div className="mt-2.5">{voiceField(a.tone, v => setA({ ...a, tone: v }), 'Или напиши, что ответишь', 'Что ты ответишь клиентке', !a.tone.trim())}</div>
+        <div className="mt-2.5">{voiceField(a.tone, v => setA({ ...a, tone: v }), 'Или напиши, что ответишь', 'Что ты ответишь', !a.tone.trim())}</div>
         {transcribeFailed && (
           <div className="mt-2 flex items-center justify-between gap-2 text-[14px] text-brand-text">
             <span className="min-w-0">Не получилось расшифровать. Запись цела</span>
@@ -566,7 +566,7 @@ export default function ExpressOnboarding() {
 
       {/* dev-просмотр still=1: без CSS-переходов, в фоновой вкладке они не доигрываются и снимки врут */}
       {reduce && isPreview() && <style>{'*{transition:none!important;animation:none!important}'}</style>}
-      <VoiceSheet open={voiceOpen} rec={rec} maxSeconds={VOICE_LIMIT} prompt="Говори, как с клиенткой. Паузы не страшны." onClose={() => setVoiceOpen(false)}
+      <VoiceSheet open={voiceOpen} rec={rec} maxSeconds={VOICE_LIMIT} prompt="Говори, как на сессии. Паузы не страшны." onClose={() => setVoiceOpen(false)}
         onWriteText={() => { setVoiceOpen(false); rec.reset(); setTimeout(() => fieldRef.current?.focus(), 50) }} />
     </div>
   )
