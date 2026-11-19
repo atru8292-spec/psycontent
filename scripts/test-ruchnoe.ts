@@ -207,6 +207,19 @@ function setup(start = '2026-11-20T09:00:00Z', autopay = false) {
     const ml = t.mails.at(-1)!
     assert.equal(ml.kind, 'refund_future')
     assert.equal(ml.data.until, '20 декабря'); assert.equal(ml.data.amount.replace(/\s/g, ' '), '1 290 ₽'); assert.equal(ml.data.plan, 'Спокойный ритм')
+    assert.equal(ml.data.receipt, '', 'чек еще не выбит: строки про чек нет')
+  }
+  // ── 10б. то же, но чек уже выбит: в письме «Чек за эту оплату аннулирую», в /admin «аннулировать» ──
+  {
+    const t = setup()
+    await t.pay('start')
+    t.at('2026-12-15T12:00:00Z'); await t.pay('start')
+    t.m.payments[1].receipt_status = 'done'; t.m.payments[1].receipt_url = 'https://lknpd.nalog.ru/api/v1/receipt/1/print'
+    const r = await B.refundPayment(t.d, t.m.payments[1].id)
+    assert.ok(r.ok && r.amount === 1290, JSON.stringify(r))
+    const ml = t.mails.at(-1)!
+    assert.equal(ml.kind, 'refund_future'); assert.equal(ml.data.receipt, 'Чек за эту оплату аннулирую.')
+    assert.equal(t.m.payments[1].receipt_status, 'annul_need')
   }
 
   // ── 11. тариф выключила Арина: письма «закончился» нет; возврат: тоже нет ──

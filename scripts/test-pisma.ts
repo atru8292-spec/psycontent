@@ -3,7 +3,7 @@
 // чек без ссылки не собирается. npx tsx scripts/test-pisma.ts
 import assert from 'node:assert/strict'
 import { renderPayMail } from '../lib/billing/mail-render'
-import { MAIL, DRAFT, PAID_NEXT_MANUAL } from '../lib/billing/mail-texts'
+import { MAIL, DRAFT, PAID_NEXT_MANUAL, REFUND_FUTURE_RECEIPT } from '../lib/billing/mail-texts'
 
 const site = 'https://psycont.ru'
 const DATA: Record<string, Record<string, string>> = {
@@ -14,7 +14,7 @@ const DATA: Record<string, Record<string, string>> = {
   autorenew_off: { until: '17 декабря' },
   receipt: { url: 'https://lknpd.nalog.ru/api/v1/receipt/222260732304/200abc1234/print' },
   refund: { amount: '817 ₽', days: '19' },
-  refund_future: { amount: '1 290 ₽', plan: 'Спокойный ритм', until: '17 декабря' },
+  refund_future: { amount: '1 290 ₽', plan: 'Спокойный ритм', until: '17 декабря', receipt: REFUND_FUTURE_RECEIPT },
   end_soon: { plan: 'Спокойный ритм', code: 'start', date: '20 декабря' },
   end_today: { plan: 'Спокойный ритм', code: 'start', date: '20 декабря', day: 'Сегодня' },
   ended: { plan: 'Спокойный ритм', code: 'start', date: '20 декабря' },
@@ -40,6 +40,15 @@ assert.ok(!renderPayMail('refund', DATA.refund, site)!.html.includes('btn-text"'
   assert.ok(!rf.html.includes('btn-text"'), 'в возврате продления кнопки нет')
   assert.ok(!/выключ|оставш/i.test(rf.text + rf.subject), 'нет «выключен» и «оставшуюся сумму»')
   assert.ok(rf.text.includes('Возврат 1 290 ₽ за продление оформлен') && rf.text.includes('работает до 17 декабря, как и раньше'), 'сумма и дата')
+}
+{ // строка про чек (19.11): чек выбит, «Чек за эту оплату аннулирую»; не выбит, про чек ни слова и пустого абзаца нет
+  const yes = renderPayMail('refund_future', DATA.refund_future, site)!
+  assert.ok(yes.text.includes('Чек за эту оплату аннулирую.'), 'чек выбит: строка есть')
+  const no = renderPayMail('refund_future', { ...DATA.refund_future, receipt: '' }, site)!
+  assert.ok(!/чек/i.test(no.text + no.html.replace(/<[^>]+>/g, '')), 'чек не выбит: про чек ничего')
+  assert.ok(!/\n\n\n/.test(no.text), 'чек не выбит: без пустого абзаца')
+  assert.ok(!/[—–ё]/i.test(yes.text + no.text), 'без тире и ё')
+  console.log('refund_future, чек выбит:\n' + yes.text.split('\n---')[0] + '\n\nrefund_future, чек не выбит:\n' + no.text.split('\n---')[0])
 }
 const x = renderPayMail('paid', { ...DATA.paid, plan: '<script>alert(1)</script>' }, site)!
 assert.ok(!x.html.includes('<script>alert') && x.html.includes('&lt;script&gt;'), 'экранирование')

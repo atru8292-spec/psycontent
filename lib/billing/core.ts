@@ -16,7 +16,7 @@ import { rub, methodTitle, type YkClient, type YkPayment } from './yookassa'
 import { addMonthAnchored, anchorDayOf, refundByDays, manualWindow, mskDayStart, type ManualMode } from './period'
 import { isYooKassaIp } from './ip'
 import { PAID_PLANS, isPaidCode, consentText, type PaidCode } from './plans'
-import { methodPhrase, PAID_NEXT_MANUAL } from './mail-texts'
+import { methodPhrase, PAID_NEXT_MANUAL, REFUND_FUTURE_RECEIPT } from './mail-texts'
 
 export { PAID_PLANS, isPaidCode, consentText, type PaidCode }
 
@@ -607,7 +607,7 @@ export async function refundPayment(d: Deps, paymentId: string): Promise<RefundR
   const to = p.email || (p.user_id ? await d.repo.userEmail(p.user_id).catch(() => null) : null)
   // продление, которое еще не началось, вернули целиком: свое письмо (тариф не выключен, работает до начала этого окна)
   if (to) await sent(future
-    ? d.mail('refund_future', to, { amount: money(ref.amount), plan: planName(p.plan_code), until: dateRu(p.period_start!) })
+    ? d.mail('refund_future', to, { amount: money(ref.amount), plan: planName(p.plan_code), until: dateRu(p.period_start!), receipt: p.receipt_status === 'done' ? REFUND_FUTURE_RECEIPT : '' })
     : d.mail('refund', to, { amount: money(ref.amount), days: String(ref.days_left) }))
   return { ok: true, amount: ref.amount, daysLeft: ref.days_left, daysTotal: ref.days_total, status: r.status }
 }
