@@ -215,7 +215,7 @@ function setup(start = '2026-11-20T09:00:00Z', autopay = false) {
     const t = setup()
     await t.pay('start')
     t.at('2026-12-15T12:00:00Z'); await t.pay('start')
-    t.m.payments[1].receipt_status = 'done'; t.m.payments[1].receipt_url = 'https://lknpd.nalog.ru/api/v1/receipt/1/print'
+    t.m.payments[1].receipt_status = 'done'
     const r = await B.refundPayment(t.d, t.m.payments[1].id)
     assert.ok(r.ok && r.amount === 1290, JSON.stringify(r))
     const ml = t.mails.at(-1)!
