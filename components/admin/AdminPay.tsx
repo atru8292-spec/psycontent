@@ -38,8 +38,9 @@ const NOT_REFUNDABLE: Record<string, string> = { refunded: 'возврат уж�
 function refundConfirm(p: Pay, r: Extract<RefundPreview, { can: true }>): string {
   const plan = PLAN[p.plan_code] || p.plan_code
   const who = p.email || 'удаленный аккаунт'
-  if (r.effect === 'no_account') return `Вернуть ${rub(r.amount)} целиком (${who})?\n\nАккаунта нет, тариф менять не у кого. Деньги уйдут тем же способом, которым платили.`
-  if (r.effect === 'future') return `Вернуть ${rub(r.amount)} целиком (${who})?\n\nЭто продление еще не началось. Тариф «${plan}» не выключится и будет работать до ${dayLong(r.keepUntil)}, как до этой оплаты. Придет письмо о возврате.`
+  const sum = r.full ? `${rub(r.amount)} целиком` : `${rub(r.amount)} из ${rub(Number(p.amount))}${r.daysTotal ? ` за ${r.daysLeft} из ${r.daysTotal} дней` : ''}`
+  if (r.effect === 'no_account') return `Вернуть ${sum} (${who})?\n\nАккаунта нет, тариф менять не у кого. Деньги уйдут тем же способом, которым платили.`
+  if (r.effect === 'future') return `Вернуть ${sum} (${who})?\n\nЭто продление еще не началось. Тариф «${plan}» не выключится и будет работать до ${dayLong(r.keepUntil)}, как до этой оплаты. Придет письмо о возврате.`
   return `Вернуть ${rub(r.amount)} из ${rub(Number(p.amount))} за ${r.daysLeft} из ${r.daysTotal} дней (${who})?\n\nТариф «${plan}» выключится сейчас, человек перейдет на бесплатный. Придет письмо о возврате.`
 }
 
@@ -53,7 +54,7 @@ export default function AdminPay() {
   const load = () => fetch('/api/admin/pay', { cache: 'no-store' }).then(r => r.json()).then(setD).catch(() => setD({ error: 'load' }))
   useEffect(() => { load() }, [])
 
-  const post = async (body: Record<string, unknown>, confirmText?: string, paid?: number) => {
+  const post = async (body: Record<string, unknown>, confirmText?: string, paid?: number, receiptDone?: boolean) => {
     if (busy) return
     if (confirmText && !window.confirm(confirmText)) return
     setBusy(true); setMsg(null)
@@ -63,7 +64,7 @@ export default function AdminPay() {
       const ok = r.ok && j.ok !== false
       setMsg(ok
         ? (body.action === 'refund'
-          ? `Возврат ${rub(j.amount)} оформлен${j.daysTotal ? ` за ${j.daysLeft} из ${j.daysTotal} дней` : ''}, статус ЮKassa ${j.status}. ${paid && Number(j.amount) >= paid ? 'Вернулась вся сумма: чек аннулируй, если уже выбила, новый не нужен.' : `Аннулируй чек и выбей новый на ${rub((paid || 0) - Number(j.amount))}.`}`
+          ? `Возврат ${rub(j.amount)} оформлен${j.daysTotal ? ` за ${j.daysLeft} из ${j.daysTotal} дней` : ''}, статус ЮKassa ${j.status}. ${paid && Number(j.amount) >= paid ? 'Вернулась вся сумма: чек аннулируй, если уже выбила, новый не нужен.' : receiptDone ? `Аннулируй чек и выбей новый на ${rub((paid || 0) - Number(j.amount))}.` : `Выбей чек на ${rub((paid || 0) - Number(j.amount))}.`}`
           : 'Готово')
         : j.error === 'not_latest' ? 'Не вышло: после этого платежа уже оплачены продления. Сначала верни последний платеж человека или разберись руками.'
         : j.error === 'already_refunded' ? 'Не вышло: по этому платежу возврат уже оформлен.'
@@ -125,7 +126,7 @@ export default function AdminPay() {
                     {sub && p.status === 'succeeded' && <div className="text-brand-muted">{subText(sub, now.getTime())}</div>}
                   </td>
                   <td className="px-3 py-3">
-                    {refunded && <div className="text-brand-muted">чек на {rub(Number(p.amount) - Number(refunded))}</div>}
+                    {refunded && Number(refunded) < Number(p.amount) && <div className="text-brand-muted">чек на {rub(Number(p.amount) - Number(refunded))}</div>}
                     <div className={['need', 'annul_need'].includes(p.receipt_status) ? 'font-semibold' : 'text-brand-muted'}>
                       {RECEIPT[p.receipt_status] ?? p.receipt_status}{p.receipt_url && <> · <a href={p.receipt_url} target="_blank" rel="noopener" className="underline">открыть чек</a></>}
                     </div>
@@ -145,7 +146,7 @@ export default function AdminPay() {
                       {live && !ended && <button type="button" disabled={busy} onClick={() => post({ action: 'disable', userId: p.user_id }, `Выключить тариф сейчас без возврата денег (${p.email || 'аккаунт'})?\n\nЧеловек перейдет на бесплатный, деньги останутся у тебя.`)} className={act}>Выключить без возврата</button>}
                     </div>
                     {r.can ? (
-                      <button type="button" disabled={busy} onClick={() => post({ action: 'refund', paymentId: p.id }, refundConfirm(p, r), Number(p.amount))}
+                      <button type="button" disabled={busy} onClick={() => post({ action: 'refund', paymentId: p.id }, refundConfirm(p, r), Number(p.amount), p.receipt_status === 'done')}
                         className={`w-full text-left ${live ? 'mt-2.5 border-t border-brand-border pt-2' : ''} text-[13px] font-medium text-brand-danger underline-offset-2 hover:underline cursor-pointer disabled:opacity-50 disabled:cursor-default`}>
                         Вернуть {rub(r.amount)}…
                       </button>

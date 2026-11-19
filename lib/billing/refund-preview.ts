@@ -18,10 +18,12 @@ export function refundPreview(p: RefundPay, sub: RefundSub, now: Date): RefundPr
   if (/refunded:/.test(p.note || '')) return { can: false, why: 'refunded' }
   if (p.user_id && p.period_end && sub?.period_end && sub.status !== 'expired' && new Date(sub.period_end).getTime() > new Date(p.period_end).getTime() + 60000) return { can: false, why: 'not_latest' }
   const amount = Number(p.amount)
-  if (!p.user_id || !p.period_start || !p.period_end) return { can: true, amount, daysLeft: 0, daysTotal: 0, full: true, effect: 'no_account', keepUntil: null }
+  // как сервер: окна нет (аккаунт удален во время оплаты) -> вся сумма; окно есть -> по дням, даже если аккаунт удален потом
+  if (!p.period_start || !p.period_end) return { can: true, amount, daysLeft: 0, daysTotal: 0, full: true, effect: 'no_account', keepUntil: null }
   const bonus = Number((p.note || '').match(/bonus:(\d+)/)?.[1]) || 0
   const calc = refundByDays(amount, new Date(p.period_start), new Date(new Date(p.period_end).getTime() - bonus * 24 * H), now)
   if (calc.amount <= 0) return { can: false, why: 'nothing_left' }
   const future = new Date(p.period_start).getTime() > now.getTime()
-  return { can: true, ...calc, full: calc.amount >= amount, effect: future ? 'future' : 'off_now', keepUntil: future ? p.period_start : null }
+  const effect = !p.user_id ? 'no_account' : future ? 'future' : 'off_now'
+  return { can: true, ...calc, full: calc.amount >= amount, effect, keepUntil: effect === 'future' ? p.period_start : null }
 }

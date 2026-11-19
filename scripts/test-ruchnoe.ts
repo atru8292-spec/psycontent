@@ -208,6 +208,7 @@ function setup(start = '2026-11-20T09:00:00Z', autopay = false) {
     assert.equal(ml.kind, 'refund_future')
     assert.equal(ml.data.until, '20 декабря'); assert.equal(ml.data.amount.replace(/\s/g, ' '), '1 290 ₽'); assert.equal(ml.data.plan, 'Спокойный ритм')
     assert.equal(ml.data.receipt, '', 'чек еще не выбит: строки про чек нет')
+    assert.equal(t.m.payments[1].receipt_status, 'none', 'вернулась вся сумма: чек больше не нужен')
   }
   // ── 10б. то же, но чек уже выбит: в письме «Чек за эту оплату аннулирую», в /admin «аннулировать» ──
   {

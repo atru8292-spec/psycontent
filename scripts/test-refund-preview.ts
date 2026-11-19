@@ -18,9 +18,15 @@ assert.ok(b.can && b.amount === refundByDays(1290, new Date('2026-11-09T09:10:00
 // удаленный аккаунт: целиком
 const n = refundPreview({ ...base, user_id: null, period_start: null, period_end: null }, null, now)
 assert.ok(n.can && n.effect === 'no_account' && n.amount === 1290)
+// аккаунт удален после оплаты: окно осталось, сервер считает по дням, экран тоже
+const nd = refundPreview({ ...base, user_id: null, amount: 2490, period_start: '2026-11-09T09:10:00Z', period_end: '2026-12-09T09:10:00Z' }, null, now)
+assert.ok(nd.can && nd.effect === 'no_account' && !nd.full && nd.amount === exp.amount)
+// продление начинается сегодня до полуночи: не целиком, full=false
+const td = refundPreview({ ...base, period_start: '2026-11-19T18:00:00Z', period_end: '2026-12-19T18:00:00Z' }, { status: 'canceled', period_end: '2026-12-19T18:00:00Z' }, now)
+assert.ok(td.can && td.effect === 'future' && !td.full && td.amount < 1290)
 // не последний платеж, уже возвращен, не оплачен, дни кончились
 assert.deepEqual(refundPreview({ ...base, period_start: '2026-11-09T09:10:00Z', period_end: '2026-12-09T09:10:00Z' }, { status: 'canceled', period_end: '2027-01-09T09:10:00Z' }, now), { can: false, why: 'not_latest' })
 assert.deepEqual(refundPreview({ ...base, note: ',refunded:1290', period_start: null, period_end: null }, null, now), { can: false, why: 'refunded' })
 assert.deepEqual(refundPreview({ ...base, status: 'canceled', period_start: null, period_end: null }, null, now), { can: false, why: 'not_paid' })
 assert.deepEqual(refundPreview({ ...base, period_start: '2026-10-19T09:10:00Z', period_end: '2026-11-19T15:10:00Z' }, { status: 'canceled', period_end: '2026-11-19T15:10:00Z' }, now), { can: false, why: 'nothing_left' })
-console.log('refund-preview: 8 проверок прошли')
+console.log('refund-preview: 10 проверок прошли')

@@ -572,7 +572,8 @@ export async function refundPayment(d: Deps, paymentId: string): Promise<RefundR
     const sub = await d.repo.getSub(p.user_id)
     if (sub?.period_end && sub.status !== 'expired' && new Date(sub.period_end).getTime() > new Date(p.period_end).getTime() + 60000) return { ok: false, error: 'not_latest' }
   }
-  // окно платежа (у платежа удаленного человека окна нет: возвращаем всю сумму). Смена тарифа: дни, пересчитанные из
+  // окно платежа (нет окна только у оплаты, пришедшей после удаления аккаунта: возвращаем всю сумму; аккаунт, удаленный
+  // после оплаты, окно сохраняет, и возврат идет по дням). Смена тарифа: дни, пересчитанные из
   // прошлого тарифа (bonus:N), в возврат этого платежа не входят, его цена делится на дни его месяца (оферта)
   const bonus = Number((p.note || '').match(/bonus:(\d+)/)?.[1]) || 0
   const calc = p.period_start && p.period_end
@@ -603,7 +604,9 @@ export async function refundPayment(d: Deps, paymentId: string): Promise<RefundR
   const sub0 = future && p.user_id ? await d.repo.getSub(p.user_id).catch(() => null) : null
   if (p.user_id) await step(() => d.repo.updateSub(p.user_id!, future ? { period_end: p.period_start, ...(sub0?.auto_renew && sub0.next_charge_at ? { next_charge_at: p.period_start } : {}) } : { status: 'expired', plan_code: 'free', auto_renew: false, next_charge_at: null, period_end: iso(now) }), 'sub')
   // чек уже выбит: аннулировать и выбить новый на остаток; еще не выбит: выбить сразу на остаток (пометка refunded:сумма)
-  await step(() => d.repo.updatePayment(p.id, { receipt_status: p.receipt_status === 'done' ? 'annul_need' : p.receipt_status, note: `${(p.note || '').replace(/,?refund_due/g, '')},refunded:${ref!.amount}` }), 'payment')
+  // вернулась вся сумма, а чек еще не выбит: выбивать нечего, строка уходит из «нужен чек» (ревью 19.11)
+  const receipt_status = p.receipt_status === 'done' ? 'annul_need' : p.receipt_status === 'need' && Number(ref.amount) >= Number(p.amount) ? 'none' : p.receipt_status
+  await step(() => d.repo.updatePayment(p.id, { receipt_status, note: `${(p.note || '').replace(/,?refund_due/g, '')},refunded:${ref!.amount}` }), 'payment')
   const to = p.email || (p.user_id ? await d.repo.userEmail(p.user_id).catch(() => null) : null)
   // продление, которое еще не началось, вернули целиком: свое письмо (тариф не выключен, работает до начала этого окна)
   if (to) await sent(future
