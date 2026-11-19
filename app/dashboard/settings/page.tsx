@@ -17,6 +17,7 @@ import SubscriptionCard from '@/components/SubscriptionCard'
 import DeleteAccount from '@/components/DeleteAccount'
 import HelpCard from '@/components/dashboard/HelpCard'
 import AddToHome from '@/components/dashboard/AddToHome'
+import { DocsLine } from '@/components/site/SiteFooter'
 import { ARCHETYPES, ARCHETYPE_ACCENT, archetypeLabel, flexibleLine, getArchetypeSelectionFromProfile, type ArchetypeSelection } from '@/lib/archetypes'
 import { ArchetypeGlyph, FlexibleGlyph } from '@/lib/archetype-glyphs'
 import { isMaterials } from '@/lib/limit-texts'
@@ -235,6 +236,9 @@ export default function SettingsPage() {
           )}
         </div>
       )}
+
+      {/* оферта, политика и cookie одной строкой, без реквизитов (они на оплате, лендинге и в /offer) */}
+      {status === 'ready' && <DocsLine className="mt-8 pb-6" />}
     </div>
   )
 }
