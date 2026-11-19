@@ -13,12 +13,13 @@ export function splitCaption(text: string): { body: string; caption: string } {
   return { body: text.slice(0, m.index).trimEnd(), caption: text.slice(m.index + m[0].length).trim() }
 }
 
-export default function CaptionBlock({ caption, title = 'Описание', mark, format, postId }: { caption: string; title?: string; mark?: (s: string) => ReactNode; format?: string; postId?: string | null }) {
+export default function CaptionBlock({ caption, title = 'Описание', mark, format, postId, onCopy }: { caption: string; title?: string; mark?: (s: string) => ReactNode; format?: string; postId?: string | null; onCopy?: () => void }) {
   const [copied, setCopied] = useState(false)
   if (!caption) return null
   const copy = () => {
     navigator.clipboard.writeText(caption)
     track('material_take', { how: 'copy_caption', format: normFormat(format), ...(postId ? { post: postId } : {}) })
+    onCopy?.()
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }

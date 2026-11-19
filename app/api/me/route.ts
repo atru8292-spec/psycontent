@@ -4,11 +4,13 @@ import { getAccountSummary } from '@/lib/energy'
 import { createClient } from '@/utils/supabase/server'
 import { isNewPipeline } from '@/lib/generation/context'
 import { paymentsOnFor, autopayEnabled } from '@/lib/billing/ready'
+import { zh13Dlya } from '@/lib/generation/zh13/flag'
 
 // Read-only сводка по своему аккаунту (тариф, энергия, остаток материалов materials: пробные или месячные,
 // витрина 12.11 показывает 50/150). Только чтение и только свои данные; usage_log клиенту не отдаем.
 // newPipeline: включен ли новый мозг именно для этого человека. Считает сервер тем же
 // isNewPipeline, что и генерация, чтобы экран и генерация не расходились.
+// zh13: включен ли генератор zh13 для этой почты (GENERATOR=zh13 и ZH13_ONLY_EMAILS), экран «Сделать» тогда свой.
 export async function GET() {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
@@ -20,5 +22,5 @@ export async function GET() {
     const { data: profile, error } = await db.from('onboarding_profiles').select('new_pipeline').eq('user_id', user.id).maybeSingle()
     if (!error) newPipeline = isNewPipeline(profile)
   } catch {}
-  return NextResponse.json({ ...summary, newPipeline, paymentsOn: paymentsOnFor(user.email), autopay: autopayEnabled() })
+  return NextResponse.json({ ...summary, newPipeline, paymentsOn: paymentsOnFor(user.email), autopay: autopayEnabled(), zh13: zh13Dlya(user.email) })
 }
