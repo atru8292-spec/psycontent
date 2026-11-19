@@ -238,7 +238,7 @@ export default function SettingsPage() {
       )}
 
       {/* оферта, политика и cookie одной строкой, без реквизитов (они на оплате, лендинге и в /offer) */}
-      {status !== 'loading' && <DocsLine className="mt-8 pb-6" />}
+      {status === 'ready' && <DocsLine className="mt-8 pb-6" />}
     </div>
   )
 }

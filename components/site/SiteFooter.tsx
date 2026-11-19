@@ -1,11 +1,12 @@
-// Реквизиты и ссылки на оферту и политику: на всех страницах сайта (ЮKassa проверяет ИНН на каждой).
+// Реквизиты и ссылки на оферту и политику: на всех публичных страницах (лендинг, /offer, /privacy, вход, 404) и на оплате.
+// В закрытом кабинете реквизитов нет (решение Арины 19.11), там только ссылки на документы (DocsLine).
 // SiteFooter: подвал на шоколаде для лендинга, /offer и /privacy. LegalLine: короткая строка для страниц входа и оплаты.
 // DocsLine: только ссылки (оферта, политика, cookie) без реквизитов, внизу «Настроек» в кабинете (19.11).
 // На пяти экранах знакомства подвала нет (решение Арины 14.11): они на весь экран телефона с кнопкой внизу.
 // Данные только из lib/rekvizity.ts. Ссылки здесь настоящие ссылки на страницы, поэтому с подчеркиванием по наведению.
 import Image from 'next/image'
 import Link from 'next/link'
-import { REKV, OFFER_PATH, PRIVACY_PATH } from '@/lib/rekvizity'
+import { REKV, OFFER_PATH, PRIVACY_PATH, CONSENT_PATH } from '@/lib/rekvizity'
 import { CookieSettingsLink } from './CookieBanner'
 
 const LINK = 'underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none'
@@ -66,6 +67,7 @@ export function DocsLine({ className = '' }: { className?: string }) {
     <p className={`flex flex-wrap gap-x-4 gap-y-1 text-[13px] leading-[1.5] text-brand-muted ${className}`}>
       <Link href={OFFER_PATH} className={LINK}>Оферта</Link>
       <Link href={PRIVACY_PATH} className={LINK}>Политика конфиденциальности</Link>
+      <Link href={CONSENT_PATH} className={LINK}>Согласие на обработку данных</Link>
       <CookieSettingsLink className={LINK} />
     </p>
   )
