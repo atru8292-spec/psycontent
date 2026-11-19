@@ -2,7 +2,11 @@
 // в ~/Downloads/psy-zh7). Результат пишется в zh13_kachestvo рядом с текстом (lib/generation/zh13/kachestvo-db.ts),
 // доли одинаковых начал за 7 дней считаются там же по базе.
 import dannye from './dannye.json'
-import { ritm, blizost, osnova, frazy, aforizm, obshieCepochki, slova, nGrams, type Ritm } from './tekst'
+import { ritm, blizost, osnova, frazy, aforizm, obshieCepochki, slova, nGrams, pohozhe, shodstvo, type Ritm } from './tekst'
+
+// подпись с моралью (любая фраза подписи похожа на вывод) или с вопросом подписчикам в конце
+export const podpisMoral = (p: string) => frazy(p).some(aforizm)
+export const podpisVopros = (p: string) => /\?\s*[»"]?\s*$/.test(p.trim())
 import type { Format13 } from './formaty'
 import { POMETKI } from './pometki'
 import { TEKSTY_PRAVOK } from './pravki'
@@ -47,6 +51,7 @@ export type Proverka = {
 export function proverit(o: {
   f: Format13; syroe: string; tekst: string; glavnoe: string; podpis: string
   obrazcy: string[]; kusok: string; opora: string; poslednyayaOpora: string | null; auditoriyaZhenshiny: boolean
+  mysl?: string | null
 }): Proverka {
   const { f } = o
   const osn = osnova(o.tekst, f.vid) || o.glavnoe
@@ -56,7 +61,9 @@ export function proverit(o: {
   const detali: Record<string, unknown> = {}
 
   // мораль: конец текста (кроме сценки и сессии, там конец это реплика) или любая фраза подписи
-  const moralKonec = !['sessiya', 'scenka'].includes(f.vyvod) && aforizm(konec)
+  // текст из своей мысли: ее повтор в конце моралью не считаем (решение Арины 19.11)
+  const povtorMysli = !!o.mysl && (pohozhe(konec, o.mysl) || shodstvo(konec, o.mysl) > 0.4 || shodstvo(o.mysl, konec) > 0.4)
+  const moralKonec = !['sessiya', 'scenka'].includes(f.vyvod) && aforizm(konec) && !povtorMysli
   const moralPodpis = frazy(o.podpis).some(aforizm)
   if (moralKonec || moralPodpis) { problemy.push('moral'); detali.moral = moralPodpis ? o.podpis : konec }
 

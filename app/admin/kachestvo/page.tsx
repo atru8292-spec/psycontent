@@ -10,7 +10,7 @@ import { Card, Section, Note, PageHead, Table, Td, Bar, Flag, when, num } from '
 type SP = Promise<Record<string, string | string[] | undefined>>
 const pct = (x: number) => `${String(x).replace('.', ',')}%`
 const DET: Record<string, string> = { vopros: PROBLEMY.vopros_konec, podpis: PROBLEMY.podpis_shablon, moral: PROBLEMY.moral, rod: PROBLEMY.rod, kopiya: PROBLEMY.kopiya,
-  voprosy: 'Начала вопросов', povtorOborotov: 'Повторы оборотов', pometki: 'Пометки', perepis: 'Перепись фраз', perepisCelikom: 'Перепись целиком (адресат вопросов)' }
+  voprosy: 'Начала вопросов', povtorOborotov: 'Повторы оборотов', pometki: 'Пометки', perepis: 'Перепись фраз и подписи', perepisCelikom: 'Перепись целиком (адресат вопросов)' }
 // детали бывают строкой, списком строк и списком пометок или переписей
 function pokazat(v: any): string {
   const one = (x: any): string => typeof x === 'string' ? x

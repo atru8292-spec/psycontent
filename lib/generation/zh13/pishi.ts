@@ -15,7 +15,9 @@ import { razobrat, type Rezultat13 } from './razbor'
 import { proverit, type Proverka } from './proverka'
 import { taZheTema, pohozhe, shodstvo, slova } from './tekst'
 import { pometit, rubrikaVoprosov, type Pometka } from './pometki'
-import { perepisatFrazy, type Perepis } from './perepis'
+import { perepisatFrazy, perepisatPodpis, type Perepis } from './perepis'
+import { podpisMoral, podpisVopros } from './proverka'
+import { PODPISI } from './prompt'
 import { buildContext } from '../context'
 import { zh6Write } from '../zh6/write'
 import { cleanAds } from '../group'
@@ -153,19 +155,33 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   const kusok = kuski[n % kuski.length]
 
   const uchet = opts?.bezUcheta ? undefined : userId
+  // подпись: мораль переписываем всегда; вопрос подписчикам у карусели zh6 (vopros=true) и как запасной повод у остальных
+  const podpisBezMorali = async (rez: Rezultat13, a: Avtor13, _mysl: string | null, _povod: string | null, voprosToje: boolean): Promise<Perepis | null> => {
+    if (!rez.podpis) return null
+    const moral = podpisMoral(rez.podpis), vopros = voprosToje && podpisVopros(rez.podpis)
+    if (!moral && !vopros) return null
+    const x = await perepisatPodpis({ podpis: rez.podpis, glavnoe: rez.glavnoe, prichina: moral ? 'moral' : 'vopros', obrazcy: PODPISI, mat: a.mat !== 'net', deadline, userId: uchet, knownNames, moral: podpisMoral, vopros: podpisVopros })
+    if (x.vzyato) { rez.tekst = rez.tekst.replace(rez.podpis, x.posle); rez.podpis = x.posle }
+    return x
+  }
 
   // карусель: рецепт zh6, как на проде (оценки Арины 19.11: карусели zh13 слабые во всех вариантах)
   if (f.zh6) {
     const ctx = await buildContext(db, userId, profile)
     if (opts?.bezUcheta) ctx.userId = ''
+    // род читателя как у остальных форматов zh13: без рода, если аудитория не «в основном женщины» (только в этом
+    // вызове, настройки прода zh6 не меняются)
+    if (!/женщин/i.test(avtor.gender || '')) ctx.settings.readerGenderRule = 'без родовых окончаний'
     const req: GenRequest = { topic: tema || (mysl || '').slice(0, 300), format: 'carousel', intent: null, intentChoices: null, userDetail: mysl }
     const r = await zh6Write(ctx, req)
     const syroe = await cleanAds(ctx, 'carousel', r.text)
     const rez = razobrat(syroe, f)
-    const proverka = proverit({ f, syroe, tekst: rez.tekst, glavnoe: rez.glavnoe, podpis: rez.podpis, obrazcy: [], kusok: '', opora: '', poslednyayaOpora: null, auditoriyaZhenshiny: /женщин/i.test(avtor.gender || '') })
+    const pp = await podpisBezMorali(rez, avtor, mysl, null, true)
+    const proverka = proverit({ f, syroe, tekst: rez.tekst, glavnoe: rez.glavnoe, podpis: rez.podpis, obrazcy: [], kusok: '', opora: '', poslednyayaOpora: null, auditoriyaZhenshiny: /женщин/i.test(avtor.gender || ''), mysl })
+    if (pp) proverka.detali.perepis = [pp]
     const meta: Meta13 = {
       kod: f.kod, vid: f.vid, rezhim, tema, mysl, situaciya: null, opora: '', huk: null, obrazcy: [], kusok: '', dvizhok: 'zh6', zh4: (r as any).zh4 || null,
-      kakSnyat: [], podoydet: rez.podoydet, nadpis: '', podpis: rez.podpis, glavnoe: rez.glavnoe, ms: Date.now() - t0, popytki: 1, pometki: [], perepis: [],
+      kakSnyat: [], podoydet: rez.podoydet, nadpis: '', podpis: rez.podpis, glavnoe: rez.glavnoe, ms: Date.now() - t0, popytki: 1, pometki: [], perepis: pp ? [pp] : [],
     }
     return { f, rez, meta, proverka, syroe, groupId: origin?.group_id || null, avtor }
   }
@@ -208,10 +224,13 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   const pometki2 = perepisCelikom?.vzyato ? pometit(rez.glavnoe, f.kod, rez.nadpis) : pometki
   const pr = await perepisatFrazy({ text: rez.glavnoe, kod: f.kod, nadpis: rez.nadpis, pometki: pometki2, kusok: kusok.tekst, mat: avtor.mat !== 'net', deadline, userId: uchet, knownNames })
   for (const x of pr.perepis) if (x.vzyato) { rez.tekst = rez.tekst.replace(x.do, x.posle); rez.glavnoe = rez.glavnoe.replace(x.do, x.posle) }
+  // подпись с моралью: переписываем только подпись (своя мысль в конце текста моралью не считается, подпись проверяем всегда)
+  const pp = await podpisBezMorali(rez, avtor, mysl, f.kod === 'voprosy' ? null : 'vopros', false)
+  if (pp) pr.perepis.push(pp)
 
   const proverka = proverit({
     f, syroe, tekst: rez.tekst, glavnoe: rez.glavnoe, podpis: rez.podpis, obrazcy: obrazcy.map(x => x.tekst), kusok: kusok.tekst,
-    opora, poslednyayaOpora: posledOpory[0] || null, auditoriyaZhenshiny: /женщин/i.test(avtor.gender || ''),
+    opora, poslednyayaOpora: posledOpory[0] || null, auditoriyaZhenshiny: /женщин/i.test(avtor.gender || ''), mysl,
   })
   // пометки до переписи и сама перепись видны в проверке качества
   proverka.detali.pometki = pometki

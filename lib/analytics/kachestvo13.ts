@@ -51,10 +51,12 @@ export function svesti(rows: any[]): Omit<Kachestvo13, 'poslednie'> {
     return { kod: f.kod, imya: f.imya, n: r.length, zanovo, drugoy, kopiya: d('copy'), dolyaPeredelki: dol(r.filter(x => Number(x.deystviya?.zanovo) > 0 || Number(x.deystviya?.format) > 0).length, r.length) }
   }).filter(x => x.n > 0).sort((a, b) => b.n - a.n)
   // пометки до переписи и чем кончилась перепись (detali.pometki, detali.perepis из pishi.ts)
-  const pometki = Object.entries(POMETKI).map(([kod, imya]) => {
+  const pometki = Object.entries({ ...POMETKI, podpis_moral: 'Подпись с моралью', podpis_vopros: 'Подпись с вопросом (карусель zh6)' }).map(([kod, imya]) => {
     let n = 0, vzyato = 0, ne = 0
     for (const r of rows) {
       n += (r.detali?.pometki || []).filter((x: any) => x.kod === kod).length
+      // подпись не пометка: «нашлось» для нее это попытки переписи
+      if (kod.startsWith('podpis_')) n += (r.detali?.perepis || []).filter((x: any) => x.kod === kod).length
       const pp = [...(r.detali?.perepis || []), ...(r.detali?.perepisCelikom && kod === 'adresat' ? [{ kod, ...r.detali.perepisCelikom }] : [])].filter((x: any) => x.kod === kod)
       vzyato += pp.filter((x: any) => x.vzyato).length; ne += pp.filter((x: any) => !x.vzyato).length
     }

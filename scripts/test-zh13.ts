@@ -6,7 +6,7 @@ import { FORMATY, formatPo, vybratAuto, KRUG_AUTO } from '../lib/generation/zh13
 import { OPORY, oporyPsihologa, vybratOporu } from '../lib/generation/zh13/opory'
 import { prompt13 } from '../lib/generation/zh13/prompt'
 import { razobrat } from '../lib/generation/zh13/razbor'
-import { proverit, povtoryOborotov } from '../lib/generation/zh13/proverka'
+import { proverit, povtoryOborotov, podpisMoral, podpisVopros } from '../lib/generation/zh13/proverka'
 import { podobrat, avtorIz } from '../lib/generation/zh13/pishi'
 import { zh13Dlya } from '../lib/generation/zh13/flag'
 import { vysheePoroga } from '../lib/generation/zh13/kachestvo-db'
@@ -184,6 +184,28 @@ ok('неудобные вопросы: меньше трех разных нач
 ok('повтор оборотов 4+ слов между текстами психолога, служебные цепочки не в счет', () => {
   assert.deepEqual(povtoryOborotov('А что, по-вашему, случится, если вы откажете маме?', ['Подумайте, что по-вашему случится если вы промолчите.']), ['что по-вашему случится если вы'])
   assert.deepEqual(povtoryOborotov('и я не на это', ['и я не на это']), [])
+})
+
+ok('суд и бумаги: про чувства метим, настоящую работу и «вынести приговор» нет', () => {
+  const k = (t: string) => pometit(t, 'mysl').map(x => x.kod)
+  for (const t of ['Одобрение получить проще, только тебя в этой презентации почти нет.', 'Без обвинений и получасовой защиты своего желудка в суде.', 'Для внутреннего суда доказательства не нужны.',
+    'Даже когда мама об этом согласовании не знает.', 'Партнер уже оглашает встречный иск.', 'Ты спорила с бывшим час. Хоть презентация, блин.'])
+    assert.deepEqual(k(t), ['sud_dokumenty'], t)
+  for (const t of ['Ты уже выносишь мне приговор.', 'Завтра презентация для начальника, и ты не спишь.', 'Коллеги ждут доклад. Ты третий день его переписываешь.', 'Юрист сказал, что иск примут.'])
+    assert.deepEqual(k(t), [], t)
+  assert.deepEqual(k('Он сжимает кулак под столом.'), ['telo'])
+  assert.deepEqual(pometit('1. Почему ты?', 'voprosy', 'Задаю неудобные вопросы страху быть неудобной за вас').map(x => x.kod), ['adresat'])
+})
+
+ok('мораль: своя мысль в конце не мораль, подпись с моралью и вопросом находится', () => {
+  const f = formatPo('mysl')!
+  const t = 'Речь: Бывает страшно без повода. Так что тревога не враг. Она сторож, который слишком старается и лает на каждый шорох.\nПодпись: Пакет у забора.'
+  const r = razobrat(t, f)
+  const base = { f, syroe: t, tekst: r.tekst, glavnoe: r.glavnoe, podpis: r.podpis, obrazcy: [], kusok: '', opora: 'о', poslednyayaOpora: null, auditoriyaZhenshiny: true }
+  assert.ok(!proverit({ ...base, mysl: 'Тревога не враг. Она сторож, который слишком старается и лает на каждый шорох' }).problemy.includes('moral'))
+  assert.ok(podpisMoral('Можно любить маму и злиться. Это нормально.'))
+  assert.ok(!podpisMoral('Пакет у забора. В доме никто не спит.'))
+  assert.ok(podpisVopros('Ты так переживаешь с любым человеком или именно с ним?'))
 })
 
 ok('флаг: GENERATOR=zh13 и список почт', () => {
