@@ -4,7 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import SiteFooter from './SiteFooter'
 import DocView from './DocView'
-import { DOCS_DATE } from '@/lib/rekvizity'
+import { DOCS_DATE, CONSENT_DATE } from '@/lib/rekvizity'
 
 export default function LegalPage({ title, lead, doc, children }: { title: string; lead?: string; doc: 'offer' | 'privacy' | 'soglasie'; children: React.ReactNode }) {
   return (
@@ -21,7 +21,7 @@ export default function LegalPage({ title, lead, doc, children }: { title: strin
       <main className="bg-brand-bg">
         <article className="mx-auto w-full max-w-[760px] px-4 pt-8 pb-14 md:px-8 lg:pt-14 lg:pb-24">
           <h1 className="text-[28px] font-bold leading-[1.15] text-brand-text [text-wrap:balance] lg:text-[40px]">{title}</h1>
-          <p className="mt-3 text-[15px] text-brand-muted">Редакция от {DOCS_DATE}</p>
+          <p className="mt-3 text-[15px] text-brand-muted">Редакция от {doc === 'soglasie' ? CONSENT_DATE : DOCS_DATE}</p>
           {lead && <p className="mt-5 text-[17px] leading-[1.55] text-brand-text lg:text-[19px]">{lead}</p>}
           <div className="mt-8 space-y-9 lg:mt-10 lg:space-y-11">{children}</div>
         </article>

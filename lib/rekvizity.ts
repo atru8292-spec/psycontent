@@ -22,10 +22,13 @@ export const PRIVACY_PATH = '/privacy'
 export const CONSENT_PATH = '/soglasie'
 
 // Дата редакции оферты и политики. Менять при каждой правке текста этих страниц.
-export const DOCS_DATE = '18 ноября 2026 года'
+// 19.11.2026: оферта и политика под оплату без автопродления (ЮKassa отказала в автоплатежах)
+export const DOCS_DATE = '19 ноября 2026 года'
+// Дата редакции /soglasie отдельно: его текст 19.11 не менялся. Менять вместе с CONSENT_VERSION
+export const CONSENT_DATE = '18 ноября 2026 года'
 // Версия текста согласия (app/soglasie/page.tsx): пишется в аккаунт вместе с датой, когда человек поставил галочку.
 // Менять при любой правке текста согласия.
 export const CONSENT_VERSION = '2026-11-18'
 // Версия оферты: пишется в согласие на автопродление (autopay_consents.offer_version). Менять вместе с текстом /offer
-export const OFFER_VERSION = '2026-11-18'
+export const OFFER_VERSION = '2026-11-19'
 
