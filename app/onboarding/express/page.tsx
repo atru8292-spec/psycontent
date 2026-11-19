@@ -99,6 +99,8 @@ export default function ExpressOnboarding() {
   const decideRef = useRef<() => void>(() => {})
   // флаг нового мозга: с ним финал ведет на новый «Сделать» (пост и карусель), без него как раньше
   const [newGen, setNewGen] = useState<boolean | null>(null)
+  // zh13 (у всех с 19.11): «Сделать» пишет один текст за раз, финал обещает ровно это и передает только тему
+  const [zh13, setZh13] = useState(false)
 
   // сессия, «профиль уже есть» (анти-цикл, как было) и восстановление ответов после перезагрузки
   useEffect(() => {
@@ -116,7 +118,7 @@ export default function ExpressOnboarding() {
       if (!active) return
       if (!user) { router.replace('/'); return }
       uidRef.current = user.id
-      fetch('/api/me').then(r => (r.ok ? r.json() : null)).then(j => { if (active) setNewGen(j?.newPipeline === true) }).catch(() => { if (active) setNewGen(false) })
+      fetch('/api/me').then(r => (r.ok ? r.json() : null)).then(j => { if (active) { setNewGen(j?.newPipeline === true); setZh13(j?.zh13 === true) } }).catch(() => { if (active) setNewGen(false) })
       const { data, error: readErr } = await supabase
         .from('onboarding_profiles').select('user_id').eq('user_id', user.id).single()
       if (!active) return
@@ -290,7 +292,9 @@ export default function ExpressOnboarding() {
     // новый мозг: тема в поле, Пост и Карусель выбраны, генерация только по нажатию.
     // Без флага старый экран как раньше: auto=1 сам пишет первый пост, теперь на этой теме (старый экран пишет только пост)
     // тема дня не в адресе, а через sessionStorage (lib/make-handoff.ts)
-    router.push(newGen === false
+    router.push(zh13
+      ? makeHref({ first: '1', topic })
+      : newGen === false
       ? makeHref({ first: '1', auto: '1', topic })
       : makeHref({ first: '1', topic, formats: 'post,carousel' }))
   }
@@ -516,7 +520,7 @@ export default function ExpressOnboarding() {
           <p className="text-[13px] leading-[18px] text-brand-muted">Первая тема под тебя:</p>
           <p className="mt-1 text-[18px] leading-6 font-semibold text-brand-text line-clamp-3 break-words">{topic}</p>
         </div>
-        <button type="button" onClick={startFirst} disabled={newGen === null} className={`mt-5 ${green} disabled:opacity-60`}>{newGen === false ? 'Написать пост' : 'Написать пост и карусель'}</button>
+        <button type="button" onClick={startFirst} disabled={newGen === null} className={`mt-5 ${green} disabled:opacity-60`}>{zh13 ? 'Написать первый текст' : newGen === false ? 'Написать пост' : 'Написать пост и карусель'}</button>
         <button type="button" onClick={() => router.push('/dashboard/make?first=1')}
           className="mt-2 h-12 w-full rounded-2xl border border-brand-border bg-brand-card text-center text-[15px] font-semibold text-brand-text cursor-pointer hover:bg-brand-soft-2">Или начни со своей мысли</button>
       </div>

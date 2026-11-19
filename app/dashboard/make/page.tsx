@@ -7,7 +7,7 @@ import { track } from '@/lib/track'
 import { goalFirst } from '@/lib/metrika'
 import { normFormat } from '@/lib/analytics/events'
 import { useState, useEffect, Suspense } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useMakeParams, makeHref } from '@/lib/make-handoff'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
@@ -156,25 +156,31 @@ function MakeContent() {
   const [meDone, setMeDone] = useState(false)
   // zh13 у всех (19.11): старый текст из «Моих текстов» (?post=<id> не от zh13) экран zh13 открыть не умеет
   // (его GET отдает 404 и экран остается пустым), поэтому такой текст открываем прежним экраном, как до включения
-  const [oldPost, setOldPost] = useState(false)
+  // Проверка привязана к id в адресе: ушла с текста («Назад», «Новый текст», «Написать» в меню, адрес без post),
+  // и снова экран zh13, без перезагрузки. Сбой проверки (не 404) не считается старым текстом: экран zh13 сам покажет ошибку
+  const postParam = useSearchParams().get('post') || ''
+  const [postCheck, setPostCheck] = useState<{ id: string; old: boolean } | null>(null)
   useEffect(() => {
     let on = true
-    let post = ''
-    try { post = new URLSearchParams(window.location.search).get('post') || '' } catch {}
     fetch('/api/me').then(r => (r.ok ? r.json() : null))
-      .then(async j => {
+      .then(j => {
         if (on && j && typeof j.newPipeline === 'boolean') setServerNewGen(j.newPipeline)
-        if (!(on && j && j.zh13 === true)) return
-        setZh13(true)
-        if (post) {
-          const r = await fetch(`/api/generate-post/zh13?post=${encodeURIComponent(post)}`).catch(() => null)
-          if (on && r && r.status === 404) setOldPost(true)
-        }
+        if (on && j && j.zh13 === true) setZh13(true)
       })
       .catch(() => {})
       .finally(() => { if (on) setMeDone(true) })
     return () => { on = false }
   }, [])
+  useEffect(() => {
+    if (!zh13 || !postParam || postCheck?.id === postParam) return
+    let on = true
+    fetch(`/api/generate-post/zh13?post=${encodeURIComponent(postParam)}`)
+      .then(r => { if (on) setPostCheck({ id: postParam, old: r.status === 404 }) })
+      .catch(() => { if (on) setPostCheck({ id: postParam, old: false }) })
+    return () => { on = false }
+  }, [zh13, postParam, postCheck?.id])
+  const checkingPost = zh13 && !!postParam && postCheck?.id !== postParam
+  const oldPost = zh13 && !!postParam && postCheck?.id === postParam && postCheck?.old === true
   const [loading, setLoading] = useState(true)
   const [selectedFormat, setSelectedFormat] = useState('post')
   // Reels: «Подберу сама» по умолчанию. Юмор и «как на консультации» лучше заходят сценкой, остальное рассказом в камеру
@@ -647,6 +653,7 @@ function MakeContent() {
   // когда профиль загружен. Тема из seed (демо) или выведена из профиля.
   useEffect(() => {
     if (searchParams.get('auto') !== '1') return
+    if (!meDone) return // пока /api/me не ответил, неизвестно, чей экран: иначе старая генерация успела бы потратить пробу
     if (serverNewGen === true || zh13) return // новый экран (и экран zh13) сам ведет первый пост, старую авто-генерацию не запускаем
     if (autoFired || loading || !user || !profile || generating || result) return
     const topic = deriveFirstTopic(profile, customTopic)
@@ -657,7 +664,7 @@ function MakeContent() {
     if (!customTopic.trim()) { setCustomTopic(topic); setUseCustom(true) }
     handleGenerate(topic)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoFired, loading, user, profile, customTopic, generating, result, searchParams, zh13])
+  }, [autoFired, loading, user, profile, customTopic, generating, result, searchParams, zh13, meDone])
 
   const clearFromPlan = () => {
     setFromPlan(false)
@@ -667,7 +674,7 @@ function MakeContent() {
     router.replace('/dashboard/make')
   }
 
-  if (loading || !meDone) {
+  if (loading || !meDone || checkingPost) {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-brand-accent border-t-transparent rounded-full" />

@@ -119,8 +119,10 @@ export async function GET(req: NextRequest) {
   const id = clean(req.nextUrl.searchParams.get('post'), 64)
   if (!id) return NextResponse.json({ error: 'bad_request' }, { status: 400 })
   const r = await admin().from('generated_posts').select('id, group_id, content, check_result, pipeline_version').eq('id', id).eq('user_id', user.id).maybeSingle()
+  // сбой чтения не выдаем за «нет такого текста»: 404 значит «текст не от zh13», экран тогда открывает прежний
+  if (r.error) return NextResponse.json({ error: 'server_error' }, { status: 500 })
   const m = r.data?.check_result?.zh13
-  if (r.error || !r.data || r.data.pipeline_version !== VERSIYA || !m || typeof m.glavnoe !== 'string') return NextResponse.json({ error: 'not_found' }, { status: 404 })
+  if (!r.data || r.data.pipeline_version !== VERSIYA || !m || typeof m.glavnoe !== 'string') return NextResponse.json({ error: 'not_found' }, { status: 404 })
   const f = formatPo(m.kod)
   return NextResponse.json({
     postId: r.data.id, groupId: r.data.group_id, kod: m.kod, vid: m.vid, imya: f?.imya || m.kod,

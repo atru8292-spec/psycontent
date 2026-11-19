@@ -1,6 +1,6 @@
 'use client'
 
-// Экран «Сделать» для генератора zh13 (19.11, только при флаге: /api/me zh13). Спецификация designer-psycont 19.11:
+// Экран «Сделать» для генератора zh13 (19.11, у всех по умолчанию: /api/me zh13). Спецификация designer-psycont 19.11:
 // ввод (своя мысль голосом или текстом, формат заранее, по умолчанию «Подбери сам») → ожидание → результат.
 // В результате главное отдельно от съемки: текст без меток с кнопкой «Скопировать текст», подпись своим блоком,
 // «Как снять» (рилсы) справа на компьютере и свернутым блоком под заголовком на телефоне, «Подойдет еще» (три
@@ -21,6 +21,7 @@ import { track } from '@/lib/track'
 import { isMaterials, spendLine, END, TARIFF_HREF, type Materials } from '@/lib/limit-texts'
 import { dateRu } from '@/lib/billing/pay-texts'
 import { FORMATY } from '@/lib/generation/zh13/formaty'
+import { readMakeParam } from '@/lib/make-handoff'
 
 type Ready = {
   status: 'ready'; postId: string; groupId: string; kod: string; vid: 'reels' | 'carousel' | 'post'; imya: string
@@ -135,17 +136,19 @@ export default function Zh13Flow() {
   const area = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
-    // тема из адреса (план, «На сегодня»): пишем на нее, а не на тему по кругу
-    let post = ''
-    try {
-      const sp = new URLSearchParams(window.location.search)
-      const t = sp.get('topic'); if (t && t.trim()) setTopic(t.trim().slice(0, 300))
-      post = sp.get('post') || ''
-    } catch {}
-    // свой текст из «Моих текстов» (?post=<id>): сразу результат
-    if (post) fetch(`/api/generate-post/zh13?post=${encodeURIComponent(post)}`).then(r => (r.ok ? r.json() : null)).then(d => {
+    // тема из адреса или из передачи по ключу h (финал знакомства, «Темы», «Идеи» кладут ее в sessionStorage,
+    // lib/make-handoff.ts): пишем на нее, а не на тему по кругу
+    const t = readMakeParam('topic'); if (t && t.trim()) setTopic(t.trim().slice(0, 300))
+    // «Написать карусель» (оформление каруселей, старая страница карусели): сразу формат карусели
+    if (readMakeParam('format') === 'carousel' && FORMATY.some(f => f.kod === 'karusel')) setFormatKod('karusel')
+    const post = readMakeParam('post') || ''
+    // свой текст из «Моих текстов» (?post=<id>): сразу результат; старый текст (404) открывает прежний экран (make/page.tsx)
+    if (post) fetch(`/api/generate-post/zh13?post=${encodeURIComponent(post)}`).then(async r => {
+      if (r.status === 404) return
+      const d = r.ok ? await r.json() : null
       if (d && typeof d.glavnoe === 'string') { setVarianty([{ status: 'ready', ...d }]); setIdx(0); setView('result') }
-    }).catch(() => {})
+      else setComposeError({ text: 'Не получилось открыть текст. Обнови страницу, он сохранен в «Моих текстах»' })
+    }).catch(() => setComposeError({ text: 'Не получилось открыть текст. Проверь интернет и обнови страницу' }))
   }, [])
 
   const appendVoice = useCallback((v: string) => setMysl(prev => (prev.trim() ? `${prev.trim()} ${v}` : v)), [])
