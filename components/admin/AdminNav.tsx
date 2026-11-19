@@ -13,6 +13,7 @@ const NAV = [
   { href: '/admin/funnels', label: 'Воронки' },
   { href: '/admin/features', label: 'Функции' },
   { href: '/admin/texts', label: 'Тексты' },
+  { href: '/admin/kachestvo', label: 'Качество текстов' },
   { href: '/admin/costs', label: 'Деньги' },
   { href: '/admin/oplata', label: 'Оплата' },
 ]

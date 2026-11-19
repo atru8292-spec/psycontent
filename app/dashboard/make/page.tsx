@@ -38,6 +38,7 @@ import CaptionBlock, { splitCaption } from '@/components/CaptionBlock'
 import { REELS_MODES } from '@/components/ReelsFormatPicker'
 import { pickAsk, markShown, markDone, markDismissed, type AskKey } from '@/lib/voice-asks'
 import MakeFlow from '@/components/make/MakeFlow'
+import Zh13Flow from '@/components/make/zh13/Zh13Flow'
 
 // Форматы «Сделать». Текстовый пост бывает для Instagram и для Telegram, остальное под Instagram.
 // Карусель и Reels пишет новый движок; без него ведем на старые страницы.
@@ -150,11 +151,13 @@ function MakeContent() {
   const [profile, setProfile] = useState<any>(null)
   // Новый мозг включен или нет, решает сервер (тот же isNewPipeline, что в генерации)
   const [serverNewGen, setServerNewGen] = useState<boolean | null>(null)
+  // zh13 (19.11): генератор zh13 включен для этой почты (GENERATOR=zh13, ZH13_ONLY_EMAILS), экран свой
+  const [zh13, setZh13] = useState(false)
   const [meDone, setMeDone] = useState(false)
   useEffect(() => {
     let on = true
     fetch('/api/me').then(r => (r.ok ? r.json() : null))
-      .then(j => { if (on && j && typeof j.newPipeline === 'boolean') setServerNewGen(j.newPipeline) })
+      .then(j => { if (on && j && typeof j.newPipeline === 'boolean') setServerNewGen(j.newPipeline); if (on && j && j.zh13 === true) setZh13(true) })
       .catch(() => {})
       .finally(() => { if (on) setMeDone(true) })
     return () => { on = false }
@@ -631,7 +634,7 @@ function MakeContent() {
   // когда профиль загружен. Тема из seed (демо) или выведена из профиля.
   useEffect(() => {
     if (searchParams.get('auto') !== '1') return
-    if (serverNewGen === true) return // новый экран сам ведет первый пост, старую авто-генерацию не запускаем
+    if (serverNewGen === true || zh13) return // новый экран (и экран zh13) сам ведет первый пост, старую авто-генерацию не запускаем
     if (autoFired || loading || !user || !profile || generating || result) return
     const topic = deriveFirstTopic(profile, customTopic)
     if (!topic) return
@@ -641,7 +644,7 @@ function MakeContent() {
     if (!customTopic.trim()) { setCustomTopic(topic); setUseCustom(true) }
     handleGenerate(topic)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoFired, loading, user, profile, customTopic, generating, result, searchParams])
+  }, [autoFired, loading, user, profile, customTopic, generating, result, searchParams, zh13])
 
   const clearFromPlan = () => {
     setFromPlan(false)
@@ -660,6 +663,7 @@ function MakeContent() {
   }
 
   // Новый мозг: новый экран «Сделать» (задача sdelat-i-brend, раздел 3). Старый ниже остается без флага
+  if (zh13) return <Zh13Flow />
   if (serverNewGen === true) return <MakeFlow />
 
   return (
