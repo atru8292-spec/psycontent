@@ -80,7 +80,8 @@ export async function POST(req: NextRequest) {
       user_id: userId, topic: (it.meta.tema || it.meta.mysl || '').slice(0, 300), format: it.f.bazaFormat, category: 'Своя тема',
       content: it.rez.tekst, pipeline_version: VERSIYA, pipeline_status: 'ready', draft_content: it.rez.tekst,
       group_id: groupId,
-      check_result: { mode: 'zh13', ms_total: Date.now() - t0, zh13: it.meta },
+      // карусель zh6: выбор zh6 (zh4) рядом, как у текстов zh6, по нему память zh6 и кнопки
+      check_result: { mode: 'zh13', ms_total: Date.now() - t0, zh13: it.meta, ...(it.meta.zh4 ? { zh4: it.meta.zh4 } : {}) },
     }, { basicId: true })
     if (!postId) {
       await recordFailure(userId, OP)

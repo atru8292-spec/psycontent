@@ -7,6 +7,7 @@ import { errTag } from '@/lib/safe-error'
 import { FORMATY, formatPo } from '@/lib/generation/zh13/formaty'
 import { PROBLEMY } from '@/lib/generation/zh13/proverka'
 import { vysheePoroga } from '@/lib/generation/zh13/kachestvo-db'
+import { POMETKI } from '@/lib/generation/zh13/pometki'
 
 export type Kachestvo13 = {
   vsego: number
@@ -17,6 +18,7 @@ export type Kachestvo13 = {
   formaty: { kod: string; imya: string; n: number; zanovo: number; drugoy: number; kopiya: number; dolyaPeredelki: number }[]
   poslednie: { postId: string; created_at: string; kod: string; imya: string; problemy: string[]; detali: any; content: string; mysl: boolean }[]
   trevoga: string[]
+  pometki: { kod: string; imya: string; n: number; vzyato: number; nePerepisano: number }[]
 }
 export type Loaded13 = { data: Kachestvo13 | null; error: 'no_migration' | 'failed' | null }
 
@@ -48,7 +50,17 @@ export function svesti(rows: any[]): Omit<Kachestvo13, 'poslednie'> {
     const zanovo = d('zanovo'), drugoy = d('format')
     return { kod: f.kod, imya: f.imya, n: r.length, zanovo, drugoy, kopiya: d('copy'), dolyaPeredelki: dol(r.filter(x => Number(x.deystviya?.zanovo) > 0 || Number(x.deystviya?.format) > 0).length, r.length) }
   }).filter(x => x.n > 0).sort((a, b) => b.n - a.n)
-  return { vsego: rows.length, poVidam, problemyVse, podpisi: top(rows, 'podpis_nachalo'), nachala: top(rows, 'pervye_slova'), formaty, trevoga: vysheePoroga(rows) }
+  // пометки до переписи и чем кончилась перепись (detali.pometki, detali.perepis из pishi.ts)
+  const pometki = Object.entries(POMETKI).map(([kod, imya]) => {
+    let n = 0, vzyato = 0, ne = 0
+    for (const r of rows) {
+      n += (r.detali?.pometki || []).filter((x: any) => x.kod === kod).length
+      const pp = [...(r.detali?.perepis || []), ...(r.detali?.perepisCelikom && kod === 'adresat' ? [{ kod, ...r.detali.perepisCelikom }] : [])].filter((x: any) => x.kod === kod)
+      vzyato += pp.filter((x: any) => x.vzyato).length; ne += pp.filter((x: any) => !x.vzyato).length
+    }
+    return { kod, imya, n, vzyato, nePerepisano: ne }
+  })
+  return { vsego: rows.length, poVidam, problemyVse, podpisi: top(rows, 'podpis_nachalo'), nachala: top(rows, 'pervye_slova'), formaty, trevoga: vysheePoroga(rows), pometki }
 }
 
 export async function loadKachestvo13(): Promise<Loaded13> {

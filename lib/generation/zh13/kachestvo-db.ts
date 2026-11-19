@@ -7,7 +7,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import nodemailer from 'nodemailer'
 import { errTag } from '@/lib/safe-error'
-import { PROBLEMY, type Proverka } from './proverka'
+import { PROBLEMY, povtoryOborotov, type Proverka } from './proverka'
+import { osnova } from './tekst'
 
 const NEDELYA = 7 * 24 * 3600 * 1000
 export const POROG_PODPISI = 0.15
@@ -59,7 +60,19 @@ export async function doschitatKachestvo(db: SupabaseClient, o: Q): Promise<void
     const hvataet = (rows: Stroka[], pole: 'podpis_nachalo' | 'pervye_slova') => rows.filter(r => r[pole]).length >= 5
     if (p.podpisNachalo && ((hvataet(vse, 'podpis_nachalo') && dv > POROG_PODPISI) || (hvataet(svoi, 'podpis_nachalo') && da > POROG_PODPISI))) problemy.push('povtor_podpisi')
     if (p.pervyeSlova && ((hvataet(vse, 'pervye_slova') && pv > POROG_PODPISI) || (hvataet(svoi, 'pervye_slova') && pa > POROG_PODPISI))) problemy.push('povtor_nachala')
-    const u = await db.from('zh13_kachestvo').update({ dolya_podpisi_vse: dv, dolya_podpisi_avtor: da, dolya_nachala_vse: pv, dolya_nachala_avtor: pa, problemy })
+    // повтор оборотов 4+ слов в текстах этого психолога за неделю (до 30 последних)
+    const detali = { ...p.detali }
+    const drugieId = svoi.filter(r => r.post_id !== o.postId).map(r => r.post_id).slice(0, 30)
+    if (drugieId.length) {
+      const [nash, drugie] = await Promise.all([
+        db.from('generated_posts').select('content').eq('id', o.postId).eq('user_id', o.userId).maybeSingle(),
+        db.from('generated_posts').select('content, format').in('id', drugieId).eq('user_id', o.userId),
+      ])
+      const t = osnova(String(nash.data?.content || ''), o.vid as any) || String(nash.data?.content || '')
+      const povt = povtoryOborotov(t, (drugie.data || []).map((x: any) => String(x.content || '')))
+      if (povt.length) { problemy.push('povtor_oborotov'); detali.povtorOborotov = povt.slice(0, 8) }
+    }
+    const u = await db.from('zh13_kachestvo').update({ dolya_podpisi_vse: dv, dolya_podpisi_avtor: da, dolya_nachala_vse: pv, dolya_nachala_avtor: pa, problemy, detali })
       .eq('post_id', o.postId).eq('user_id', o.userId)
     if (u.error) console.warn('zh13_kachestvo update failed:', errTag(u.error))
     await proveritTrevogu(db, vse.map(r => (r.post_id === o.postId ? { ...r, problemy } : r)))

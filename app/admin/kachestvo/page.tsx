@@ -4,10 +4,20 @@ import { adminTz, requireAdmin } from '@/lib/admin'
 import { optsFrom } from '@/lib/analytics/admin-data'
 import { loadKachestvo13 } from '@/lib/analytics/kachestvo13'
 import { PROBLEMY } from '@/lib/generation/zh13/proverka'
+import { POMETKI } from '@/lib/generation/zh13/pometki'
 import { Card, Section, Note, PageHead, Table, Td, Bar, Flag, when, num } from '@/components/admin/ui'
 
 type SP = Promise<Record<string, string | string[] | undefined>>
 const pct = (x: number) => `${String(x).replace('.', ',')}%`
+const DET: Record<string, string> = { vopros: PROBLEMY.vopros_konec, podpis: PROBLEMY.podpis_shablon, moral: PROBLEMY.moral, rod: PROBLEMY.rod, kopiya: PROBLEMY.kopiya,
+  voprosy: 'Начала вопросов', povtorOborotov: 'Повторы оборотов', pometki: 'Пометки', perepis: 'Перепись фраз', perepisCelikom: 'Перепись целиком (адресат вопросов)' }
+// детали бывают строкой, списком строк и списком пометок или переписей
+function pokazat(v: any): string {
+  const one = (x: any): string => typeof x === 'string' ? x
+    : x && 'do' in x ? `«${x.do}» → ${x.posle ? `«${x.posle}»` : 'нет'}${x.vzyato ? '' : ` (не взято${x.pochemu ? `: ${x.pochemu}` : ''})`}`
+    : x && 'fraza' in x ? `${POMETKI[x.kod] || x.kod}: «${x.fraza}»` : JSON.stringify(x)
+  return Array.isArray(v) ? (v.length ? v.map(one).join(' · ') : 'нет') : one(v)
+}
 
 export default async function KachestvoPage({ searchParams }: { searchParams: SP }) {
   await requireAdmin()
@@ -69,6 +79,16 @@ export default async function KachestvoPage({ searchParams }: { searchParams: SP
             ))}
           </div>
 
+          <Section title="Пометки и перепись фраз">
+            <Card>
+              <Table minW={480} head={[{ label: 'Пометка' }, { label: 'Нашлось', right: true }, { label: 'Переписано', right: true }, { label: 'Оставлено как было', right: true }]}>
+                {d.pometki.map(p => (
+                  <tr key={p.kod}><Td>{p.imya}</Td><Td right className="tabular-nums">{p.n}</Td><Td right className="tabular-nums">{p.vzyato}</Td><Td right className="tabular-nums">{p.nePerepisano}</Td></tr>
+                ))}
+              </Table>
+            </Card>
+          </Section>
+
           <Section title="Форматы: сколько пишут и сколько переделывают">
             <Card>
               <Table minW={560} head={[{ label: 'Формат' }, { label: 'Текстов', right: true }, { label: 'Заново', right: true }, { label: 'Другой формат', right: true }, { label: 'Скопировали', right: true }, { label: 'Переделывают', right: true }]}>
@@ -99,7 +119,7 @@ export default async function KachestvoPage({ searchParams }: { searchParams: SP
                   <pre className="whitespace-pre-wrap font-sans text-[14px] leading-6 bg-brand-soft-2 rounded-xl p-3 [overflow-wrap:anywhere]">{x.content}</pre>
                   {Object.keys(x.detali || {}).length > 0 && (
                     <div className="text-[13px] text-brand-muted space-y-0.5">
-                      {Object.entries(x.detali).map(([k, v]) => <p key={k} className="[overflow-wrap:anywhere]">{PROBLEMY[k === 'vopros' ? 'vopros_konec' : k === 'podpis' ? 'podpis_shablon' : k] || k}: {Array.isArray(v) ? v.join(' · ') : String(v)}</p>)}
+                      {Object.entries(x.detali).map(([k, v]) => <p key={k} className="[overflow-wrap:anywhere]">{DET[k] || PROBLEMY[k] || k}: {pokazat(v)}</p>)}
                     </div>
                   )}
                 </Card>

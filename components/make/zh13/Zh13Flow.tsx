@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { ChevronLeft, ChevronRight, ChevronDown, Mic, Loader2, Check, MoreHorizontal, ArrowRight } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
 import CaptionBlock from '@/components/CaptionBlock'
+import CarouselDesigner from '@/components/CarouselDesigner'
 import BottomSheet from '../BottomSheet'
 import VoiceSheet, { VOICE_MAX, VOICE_NEAR } from '../VoiceSheet'
 import { useVoiceRecorder } from '@/lib/use-voice-recorder'
@@ -24,7 +25,7 @@ import { FORMATY } from '@/lib/generation/zh13/formaty'
 type Ready = {
   status: 'ready'; postId: string; groupId: string; kod: string; vid: 'reels' | 'carousel' | 'post'; imya: string
   glavnoe: string; podpis: string; nadpis: string; kakSnyat: string[]; podoydet: { kod: string; imya: string; pochemu: string }[]
-  tema: string | null; mysl: string | null; edited?: string
+  tema: string | null; mysl: string | null; edited?: string; text?: string
 }
 type Variant = Ready | { status: 'pending'; kod: string | null } | { status: 'failed'; kod: string | null; error: string; limit?: boolean; zanovo?: boolean; fromPostId?: string }
 
@@ -186,7 +187,7 @@ export default function Zh13Flow() {
         return
       }
       if (!r.ok || typeof d?.glavnoe !== 'string') throw new Error(String(r.status))
-      const v: Ready = { status: 'ready', postId: d.postId, groupId: d.groupId, kod: d.kod, vid: d.vid, imya: d.imya, glavnoe: d.glavnoe, podpis: d.podpis || '', nadpis: d.nadpis || '', kakSnyat: d.kakSnyat || [], podoydet: d.podoydet || [], tema: d.tema, mysl: d.mysl }
+      const v: Ready = { status: 'ready', postId: d.postId, groupId: d.groupId, kod: d.kod, vid: d.vid, imya: d.imya, glavnoe: d.glavnoe, podpis: d.podpis || '', nadpis: d.nadpis || '', kakSnyat: d.kakSnyat || [], podoydet: d.podoydet || [], tema: d.tema, mysl: d.mysl, text: d.text }
       setVarianty(prev => prev.map((x, i) => (i === pos ? v : x)))
       refreshMe?.()
     } catch (e: any) {
@@ -366,11 +367,16 @@ export default function Zh13Flow() {
                 </>
               ) : (
                 <>
-                  <div className={`relative ${!expanded ? 'max-lg:max-h-[262px] max-lg:overflow-hidden' : ''}`}>
+                  <div className={`relative ${!expanded ? 'max-lg:max-h-[222px] max-lg:overflow-hidden' : ''}`}>
                     <Glavnoe text={ready.edited ?? ready.glavnoe} />
                     {!expanded && <span aria-hidden="true" className="lg:hidden absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-brand-card to-brand-card/0" />}
                   </div>
-                  {!expanded && <button type="button" onClick={() => setExpanded(true)} className="lg:hidden mt-1 h-11 text-[15px] font-semibold text-brand-text-secondary cursor-pointer">Читать целиком</button>}
+                  {/* телефон: под текстом всегда видно, что есть другие форматы (тройка ниже первого экрана) */}
+                  <div className="lg:hidden mt-1 flex items-center justify-between gap-2">
+                    {!expanded ? <button type="button" onClick={() => setExpanded(true)} className="h-11 text-[15px] font-semibold text-brand-text-secondary cursor-pointer">Читать целиком</button> : <span />}
+                    <button type="button" onClick={() => document.getElementById('zh13-eshe')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                      className="h-11 inline-flex items-center gap-1 text-[15px] font-semibold text-brand-accent cursor-pointer">Подойдет еще<ChevronDown className="w-4 h-4" /></button>
+                  </div>
                 </>
               )}
             </div>
@@ -381,10 +387,16 @@ export default function Zh13Flow() {
               </div>
             )}
 
+            {/* карусель пишет zh6: оформление слайдов то же, что на проде */}
+            {ready.vid === 'carousel' && ready.text && (
+              <div className="mt-4"><CarouselDesigner key={ready.postId} postId={ready.postId} text={ready.edited ?? ready.text}
+                onTextChange={t => setVarianty(prev => prev.map((v, i) => (i === idx && v.status === 'ready' ? { ...v, text: t } : v)))} /></div>
+            )}
+
             {/* Подойдет еще */}
-            <section className={`mt-4 rounded-[20px] bg-brand-card ${SHADOW} p-4 lg:p-5`} aria-labelledby="zh13-eshe">
+            <section className={`mt-4 rounded-[20px] bg-brand-card ${SHADOW} p-4 lg:p-5 scroll-mt-16`} aria-labelledby="zh13-eshe-h" id="zh13-eshe">
               <div className="flex items-baseline justify-between gap-2">
-                <h2 id="zh13-eshe" className="text-[17px] font-semibold text-brand-text">Подойдет еще</h2>
+                <h2 id="zh13-eshe-h" className="text-[17px] font-semibold text-brand-text">Подойдет еще</h2>
                 <p className="text-[13px] text-brand-muted text-right">{noMaterials ? END.trial.short : `Каждый вариант это 1 текст${materials ? ` · осталось ${materials.remaining}` : ''}`}</p>
               </div>
               <div className="mt-2 divide-y divide-brand-border">

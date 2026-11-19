@@ -1,5 +1,5 @@
 // zh13 (19.11, опыт ~/Downloads/psy-zh7, отчеты ZH11-ZH13-OTCHET.md): форматы, которые правда снимают живые психологи
-// (разбор 104 рилсов), и подачи каруселей и постов из каталога находок. У каждого формата: имя для психолога, как он
+// (разбор 104 рилсов), и подачи постов из каталога находок; карусель одна и пишется рецептом zh6. У каждого формата: имя для психолога, как он
 // устроен словами для писателя (дословно из опыта zh11), подачи каталога, откуда берутся 2-3 живых образца, вид ответа.
 // В базе generated_posts.format пишется старый код (reels_monolog, reels_scenka, reels_bez_slov, carousel, post), чтобы
 // «Мои тексты», карусели и обложки работали как раньше; код формата zh13 лежит в check_result.zh13.kod.
@@ -15,6 +15,7 @@ export type Format13 = {
   podachi: string[]       // подачи каталога для образцов, по порядку предпочтения
   vyvod: 'reels' | 'sessiya' | 'scenka' | 'ekran' | 'carousel' | 'post'
   bazaFormat: string      // код для generated_posts.format
+  zh6?: boolean           // пишется рецептом zh6 (simpleWrite, как на проде), а не zh13: карусели (оценки Арины 19.11)
 }
 
 // хук «Просто мысли в камеру» по кругу: три живых начала из разбора (тезис против ожидания, «Если вы...», вопрос)
@@ -37,8 +38,8 @@ export const FORMATY: Format13[] = [
   { kod: 'perevod', vid: 'reels', imya: 'Перевожу на человеческий', korotko: 'Фраза, которую говорят, и что она значит на самом деле',
     kak: 'рубрика «Перевожу с ... на человеческий»: фраза, которую говорят, и что она значит на самом деле. Несколько фраз по очереди',
     podachi: ['перевод «говорит / на самом деле»'], vyvod: 'reels', bazaFormat: 'reels_monolog' },
-  { kod: 'voprosy', vid: 'reels', imya: 'Неудобные вопросы', korotko: 'Вопросы по одному, последний с переворотом',
-    kak: 'рубрика сверху на весь ролик: «Задаю неудобные вопросы ... за вас» (кому, решаешь сам). Вопросы по одному, каждый с номером на экране, 5-7 вопросов разного устройства; последний вопрос с переворотом на себя',
+  { kod: 'voprosy', vid: 'reels', imya: 'Неудобные вопросы', korotko: 'Вопросы человеку, которые зрителю неловко задать самому',
+    kak: 'рубрика сверху на весь ролик: «Задаю неудобные вопросы ... за вас». Вместо точек конкретный человек из жизни зрителя, к которому есть что спросить (например, непрошеный советчик, родственник, который все решает за тебя, партнер, который думает только о себе), не чувство и не явление. Около 7 вопросов, каждый с номером на экране: такие, какие зритель задал бы этому человеку вслух, если бы решился. Простые, по-человечески и разного вида, не все «Почему ты...»: хотя бы три разных начала (например «Почему ты...», «Ты правда думаешь...», «Если бы...», «Когда я..., ты...»). Один голос от начала до конца: зритель спрашивает этого человека на «ты». Без ответов и без вопросов-шуток. Последний вопрос поворачивает на себя',
     podachi: ['неудобные вопросы'], vyvod: 'reels', bazaFormat: 'reels_monolog' },
   { kod: 'kommentariy', vid: 'reels', imya: 'Ответ на комментарий', korotko: 'Вопрос из комментария на плашке и ответ в камеру',
     kak: 'ответ на комментарий подписчика: вопрос из комментария на плашке сверху (придумай вопрос, который правда пишут под такими роликами), дальше ответ в камеру',
@@ -47,18 +48,9 @@ export const FORMATY: Format13[] = [
     kak: 'рилс без речи: только текст на экране по кадрам (карточки или мем). На кадре текста столько, сколько читается за 2-3 секунды, до 12 слов',
     podachi: ['текст на экране'], vyvod: 'ekran', bazaFormat: 'reels_bez_slov' },
 
-  { kod: 'k_priznaki', vid: 'carousel', imya: 'Карусель: список признаков', korotko: 'Признаки, по которым человек узнает себя',
-    kak: 'список признаков: по которым человек узнает себя', podachi: ['список признаков'], vyvod: 'carousel', bazaFormat: 'carousel' },
-  { kod: 'k_nazvanie', vid: 'carousel', imya: 'Карусель: у этого есть название', korotko: 'Описываешь знакомое и называешь это',
-    kak: '«у этого есть название»: описываешь то, что человек знает по себе, и называешь это', podachi: ['у этого есть название', 'список признаков'], vyvod: 'carousel', bazaFormat: 'carousel' },
-  { kod: 'k_mif', vid: 'carousel', imya: 'Карусель: миф и правда', korotko: 'Расхожее мнение и как на самом деле',
-    kak: 'миф и правда', podachi: ['миф и правда', 'сравнение', 'разоблачение'], vyvod: 'carousel', bazaFormat: 'carousel' },
-  { kod: 'k_tak', vid: 'carousel', imya: 'Карусель: так не стоит / так стоит', korotko: 'Как обычно делают и как можно иначе',
-    kak: '«так не стоит / так стоит»: две колонки, слева как обычно делают, справа как можно иначе', podachi: ['сравнение', 'миф и правда'], vyvod: 'carousel', bazaFormat: 'carousel' },
-  { kod: 'k_tipy', vid: 'carousel', imya: 'Карусель: типы людей', korotko: 'Несколько узнаваемых типов',
-    kak: 'типы людей: несколько узнаваемых типов', podachi: ['типы людей', 'список признаков'], vyvod: 'carousel', bazaFormat: 'carousel' },
-  { kod: 'k_komiks', vid: 'carousel', imya: 'Карусель: комикс', korotko: 'Кадры с репликами героев',
-    kak: 'комикс текстом: кадры с репликами героев', podachi: ['комикс', 'сценка'], vyvod: 'carousel', bazaFormat: 'carousel' },
+  // карусели zh13 слабые во всех вариантах (оценки 19.11): одна «Карусель», пишется рецептом zh6 как на проде
+  { kod: 'karusel', vid: 'carousel', imya: 'Карусель', korotko: 'Слайды по одной мысли, пишутся как сейчас',
+    kak: '', podachi: [], vyvod: 'carousel', bazaFormat: 'carousel', zh6: true },
 
   { kod: 'p_priznanie', vid: 'post', imya: 'Пост: признание', korotko: 'Честно о том, что психологу неловко сказать вслух',
     kak: 'признание: честно говоришь то, что психологу неловко сказать вслух (о профессии или о своем взгляде, без фактов своей жизни)', podachi: ['признание', 'парадокс'], vyvod: 'post', bazaFormat: 'post' },
@@ -79,8 +71,8 @@ export const KODY = FORMATY.map(f => f.kod)
 
 // «Подбери сам»: по кругу, как в опыте zh11 (на 16 текстов 10 рилсов, 3 карусели, 3 поста); два последних формата
 // психолога пропускаются
-export const KRUG_AUTO = ['mysl', 'sessiya', 'k_priznaki', 'scenka', 'perevod', 'p_paradoks', 'mysl', 'voprosy', 'k_nazvanie',
-  'kommentariy', 'sessiya', 'p_priznanie', 'ekran', 'mysl', 'k_mif', 'perevod', 'p_razoblachenie', 'scenka']
+export const KRUG_AUTO = ['mysl', 'sessiya', 'karusel', 'scenka', 'perevod', 'p_paradoks', 'mysl', 'voprosy', 'karusel',
+  'kommentariy', 'sessiya', 'p_priznanie', 'ekran', 'mysl', 'karusel', 'perevod', 'p_razoblachenie', 'scenka']
 export function vybratAuto(n: number, poslednie: string[]): string {
   for (let i = 0; i < KRUG_AUTO.length; i++) {
     const k = KRUG_AUTO[(n + i) % KRUG_AUTO.length]
@@ -91,7 +83,7 @@ export function vybratAuto(n: number, poslednie: string[]): string {
 
 // запасная тройка «Подойдет еще», если модель не дала своей: соседи по виду
 export const ZAPAS: Record<string, string[]> = {
-  reels: ['sessiya', 'k_priznaki', 'perevod', 'mysl', 'scenka'],
-  carousel: ['mysl', 'p_paradoks', 'sessiya', 'k_priznaki'],
-  post: ['mysl', 'k_priznaki', 'sessiya', 'p_paradoks'],
+  reels: ['sessiya', 'karusel', 'perevod', 'mysl', 'scenka'],
+  carousel: ['mysl', 'p_paradoks', 'sessiya', 'karusel'],
+  post: ['mysl', 'karusel', 'sessiya', 'p_paradoks'],
 }
