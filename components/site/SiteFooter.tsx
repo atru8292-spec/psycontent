@@ -1,5 +1,6 @@
 // Реквизиты и ссылки на оферту и политику: на всех страницах сайта (ЮKassa проверяет ИНН на каждой).
-// SiteFooter: подвал на шоколаде для лендинга, /offer и /privacy. LegalLine: короткая строка для кабинета и страниц входа.
+// SiteFooter: подвал на шоколаде для лендинга, /offer и /privacy. LegalLine: короткая строка для страниц входа и оплаты.
+// DocsLine: только ссылки (оферта, политика, cookie) без реквизитов, внизу «Настроек» в кабинете (19.11).
 // На пяти экранах знакомства подвала нет (решение Арины 14.11): они на весь экран телефона с кнопкой внизу.
 // Данные только из lib/rekvizity.ts. Ссылки здесь настоящие ссылки на страницы, поэтому с подчеркиванием по наведению.
 import Image from 'next/image'
@@ -56,5 +57,16 @@ export function LegalLine({ className = '' }: { className?: string }) {
         <CookieSettingsLink className={LINK} />
       </p>
     </div>
+  )
+}
+
+// Только ссылки на документы, без ФИО, ИНН и телефона: внизу «Настроек» (в кабинете реквизиты лишние, решение 19.11)
+export function DocsLine({ className = '' }: { className?: string }) {
+  return (
+    <p className={`flex flex-wrap gap-x-4 gap-y-1 text-[13px] leading-[1.5] text-brand-muted ${className}`}>
+      <Link href={OFFER_PATH} className={LINK}>Оферта</Link>
+      <Link href={PRIVACY_PATH} className={LINK}>Политика конфиденциальности</Link>
+      <CookieSettingsLink className={LINK} />
+    </p>
   )
 }

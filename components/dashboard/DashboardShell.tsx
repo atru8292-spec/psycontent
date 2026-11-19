@@ -172,9 +172,10 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const focus = focusCount > 0
   const slim = collapsed || focus
   const onPay = pathname.startsWith('/dashboard/oplata')
-  // Реквизиты продавца в кабинете только в «Настройках» и «Помощи» (лендинг и /offer их показывают всем)
-  // реквизиты продавца на всех экранах кабинета, как раньше: ЮKassa проверяет ИНН на страницах (ревью 17.11)
-  const legal = true
+  // Реквизиты продавца (ФИО, ИНН, телефон) в кабинете только на странице оплаты и ее итоге (решение Арины 19.11:
+  // внутри сервиса они лишние). Всем они видны на лендинге, /offer, /privacy, на входе и на 404. Ссылки на оферту,
+  // политику и cookie без реквизитов одной строкой внизу «Настроек» (DocsLine)
+  const legal = onPay
   const name = (profile?.full_name || '').trim()
   // со старым мозгом «Главная» жива: знак ведет туда; с новым на «Написать»
   const homeHref = newMenu ? '/dashboard/make' : '/dashboard'
@@ -249,8 +250,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           {/* me.paidUntil: до какого числа оплачен тариф (ISO или null), для строки «до 12 декабря» на «Написать» */}
           <DashboardMeContext.Provider value={ctx}>{children}</DashboardMeContext.Provider>
         </ShellFocusContext.Provider>
-        {/* на телефоне на «Написать» снизу липкая кнопка или панель (~80 px): реквизиты не должны уходить под нее */}
-        {legal && <LegalLine className={`mx-auto w-full max-w-5xl px-4 pt-10 md:px-6 lg:px-12 lg:pb-6 ${pathname.startsWith('/dashboard/make') ? 'max-lg:pb-28' : 'pb-6'}`} />}
+        {legal && <LegalLine className="mx-auto w-full max-w-5xl px-4 pt-10 pb-6 md:px-6 lg:px-12" />}
       </main>
 
       {/* ─── Нижнее меню (телефон): 4 пункта с подписями, высота 56 px (на нее опираются липкие панели MakeFlow и FormatPane). Пока поле в фокусе, уезжает вниз (z: меню 40, листы 50, тост 60) ─── */}
