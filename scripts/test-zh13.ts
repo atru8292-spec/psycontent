@@ -15,7 +15,9 @@ import { pometit, rubrikaVoprosov } from '../lib/generation/zh13/pometki'
 import { TEKSTY_PRAVOK, paryDlya, gruppaPar } from '../lib/generation/zh13/pravki'
 import { progonSmesi } from './zh13-smes'
 import { dostupen, tyazhelayaTema } from '../lib/generation/zh13/smes'
-import { scenaDlya, scenaBlok, SCENY } from '../lib/generation/zh13/sceny'
+import { scenaDlya, scenaBlok, SCENY, svestiRepliki, replikiTochno, strokaRepliki } from '../lib/generation/zh13/sceny'
+import { pometitObrashcheniya } from '../lib/generation/zh13/pometki'
+import { podpisPerevertysh, povtorSoveta, moralKonca } from '../lib/generation/zh13/proverka'
 
 let n = 0
 const ok = (name: string, fn: () => void) => { fn(); n++; console.log('ok', name) }
@@ -239,6 +241,50 @@ ok('факты и сцены: формат на фактах без мысли �
   assert.ok(!/рескрипт/i.test(scenaBlok(ss)), 'название техники в промпте')
   assert.ok(SCENY.every(x => x.vid === 'фильм' || x.vid === 'сериал'))
   assert.ok(!SCENY.filter(x => !x.proverena).some(x => scenaDlya(x.temy[0], null)?.id === x.id))
+})
+
+ok('правки 19.11 после zh14: обращение, перевертыш, тело, рвано, реплики сцены, совет с числом, мораль в конце', () => {
+  // 1. «Слушай,» один раз живое; два раза в тексте или подряд с прошлым текстом метится
+  assert.equal(pometitObrashcheniya('Слушай, тут главное не мешать.', 'Подпись спокойная.').length, 0)
+  const ob = pometitObrashcheniya('Слушай, я бы не стала. И я бы сказала: слушай, тебе нужна помощь.', '')
+  assert.deepEqual(ob.map(x => x.fraza), ['И я бы сказала: слушай, тебе нужна помощь.'])
+  assert.equal(pometitObrashcheniya('Слушай, я бы не стала.', '', 'Слушай, тут главное не мешать.').length, 1)
+  assert.equal(pometitObrashcheniya('Знаешь, я бы не стала.', '', 'Слушай, тут главное не мешать.').length, 0)
+  // 2. подпись-перевертыш
+  assert.ok(podpisPerevertysh('Звонок на три минуты. Внутренний долг на всю жизнь.'))
+  assert.ok(podpisPerevertysh('Диплом остается. Обязанность всю жизнь работать по нему в комплект не входит.'))
+  assert.ok(!podpisPerevertysh('Чужую грубость легко принять за честную оценку. Особенно если она звучит знакомо.'))
+  assert.ok(!podpisPerevertysh('Зеленая кружка понравилась сразу. Остальные двадцать минут я искала, что с ней не так.'))
+  // 3. тело: живот, плечи, челюсть, дыхание; совет «сделай вдох» не тело
+  for (const t of ['Второй хочет ответить, но живот сжимается.', 'Плечи уже напряжены.', 'Сжимаю челюсть и молчу.', 'Дыхание сбивается, когда он входит.'])
+    assert.ok(pometit(t, 'mysl').some(x => x.kod === 'telo'), t)
+  assert.ok(!pometit('Сделай медленный вдох и выдох, это помогает.', 'mysl').some(x => x.kod === 'telo'))
+  // 4. рвано: 3+ фраз до 4 слов подряд; заголовок раздела и диалог нет
+  assert.ok(pometit('Вот это я бы убрала. В тридцать два. Пошла учиться. Не в двадцать, да. Но пошла.', 'sebe20').some(x => x.kod === 'rvano' && x.fraza === 'В тридцать два. Пошла учиться. Не в двадцать, да. Но пошла.'))
+  assert.ok(!pometit('Первая работа. Оба заполнили документ. Первый уточняет, переделывает и потом отдыхает.', 'dve_zhizni').some(x => x.kod === 'rvano'))
+  assert.ok(!pometit('Клиентка: Ну, есть ли кто-то. Сердечки, сообщения. Ничего не нашла.', 'sessiya').some(x => x.kod === 'rvano'))
+  // 5. реплики сцены: у каждой кто говорит; склеенные раскладываются, переписанные заменяются записью
+  assert.ok(SCENY.filter(x => x.proverena).every(x => x.repliki.every(r => r.kto && r.tekst)))
+  const lb = SCENY.find(x => x.id === 'ledi-berd-summa')!
+  assert.ok(scenaBlok(lb).includes('Мама: «Я тебя очень люблю, дочка.»') && scenaBlok(lb).includes('Дочь: «Но нравлюсь ли я тебе?»'))
+  const skleeno = '«Назови мне сумму, в которую я вам двоим обошлась.»\n«Я тебя очень люблю, дочка. Но нравлюсь ли я тебе?»'
+  assert.ok(!replikiTochno(skleeno, lb))
+  const sv = svestiRepliki(skleeno, lb)
+  assert.equal(sv.text, ['Дочь: «Назови мне сумму, в которую я вам двоим обошлась.»', 'Мама: «Я тебя очень люблю, дочка.»', 'Дочь: «Но нравлюсь ли я тебе?»'].join('\n'))
+  assert.ok(sv.ok && replikiTochno(sv.text, lb))
+  assert.equal(svestiRepliki('Мама: «Я очень тебя люблю, доченька.»', lb).text, strokaRepliki(lb.repliki[2]))
+  assert.equal(svestiRepliki('Мама: «Купи себе новое платье на выпускной.»', lb).text, '')
+  // слова зрителя в кавычках внутри речи психолога и отдельной строкой не трогаются
+  const st = SCENY.find(x => x.id === 'stazher-sobesedovanie')!
+  const fl = 'Психолог: Знакомое: «Столько лет учебы коту под хвост»?\n«Поздно уже что-то менять»\nБен: «Я хочу узнать что-то новое, помочь, чем могу.»'
+  assert.equal(svestiRepliki(fl, st).text, fl); assert.ok(replikiTochno(fl, st))
+  // 6. совет с тем же числом подряд
+  assert.deepEqual(povtorSoveta('попробуй выйти на десять минут до конца списка', 'отложить телефон на десять минут'), ['десять минут'])
+  assert.deepEqual(povtorSoveta('попробуй выйти на пять минут', 'отложить телефон на десять минут'), [])
+  // 7. мораль в конце: место для переписи вместе с «не в том»
+  const dz = 'Попробуй начать с недорогой покупки.\n\nЗадача не в том, чтобы никогда не жалеть. А в том, чтобы сожаление можно было пережить без наказания себя.'
+  assert.equal(moralKonca(formatPo('dve_zhizni')!, dz, dz, null), 'Задача не в том, чтобы никогда не жалеть. А в том, чтобы сожаление можно было пережить без наказания себя.')
+  assert.equal(moralKonca(formatPo('mysl')!, 'Тревога не враг. Попросить о помощи можно всегда.', 'Тревога не враг. Попросить о помощи можно всегда.', 'попросить о помощи можно всегда'), null)
 })
 
 ok('флаг: GENERATOR=zh13 и список почт', () => {

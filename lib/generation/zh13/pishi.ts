@@ -14,13 +14,13 @@ import { prompt13, type Avtor13, type Obrazec13 } from './prompt'
 import { razobrat, type Rezultat13 } from './razbor'
 import { proverit, type Proverka } from './proverka'
 import { taZheTema, pohozhe, shodstvo, slova } from './tekst'
-import { pometit, rubrikaVoprosov, type Pometka } from './pometki'
+import { pometit, pometitObrashcheniya, rubrikaVoprosov, type Pometka } from './pometki'
 import { perepisatFrazy, perepisatPodpis, type Perepis } from './perepis'
-import { podpisMoral, podpisVopros } from './proverka'
+import { podpisMoral, podpisVopros, podpisPerevertysh, moralKonca } from './proverka'
 import { HUK_TEKST, type Cel, type Huk } from './formaty'
 import { vybratFormat, vybratHuk, dostupen, type Proshlyy, type Uslovie, type Vybor } from './smes'
 import { ranzhirovat, type Rang } from './podbor'
-import { scenaDlya, scenaBlok } from './sceny'
+import { scenaDlya, scenaBlok, svestiRepliki, replikiTochno, type SverkaScen } from './sceny'
 
 // ошибка с кодом для экрана: формат требует фактов о себе или проверенной сцены, а их нет
 export class KodOshibki extends Error { constructor(public kod: 'net_faktov' | 'net_sceny') { super(kod) } }
@@ -45,6 +45,7 @@ export type Meta13 = {
   pometki: Pometka[]; perepis: Perepis[]; perepisCelikom?: { do: string; posle: string; vzyato: boolean }
   dvizhok?: 'zh6'; zh4?: any; pary?: string[]
   cel?: Cel; hukVid?: Huk; rang?: Rang[]; vyborPochemu?: string; scena?: string | null
+  scenaIspravleno?: SverkaScen['ispravleno']
 }
 export type Itog13 = { f: Format13; rez: Rezultat13; meta: Meta13; proverka: Proverka; syroe: string; groupId: string | null; avtor: Avtor13 }
 
@@ -166,6 +167,8 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   const scena = scenaDlya(tema, mysl, rows.slice(0, 5).map(r => r.z.scena).filter(Boolean))
   const usl: Uslovie = { fakty: !!fakty, scena: !!scena, tema: tema || mysl || '' }
   const istoriyaSmesi: Proshlyy[] = rows.map(r => ({ kod: r.z.kod, cel: r.z.cel, huk: r.z.hukVid }))
+  // прошлый текст психолога: повтор обращения в начале фразы и совета с числом в двух текстах подряд
+  const proshlyy = rows[0] ? `${rows[0].z.glavnoe || ''}\n${rows[0].z.podpis || ''}`.trim() : ''
 
   // формат: выбран психологом (смесь не мешает) или «Подбери сам»: ранжирование моделью + смесь целей (smes.ts)
   let rang: Rang[] = []
@@ -199,9 +202,9 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   // подпись: мораль переписываем всегда; вопрос подписчикам у карусели zh6 (vopros=true) и как запасной повод у остальных
   const podpisBezMorali = async (rez: Rezultat13, a: Avtor13, _mysl: string | null, _povod: string | null, voprosToje: boolean): Promise<Perepis | null> => {
     if (!rez.podpis) return null
-    const moral = podpisMoral(rez.podpis), vopros = voprosToje && podpisVopros(rez.podpis)
-    if (!moral && !vopros) return null
-    const x = await perepisatPodpis({ podpis: rez.podpis, glavnoe: rez.glavnoe, prichina: moral ? 'moral' : 'vopros', obrazcy: PODPISI, mat: a.mat !== 'net', deadline, userId: uchet, knownNames, moral: podpisMoral, vopros: podpisVopros })
+    const moral = podpisMoral(rez.podpis), perev = podpisPerevertysh(rez.podpis), vopros = voprosToje && podpisVopros(rez.podpis)
+    if (!moral && !perev && !vopros) return null
+    const x = await perepisatPodpis({ podpis: rez.podpis, glavnoe: rez.glavnoe, prichina: moral ? 'moral' : perev ? 'perevertysh' : 'vopros', obrazcy: PODPISI, mat: a.mat !== 'net', deadline, userId: uchet, knownNames, moral: podpisMoral, vopros: podpisVopros })
     if (x.vzyato) { rez.tekst = rez.tekst.replace(rez.podpis, x.posle); rez.podpis = x.posle }
     return x
   }
@@ -219,7 +222,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     const rez = razobrat(syroe, f)
     podoydetIzRanga(rez)
     const pp = await podpisBezMorali(rez, avtor, mysl, null, true)
-    const proverka = proverit({ f, syroe, tekst: rez.tekst, glavnoe: rez.glavnoe, podpis: rez.podpis, obrazcy: [], kusok: '', opora: '', poslednyayaOpora: null, auditoriyaZhenshiny: /женщин/i.test(avtor.gender || ''), mysl })
+    const proverka = proverit({ f, syroe, tekst: rez.tekst, glavnoe: rez.glavnoe, podpis: rez.podpis, obrazcy: [], kusok: '', opora: '', poslednyayaOpora: null, auditoriyaZhenshiny: /женщин/i.test(avtor.gender || ''), mysl, proshlyy })
     if (pp) proverka.detali.perepis = [pp]
     const meta: Meta13 = {
       kod: f.kod, vid: f.vid, rezhim, tema, mysl, situaciya: null, opora: '', huk: null, hukVid: 'net', cel: vybor.cel, rang, vyborPochemu: vybor.pochemu, obrazcy: [], kusok: '', dvizhok: 'zh6', zh4: (r as any).zh4 || null,
@@ -248,6 +251,15 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   let syroe = await pisat(p.user, [['medium', 60000], ['low', 30000]])
   let rez = razobrat(syroe, f)
   podoydetIzRanga(rez)
+  // реплики сцены строго по записи: склеенные раскладываются по строкам с тем, кто говорит, чужие убираются
+  const scenaF = f.trebuet === 'scena' && scena ? scena : null
+  const svesti = (r: Rezultat13) => {
+    if (!scenaF) return [] as SverkaScen['ispravleno']
+    const g = svestiRepliki(r.glavnoe, scenaF)
+    if (g.ispravleno.length) { r.tekst = svestiRepliki(r.tekst, scenaF).text; r.glavnoe = g.text }
+    return g.ispravleno
+  }
+  let scenaIspravleno = svesti(rez)
 
   // пометки только явного (pometki.ts); «неудобные вопросы» не человеку переписываем целиком один раз, если есть время
   const pometki = pometit(rez.glavnoe, f.kod, rez.nadpis)
@@ -260,31 +272,41 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
       const novyy = rubrikaVoprosov(`${rez2.nadpis}\n${rez2.glavnoe}`)
       const ok = !!rez2.glavnoe.trim() && !pometit(rez2.glavnoe, f.kod, rez2.nadpis).some(x => x.kod === 'adresat')
       perepisCelikom = { do: adresat.fraza, posle: novyy || '', vzyato: ok }
-      if (ok) { syroe = raw2; rez = rez2 }
+      if (ok) { syroe = raw2; rez = rez2; podoydetIzRanga(rez); scenaIspravleno = svesti(rez) }
     } catch { perepisCelikom = { do: adresat.fraza, posle: '', vzyato: false } }
   }
   // остальные пометки: перепись только помеченной фразы, текст вокруг не трогаем
-  const pometki2 = perepisCelikom?.vzyato ? pometit(rez.glavnoe, f.kod, rez.nadpis) : pometki
-  const pr = await perepisatFrazy({ text: rez.glavnoe, kod: f.kod, nadpis: rez.nadpis, pometki: pometki2, kusok: kusok.tekst, mat: avtor.mat !== 'net', deadline, userId: uchet, knownNames })
-  for (const x of pr.perepis) if (x.vzyato) { rez.tekst = rez.tekst.replace(x.do, x.posle); rez.glavnoe = rez.glavnoe.replace(x.do, x.posle) }
+  // плюс повтор обращения («Слушай,») в тексте или подряд с прошлым текстом (место может быть в подписи) и мораль
+  // в конце текста: переписываются так же, одной фразой
+  const pometki2 = [...(perepisCelikom?.vzyato ? pometit(rez.glavnoe, f.kod, rez.nadpis) : pometki), ...pometitObrashcheniya(rez.glavnoe, rez.podpis, proshlyy)]
+  const mk = moralKonca(f, rez.tekst, rez.glavnoe, mysl)
+  if (mk) pometki2.push({ kod: 'moral_konec', fraza: mk })
+  for (const x of pometki2) if (!pometki.some(y => y.kod === x.kod && y.fraza === x.fraza)) pometki.push(x)
+  const pr = await perepisatFrazy({ text: `${rez.glavnoe}\n\n${rez.podpis}`, kod: f.kod, nadpis: rez.nadpis, pometki: pometki2, kusok: kusok.tekst, mat: avtor.mat !== 'net', deadline, userId: uchet, knownNames })
+  for (const x of pr.perepis) if (x.vzyato) { rez.tekst = rez.tekst.replace(x.do, x.posle); rez.glavnoe = rez.glavnoe.replace(x.do, x.posle); rez.podpis = rez.podpis.replace(x.do, x.posle) }
   // подпись с моралью: переписываем только подпись (своя мысль в конце текста моралью не считается, подпись проверяем всегда)
   const pp = await podpisBezMorali(rez, avtor, mysl, f.kod === 'voprosy' ? null : 'vopros', false)
   if (pp) pr.perepis.push(pp)
 
   const proverka = proverit({
     f, syroe, tekst: rez.tekst, glavnoe: rez.glavnoe, podpis: rez.podpis, obrazcy: obrazcy.map(x => x.tekst), kusok: kusok.tekst,
-    opora, poslednyayaOpora: posledOpory[0] || null, auditoriyaZhenshiny: /женщин/i.test(avtor.gender || ''), mysl,
+    opora, poslednyayaOpora: posledOpory[0] || null, auditoriyaZhenshiny: /женщин/i.test(avtor.gender || ''), mysl, proshlyy,
   })
+  if (scenaF) {
+    if (scenaIspravleno.length) proverka.detali.scena = scenaIspravleno
+    if (!replikiTochno(rez.glavnoe, scenaF)) proverka.problemy.push('scena_repliki')
+  }
   // пометки до переписи и сама перепись видны в проверке качества
   proverka.detali.pometki = pometki
   if (pr.perepis.length) proverka.detali.perepis = pr.perepis
   if (perepisCelikom) proverka.detali.perepisCelikom = perepisCelikom
-  for (const x of pometit(rez.glavnoe, f.kod, rez.nadpis)) if (!proverka.problemy.includes(`pometka_${x.kod}`)) proverka.problemy.push(`pometka_${x.kod}`)
+  for (const x of [...pometit(rez.glavnoe, f.kod, rez.nadpis), ...pometitObrashcheniya(rez.glavnoe, rez.podpis, proshlyy)]) if (!proverka.problemy.includes(`pometka_${x.kod}`)) proverka.problemy.push(`pometka_${x.kod}`)
   const meta: Meta13 = {
     kod: f.kod, vid: f.vid, rezhim, tema, mysl, situaciya, opora, huk: huk || null, obrazcy: obrazcy.map(x => x.id), kusok: kusok.id,
     kakSnyat: rez.kakSnyat, podoydet: rez.podoydet, nadpis: rez.nadpis, podpis: rez.podpis, glavnoe: rez.glavnoe, ms: Date.now() - t0, popytki,
     pometki, perepis: pr.perepis, ...(perepisCelikom ? { perepisCelikom } : {}), pary: p.pary,
     cel: vybor.cel, hukVid: vybor.huk, rang, vyborPochemu: vybor.pochemu, scena: f.trebuet === 'scena' ? scena?.id || null : null,
+    ...(scenaIspravleno.length ? { scenaIspravleno } : {}),
   }
   return { f, rez, meta, proverka, syroe, groupId: origin?.group_id || null, avtor }
 }

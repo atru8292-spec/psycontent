@@ -2,11 +2,55 @@
 // в ~/Downloads/psy-zh7). Результат пишется в zh13_kachestvo рядом с текстом (lib/generation/zh13/kachestvo-db.ts),
 // доли одинаковых начал за 7 дней считаются там же по базе.
 import dannye from './dannye.json'
-import { ritm, blizost, osnova, frazy, aforizm, obshieCepochki, slova, nGrams, pohozhe, shodstvo, type Ritm } from './tekst'
+import { ritm, blizost, osnova, frazy, aforizm, obshieCepochki, slova, nGrams, pohozhe, shodstvo, estGlagol, type Ritm } from './tekst'
 
 // подпись с моралью (любая фраза подписи похожа на вывод) или с вопросом подписчикам в конце
 export const podpisMoral = (p: string) => frazy(p).some(aforizm)
 export const podpisVopros = (p: string) => /\?\s*[»"]?\s*$/.test(p.trim())
+// подпись-перевертыш (правка Арины 19.11: «Звонок на три минуты. Внутренний долг на всю жизнь», «Диплом остается.
+// Обязанность ... в комплект не входит»): 2-3 короткие фразы с противопоставлением. Противопоставление: «не X, а Y»,
+// коротко и навсегда, остается и не входит, или две фразы без глагола подряд (афоризм из двух существительных).
+const KONTRAST = [
+  /(?<!\p{L})не\s+(?:\p{L}+\s+){0,4}?\p{L}+,?\s+а\s+\p{L}/iu,
+  /,\s*а\s+не\s+\p{L}/iu,
+  /в\s+комплект\s+не\s+входит/iu,
+  /(?<!\p{L})(остает\p{L}*|остал\p{L}*|остан\p{L}*)(?!\p{L})[\s\S]*(?<!\p{L})(не\s+входит|уходит|не\s+остает\p{L}*|исчеза\p{L}*|не\s+обязан\p{L}*)/iu,
+]
+const DOLGO = /(?<!\p{L})(на всю жизнь|навсегда|всю жизнь|на годы|годами|на десятилетия|навечно)(?!\p{L})/iu
+const KOROTKO = /(?<!\p{L})(минут\p{L}*|секунд\p{L}*|на час|один раз|на день|на вечер|мгновени\p{L}*)(?!\p{L})/iu
+export const kontrast = (t: string) => KONTRAST.some(r => r.test(t)) || (DOLGO.test(t) && KOROTKO.test(t))
+export function podpisPerevertysh(p: string): boolean {
+  const F = frazy(p)
+  if (F.length < 2 || F.length > 3 || slova(p).length > 25 || F.some(f => slova(f).length > 12)) return false
+  if (kontrast(p)) return true
+  return F.filter(f => !estGlagol(f) && slova(f).length <= 6).length >= 2
+}
+// советы с числом («отложи телефон на десять минут»): одинаковое число со временем в двух текстах психолога подряд
+const CHISLO = String.raw`(?:\d+|одн\p{L}*|две|два|двух|тр[иеи]\p{L}*|четыр\p{L}*|пят\p{L}*|шест\p{L}*|сем\p{L}*|восем\p{L}*|девят\p{L}*|десят\p{L}*|пятнадцат\p{L}*|двадцат\p{L}*|тридцат\p{L}*|сорок\p{L}*|полчаса|пару)`
+const SOVET = new RegExp(String.raw`(?<!\p{L})(?:на\s+)?${CHISLO}\s+(?:минут\p{L}*|секунд\p{L}*|час\p{L}*|дн\p{L}*|недел\p{L}*|раз\p{L}*)(?!\p{L})`, 'giu')
+export const sovetySChislom = (t: string) => [...new Set([...String(t || '').matchAll(SOVET)].map(m => slova(m[0]).filter(w => w !== 'на').join(' ')))]
+export function povtorSoveta(tekst: string, proshlyy: string): string[] {
+  const bylo = new Set(sovetySChislom(proshlyy))
+  return sovetySChislom(tekst).filter(x => bylo.has(x))
+}
+
+// мораль в конце текста (кроме сценки и сессии, там конец это реплика); повтор своей мысли моралью не считаем.
+// Возвращает место для переписи: последнюю фразу, а если она начинается с «А»/«Но» после «не в том» (или вообще после
+// «не ...», как «Задача не в том... А в том...»), то вместе с предыдущей
+export function moralKonca(f: Format13, tekst: string, glavnoe: string, mysl?: string | null): string | null {
+  if (['sessiya', 'scenka'].includes(f.vyvod)) return null
+  const osn = osnova(tekst, f.vid) || glavnoe
+  const F = frazy(osn)
+  const konec = F.slice(-1)[0] || ''
+  if (!konec || !aforizm(konec)) return null
+  if (mysl && (pohozhe(konec, mysl) || shodstvo(konec, mysl) > 0.4 || shodstvo(mysl, konec) > 0.4)) return null
+  const pred = F.slice(-2)[0]
+  if (F.length >= 2 && /^[«"\s]*(а|но)\s/iu.test(konec) && /(?<!\p{L})не\s/iu.test(pred)) {
+    const i0 = glavnoe.lastIndexOf(pred), i1 = glavnoe.lastIndexOf(konec)
+    if (i0 >= 0 && i1 > i0) return glavnoe.slice(i0, i1 + konec.length)
+  }
+  return glavnoe.includes(konec) ? konec : null
+}
 import type { Format13 } from './formaty'
 import { POMETKI } from './pometki'
 import { TEKSTY_PRAVOK } from './pravki'
@@ -26,6 +70,9 @@ export const PROBLEMY: Record<string, string> = {
   kopiya: 'Списано с образца (6 слов подряд)',
   ritm_daleko: 'Ритм далеко от живых',
   voprosy_odinakovye: 'Неудобные вопросы: меньше трех разных начал',
+  perevertysh: 'Подпись-перевертыш (короткие фразы с противопоставлением)',
+  povtor_soveta: 'Совет с тем же числом, что в прошлом тексте («на десять минут»)',
+  scena_repliki: 'Реплики сцены не совпадают с записью',
   povtor_oborotov: 'Повтор оборотов (4+ слова) в текстах психолога за неделю',
   // пометки, оставшиеся после переписи (pometki.ts)
   ...Object.fromEntries(Object.entries(POMETKI).map(([k, v]) => [`pometka_${k}`, `Пометка: ${v}`])),
@@ -52,6 +99,7 @@ export function proverit(o: {
   f: Format13; syroe: string; tekst: string; glavnoe: string; podpis: string
   obrazcy: string[]; kusok: string; opora: string; poslednyayaOpora: string | null; auditoriyaZhenshiny: boolean
   mysl?: string | null
+  proshlyy?: string        // прошлый текст психолога (основной текст и подпись): повтор совета с числом
 }): Proverka {
   const { f } = o
   const osn = osnova(o.tekst, f.vid) || o.glavnoe
@@ -66,6 +114,11 @@ export function proverit(o: {
   const moralKonec = !['sessiya', 'scenka'].includes(f.vyvod) && aforizm(konec) && !povtorMysli
   const moralPodpis = frazy(o.podpis).some(aforizm)
   if (moralKonec || moralPodpis) { problemy.push('moral'); detali.moral = moralPodpis ? o.podpis : konec }
+  if (o.podpis && podpisPerevertysh(o.podpis)) { problemy.push('perevertysh'); detali.perevertysh = o.podpis }
+  if (o.proshlyy) {
+    const ps = povtorSoveta(`${osn}\n${o.podpis}`, o.proshlyy)
+    if (ps.length) { problemy.push('povtor_soveta'); detali.povtorSoveta = ps }
+  }
 
   // вопрос подписчикам: подпись с вопросом; конец текста вопросом, кроме неудобных вопросов и диалогов
   const voprosPodpis = /\?\s*$/.test(o.podpis)
