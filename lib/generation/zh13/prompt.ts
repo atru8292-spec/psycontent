@@ -20,7 +20,7 @@ export type Avtor13 = {
   gender: string | null
   format: string[]
 }
-export type Obrazec13 = { id: string; format: 'reels' | 'carousel' | 'post'; podacha: string; ton: string; mat: boolean; tekst: string; istochnik?: string }
+export type Obrazec13 = { id: string; format: 'reels' | 'carousel' | 'post'; podacha: string; ton: string; mat: boolean; tekst: string; istochnik?: string; kody?: string[]; huk?: string; tema?: string; metod?: boolean }
 export type Zadanie13 = {
   f: Format13
   tema: string | null
@@ -31,6 +31,8 @@ export type Zadanie13 = {
   obrazcy: Obrazec13[]
   kusok: string
   seedPar?: number
+  fakty?: string | null   // факты о себе (своя мысль или банк историй) для «Своей истории» и «Себе в 20 лет»
+  scena?: string | null   // проверенная сцена из фильма (sceny.ts scenaBlok)
 }
 
 const kto = (a: Avtor13) => [
@@ -85,8 +87,12 @@ export function prompt13(a: Avtor13, z: Zadanie13): { system: string; user: stri
     const shapka = x.istochnik === 'razbor104' || x.id.startsWith('r104:') ? 'разбор живого рилса: как он устроен и что в нем говорят' : (x.format === 'reels' ? 'рилс' : x.format === 'carousel' ? 'карусель' : 'пост')
     return `<Образец ${i + 1} (${shapka})>\n${x.tekst}\n</Образец ${i + 1}>`
   }).join('\n\n')
-  const kak = f.kak.replace('{huk}', z.huk)
-  const chto = f.vid === 'reels' ? `рилс: ${kak}` : f.vid === 'carousel' ? `карусель: ${kak}` : `пост: ${kak}`
+  // начало по виду хука: в форматах с {huk} на своем месте, у остальных отдельной фразой
+  // начало по виду хука только там, где у формата есть {huk}: у сценок, фильмов и надписей начало задает сам формат
+  const kak = f.kak.replace('{huk}', z.huk).replace(/\s*\.\s*$/, '')
+  // длина по виду (задача 19.11): текст на экране около 11 с, сценки около минуты, монологи около полутора минут
+  const dlina = !f.dlina ? '' : f.vyvod === 'ekran' ? ` Длина: около ${f.dlina} секунд` : ` Длина: около ${f.dlina} секунд, это примерно ${Math.round(f.dlina * 2.2)} слов речи`
+  const chto = f.vid === 'reels' ? `рилс: ${kak}.${dlina}` : f.vid === 'carousel' ? `карусель: ${kak}` : `пост: ${kak}`
   const chistTema = (s: string) => s.replace(/[«»]/g, '')
   const zadacha = z.mysl
     ? [
@@ -114,6 +120,8 @@ export function prompt13(a: Avtor13, z: Zadanie13): { system: string; user: stri
     `Вот как делают такие ${mn} живые психологи-блогеры.`,
     teksty,
     zadacha,
+    ...(z.fakty ? [`Факты о тебе (пиши только из них, ничего не добавляй и не выдумывай):\n${z.fakty}`] : []),
+    ...(z.scena ? [z.scena] : []),
     psiholog,
     [ritm, podpisi, podozhdi, rod].filter(Boolean).join('\n\n'),
     // понятность (ZH13-PRAVKI-ARINY.md): одна строка дословно и 3-4 пары «было / живо» под формат

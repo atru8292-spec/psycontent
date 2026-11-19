@@ -86,7 +86,9 @@ export function proverit(o: {
   }
 
   // копирование образцов, живого куска и примеров из правок Арины (модель может начать копировать ее «живо»)
-  const kopii = [...new Set([...o.obrazcy, o.kusok, ...TEKSTY_PRAVOK].flatMap(x => obshieCepochki(`${osn}\n${o.podpis}`, x, 6)))]
+  // слова, которые требует сам формат («Что слышит психолог: читать в описании»), копией не считаем
+  const shablon = new Set(obshieCepochki(f.kak, f.kak, 6))
+  const kopii = [...new Set([...o.obrazcy, o.kusok, ...TEKSTY_PRAVOK].flatMap(x => obshieCepochki(`${osn}\n${o.podpis}`, x, 6)))].filter(x => !shablon.has(x))
   if (kopii.length) { problemy.push('kopiya'); detali.kopiya = kopii.slice(0, 5) }
 
   if (o.poslednyayaOpora && o.poslednyayaOpora === o.opora) problemy.push('opora_povtor')
@@ -98,7 +100,9 @@ export function proverit(o: {
   }
 
   let r: Ritm | null = null, b: number | null = null
-  if (osn && slova(osn).length >= 25) {
+  // ритм речи меряем только там, где речь есть: у надписей на экране и сцены из фильма без лица мерить нечего
+  const bezRechi = f.vyvod === 'ekran' || f.kod === 'film_bez'
+  if (!bezRechi && osn && slova(osn).length >= 25) {
     r = ritm([osn])
     b = blizost(r, RITM_ZHIVYH[f.vid])
     if (b > RITM_POROG) problemy.push('ritm_daleko')

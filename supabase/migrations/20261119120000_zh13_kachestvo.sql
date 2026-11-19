@@ -16,6 +16,8 @@ create table if not exists public.zh13_kachestvo (
   dolya_nachala_vse numeric,             -- доля тех же первых слов текста за 7 дней по всем
   dolya_nachala_avtor numeric,
   opora text,                            -- опора подхода этого текста
+  cel text,                              -- цель формата в смеси блога: uznavanie | polza | spor | doverie
+  huk text,                              -- вид хука: spor | esli | vopros | obeshchanie | replika | istoriya | rubrika | ekran | net
   problemy text[] not null default '{}', -- коды проблем (lib/generation/zh13/proverka.ts PROBLEMY)
   detali jsonb not null default '{}',    -- что именно нашлось (мораль, род, куски копии)
   ritm jsonb,                            -- профиль ритма (мера zh12)

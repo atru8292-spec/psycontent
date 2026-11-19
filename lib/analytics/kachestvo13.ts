@@ -8,6 +8,8 @@ import { FORMATY, formatPo } from '@/lib/generation/zh13/formaty'
 import { PROBLEMY } from '@/lib/generation/zh13/proverka'
 import { vysheePoroga } from '@/lib/generation/zh13/kachestvo-db'
 import { POMETKI } from '@/lib/generation/zh13/pometki'
+import { CELI, HUKI_IMYA, type Cel, type Huk } from '@/lib/generation/zh13/formaty'
+import { KVOTA } from '@/lib/generation/zh13/smes'
 
 export type Kachestvo13 = {
   vsego: number
@@ -19,6 +21,7 @@ export type Kachestvo13 = {
   poslednie: { postId: string; created_at: string; kod: string; imya: string; problemy: string[]; detali: any; content: string; mysl: boolean }[]
   trevoga: string[]
   pometki: { kod: string; imya: string; n: number; vzyato: number; nePerepisano: number }[]
+  smes: { kto: string; n: number; celi: Record<string, number>; huki: [string, number][]; formaty: [string, number][]; perekos: string[] }[]
 }
 export type Loaded13 = { data: Kachestvo13 | null; error: 'no_migration' | 'failed' | null }
 
@@ -62,14 +65,31 @@ export function svesti(rows: any[]): Omit<Kachestvo13, 'poslednie'> {
     }
     return { kod, imya, n, vzyato, nePerepisano: ne }
   })
-  return { vsego: rows.length, poVidam, problemyVse, podpisi: top(rows, 'podpis_nachalo'), nachala: top(rows, 'pervye_slova'), formaty, trevoga: vysheePoroga(rows), pometki }
+  // смесь по психологам: цели, виды хуков, форматы; перекос, если от 5 текстов доля цели дальше чем на 15 пунктов от
+  // смеси 2/1/1/1 (40/20/20/20%) или один формат больше трети текстов
+  const poKomu = new Map<string, any[]>()
+  for (const r of rows) poKomu.set(r.user_id, [...(poKomu.get(r.user_id) || []), r])
+  const schet = (xs: string[]) => { const c: Record<string, number> = {}; for (const x of xs) c[x] = (c[x] || 0) + 1; return Object.entries(c).sort((a, b) => b[1] - a[1]) }
+  const smes = [...poKomu.entries()].map(([uid, rs], i) => {
+    const celi: Record<string, number> = {}
+    for (const c of Object.keys(CELI)) celi[c] = rs.filter(x => x.cel === c).length
+    const perekos: string[] = []
+    if (rs.length >= 5) {
+      for (const c of Object.keys(KVOTA) as Cel[]) { const d = celi[c] / rs.length - KVOTA[c] / 5; if (Math.abs(d) > 0.15) perekos.push(`${CELI[c]} ${Math.round(celi[c] / rs.length * 100)}% (норма ${KVOTA[c] * 20}%)`) }
+      const [fk, fn] = schet(rs.map(x => x.format_kod))[0] || ['', 0]
+      if (fn / rs.length > 1 / 3) perekos.push(`формат «${formatPo(fk)?.imya || fk}» в ${fn} из ${rs.length}`)
+    }
+    return { kto: `Психолог ${i + 1} · ${String(uid).slice(0, 8)}`, n: rs.length, celi,
+      huki: schet(rs.map(x => HUKI_IMYA[x.huk as Huk] || 'нет данных')), formaty: schet(rs.map(x => formatPo(x.format_kod)?.imya || x.format_kod)), perekos }
+  }).sort((a, b) => b.n - a.n)
+  return { vsego: rows.length, poVidam, problemyVse, podpisi: top(rows, 'podpis_nachalo'), nachala: top(rows, 'pervye_slova'), formaty, trevoga: vysheePoroga(rows), pometki, smes }
 }
 
 export async function loadKachestvo13(): Promise<Loaded13> {
   try {
     const db = getSupabaseAdmin()
     const ot = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString()
-    const r = await db.from('zh13_kachestvo').select('post_id, user_id, created_at, format_kod, vid, rezhim, podpis_nachalo, pervye_slova, problemy, detali, blizost, deystviya')
+    const r = await db.from('zh13_kachestvo').select('post_id, user_id, created_at, format_kod, vid, rezhim, podpis_nachalo, pervye_slova, problemy, detali, blizost, deystviya, cel, huk')
       .gte('created_at', ot).order('created_at', { ascending: false }).limit(5000)
     if (r.error) {
       const nm = /42P01|PGRST205|does not exist|schema cache/i.test(`${r.error.code} ${r.error.message}`)

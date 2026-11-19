@@ -17,6 +17,13 @@ import { taZheTema, pohozhe, shodstvo, slova } from './tekst'
 import { pometit, rubrikaVoprosov, type Pometka } from './pometki'
 import { perepisatFrazy, perepisatPodpis, type Perepis } from './perepis'
 import { podpisMoral, podpisVopros } from './proverka'
+import { HUK_TEKST, type Cel, type Huk } from './formaty'
+import { vybratFormat, vybratHuk, dostupen, type Proshlyy, type Uslovie, type Vybor } from './smes'
+import { ranzhirovat, type Rang } from './podbor'
+import { scenaDlya, scenaBlok } from './sceny'
+
+// ошибка с кодом для экрана: формат требует фактов о себе или проверенной сцены, а их нет
+export class KodOshibki extends Error { constructor(public kod: 'net_faktov' | 'net_sceny') { super(kod) } }
 import { PODPISI } from './prompt'
 import { buildContext } from '../context'
 import { zh6Write } from '../zh6/write'
@@ -37,6 +44,7 @@ export type Meta13 = {
   nadpis: string; podpis: string; glavnoe: string; ms: number; popytki: number
   pometki: Pometka[]; perepis: Perepis[]; perepisCelikom?: { do: string; posle: string; vzyato: boolean }
   dvizhok?: 'zh6'; zh4?: any; pary?: string[]
+  cel?: Cel; hukVid?: Huk; rang?: Rang[]; vyborPochemu?: string; scena?: string | null
 }
 export type Itog13 = { f: Format13; rez: Rezultat13; meta: Meta13; proverka: Proverka; syroe: string; groupId: string | null; avtor: Avtor13 }
 
@@ -76,11 +84,21 @@ const temyAnkety = (profile: any): string[] => {
 
 // образцы (zh11 podobrat): подачи формата по порядку, тот же вид выше, у поста образцы не из каруселей; не та же тема,
 // не находки, из которых собрана тема; не похожие друг на друга; недавние у психолога реже
+const RODNYE: Record<string, string[]> = {
+  pov_scenka: ['pov_assoc', 'ekran'], slyshit: ['ekran', 'pov_assoc'], sebe20: ['istoriya', 'mysl'], dve_zhizni: ['mysl', 'spor'],
+  film_bez: ['film_lico'], film_lico: ['film_bez', 'mysl'], golos: ['scenka'], vrednye: ['scenka'], istoriya: ['sebe20'], pov_assoc: ['ekran'],
+}
 export function podobrat(f: Format13, tema: string, situacii: string[], mat: boolean, seed: number, nedavnie: Set<string>): Obrazec13[] {
   const svoi = new Set(D.nahodkiTem[tema] || [])
-  const ok = (x: Obrazec13) => (mat || !x.mat) && !(f.vid === 'post' && x.format === 'carousel') && !svoi.has(x.id)
+  const ok = (x: Obrazec13) => !x.metod && (mat || !x.mat) && !(f.vid === 'post' && x.format === 'carousel') && !svoi.has(x.id)
     && !taZheTema(tema, x.tekst) && !situacii.some(s => taZheTema(s, x.tekst))
   const kand: { x: Obrazec13; o: number }[] = []
+  // находки Инстаграма 19.11 размечены форматами (kody): им первое место; у форматов с одной находкой добираем
+  // из родственных (RODNYE), чтобы образцов было 2-3
+  for (const x of D.obrazcy) if (x.kody?.includes(f.kod) && ok(x)) kand.push({ x, o: 100 + ((seed * 7 + x.id.length) % 3) - (nedavnie.has(x.id) ? 6 : 0) })
+  ;(RODNYE[f.kod] || []).forEach((k, i) => {
+    for (const x of D.obrazcy) if (x.kody?.includes(k) && ok(x) && !kand.some(c => c.x.id === x.id)) kand.push({ x, o: 60 - i * 5 + ((seed * 7 + x.id.length) % 3) - (nedavnie.has(x.id) ? 6 : 0) })
+  })
   f.podachi.forEach((p, i) => {
     for (const x of D.obrazcy) if (x.podacha === p && ok(x) && !kand.some(k => k.x.id === x.id))
       kand.push({ x, o: (f.podachi.length - i) * 10 + (x.format === (f.vid === 'post' ? 'reels' : f.vid) ? 5 : 0) + (mat && x.mat ? 2 : 0) + ((seed * 7 + x.id.length) % 3) - (nedavnie.has(x.id) ? 6 : 0) })
@@ -141,20 +159,43 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   const situaciya = origin?.z?.situaciya !== undefined && origin ? origin.z.situaciya || null
     : mysl ? situaciyaDlyaMysli(mysl, temy, n, bylyeSit) : situaciyaTemy(tema!, n, bylyeSit)
 
-  const posledFormaty = rows.map(r => r.z.kod).filter(Boolean)
-  const f = formatPo(z.formatKod || '') || formatPo(mysl ? 'mysl' : vybratAuto(n, posledFormaty))!
+  const uchet = opts?.bezUcheta ? undefined : userId
+  // факты о себе: своя мысль или банк историй профиля; сцена: проверенная под тему (sceny.json)
+  const istoriiAvtora = buildAuthorSettings(profile).stories.map(x => x.text).filter(Boolean)
+  const fakty = mysl || (istoriiAvtora.length ? istoriiAvtora.slice(0, 3).join('\n') : null)
+  const scena = scenaDlya(tema, mysl, rows.slice(0, 5).map(r => r.z.scena).filter(Boolean))
+  const usl: Uslovie = { fakty: !!fakty, scena: !!scena, tema: tema || mysl || '' }
+  const istoriyaSmesi: Proshlyy[] = rows.map(r => ({ kod: r.z.kod, cel: r.z.cel, huk: r.z.hukVid }))
+
+  // формат: выбран психологом (смесь не мешает) или «Подбери сам»: ранжирование моделью + смесь целей (smes.ts)
+  let rang: Rang[] = []
+  let vybor: Vybor
+  const vybran = formatPo(z.formatKod || '')
+  if (vybran) {
+    if (vybran.trebuet === 'fakty' && !fakty) throw new KodOshibki('net_faktov')
+    if (vybran.trebuet === 'scena' && !scena) throw new KodOshibki('net_sceny')
+    vybor = { kod: vybran.kod, cel: vybran.cel, huk: vybratHuk(vybran, istoriyaSmesi[0]?.huk, n) || vybran.huki[0], pochemu: 'выбран психологом' }
+  } else {
+    rang = await ranzhirovat({ tema, mysl, situaciya, formaty: FORMATY.filter(x => dostupen(x, usl)), timeoutMs: Math.min(15000, deadline - Date.now() - 50000), userId: uchet, knownNames })
+    vybor = vybratFormat(rang.map(x => x.kod), istoriyaSmesi, n, usl)
+  }
+  const f = formatPo(vybor.kod)!
   const opory = oporyPsihologa(profile?.approaches)
   const posledOpory = rows.map(r => r.z.opora).filter(Boolean)
   const opora = vybratOporu(opory, n, posledOpory)
-  const nMysl = rows.filter(r => r.z.kod === 'mysl').length
-  const huk = f.kod === 'mysl' ? HUKI_MYSLI[nMysl % HUKI_MYSLI.length] : ''
+  const huk = HUK_TEKST[vybor.huk] || ''
   const avtor = avtorIz(profile)
   const nedavnieObr = new Set<string>(rows.slice(0, 3).flatMap(r => r.z.obrazcy || []))
   const obrazcy = podobrat(f, tema || mysl || '', tema ? situaciiTemy(tema) : [], avtor.mat !== 'net', n, nedavnieObr)
   const kuski = D.kuski[f.vid]
   const kusok = kuski[n % kuski.length]
 
-  const uchet = opts?.bezUcheta ? undefined : userId
+  // при «Подбери сам» тройка «Подойдет еще» это следующие за выбранным форматы из ранжирования (с причиной модели)
+  const podoydetIzRanga = (rez: Rezultat13) => {
+    const iz = rang.filter(x => x.kod !== f.kod).slice(0, 3)
+    if (!iz.length) return
+    rez.podoydet = [...iz, ...rez.podoydet.filter(x => !iz.some(y => y.kod === x.kod) && x.kod !== f.kod)].slice(0, 3)
+  }
   // подпись: мораль переписываем всегда; вопрос подписчикам у карусели zh6 (vopros=true) и как запасной повод у остальных
   const podpisBezMorali = async (rez: Rezultat13, a: Avtor13, _mysl: string | null, _povod: string | null, voprosToje: boolean): Promise<Perepis | null> => {
     if (!rez.podpis) return null
@@ -176,17 +217,18 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     const r = await zh6Write(ctx, req)
     const syroe = await cleanAds(ctx, 'carousel', r.text)
     const rez = razobrat(syroe, f)
+    podoydetIzRanga(rez)
     const pp = await podpisBezMorali(rez, avtor, mysl, null, true)
     const proverka = proverit({ f, syroe, tekst: rez.tekst, glavnoe: rez.glavnoe, podpis: rez.podpis, obrazcy: [], kusok: '', opora: '', poslednyayaOpora: null, auditoriyaZhenshiny: /женщин/i.test(avtor.gender || ''), mysl })
     if (pp) proverka.detali.perepis = [pp]
     const meta: Meta13 = {
-      kod: f.kod, vid: f.vid, rezhim, tema, mysl, situaciya: null, opora: '', huk: null, obrazcy: [], kusok: '', dvizhok: 'zh6', zh4: (r as any).zh4 || null,
+      kod: f.kod, vid: f.vid, rezhim, tema, mysl, situaciya: null, opora: '', huk: null, hukVid: 'net', cel: vybor.cel, rang, vyborPochemu: vybor.pochemu, obrazcy: [], kusok: '', dvizhok: 'zh6', zh4: (r as any).zh4 || null,
       kakSnyat: [], podoydet: rez.podoydet, nadpis: '', podpis: rez.podpis, glavnoe: rez.glavnoe, ms: Date.now() - t0, popytki: 1, pometki: [], perepis: pp ? [pp] : [],
     }
     return { f, rez, meta, proverka, syroe, groupId: origin?.group_id || null, avtor }
   }
 
-  const p = prompt13(avtor, { f, tema, mysl, situaciya, opora, huk, obrazcy, kusok: kusok.tekst })
+  const p = prompt13(avtor, { f, tema, mysl, situaciya, opora, huk, obrazcy, kusok: kusok.tekst, fakty: f.trebuet === 'fakty' ? fakty : null, scena: f.trebuet === 'scena' && scena ? scenaBlok(scena) : null })
   const pisat = async (user: string, sroki: readonly (readonly ['medium' | 'low', number])[]) => {
     for (const [effort, max] of sroki) {
       const ms = Math.min(max, deadline - Date.now())
@@ -205,6 +247,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   let popytki = 0
   let syroe = await pisat(p.user, [['medium', 60000], ['low', 30000]])
   let rez = razobrat(syroe, f)
+  podoydetIzRanga(rez)
 
   // пометки только явного (pometki.ts); «неудобные вопросы» не человеку переписываем целиком один раз, если есть время
   const pometki = pometit(rez.glavnoe, f.kod, rez.nadpis)
@@ -241,6 +284,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     kod: f.kod, vid: f.vid, rezhim, tema, mysl, situaciya, opora, huk: huk || null, obrazcy: obrazcy.map(x => x.id), kusok: kusok.id,
     kakSnyat: rez.kakSnyat, podoydet: rez.podoydet, nadpis: rez.nadpis, podpis: rez.podpis, glavnoe: rez.glavnoe, ms: Date.now() - t0, popytki,
     pometki, perepis: pr.perepis, ...(perepisCelikom ? { perepisCelikom } : {}), pary: p.pary,
+    cel: vybor.cel, hukVid: vybor.huk, rang, vyborPochemu: vybor.pochemu, scena: f.trebuet === 'scena' ? scena?.id || null : null,
   }
   return { f, rez, meta, proverka, syroe, groupId: origin?.group_id || null, avtor }
 }

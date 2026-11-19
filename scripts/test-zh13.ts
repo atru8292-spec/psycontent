@@ -13,18 +13,24 @@ import { vysheePoroga } from '../lib/generation/zh13/kachestvo-db'
 import { situaciiTemy } from '../lib/anketa'
 import { pometit, rubrikaVoprosov } from '../lib/generation/zh13/pometki'
 import { TEKSTY_PRAVOK, paryDlya, gruppaPar } from '../lib/generation/zh13/pravki'
+import { progonSmesi } from './zh13-smes'
+import { dostupen, tyazhelayaTema } from '../lib/generation/zh13/smes'
+import { scenaDlya, SCENY } from '../lib/generation/zh13/sceny'
 
 let n = 0
 const ok = (name: string, fn: () => void) => { fn(); n++; console.log('ok', name) }
 
-ok('14 форматов (карусель одна, на zh6), коды разные, у каждого zh13 есть образцы', () => {
-  assert.equal(FORMATY.length, 14)
-  assert.equal(new Set(FORMATY.map(f => f.kod)).size, 14)
+ok('26 форматов (карусель одна, на zh6), у каждого цель и хук, коды разные, у каждого zh13 есть 2-3 образца', () => {
+  assert.equal(FORMATY.length, 26)
+  assert.equal(new Set(FORMATY.map(f => f.kod)).size, 26)
+  for (const f of FORMATY) { assert.ok(['uznavanie', 'polza', 'spor', 'doverie'].includes(f.cel), f.kod); assert.ok(f.huki.length, f.kod) }
+  for (const k of ['pov_assoc', 'pov_scenka', 'golos', 'vrednye', 'sebe20', 'slyshit', 'dve_zhizni', 'film_bez', 'film_lico', 'spor', 'pravila', 'istoriya']) assert.ok(formatPo(k), k)
   assert.deepEqual(FORMATY.filter(f => f.vid === 'carousel').map(f => [f.kod, f.zh6]), [['karusel', true]])
   assert.equal(FORMATY[0].kod, 'mysl')
   for (const f of FORMATY.filter(f => !f.zh6)) {
     const o = podobrat(f, 'Тревога и накручивание', situaciiTemy('Тревога и накручивание'), false, 1, new Set())
     assert.ok(o.length >= 2, `${f.kod}: образцов ${o.length}`)
+    if (['pov_assoc', 'golos', 'vrednye', 'spor', 'pravila'].includes(f.kod)) assert.ok(o.some(x => x.id.startsWith('insta:')), `${f.kod}: нет находок insta`)
     if (f.vid === 'post') assert.ok(!o.some(x => x.format === 'carousel'), `${f.kod}: у поста образец-карусель`)
     assert.ok(!o.some(x => x.mat), `${f.kod}: мат без разрешения`)
   }
@@ -61,7 +67,7 @@ ok('промпт: образцы, опора, ритм своего формат
   for (const f of FORMATY.filter(f => !f.zh6)) {
     const obr = podobrat(f, 'Тревога и накручивание', [], false, 0, new Set())
     const p = prompt13(a, { f, tema: 'Тревога и накручивание', mysl: null, situaciya: 'партнер не отвечает час, а в голове уже авария', opora: OPORY['КПТ'][0], huk: 'Первая фраза: вопрос.', obrazcy: obr, kusok: 'кусок' })
-    assert.ok(!/КПТ|когнитив/i.test(p.user), 'название подхода в промпте')
+    assert.ok(!/КПТ(?!СР)|когнитив/i.test(p.user), 'название подхода в промпте')
     assert.ok(p.user.includes('<живой кусок>'))
     assert.ok(p.user.includes('без рода'))
     assert.ok(p.user.includes('Подойдет еще:'))
@@ -206,6 +212,29 @@ ok('мораль: своя мысль в конце не мораль, подп�
   assert.ok(podpisMoral('Можно любить маму и злиться. Это нормально.'))
   assert.ok(!podpisMoral('Пакет у забора. В доме никто не спит.'))
   assert.ok(podpisVopros('Ты так переживаешь с любым человеком или именно с ним?'))
+})
+
+ok('смесь: 20 подборов, пятерки 2/1/1/1, формат и хук не подряд, спор не подряд и не на тяжелой теме', () => {
+  const r = progonSmesi(20)
+  for (let i = 1; i < r.length; i++) {
+    assert.notEqual(r[i].kod, r[i - 1].kod, `формат подряд ${i}`)
+    if (r[i].huk !== 'нет') assert.notEqual(r[i].huk, r[i - 1].huk, `хук подряд ${i}`)
+    assert.ok(!(r[i].cel === 'спор' && r[i - 1].cel === 'спор'), `спор подряд ${i}`)
+  }
+  assert.ok(!r.some(x => x.cel === 'спор' && tyazhelayaTema(x.tema)))
+  for (let b = 1; b < 4; b++) {
+    const blok = r.slice(b * 5, b * 5 + 5).map(x => x.cel)
+    assert.deepEqual([blok.filter(c => c === 'узнавание').length, blok.filter(c => c === 'польза').length, blok.filter(c => c === 'спор').length, blok.filter(c => c === 'доверие').length], [2, 1, 1, 1], `пятерка ${b + 1}`)
+  }
+})
+
+ok('факты и сцены: формат на фактах без мысли и фильм без сцены недоступны; сцены только проверенные', () => {
+  assert.ok(!dostupen(formatPo('sebe20')!, { fakty: false, scena: true, tema: '' }))
+  assert.ok(dostupen(formatPo('sebe20')!, { fakty: true, scena: false, tema: '' }))
+  assert.ok(!dostupen(formatPo('film_bez')!, { fakty: true, scena: false, tema: '' }))
+  assert.equal(scenaDlya('Мамы и взрослые дочери', null)?.film, 'Леди Берд')
+  assert.equal(scenaDlya('Юмор про терапию', null), null)
+  assert.ok(!SCENY.filter(x => !x.proverena).some(x => scenaDlya(x.temy[0], null)?.id === x.id))
 })
 
 ok('флаг: GENERATOR=zh13 и список почт', () => {

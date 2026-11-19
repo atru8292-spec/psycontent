@@ -40,7 +40,7 @@ const GRUPPY_PAR: Record<string, string[]> = {
   voprosy: ['uzhin', 'biografiya', 'isk', 'sud', 'proslushivanie', 'yazyk'],
   post: ['isk', 'yazyk', 'stazhirovka', 'kulaki', 'biografiya', 'otdyh', 'sovet', 'mehanizm', 'obryvki'],
 }
-export const gruppaPar = (kod: string, vid: string) => kod === 'sessiya' || kod === 'scenka' ? 'dialog' : kod === 'perevod' || kod === 'p_perevod' ? 'perevod'
+export const gruppaPar = (kod: string, vid: string) => ['sessiya', 'scenka', 'golos', 'film_bez', 'film_lico'].includes(kod) ? 'dialog' : kod === 'perevod' || kod === 'p_perevod' ? 'perevod'
   : kod === 'voprosy' ? 'voprosy' : vid === 'post' ? 'post' : 'monolog'
 function sluchayno(seed?: number): () => number {
   if (seed === undefined) return Math.random

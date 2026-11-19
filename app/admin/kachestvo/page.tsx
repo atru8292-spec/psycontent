@@ -5,6 +5,7 @@ import { optsFrom } from '@/lib/analytics/admin-data'
 import { loadKachestvo13 } from '@/lib/analytics/kachestvo13'
 import { PROBLEMY } from '@/lib/generation/zh13/proverka'
 import { POMETKI } from '@/lib/generation/zh13/pometki'
+import { CELI } from '@/lib/generation/zh13/formaty'
 import { Card, Section, Note, PageHead, Table, Td, Bar, Flag, when, num } from '@/components/admin/ui'
 
 type SP = Promise<Record<string, string | string[] | undefined>>
@@ -78,6 +79,20 @@ export default async function KachestvoPage({ searchParams }: { searchParams: SP
               </Section>
             ))}
           </div>
+
+          <Section title="Смесь в блоге по психологам" aside="норма на 5 текстов: 2 узнавание, 1 польза, 1 спор, 1 доверие">
+            <div className="space-y-3">
+              {d.smes.map(x => (
+                <Card key={x.kto} className="p-4 space-y-2 text-[14px]">
+                  <div className="flex flex-wrap items-baseline gap-x-3"><span className="font-semibold">{x.kto}</span><span className="text-brand-muted">{x.n} текстов за неделю</span></div>
+                  <p>Цели: {Object.entries(x.celi).map(([c, k]) => `${CELI[c as keyof typeof CELI]} ${k}`).join(' · ')}</p>
+                  <p className="[overflow-wrap:anywhere]">Хуки: {x.huki.map(([h, k]) => `${h} ${k}`).join(' · ')}</p>
+                  <p className="[overflow-wrap:anywhere]">Форматы: {x.formaty.map(([h, k]) => `${h} ${k}`).join(' · ')}</p>
+                  {x.perekos.length > 0 && <div className="flex flex-wrap gap-1.5">{x.perekos.map(p => <Flag key={p}>Перекос: {p}</Flag>)}</div>}
+                </Card>
+              ))}
+            </div>
+          </Section>
 
           <Section title="Пометки и перепись фраз">
             <Card>

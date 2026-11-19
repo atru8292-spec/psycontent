@@ -16,7 +16,8 @@ import { MODEL_PRICES, USD_TO_RUB_DRAFT } from '../lib/energy'
 
 const argv = process.argv.slice(2)
 const flag = (n: string) => (argv.find(a => a.startsWith(`--${n}=`)) || '').split('=').slice(1).join('=')
-const DIR = join(process.cwd(), '_знания', 'мозг-генератора', 'zh13-prod')
+const NABOR = flag('nabor') || 'zh13'
+const DIR = join(process.cwd(), '_знания', 'мозг-генератора', 'zh13-prod', ...(NABOR === 'zh14' ? ['zh14'] : []))
 const USAGE = join(DIR, 'usage.jsonl')
 const STOP = Number(flag('stop')) || 15
 
@@ -27,7 +28,15 @@ const PROFIL = flag('profil') ? JSON.parse(readFileSync(flag('profil'), 'utf8'))
   tone_verbal: 'Слушай, давай без паники. С тобой все нормально, просто сил нет, и от этого страшно. Это лечится.',
   client_pain_phrases: 'Я опять накручиваю\nНе могу сказать нет',
 }
-const ZADANIYA: { kod: string; mysl?: string }[] = [
+const FAKTY = 'В 20 лет я вышла замуж за первого парня, потому что боялась остаться одна. Через семь лет развелась. Работала бухгалтером и только в 32 пошла учиться на психолога. Долго считала, что просить о помощи стыдно.'
+// zh13: прошлый набор (8 текстов); zh14: новые форматы 19.11 (9 текстов) и «Подбери сам» (один целиком, второй только выбор)
+const ZADANIYA: { kod: string; mysl?: string; tema?: string; tolkoVybor?: boolean }[] = NABOR === 'zh14' ? [
+  { kod: 'pov_assoc', tema: 'Тревога и накручивание' }, { kod: 'pov_scenka', tema: 'Неумение отдыхать и вина за отдых' },
+  { kod: 'golos', tema: 'Внутренний критик' }, { kod: 'vrednye', tema: 'Сепарация от родителей' },
+  { kod: 'sebe20', mysl: FAKTY }, { kod: 'slyshit', tema: 'Депрессия и апатия' }, { kod: 'dve_zhizni', tema: 'Страх ошибиться' },
+  { kod: 'film_bez', tema: 'Мамы и взрослые дочери' }, { kod: 'film_lico', tema: 'Смена профессии' },
+  { kod: 'auto', tema: 'Ревность' }, { kod: 'auto', tema: 'Выгорание', tolkoVybor: true },
+] : [
   { kod: 'sessiya' }, { kod: 'perevod' }, { kod: 'voprosy' }, { kod: 'scenka' }, { kod: 'mysl' },
   { kod: 'mysl', mysl: 'Тревога не враг. Она сторож, который слишком старается и лает на каждый шорох' },
   { kod: 'p_paradoks' }, { kod: 'karusel' },
@@ -61,12 +70,23 @@ async function main() {
   const out: any[] = existsSync(fR) ? JSON.parse(readFileSync(fR, 'utf8')) : []
   for (let i = 0; i < ZADANIYA.length; i++) {
     const z = ZADANIYA[i]
-    const key = `${z.kod}${z.mysl ? ':mysl' : ''}`
+    const key = `${z.kod}${z.mysl ? ':mysl' : ''}${z.tema && z.kod === 'auto' ? ':' + z.tema : ''}`
     if (out.some(x => x.key === key)) continue
     if (rub() >= STOP - 1.5) { console.log(`стоп по лимиту: ${rub().toFixed(2)} ₽`); break }
     const t0 = Date.now()
     try {
-      const it = await napisat(stubDb(i * 5 + 1), '', PROFIL, { formatKod: z.kod, mysl: z.mysl || null, tema: null, fromPostId: null }, [], { bezUcheta: true })
+      if (z.tolkoVybor) {
+        // только выбор формата: ранжирование моделью и смесь, без текста
+        const { ranzhirovat } = await import('../lib/generation/zh13/podbor')
+        const { vybratFormat } = await import('../lib/generation/zh13/smes')
+        const { FORMATY } = await import('../lib/generation/zh13/formaty')
+        const rang = await ranzhirovat({ tema: z.tema || null, mysl: null, situaciya: null, formaty: FORMATY.filter(f => !f.trebuet), timeoutMs: 20000, knownNames: [] })
+        const v = vybratFormat(rang.map(x => x.kod), [], 0, { fakty: false, scena: false, tema: z.tema || '' })
+        out.push({ key, kod: 'auto', tolkoVybor: true, tema: z.tema, rang, vybor: v })
+        console.log(`${key}: только выбор: ${v.kod} (${v.pochemu}); ранжирование: ${rang.map(x => x.kod).join(', ')}`)
+        writeFileSync(fR, JSON.stringify(out, null, 1)); continue
+      }
+      const it = await napisat(stubDb(i * 5 + 1), '', PROFIL, { formatKod: z.kod === 'auto' ? null : z.kod, mysl: z.mysl || null, tema: z.tema || null, fromPostId: null }, [], { bezUcheta: true })
       out.push({ key, kod: z.kod, imya: it.f.imya, vid: it.f.vid, ms: Date.now() - t0, meta: it.meta, problemy: it.proverka.problemy, detali: it.proverka.detali, blizost: it.proverka.blizost, tekst: it.rez.tekst, glavnoe: it.rez.glavnoe, podpis: it.rez.podpis, syroe: it.syroe })
       console.log(`${key}: ${Math.round((Date.now() - t0) / 1000)} с, пометок ${it.meta.pometki.length}, переписано ${it.meta.perepis.filter(x => x.vzyato).length}, проблемы: ${it.proverka.problemy.join(', ') || 'нет'}; всего ${rub().toFixed(2)} ₽`)
     } catch (e: any) {
@@ -78,11 +98,11 @@ async function main() {
   }
 
   // до и после переписи: из прогона, а если там меньше трех, на сохраненных текстах zh13 с пометками
-  if (argv.includes('--tolko-perepis')) out.forEach(x => { x.meta.perepis = x.meta.perepis || [] })
-  const doPosle: any[] = out.flatMap(x => (x.meta.perepis || []).map((p: any) => ({ istochnik: `прогон: ${x.imya}`, ...p })))
-    .concat(out.filter(x => x.meta.perepisCelikom).map(x => ({ istochnik: `прогон: ${x.imya} (рубрика целиком)`, kod: 'adresat', ...x.meta.perepisCelikom })))
+  if (argv.includes('--tolko-perepis')) out.filter(x => x.meta).forEach(x => { x.meta.perepis = x.meta.perepis || [] })
+  const doPosle: any[] = out.filter(x => x.meta).flatMap(x => (x.meta.perepis || []).map((p: any) => ({ istochnik: `прогон: ${x.imya}`, ...p })))
+    .concat(out.filter(x => x.meta?.perepisCelikom).map(x => ({ istochnik: `прогон: ${x.imya} (рубрика целиком)`, kod: 'adresat', ...x.meta.perepisCelikom })))
   const fD = join(DIR, 'do-posle.json')
-  if (doPosle.filter(x => x.vzyato).length < 3 && rub() < STOP - 1.5) {
+  if (NABOR !== 'zh14' && doPosle.filter(x => x.vzyato).length < 3 && rub() < STOP - 1.5) {
     const R = JSON.parse(readFileSync(join(process.env.HOME || '', 'Downloads/psy-zh7/_знания/мозг-генератора/zh13/rezultaty-zh13.json'), 'utf8'))
     for (const [k, kod] of [['p2:p2:P1', 'p_razoblachenie'], ['p2:k2:K1', 'mysl'], ['p2:k2:K2', 'mysl']] as const) {
       const f = formatPo(kod)!; const r = razobrat(R[k].text, f)

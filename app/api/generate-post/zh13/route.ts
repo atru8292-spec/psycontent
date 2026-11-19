@@ -13,7 +13,7 @@ import { canConsume, commitConsume, recordFailure, recordRefusal } from '@/lib/e
 import { serverTrack } from '@/lib/track-server'
 import { errTag } from '@/lib/safe-error'
 import { zh13Dlya } from '@/lib/generation/zh13/flag'
-import { napisat, VERSIYA } from '@/lib/generation/zh13/pishi'
+import { napisat, VERSIYA, KodOshibki } from '@/lib/generation/zh13/pishi'
 import { formatPo } from '@/lib/generation/zh13/formaty'
 import { vstavitKachestvo, doschitatKachestvo, zapisatDeystvie } from '@/lib/generation/zh13/kachestvo-db'
 import { savePost } from '../new-pipeline'
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
     }
     await commitConsume(userId, OP, decision)
     // строка проверки до ответа (чтобы «Скопировать» в первые секунды нашло ее), доли за неделю и тревога после
-    const q = { postId, userId, kod: it.f.kod, vid: it.f.vid, rezhim: it.meta.rezhim, opora: it.meta.opora, proverka: it.proverka }
+    const q = { postId, userId, kod: it.f.kod, vid: it.f.vid, rezhim: it.meta.rezhim, opora: it.meta.opora, proverka: it.proverka, cel: it.meta.cel || null, huk: it.meta.hukVid || null }
     const vstavleno = await vstavitKachestvo(db, q)
     if (vstavleno) after(() => doschitatKachestvo(db, q))
     serverTrack(userId, 'make_done', { formats: it.f.vid, ms: Date.now() - t0, n_ok: 1 })
@@ -100,6 +100,11 @@ export async function POST(req: NextRequest) {
       tema: it.meta.tema, mysl: it.meta.mysl, text: it.rez.tekst,
     })
   } catch (e: any) {
+    // формат требует фактов о себе или сцены из фильма: не сбой, человеку понятное объяснение, ничего не списано
+    if (e instanceof KodOshibki) {
+      await recordFailure(userId, OP).catch(() => {})
+      return fail(e.kod, 422, { message: e.kod === 'net_faktov' ? 'Этот формат пишется только из твоих фактов. Впиши в «Свою мысль», что с тобой было' : 'Под эту тему в базе пока нет проверенной сцены из фильма. Выбери другой формат' })
+    }
     console.error('zh13 generation failed:', errTag(e))
     await recordFailure(userId, OP).catch(() => {})
     const money = /credit_balance|insufficient_quota|openai_401/i.test(String(e?.message || e?.code || ''))

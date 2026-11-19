@@ -37,6 +37,8 @@ const GRUPPY = [{ vid: 'reels', imya: 'Рилсы' }, { vid: 'carousel', imya: '
 const imyaFormata = (kod: string | null) => (kod ? FORMATY.find(f => f.kod === kod)?.imya || kod : 'Подбери сам')
 const vidFormata = (kod: string | null) => (kod ? FORMATY.find(f => f.kod === kod)?.vid || null : null)
 const SBOY = 'Текст не дописался из-за сбоя в PsyCont.'
+const TREBUET: Record<string, string> = { fakty: 'Только из твоих фактов: впиши их в «Свою мысль»', scena: 'Если в базе есть проверенная сцена под тему' }
+const sub = (f: { korotko: string; trebuet?: string }) => (f.trebuet ? `${f.korotko}. ${TREBUET[f.trebuet]}` : f.korotko)
 
 function deystvie(postId: string, action: 'copy' | 'copy_podpis' | 'edit') {
   fetch('/api/generate-post/zh13/deystvie', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ postId, action }) }).catch(() => {})
@@ -186,6 +188,12 @@ export default function Zh13Flow() {
         else setVarianty(prev => prev.map((v, i) => (i === pos ? { status: 'failed', kod: opts.kod, error: text, limit: true, zanovo: opts.zanovo, fromPostId: opts.fromPostId } : v)))
         return
       }
+      // формат требует фактов о себе или сцены: понятное объяснение, ничего не списано
+      if (r.status === 422 && typeof d?.message === 'string') {
+        if (opts.first) { setVarianty([]); setView('compose'); setComposeError({ text: d.message }) }
+        else setVarianty(prev => prev.map((v, i) => (i === pos ? { status: 'failed', kod: opts.kod, error: d.message } : v)))
+        return
+      }
       if (!r.ok || typeof d?.glavnoe !== 'string') throw new Error(String(r.status))
       const v: Ready = { status: 'ready', postId: d.postId, groupId: d.groupId, kod: d.kod, vid: d.vid, imya: d.imya, glavnoe: d.glavnoe, podpis: d.podpis || '', nadpis: d.nadpis || '', kakSnyat: d.kakSnyat || [], podoydet: d.podoydet || [], tema: d.tema, mysl: d.mysl, text: d.text }
       setVarianty(prev => prev.map((x, i) => (i === pos ? v : x)))
@@ -211,6 +219,7 @@ export default function Zh13Flow() {
   const zanovo = () => { if (ready && !noMaterials) napisat({ kod: ready.kod, fromPostId: ready.postId, zanovo: true }) }
 
   const spend = materials ? spendLine(materials, 1, until) : ''
+  const nuzhnyFakty = FORMATY.find(f => f.kod === formatKod)?.trebuet === 'fakty' && !mysl.trim()
   const stick = !typing && !noMaterials
 
   // ---------- ввод ----------
@@ -258,7 +267,8 @@ export default function Zh13Flow() {
           )}
 
           <div className={`${stick ? 'max-lg:fixed max-lg:inset-x-0 max-lg:z-30 max-lg:bottom-[calc(56px+env(safe-area-inset-bottom))] max-lg:px-4 max-lg:pt-3 max-lg:pb-2 max-lg:bg-brand-bg max-lg:border-t max-lg:border-brand-border' : 'max-lg:mt-4'} lg:mt-6 lg:flex lg:items-center lg:gap-4`}>
-            <button type="button" onClick={() => napisat({ kod: formatKod, first: true })} disabled={noMaterials || transcribing}
+            {nuzhnyFakty && <p className="mb-2 text-[14px] text-brand-text">Этот формат пишется только из твоих фактов. Впиши в «Свою мысль», что с тобой было</p>}
+            <button type="button" onClick={() => napisat({ kod: formatKod, first: true })} disabled={noMaterials || transcribing || nuzhnyFakty}
               className={`w-full lg:w-auto h-[52px] lg:px-7 rounded-2xl text-[16px] font-semibold transition cursor-pointer disabled:cursor-not-allowed ${noMaterials ? 'bg-brand-border text-brand-text/70' : 'bg-brand-accent text-white hover:bg-brand-accent-hover disabled:opacity-60'}`}>
               {noMaterials ? (materials?.kind === 'month' ? END.monthButton : END.disabled) : 'Написать · 1 текст'}
             </button>
@@ -275,7 +285,7 @@ export default function Zh13Flow() {
               <div key={g.vid} className="mt-3">
                 <p className="px-1 py-1.5 text-[13px] font-semibold text-brand-muted">{g.imya}</p>
                 {FORMATY.filter(f => f.vid === g.vid && f.kod !== 'mysl').map(f => (
-                  <FormatRow key={f.kod} imya={f.imya} sub={f.korotko} on={formatKod === f.kod} onClick={() => { setFormatKod(f.kod); setFormatOpen(false) }} />
+                  <FormatRow key={f.kod} imya={f.imya} sub={sub(f)} on={formatKod === f.kod} onClick={() => { setFormatKod(f.kod); setFormatOpen(false) }} />
                 ))}
               </div>
             ))}
@@ -289,7 +299,7 @@ export default function Zh13Flow() {
   // ---------- результат и ожидание ----------
   const n = varianty.length
   const pokazany = new Set([ready?.kod, ...(ready?.podoydet || []).map(p => p.kod)])
-  const vse = FORMATY.filter(f => !pokazany.has(f.kod))
+  const vse = FORMATY.filter(f => !pokazany.has(f.kod) && (f.trebuet !== 'fakty' || !!ready?.mysl))
   const podzagolovok = ready ? (ready.mysl ? `Из твоей мысли: ${ready.mysl}` : ready.tema ? `Тема: ${ready.tema}` : '') : mysl.trim() || topic || ''
 
   return (
@@ -416,14 +426,14 @@ export default function Zh13Flow() {
               </button>
               {vseOpen && (
                 <div className="mt-1">
-                  {vse.filter(f => f.kod === 'mysl').map(f => <FormatRow key={f.kod} imya={f.imya} sub={f.korotko} disabled={busy || noMaterials} onClick={() => drugoyFormat(f.kod)} />)}
+                  {vse.filter(f => f.kod === 'mysl').map(f => <FormatRow key={f.kod} imya={f.imya} sub={sub(f)} disabled={busy || noMaterials} onClick={() => drugoyFormat(f.kod)} />)}
                   {GRUPPY.map(g => {
                     const xs = vse.filter(f => f.vid === g.vid && f.kod !== 'mysl')
                     if (!xs.length) return null
                     return (
                       <div key={g.vid} className="mt-2">
                         <p className="px-1 py-1.5 text-[13px] font-semibold text-brand-muted">{g.imya}</p>
-                        {xs.map(f => <FormatRow key={f.kod} imya={f.imya} sub={f.korotko} disabled={busy || noMaterials} onClick={() => drugoyFormat(f.kod)} />)}
+                        {xs.map(f => <FormatRow key={f.kod} imya={f.imya} sub={sub(f)} disabled={busy || noMaterials} onClick={() => drugoyFormat(f.kod)} />)}
                       </div>
                     )
                   })}

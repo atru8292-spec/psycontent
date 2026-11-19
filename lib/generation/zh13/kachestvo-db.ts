@@ -22,7 +22,7 @@ const dolyaSovp = (rows: Stroka[], pole: 'podpis_nachalo' | 'pervye_slova', v: s
   return Math.round(s.filter(r => r[pole] === v).length / s.length * 1000) / 1000
 }
 
-type Q = { postId: string; userId: string; kod: string; vid: string; rezhim: string; opora: string; proverka: Proverka }
+type Q = { postId: string; userId: string; kod: string; vid: string; rezhim: string; opora: string; proverka: Proverka; cel?: string | null; huk?: string | null }
 
 // строка проверки сразу, до ответа экрану: проблемы этого текста без долей за неделю
 export async function vstavitKachestvo(db: SupabaseClient, o: Q): Promise<boolean> {
@@ -31,7 +31,7 @@ export async function vstavitKachestvo(db: SupabaseClient, o: Q): Promise<boolea
     const ins = await db.from('zh13_kachestvo').insert({
       post_id: o.postId, user_id: o.userId, format_kod: o.kod, vid: o.vid, rezhim: o.rezhim,
       podpis_nachalo: p.podpisNachalo || null, pervye_slova: p.pervyeSlova || null,
-      opora: o.opora, problemy: p.problemy, detali: p.detali, ritm: p.ritm, blizost: p.blizost,
+      opora: o.opora, problemy: p.problemy, detali: p.detali, ritm: p.ritm, blizost: p.blizost, cel: o.cel || null, huk: o.huk || null,
     })
     if (ins.error) { console.warn('zh13_kachestvo insert failed:', errTag(ins.error)); return false }
     return true
