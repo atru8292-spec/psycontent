@@ -60,6 +60,53 @@ db.psycont.ru {
 	}
 }
 
+# Вход на сайт через Москву (19.11): российский мобильный интернет режет немецкий IP сайта целиком, поэтому
+# psycont.ru смотрит сюда, а Caddy проксирует на сайт в Германии (31.77.197.158, nginx -> pm2 psycont).
+# Приложение, база и выкатка остаются как были. Кэша нет: /_next/static Next отдает immutable, браузер берет из своего.
+# Настоящий IP посетителя уходит в X-Real-IP (значение клиента перезаписывается); nginx Германии принимает его
+# только от 141.133.187.249 (set_real_ip_from), на нем держатся вебхук ЮKassa и лимиты регистрации.
+# flush_interval -1: поток генерации (NDJSON) идет без накопления; своего таймаута на ответ нет, предел 120 с у nginx.
+# TLS-ALPN выключен: до смены DNS проверку получает Германия и пересылает сюда только HTTP-01.
+psycont.ru, www.psycont.ru {
+	tls {
+		issuer acme {
+			disable_tlsalpn_challenge
+		}
+	}
+	@www host www.psycont.ru
+	redir @www https://psycont.ru{uri} 301
+	request_body {
+		max_size 30MB
+	}
+	reverse_proxy https://31.77.197.158 {
+		# к https-апстриму Caddy сам ставит Host = адрес апстрима, и редиректы сайта (publicOrigin, Яндекс) уходили
+		# на https://31.77.197.158 (проверка 19.11); www сюда не доходит, его редиректит строка выше
+		header_up Host psycont.ru
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-Proto https
+		flush_interval -1
+		transport http {
+			tls_server_name psycont.ru
+			dial_timeout 5s
+			keepalive 120s
+		}
+	}
+	header -server
+}
+
+# http: свои проверки Let's Encrypt Caddy отвечает сам, чужие (certbot в Германии продлевает свой сертификат,
+# по нему Caddy проверяет апстрим) отдает в Германию; остальное на https://psycont.ru
+http://psycont.ru, http://www.psycont.ru {
+	handle /.well-known/acme-challenge/* {
+		reverse_proxy http://31.77.197.158 {
+			header_up Host psycont.ru
+		}
+	}
+	handle {
+		redir https://psycont.ru{uri} 301
+	}
+}
+
 # Шаблоны писем для auth, только внутри сети Docker (порт 8088 не опубликован на хосте)
 :8088 {
 	root * /srv/email-templates

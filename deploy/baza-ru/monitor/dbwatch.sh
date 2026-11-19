@@ -31,6 +31,10 @@ ANON=$(grep -m1 "^ANON_KEY=" /opt/supabase/.env | cut -d= -f2-); ANON=${ANON//\"
 code=$(curl -s -o /dev/null -m 10 -w '%{http_code}' --resolve db.psycont.ru:443:127.0.0.1 -H "apikey: $ANON" https://db.psycont.ru/auth/v1/health 2>/dev/null)
 unset ANON
 [ "$code" = "200" ] || problems+=("db.psycont.ru через Caddy ответил ${code:-ничего} вместо 200")
+# вход на сайт через Москву (19.11): Caddy здесь проксирует psycont.ru на сайт в Германии; главная должна быть 200.
+# Не 200 значит упал Caddy, сайт в Германии или связь Москва -> Германия (тогда с российского мобильного сайт не открыть)
+site=$(curl -s -o /dev/null -m 15 -w '%{http_code}' --resolve psycont.ru:443:127.0.0.1 https://psycont.ru/ 2>/dev/null)
+[ "$site" = "200" ] || problems+=("вход psycont.ru (Москва -> сайт в Германии) ответил ${site:-ничего} вместо 200")
 
 avail=$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo)
 [ "${avail:-0}" -ge 250 ] || problems+=("мало свободной памяти: ${avail} МБ")
@@ -55,6 +59,6 @@ else
     python3 "$NOTIFY" "PsyCont: база снова работает" "Сторож базы: все проверки снова проходят, $now по Москве. Сбой начался $SINCE." || true
   fi
   FAILS=0; SINCE=""; ALERTED=0
-  echo "ок: контейнеры, Postgres, db.psycont.ru 200, память ${avail} МБ, диск ${disk}%"
+  echo "ок: контейнеры, Postgres, db.psycont.ru 200, вход psycont.ru 200, память ${avail} МБ, диск ${disk}%"
 fi
 echo "$FAILS" > "$STATE/fails"; echo "$SINCE" > "$STATE/since"; echo "$ALERTED" > "$STATE/alerted"
