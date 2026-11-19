@@ -154,10 +154,23 @@ function MakeContent() {
   // zh13 (19.11): генератор zh13 включен для этой почты (GENERATOR=zh13, ZH13_ONLY_EMAILS), экран свой
   const [zh13, setZh13] = useState(false)
   const [meDone, setMeDone] = useState(false)
+  // zh13 у всех (19.11): старый текст из «Моих текстов» (?post=<id> не от zh13) экран zh13 открыть не умеет
+  // (его GET отдает 404 и экран остается пустым), поэтому такой текст открываем прежним экраном, как до включения
+  const [oldPost, setOldPost] = useState(false)
   useEffect(() => {
     let on = true
+    let post = ''
+    try { post = new URLSearchParams(window.location.search).get('post') || '' } catch {}
     fetch('/api/me').then(r => (r.ok ? r.json() : null))
-      .then(j => { if (on && j && typeof j.newPipeline === 'boolean') setServerNewGen(j.newPipeline); if (on && j && j.zh13 === true) setZh13(true) })
+      .then(async j => {
+        if (on && j && typeof j.newPipeline === 'boolean') setServerNewGen(j.newPipeline)
+        if (!(on && j && j.zh13 === true)) return
+        setZh13(true)
+        if (post) {
+          const r = await fetch(`/api/generate-post/zh13?post=${encodeURIComponent(post)}`).catch(() => null)
+          if (on && r && r.status === 404) setOldPost(true)
+        }
+      })
       .catch(() => {})
       .finally(() => { if (on) setMeDone(true) })
     return () => { on = false }
@@ -663,7 +676,7 @@ function MakeContent() {
   }
 
   // Новый мозг: новый экран «Сделать» (задача sdelat-i-brend, раздел 3). Старый ниже остается без флага
-  if (zh13) return <Zh13Flow />
+  if (zh13 && !oldPost) return <Zh13Flow />
   if (serverNewGen === true) return <MakeFlow />
 
   return (

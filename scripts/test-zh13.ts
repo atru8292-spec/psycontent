@@ -287,9 +287,11 @@ ok('правки 19.11 после zh14: обращение, перевертыш
   assert.equal(moralKonca(formatPo('mysl')!, 'Тревога не враг. Попросить о помощи можно всегда.', 'Тревога не враг. Попросить о помощи можно всегда.', 'попросить о помощи можно всегда'), null)
 })
 
-ok('флаг: GENERATOR=zh13 и список почт', () => {
+ok('флаг: zh13 по умолчанию, GENERATOR=zh6 откат, список почт', () => {
   const save = { g: process.env.GENERATOR, l: process.env.ZH13_ONLY_EMAILS }
-  delete process.env.GENERATOR; assert.equal(zh13Dlya('a@b.ru'), false)
+  delete process.env.GENERATOR; delete process.env.ZH13_ONLY_EMAILS; assert.equal(zh13Dlya('a@b.ru'), true)
+  process.env.GENERATOR = 'zh6'; assert.equal(zh13Dlya('a@b.ru'), false)
+  process.env.GENERATOR = ' ZH13 '; assert.equal(zh13Dlya('a@b.ru'), true)
   process.env.GENERATOR = 'zh13'; process.env.ZH13_ONLY_EMAILS = 'atru8292+*@gmail.com, x@y.ru'
   assert.equal(zh13Dlya('atru8292+test@gmail.com'), true); assert.equal(zh13Dlya('X@Y.ru'), true); assert.equal(zh13Dlya('z@y.ru'), false); assert.equal(zh13Dlya(null), false)
   process.env.ZH13_ONLY_EMAILS = ''; assert.equal(zh13Dlya('z@y.ru'), true)

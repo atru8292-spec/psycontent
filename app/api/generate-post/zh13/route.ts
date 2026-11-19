@@ -1,5 +1,5 @@
-// zh13 (19.11): один текст генератором zh13 (lib/generation/zh13). Только для тех, у кого включен флаг
-// (GENERATOR=zh13 и ZH13_ONLY_EMAILS, lib/generation/zh13/flag.ts), остальные пишут zh6 через /api/generate-post/group.
+// zh13 (19.11): один текст генератором zh13 (lib/generation/zh13). По умолчанию у всех; GENERATOR=zh6 или
+// ZH13_ONLY_EMAILS сужают (lib/generation/zh13/flag.ts), остальные пишут zh6 через /api/generate-post/group.
 // Тело: { format?: код формата zh13 | 'auto', mysl?: своя мысль, topic?: тема, fromPostId?: тот же текст в другом
 // формате или заново (тема, мысль, ситуация и группа берутся у него, только свой по user_id), zanovo?: true }.
 // Ответ JSON: текст по частям (главное, подпись, надпись, «Как снять», «Подойдет еще»). Счет как у zh6: один текст
