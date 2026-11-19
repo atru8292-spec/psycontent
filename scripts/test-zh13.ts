@@ -15,7 +15,7 @@ import { pometit, rubrikaVoprosov } from '../lib/generation/zh13/pometki'
 import { TEKSTY_PRAVOK, paryDlya, gruppaPar } from '../lib/generation/zh13/pravki'
 import { progonSmesi } from './zh13-smes'
 import { dostupen, tyazhelayaTema } from '../lib/generation/zh13/smes'
-import { scenaDlya, SCENY } from '../lib/generation/zh13/sceny'
+import { scenaDlya, scenaBlok, SCENY } from '../lib/generation/zh13/sceny'
 
 let n = 0
 const ok = (name: string, fn: () => void) => { fn(); n++; console.log('ok', name) }
@@ -234,6 +234,10 @@ ok('факты и сцены: формат на фактах без мысли �
   assert.ok(!dostupen(formatPo('film_bez')!, { fakty: true, scena: false, tema: '' }))
   assert.equal(scenaDlya('Мамы и взрослые дочери', null)?.film, 'Леди Берд')
   assert.equal(scenaDlya('Юмор про терапию', null), null)
+  const ss = scenaDlya('Злость', null)!
+  assert.equal(ss.vid, 'сериал'); assert.equal(ss.sezon, 7); assert.equal(ss.seriya, 10); assert.ok(ss.proverena)
+  assert.ok(!/рескрипт/i.test(scenaBlok(ss)), 'название техники в промпте')
+  assert.ok(SCENY.every(x => x.vid === 'фильм' || x.vid === 'сериал'))
   assert.ok(!SCENY.filter(x => !x.proverena).some(x => scenaDlya(x.temy[0], null)?.id === x.id))
 })
 

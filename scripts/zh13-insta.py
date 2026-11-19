@@ -16,7 +16,7 @@ by = {x['id']: x for x in a + b}
 # одобренные (решение Арины): заходы 1-3 все «бр» + DerS0B3Nqa-; заход 4 список
 Z4 = 'DfhyRdCMwcV DY6rtyxI1_f Db3dSNfoIzS DeZYj6Uo7U- DfCtIARI-21 DaXKeeIsC73 DXvmw1VNCvU DXqha1NDOE3 DXgJlIhjDYl DbSQ-ghMj38 DeYiUd0O1jQ DcWNlahNG_Q DfEpa72gNlE De_MOavhHbt Df1TNG1hv-2 DeOz2yBMwiC DannHoWNCh6 Dds7I95M_rU De7V0v1EZwf DDr-QuDIVHy DcJIMK4sl3u Ddi4r3xvfjR DfMYLqlvf_h DeLvkXhCuWX Dfhc8BbqGAW DfpQ_v5qA3m Ddim9eaxFOc DX1ILvhIQWj DblF8-GoSKb DZcGOP1okMv DeI4OJEomfi DePOy85IhpG DfPrzYAI2tj'.split()
 SEL = [x['id'] for x in a if x['status'] == 'бр'] + ['DerS0B3Nqa-'] + Z4
-assert len(SEL) == 75 and len(set(SEL)) == 75
+assert len(SEL) == 75 and len(set(SEL)) == 75  # одобрено 75; в образцы идут 74 (UBRAT)
 
 # разбор: длина, формат, хук (таблица 75 рилсов)
 TAB = {}
@@ -81,6 +81,24 @@ def obrezat(t, n=320):
     m = max(s.rfind('. '), s.rfind('? '), s.rfind('! '))
     return (s[:m + 1] if m > len(s) * 0.6 else s) + ' …'
 
+# 12 мест, где Whisper ошибся, а правильное слово не очевидно (решение Арины 19.11: не оставлять как есть):
+# вырезаем кусок, фраза вокруг остается целой; где без куска ломается смысл, образец убираем целиком (UBRAT)
+VYREZAT = [
+    ('DXZYnN4DGsi', 'все, заинт, конец близко', 'все, конец близко'),
+    ('DY5RZ1Ltw3T', 'по рублю переводил в Верии и писал', 'по рублю переводил и писал'),
+    ('De3cKpcyDaP', 'Отличный вопрос, Канце.', 'Отличный вопрос.'),
+    ('DcWNlahNG_Q', 'как вторжение в личной границе пьесицы.', 'как вторжение.'),
+    ('DeYiUd0O1jQ', ' Когда я вылечу рукой, мне больше никогда не захочется ходить. Захочется.', ''),
+    ('DWCAD4bjHuL', 'но с другой ебас в бардак мы здесь проездом', 'но с другой мы здесь проездом'),
+    ('DfMYLqlvf_h', 'с вами очень крепкое тепло, нассали в уши', 'с вами нассали в уши'),
+    ('DaDUvQytCJR', 'Что боишься, то и произойдет. Догадалка. ', 'Что боишься, то и произойдет. '),
+    ('DbsP9MwM5Wx', 'В предшколы всегда нужно было потратить кучу денег, и постепенно у меня', 'Постепенно у меня'),
+    ('DfMYLqlvf_h', 'Манипуляции для него, как писей по обуви, вызывают', 'Манипуляции для него вызывают'),
+    ('DXaKAGFjVny', ' Наш клиент сегодня вечером должно быть в Рейдингах.', ''),
+]
+# «Плотих вещей, которые с вами произойдут...» это хук всей сценки-списка, без него не понятно «а только три?»
+UBRAT = {'DblF8-GoSKb': 'вырезать «Плотих вещей» нельзя: это хук всей сценки-списка'}
+
 out = []
 zam_po = {}
 for z in ZAM:
@@ -91,6 +109,13 @@ for i in SEL:
     for z in zam_po.get(i, []):
         if z['bylo'] in rech:
             rech = rech.replace(z['bylo'], z['stalo'], 1)
+    rech = chist(rech)  # вырезаем по очищенному тексту («е», тире, пробелы)
+    for vi, bylo, stalo in VYREZAT:
+        if vi == i:
+            assert bylo in rech, (i, bylo)
+            rech = rech.replace(bylo, stalo, 1)
+    if i in UBRAT:
+        continue
     t = TAB.get(i, {})
     kody = KOD_PO_ID.get(i, []) if x['format'] == 'рилс' else []
     if i in ('DC1pECJRfW4', 'DeTz917CGy5'):
@@ -119,6 +144,6 @@ D = 'lib/generation/zh13/dannye.json'
 d = json.load(open(D, encoding='utf-8'))
 d['obrazcy'] = [o for o in d['obrazcy'] if not o['id'].startswith('insta:')] + out
 json.dump(d, open(D, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
-print('insta-образцов', len(out), '; с форматом', sum(1 for o in out if o['kody']), '; замен', sum(len(v) for v in zam_po.values()))
+print('insta-образцов', len(out), '; убрано', len(UBRAT), '; с форматом', sum(1 for o in out if o['kody']), '; замен', sum(len(v) for v in zam_po.values()))
 for k in KODY:
     print(' ', k, sum(1 for o in out if k in o['kody']))
