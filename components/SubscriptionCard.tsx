@@ -4,14 +4,18 @@
 // Показывается всем: на пробном тариф и остаток, на платном до какого числа, карта, автопродление.
 // «Отключить автопродление», «Удалить карту» и «Сменить тариф» срабатывают сразу после одного подтверждения (оферта).
 // Включить автопродление обратно можно только новой оплатой. Тексты lib/billing/pay-texts.ts.
-// «Посмотреть тарифы» раскрывает витрину TariffSection (ее рисует страница настроек, тут только кнопка).
+// Витрину TariffSection раскрывает текстовая кнопка «Сравнить тарифы» (витрину рисует страница настроек).
+// 20.11 (аудит Б3, Б4): у пробного главная кнопка «Выбрать тариф» сразу на оплату (2 тапа до оплаты); на «Спокойном ритме»
+// с нулем текстов главная «Перейти на «Каждый день»» (включится сразу, lib/billing/period.ts manualWindow switch), «Продлить» тихая.
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
 import { QUIET_BTN } from '@/lib/ui-classes'
+import { track } from '@/lib/track'
+import { BTN_MAIN, BTN_TEXT } from '@/components/PayTrust'
 import { SUB, MANUAL, rubles, dateRu } from '@/lib/billing/pay-texts'
 import { PAID_PLANS, consentText, type PaidCode } from '@/lib/billing/plans'
-import { planForDbCode } from '@/lib/pricing'
+import { planForDbCode, textsBackAt, ZERO, PAY_ONCE_LINE } from '@/lib/pricing'
 import type { Materials } from '@/lib/limit-texts'
 
 type PayMe = {
@@ -20,6 +24,7 @@ type PayMe = {
   nextPlan: { code: string; name: string; price: number } | null
   // ручное продление (19.11): autopay false, ended «Тариф закончился» с последним оплаченным тарифом
   autopay?: boolean; ended?: { plan: { code: string; name: string; price: number }; at: string } | null
+  anchor?: number | null; periodStart?: string | null
 }
 const DAY = 86400000
 
@@ -91,6 +96,13 @@ export default function SubscriptionCard({ planCode, planName, materials, tariff
       ? (left === 0 ? SUB.trialEnd : SUB.trialLeft(left, materials.cap))
       : (left === 0 ? SUB.monthEnd : SUB.monthLeft(left, materials.cap)))
     : ''
+  // тексты месяца кончились на оплаченном тарифе (ручное продление): когда вернутся и можно ли перейти сразу
+  const zero = manual && !!me?.paid && !!me.until && materials?.kind === 'month' && left === 0
+  const back = zero ? textsBackAt(new Date(), me!.periodStart ? new Date(me!.periodStart) : null, new Date(me!.until!), me!.anchor ?? null) : null
+  const canSwitch = zero && me?.plan?.code === 'start' && me.payments
+  // пробный (не оплачен и не «закончился»): главная кнопка сразу на оплату, витрина тихой кнопкой
+  const trialView = !!me && !paidView && !me.ended
+  const payOpen = !!me?.payments
   const btn = 'h-11 px-4 rounded-2xl border-[1.5px] border-brand-accent text-brand-accent text-[15px] font-semibold bg-brand-card hover:bg-brand-soft-2 transition cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent disabled:opacity-60'
 
   return (
@@ -98,13 +110,28 @@ export default function SubscriptionCard({ planCode, planName, materials, tariff
       <h2 id="tariff-title" className="text-lg font-semibold text-brand-text">Тариф</h2>
       <p className="mt-0.5 text-[15px] leading-[22px] text-brand-muted">{paidView && !pastDue && !manual ? SUB.planUntil(name, until) : name}</p>
       {manual && me?.paid && until && <p className="mt-1 text-[16px] leading-6 font-semibold text-brand-text">{MANUAL.paidUntil(until)}</p>}
-      {balance && <p className={`mt-1 text-[15px] leading-[22px] text-brand-text ${left !== 0 ? 'lg:hidden' : ''}`}>{balance}</p>}
+      {balance && !zero && <p className={`mt-1 text-[15px] leading-[22px] text-brand-text ${left !== 0 ? 'lg:hidden' : ''}`}>{balance}</p>}
 
       {manual && me?.paid && me.plan && (
         <div className="mt-4">
           {daysLeft <= 3 && <p className="mb-3 rounded-2xl bg-brand-soft-2 px-4 py-3 text-[15px] leading-[22px] text-brand-text">{MANUAL.endingSoon(until, daysLeft)}</p>}
-          <Link href={payHref(me.plan.code)} className="h-12 w-full lg:w-auto lg:px-6 rounded-2xl bg-brand-accent text-white text-[16px] font-semibold hover:bg-brand-accent-hover transition inline-flex items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent">{MANUAL.renewBtn}</Link>
-          <p className="mt-2 text-[13px] leading-[18px] text-brand-muted">{MANUAL.renewHint}</p>
+          {zero && back && (
+            <p className="mb-4 text-[15px] leading-[22px] text-brand-text">
+              <span className="font-semibold">{ZERO.payTitle}</span> {ZERO.settings(materials!.cap, dateRu(back.at), back.auto, canSwitch)}
+            </p>
+          )}
+          {canSwitch ? (
+            <>
+              <Link href={payHref('practice')} onClick={() => track('plan_click', { plan: 'practice', where: 'settings_zero' })} className={`w-full lg:w-auto ${BTN_MAIN}`}>{ZERO.switchBtn}</Link>
+              <p className="mt-2 text-[13px] leading-[18px] text-brand-muted">{PAY_ONCE_LINE}</p>
+              <Link href={payHref(me.plan.code)} onClick={() => track('plan_click', { plan: me.plan!.code, where: 'settings_renew' })} className={`mt-2 w-full lg:w-auto ${BTN_TEXT}`}>{ZERO.renewQuiet}</Link>
+            </>
+          ) : (
+            <>
+              <Link href={payHref(me.plan.code)} onClick={() => track('plan_click', { plan: me.plan!.code, where: 'settings_renew' })} className={`w-full lg:w-auto ${BTN_MAIN}`}>{MANUAL.renewBtn}</Link>
+              <p className="mt-2 text-[13px] leading-[18px] text-brand-muted">{MANUAL.renewHint}</p>
+            </>
+          )}
         </div>
       )}
 
@@ -112,7 +139,8 @@ export default function SubscriptionCard({ planCode, planName, materials, tariff
         <div className="mt-4 rounded-2xl bg-brand-soft-2 p-4">
           <p className="text-[16px] leading-6 font-semibold text-brand-text">{MANUAL.endedTitle}</p>
           <p className="mt-1 text-[15px] leading-[22px] text-brand-text">{MANUAL.endedText(me.ended.plan.name, dateRu(me.ended.at))}</p>
-          <Link href={payHref(me.ended.plan.code)} className="mt-3 h-12 w-full lg:w-auto lg:px-6 rounded-2xl bg-brand-accent text-white text-[16px] font-semibold hover:bg-brand-accent-hover transition inline-flex items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent">{MANUAL.payBtn}</Link>
+          <Link href={payHref(me.ended.plan.code)} onClick={() => track('plan_click', { plan: me.ended!.plan.code, where: 'settings_ended' })} className={`mt-3 w-full lg:w-auto ${BTN_MAIN}`}>{MANUAL.payBtn}</Link>
+          {me.payments && <p className="mt-2 text-[13px] leading-[18px] text-brand-muted">{PAY_ONCE_LINE}</p>}
         </div>
       )}
 
@@ -142,14 +170,21 @@ export default function SubscriptionCard({ planCode, planName, materials, tariff
         </div>
       )}
 
+      {trialView && payOpen && (
+        <div className="mt-4">
+          <Link href={payHref('start')} onClick={() => track('plan_click', { plan: 'start', where: 'settings_trial' })} className={`w-full lg:w-auto ${BTN_MAIN}`}>Выбрать тариф</Link>
+          {manual && <p className="mt-2 text-[13px] leading-[18px] text-brand-muted">{PAY_ONCE_LINE}</p>}
+        </div>
+      )}
+
       <div className="mt-4 flex flex-col lg:flex-row lg:flex-wrap gap-2">
         {me?.autoRenew && !me.nextPlan && me.plan && <button type="button" onClick={() => { setErr(false); setAgree(false); setAsk('plan') }} className={btn}>{SUB.changeBtn}</button>}
         {me?.autoRenew && <button type="button" onClick={() => { setErr(false); setAsk('off') }} className={btn}>{SUB.offBtn}</button>}
         {me?.method && <button type="button" onClick={() => { setErr(false); setAsk('del') }} className={btn}>{SUB.delBtn(sbp)}</button>}
         {onToggleTariffs && (
           <button type="button" onClick={onToggleTariffs} aria-expanded={tariffsOpen} aria-controls="tariff-list"
-            className={`lg:self-start ${QUIET_BTN}`}>
-            {tariffsOpen ? SUB.hideTariffs : SUB.seeTariffs}
+            className={`lg:self-start ${payOpen ? `-mt-2 ${BTN_TEXT}` : QUIET_BTN}`}>
+            {tariffsOpen ? SUB.hideTariffs : payOpen ? 'Сравнить тарифы' : SUB.seeTariffs}
           </button>
         )}
       </div>

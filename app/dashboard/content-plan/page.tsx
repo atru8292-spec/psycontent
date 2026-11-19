@@ -40,15 +40,16 @@ type DayItem = {
   reakciya?: string
 }
 
-// Кнопка дня по формату: глагол по делу
-const GO_TEXT: Record<string, string> = { carousel: 'Собрать карусель', reels: 'Написать рилс', stories: 'Написать сторис' }
+// Кнопка дня по формату: глагол по делу. Сторис в «Написать» нет (20.11): старые дни плана со сторис показываются
+// и открываются как пост (dayFormat)
+const GO_TEXT: Record<string, string> = { carousel: 'Собрать карусель', reels: 'Написать рилс' }
+const dayFormat = (f: string) => (f === 'stories' ? 'post' : f)
 const goText = (f: string) => GO_TEXT[f] || 'Написать пост'
 
 const FORMAT_META: Record<string, { icon: any; label: string; color: string; bg: string }> = {
   post:     { icon: AlignLeft, label: 'Пост',     color: 'text-brand-accent', bg: 'bg-brand-soft' },
   carousel: { icon: Layers,    label: 'Карусель', color: 'text-brand-accent', bg: 'bg-brand-soft' },
   reels:    { icon: Film,      label: 'Рилс',     color: 'text-brand-accent', bg: 'bg-brand-soft' },
-  stories:  { icon: FileText,  label: 'Сторис',   color: 'text-brand-muted', bg: 'bg-brand-soft' },
 }
 
 const PILLAR_META: Record<string, { color: string; dot: string }> = {
@@ -80,7 +81,7 @@ function pluralMaterial(n: number): string {
 }
 
 function rhythmCaption(n: number): string {
-  if (n === 0) return 'Месяц только начался, тут пока пусто. Дальше появится твой ритм.'
+  if (n === 0) return 'В этом месяце пока ни одного текста. Напишешь первый, и тут появится твой ритм.'
   if (n < RHYTHM_GOAL) return 'Ты в процессе. Держи ритм, и блог понемногу набирает вес.'
   return 'Четыре в месяц, ты в том ритме, с которого блог начинает приводить людей.'
 }
@@ -98,7 +99,7 @@ function RhythmTracker({ count }: { count: number }) {
         {/* Число за месяц */}
         <div className="shrink-0 flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <span className={`text-[28px] md:text-[32px] leading-none font-bold ${count === 0 ? 'text-brand-muted' : 'text-brand-accent'}`}>{count}</span>
-          <span className="text-sm text-brand-text-secondary">{pluralMaterial(count)} собрано</span>
+          <span className="text-sm text-brand-text-secondary">{pluralMaterial(count)} за месяц</span>
           {reached && (
             <span className="inline-flex items-center gap-1 text-brand-accent text-xs font-semibold ml-1">
               <Check className="w-3.5 h-3.5" /> в ритме
@@ -113,7 +114,7 @@ function RhythmTracker({ count }: { count: number }) {
                 <span key={i} className={`h-1.5 w-8 rounded-full ${i < Math.min(count, RHYTHM_GOAL) ? 'bg-brand-accent' : 'bg-brand-border-soft'}`} />
               ))}
             </div>
-            <span className="text-[11px] text-brand-muted shrink-0">цель: 4+</span>
+            <span className="text-[11px] text-brand-muted shrink-0">цель: от 4 в месяц</span>
           </div>
           <p className="text-[13px] md:text-sm text-brand-text-secondary leading-snug">{rhythmCaption(count)}</p>
         </div>
@@ -513,7 +514,7 @@ export default function ContentPlan() {
     router.push(makeHref({
       topic: item.topic,
       pillar: item.pillar,
-      format: item.format,
+      format: dayFormat(item.format),
       // план zh6: формат каталога и задача дня, «Сделать» отдаст их генерации с первым запуском
       fkod: item.format_kod,
       rol: item.zadacha,
@@ -629,7 +630,7 @@ export default function ContentPlan() {
             <EmptyState
               variant={2}
               title="План тем на месяц"
-              subtitle="Месяц тем под то, с чем ты работаешь: о чем писать и с какой первой строки. Собирается за минуту."
+              subtitle="30 тем под то, с чем ты работаешь, у каждой готова первая строка. Собирается за минуту."
               actionLabel="Составить план тем"
               onAction={handleGenerate}
             />

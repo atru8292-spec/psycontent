@@ -2,27 +2,31 @@
 // Один материал = один готовый текст. Проверка ДО вызова модели (canConsume), списание ПОСЛЕ
 // успешной генерации и записи в generated_posts (commit). При падении модели commit не зовем, зовем fail().
 // Новый «Сделать» (generate-post/group) и «Другой заход» (adjust) считают сами, сюда не переводились.
+// Резерв (20.11): canConsume бронирует материал, commit() списывает его из брони, fail() и release() бронь
+// отпускают. Любой выход после проверки должен звать commit(), fail() или release(), иначе бронь держит место
+// 15 минут.
 //
 // Ответ отказа: 429 { error: текст отказа из lib/energy.ts, limit: true, code: reason }.
 // Старые экраны показывают data.error как есть, поэтому текст отказа виден человеку.
 // Сбой чтения счетчика (reason 'server_error') тоже 429 с понятным текстом, не 200 и не молчаливый пропуск.
 import { NextResponse } from 'next/server'
-import { canConsume, commitConsume, recordFailure, recordRefusal, type Decision } from './energy'
+import { canConsume, commitConsume, recordFailure, recordRefusal, releaseConsume, type Decision } from './energy'
 
 export interface GateDeps {
   canConsume: (userId: string, op: string, units?: number) => Promise<Decision>
   commitConsume: (userId: string, op: string, decision: Decision) => Promise<unknown>
   recordRefusal?: (userId: string, op: string) => Promise<void>
   recordFailure?: (userId: string, op: string) => Promise<void>
+  releaseConsume?: (decision: Decision) => Promise<void>
 }
 
 // fail(): модель или запись упали ПОСЛЕ проверки, материал не списываем, факт пишем в журнал (как group).
 // После commit() не делает ничего, повторный вызов тоже.
 export type GateResult =
   | { ok: false; response: NextResponse; decision: Decision }
-  | { ok: true; decision: Decision; commit: () => Promise<void>; fail: () => Promise<void> }
+  | { ok: true; decision: Decision; commit: () => Promise<void>; fail: () => Promise<void>; release: () => Promise<void> }
 
-const DEFAULT_DEPS: GateDeps = { canConsume, commitConsume, recordRefusal, recordFailure }
+const DEFAULT_DEPS: GateDeps = { canConsume, commitConsume, recordRefusal, recordFailure, releaseConsume }
 
 // Мягкий текст сбоя для старых роутов (12.11): сырой error.message человеку не показываем.
 export const SOFT_FAIL_TEXT = 'Текст не получился из-за сбоя. Попробуй еще раз через минуту.'
@@ -51,6 +55,11 @@ export async function materialGate(userId: string, op: string, units = 1, deps: 
     return { ok: false, response, decision }
   }
   let done = false
+  // отпустить бронь (releaseConsume сам не бросает, но подмененный в тестах может)
+  const free = async () => {
+    if (!deps.releaseConsume) return
+    try { await deps.releaseConsume(decision) } catch (e: any) { console.warn('materialGate releaseConsume:', errTag(e)) }
+  }
   const commit = async () => {
     // не больше одного списания на запрос, даже если позвали дважды
     if (done) return
@@ -61,12 +70,21 @@ export async function materialGate(userId: string, op: string, units = 1, deps: 
       // текст уже готов и отдан: сбой списания логируем, ответ не ломаем
       console.error('materialGate commitConsume failed:', op, errTag(e))
     }
+    // остаток брони (если units больше списанного) не держим
+    await free()
   }
   const fail = async () => {
     if (done) return
     done = true
+    await free()
     if (!deps.recordFailure) return
     try { await deps.recordFailure(userId, op) } catch (e: any) { console.warn('materialGate recordFailure:', errTag(e)) }
   }
-  return { ok: true, decision, commit, fail }
+  // текст не выдан, но это не сбой (вопрос вместо текста, неподходящий формат): бронь отпускаем без записи в журнал
+  const release = async () => {
+    if (done) return
+    done = true
+    await free()
+  }
+  return { ok: true, decision, commit, fail, release }
 }

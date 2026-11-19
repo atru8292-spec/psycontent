@@ -163,3 +163,28 @@ export const ZAPAS: Record<string, string[]> = {
   carousel: ['mysl', 'p_paradoks', 'sessiya', 'karusel'],
   post: ['mysl', 'karusel', 'sessiya', 'p_paradoks'],
 }
+
+// ── Как форматы называются на экране (аудит UI 19.11, В1) ──
+// imya и korotko выше уходят в промпты подбора и писателя (podbor.ts, prompt.ts), поэтому их не трогаем: экран берет
+// человеческие имена отсюда, а где своего нет, прежние. Внутренних слов (POV, «Пост:», «подпись») на экране быть не должно.
+const EKRAN: Record<string, { imya?: string; korotko?: string }> = {
+  sessiya: { imya: 'Кусок сессии', korotko: 'Ты и клиент на разделенном экране' },
+  pov_assoc: { imya: 'Слова на экране', korotko: 'Название и 7-10 коротких слов под музыку' },
+  pov_scenka: { imya: 'Сценка без слов', korotko: 'Надпись сверху и одно действие в кадре' },
+  golos: { korotko: 'Спор с собой вслух в обычной ситуации' },
+  slyshit: { imya: 'Что слышит психолог', korotko: 'Две надписи на экране, ответ в описании' },
+  film_bez: { korotko: 'Сцена, надпись сверху, смысл в описании' },
+  sebe20: { korotko: 'Совет себе в 20 лет, по твоей истории' },
+  istoriya: { korotko: 'История из твоей жизни' },
+  karusel: { korotko: '8-10 слайдов, на каждом одна мысль' },
+  p_priznanie: { imya: 'Признание' },
+  p_razoblachenie: { imya: 'Разбор расхожей фразы' },
+  p_paradoks: { imya: 'Парадокс' },
+  p_perevod: { imya: 'Говорит и на самом деле' },
+  p_antisovet: { imya: 'Вредный совет' },
+  p_voprosy: { imya: 'Вопросы к себе' },
+}
+// первая буква заглавная: подписи от модели и из каталога бывают с маленькой
+export const sZaglavnoy = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
+export const imyaNaEkrane = (kod: string): string => EKRAN[kod]?.imya || formatPo(kod)?.imya || kod
+export const korotkoNaEkrane = (kod: string): string => sZaglavnoy(EKRAN[kod]?.korotko || formatPo(kod)?.korotko || '')

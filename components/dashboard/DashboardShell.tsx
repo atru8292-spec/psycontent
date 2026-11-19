@@ -38,6 +38,18 @@ export function useShellFocus(on: boolean) {
   }, [on, bump])
 }
 
+// Экран без шапки и нижнего меню на телефоне (результат «Написать», аудит UI 19.11 В2): экран сам рисует
+// строку «логотип · Новая мысль» и липкую кнопку внизу. Такой же счетчик, как у фокуса
+const ShellBareContext = createContext<(delta: 1 | -1) => void>(() => {})
+export function useShellBare(on: boolean) {
+  const bump = useContext(ShellBareContext)
+  useEffect(() => {
+    if (!on) return
+    bump(1)
+    return () => bump(-1)
+  }, [on, bump])
+}
+
 // Склонение без зависимости от limit-texts (там свои тексты пилюли, тут подписи блока меню)
 const pl = (n: number, one: string, few: string, many: string) => {
   const a = n % 10, b = n % 100
@@ -53,6 +65,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [collapsed, setCollapsed] = useState(false)
   const [focusCount, setFocusCount] = useState(0)
   const bumpFocus = useCallback((d: 1 | -1) => setFocusCount(c => Math.max(0, c + d)), [])
+  const [bareCount, setBareCount] = useState(0)
+  const bumpBare = useCallback((d: 1 | -1) => setBareCount(c => Math.max(0, c + d)), [])
   // Сводка /api/me тянется один раз в layout и отдается страницам через DashboardMeContext
   const [energy, setEnergy] = useState<any>(null)
   // Ждем /api/me, чтобы человек с новым мозгом не видел, как мелькает старая главная
@@ -172,6 +186,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const focus = focusCount > 0
   const slim = collapsed || focus
   const onPay = pathname.startsWith('/dashboard/oplata')
+  // телефон: экран попросил убрать шапку и нижнее меню (результат текста)
+  const bare = bareCount > 0
   // Реквизиты продавца (ФИО, ИНН, телефон) в кабинете только на странице оплаты и ее итоге (решение Арины 19.11:
   // внутри сервиса они лишние). Всем они видны на лендинге, /offer, /privacy, на входе и на 404. Ссылки на оферту,
   // политику и cookie без реквизитов одной строкой внизу «Настроек» (DocsLine)
@@ -216,7 +232,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
         <div className={`mt-auto ${slim ? 'flex flex-col items-center gap-1' : ''}`}>
           {/* остаток: на компьютере один раз, здесь; в режиме фокуса и в свернутом меню его нет */}
-          {!slim && materials && <MenuBalance m={materials} until={paidUntil} />}
+          {!slim && materials && <MenuBalance m={materials} until={paidUntil} pay={energy?.paymentsOn === true} />}
 
           <Link href={HELP_HREF} aria-current={pathname.startsWith(HELP_HREF) ? 'page' : undefined} aria-label={slim ? 'Помощь' : undefined}
             className={`group relative flex items-center rounded-xl hover:text-brand-text transition focus-visible:outline-2 focus-visible:outline-brand-accent ${slim ? 'w-12 h-11 justify-center' : 'h-11 gap-2 px-3 mt-2 text-[13px] font-medium'} ${pathname.startsWith(HELP_HREF) ? 'text-brand-text bg-brand-soft' : 'text-brand-muted'}`}>
@@ -237,24 +253,26 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       </aside>
 
       {/* ─── Основной контент ─── */}
-      <main className={`flex-1 min-w-0 min-h-dvh lg:pb-0 ${onPay ? 'pb-0' : 'pb-[calc(56px+env(safe-area-inset-bottom)+16px)]'} ${slim ? 'lg:ml-[72px]' : 'lg:ml-[240px]'}`}>
+      <main className={`flex-1 min-w-0 min-h-dvh lg:pb-0 ${onPay || bare ? 'pb-0' : 'pb-[calc(56px+env(safe-area-inset-bottom)+16px)]'} ${slim ? 'lg:ml-[72px]' : 'lg:ml-[240px]'}`}>
         {/* Шапка телефона: только знак. Остатка тут нет (он под кнопкой «Написать» и в «Настройках»), выход в «Настройках» */}
-        <header className="lg:hidden sticky top-0 z-30 bg-brand-bg/90 backdrop-blur h-14 box-content pt-[env(safe-area-inset-top)] flex items-center px-4">
+        {!bare && <header className="lg:hidden sticky top-0 z-30 bg-brand-bg/90 backdrop-blur h-14 box-content pt-[env(safe-area-inset-top)] flex items-center px-4">
           <Link href={homeHref} aria-label="PsyCont" className="h-11 flex items-center">
             <Image src="/brand/psycont-wordmark.svg" alt="" width={89} height={24} className="h-6 w-auto" />
           </Link>
-        </header>
+        </header>}
 
         <ScreenTracker />
         <ShellFocusContext.Provider value={bumpFocus}>
-          {/* me.paidUntil: до какого числа оплачен тариф (ISO или null), для строки «до 12 декабря» на «Написать» */}
-          <DashboardMeContext.Provider value={ctx}>{children}</DashboardMeContext.Provider>
+          <ShellBareContext.Provider value={bumpBare}>
+            {/* me.paidUntil: до какого числа оплачен тариф (ISO или null), для строки «до 12 декабря» на «Написать» */}
+            <DashboardMeContext.Provider value={ctx}>{children}</DashboardMeContext.Provider>
+          </ShellBareContext.Provider>
         </ShellFocusContext.Provider>
         {legal && <LegalLine className="mx-auto w-full max-w-5xl px-4 pt-10 pb-6 md:px-6 lg:px-12" />}
       </main>
 
       {/* ─── Нижнее меню (телефон): 4 пункта с подписями, высота 56 px (на нее опираются липкие панели MakeFlow и FormatPane). Пока поле в фокусе, уезжает вниз (z: меню 40, листы 50, тост 60) ─── */}
-      {!onPay && (
+      {!onPay && !bare && (
         <nav aria-label="Разделы" className={`lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-brand-card border-t border-brand-border flex h-14 box-content pb-[env(safe-area-inset-bottom)] transition-transform duration-150 motion-reduce:transition-none ${typing ? 'translate-y-full' : ''}`}
           {...(typing ? { inert: true, 'aria-hidden': true } : {})}>
           {NAV.map((item) => {
@@ -276,7 +294,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 }
 
 // Блок остатка внизу меню (A1, A8): пробные точками, платный полосой. Ведет к тарифам в «Настройках».
-function MenuBalance({ m, until }: { m: Materials; until: string | null }) {
+function MenuBalance({ m, until, pay }: { m: Materials; until: string | null; pay?: boolean }) {
   const trial = m.kind === 'trial'
   const left = Math.max(0, m.remaining)
   const empty = left === 0
@@ -304,7 +322,10 @@ function MenuBalance({ m, until }: { m: Materials; until: string | null }) {
           </div>
         )}
       </div>
-      <Link href={TARIFF_HREF} className={`mt-2.5 w-full ${QUIET_BTN}`}>Посмотреть тарифы</Link>
+      {/* пробный при открытой оплате: сразу на оплату (аудит Б4, 2 тапа); платный: к своему тарифу в «Настройках» */}
+      {trial && pay
+        ? <Link href="/dashboard/oplata?plan=start" className={`mt-2.5 w-full ${QUIET_BTN}`}>Выбрать тариф</Link>
+        : <Link href={TARIFF_HREF} className={`mt-2.5 w-full ${QUIET_BTN}`}>Посмотреть тарифы</Link>}
     </div>
   )
 }

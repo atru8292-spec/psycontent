@@ -10,6 +10,11 @@
 // панель «Сохранить в Фото» (share с файлами), «Описание», «•••».
 // Первая карусель: три стиля под тон текста. Дальше карусель сразу открывается в сохраненном оформлении.
 //
+// Экран zh13 (аудит UI 19.11, В18): autoStyle сразу собирает слайды в первом предложенном стиле (без пустого выбора),
+// главная кнопка «Сохранить слайды», свои действия экрана (скопировать текст, сделать заново) уходят в «•••» через moreItems,
+// onExported сообщает экрану, что слайды сохранили (для «Уже в блоге? Отметь»). mobileBar 'bare': панель у самого низа,
+// когда экран спрятал нижнее меню.
+//
 // Режим фокуса и меню кабинета: useShellFocus (DashboardShell) сворачивает меню в иконки 72 px, панель стоит
 // от 72 px слева. Экрану результата при входе и выходе зовется onFocusChange(on).
 
@@ -67,6 +72,9 @@ export type CarouselFocusOpts = {
 
 const norm = (t: string) => t.replace(/\s+/g, ' ').trim()
 const pad2 = (n: number) => String(n).padStart(2, '0')
+// POST /api/carousel/design в пути по postId (на весь модуль, переживает перемонтирование): автосборка зовет модель П7,
+// и вторая копия компонента (перемонтировали, пока первый запрос шел) не должна запускать ее еще раз, а ждет первый
+const designPosts = new Map<string, Promise<any>>()
 const DEFAULT_SUGGESTED: TemplateStyle[] = ['t_redakciya', 't_stikery', 't_zametki']
 // цвета первым рядом; остальные палитры и пипетка в «Еще настройки»
 const QUICK_PALETTES = ['Бумага', 'Шалфей', 'Пудра', 'Море', 'Сливки', 'Графит']
@@ -95,7 +103,9 @@ function useDesk() {
   return desk
 }
 
-export default function CarouselDesigner({ postId, text, onTextChange, focus, onFocusChange, mobileBar = 'inline' }: {
+export type CarouselMoreItem = { label: string; onClick: () => void; disabled?: boolean }
+
+export default function CarouselDesigner({ postId, text, onTextChange, focus, onFocusChange, mobileBar = 'inline', autoStyle = false, moreItems, onExported }: {
   postId: string
   text: string
   onTextChange: (t: string) => void
@@ -103,7 +113,10 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
   onFocusChange?: (on: boolean) => void
   // 'fixed': панель «Сохранить в Фото · Описание · •••» прилипает к низу над таб-баром (когда экран прячет свою);
   // 'inline': стоит в потоке под листалкой
-  mobileBar?: 'inline' | 'fixed'
+  mobileBar?: 'inline' | 'fixed' | 'bare'
+  autoStyle?: boolean
+  moreItems?: CarouselMoreItem[]
+  onExported?: () => void
 }) {
   useFeatureOpen('carousel_design')
   const desk = useDesk()
@@ -149,6 +162,8 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
   const tuneRef = useRef<HTMLDivElement>(null)
   const focusCb = useRef(onFocusChange)
   focusCb.current = onFocusChange
+  const exportedCb = useRef(onExported)
+  exportedCb.current = onExported
 
   const parsed = useMemo(() => parseCarouselText(text), [text])
   const cover = parsed.slides[0] || ''
@@ -204,12 +219,35 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
     return () => { alive = false }
   }, [postId])
 
+  // Автосборка оформления: один POST на postId, даже если компонент перемонтировали, пока запрос шел
+  const autoPost = useCallback((label: string, body: Record<string, unknown>) => {
+    const inflight = designPosts.get(postId)
+    if (inflight) {
+      setBusy(label)
+      inflight.then(d => {
+        if (d?.design) { setDesign(d.design); setRubric(d.design.options?.rubric || '') }
+        if (d && 'mine' in d) setMine(d.mine)
+      }).finally(() => setBusy(null))
+      return
+    }
+    const p = call(label, 'POST', body).finally(() => designPosts.delete(postId))
+    designPosts.set(postId, p)
+  }, [call, postId])
+
   // Сохраненное оформление есть, а у этой карусели оформления еще нет: сразу открываем в нем, без выбора стиля
   useEffect(() => {
     if (!loaded || design || !mine || autoMine.current || parsed.slides.length < 2) return
     autoMine.current = true
-    call('mine', 'POST', { postId, useMine: true, text })
-  }, [loaded, design, mine, parsed.slides.length, call, postId, text])
+    autoPost('mine', { postId, useMine: true, text })
+  }, [loaded, design, mine, parsed.slides.length, autoPost, postId, text])
+
+  // autoStyle: оформления нет и сохраненного тоже, сразу собираем в первом предложенном стиле (заглушки выбора нет)
+  useEffect(() => {
+    if (!autoStyle || !loaded || design || mine || autoMine.current || parsed.slides.length < 2) return
+    autoMine.current = true
+    const first = shownSuggested[0]
+    if (first) autoPost(first, { postId, style: first, text })
+  }, [autoStyle, loaded, design, mine, parsed.slides.length, autoPost, postId, text, shownSuggested])
 
   // режим фокуса: только на компьютере и только когда есть что оформлять
   const focusOn = desk && wantFocus && loaded && parsed.slides.length >= 2
@@ -283,6 +321,7 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
   }
   const relayout = () => design && call('relayout', 'POST', { postId, style: design.style, text })
   const exported = (how: 'share' | 'zip' | 'single' | 'list') => {
+    exportedCb.current?.()
     if (design) fetch('/api/carousel/design', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ designId: design.id, exported: how }) }).catch(() => {}) // только отметка, вид не меняет
   }
 
@@ -792,7 +831,7 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
           )}
           {caption && (
             <button type="button" onClick={copyCaption} className={`${outlineBtn} h-11 px-4 text-[15px] shrink-0`}>
-              {copied ? <Check className="w-4 h-4" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}{copied ? 'Скопировано' : 'Скопировать описание'}
+              {copied ? <Check className="w-4 h-4" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}{copied ? 'Скопировано' : 'Описание'}
             </button>
           )}
           {design && (
@@ -913,9 +952,9 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
                 {accentChoice}
                 {readStatus(curSlide)}
               </div>
-            ) : (
-              <p className="text-[15px] leading-6 text-brand-muted">Тут будет правка слайда: заголовок, текст и выделение</p>
-            )}
+            ) : (opening || choosing) ? (
+              <p className="inline-flex items-center gap-2 text-[15px] leading-6 text-brand-muted" role="status"><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />Слайды собираются</p>
+            ) : null}
           </aside>
         </div>
       </div>
@@ -928,21 +967,23 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
   const primarySave = design && (share && !listMode ? (
     <button type="button" onClick={saveToPhotos} disabled={!files} className={`${accentBtn} flex-1 min-w-0 h-12 rounded-2xl text-[15px]`}>
       {files ? <ImageDown className="w-5 h-5 shrink-0" aria-hidden="true" /> : <Loader2 className="w-5 h-5 animate-spin shrink-0" aria-hidden="true" />}
-      <span className="truncate">{files ? 'Сохранить в Фото' : 'Слайды готовятся'}</span>
+      <span className="truncate">{files ? 'Сохранить слайды' : 'Слайды готовятся'}</span>
     </button>
   ) : isTouch() && !listMode ? (
     <button type="button" onClick={() => { setListMode(true); exported('list') }} className={`${accentBtn} flex-1 min-w-0 h-12 rounded-2xl text-[15px]`}>
-      <ImageDown className="w-5 h-5 shrink-0" aria-hidden="true" /><span className="truncate">Сохранить в Фото</span>
+      <ImageDown className="w-5 h-5 shrink-0" aria-hidden="true" /><span className="truncate">Сохранить слайды</span>
     </button>
   ) : (
     <a href={zipHref} onClick={() => exported('zip')} className={`${accentBtn} flex-1 min-w-0 h-12 rounded-2xl text-[15px]`}>
-      <Download className="w-5 h-5 shrink-0" aria-hidden="true" /><span className="truncate">Скачать все слайды</span>
+      <Download className="w-5 h-5 shrink-0" aria-hidden="true" /><span className="truncate">Сохранить слайды</span>
     </a>
   ))
 
   const actionBar = design && !listMode && editN == null && (
     <div className={mobileBar === 'fixed'
       ? 'fixed inset-x-0 z-30 bottom-[calc(56px+env(safe-area-inset-bottom))] bg-brand-card border-t border-brand-border px-4 py-2 lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:mt-4'
+      : mobileBar === 'bare'
+      ? 'max-lg:fixed max-lg:inset-x-0 max-lg:z-30 max-lg:bottom-0 max-lg:bg-brand-card max-lg:border-t max-lg:border-brand-border max-lg:px-4 max-lg:pt-2.5 max-lg:pb-[calc(10px+env(safe-area-inset-bottom))]'
       : ''}>
       <div className="flex items-center gap-2 max-w-[560px] mx-auto">
         {primarySave}
@@ -959,7 +1000,7 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
   )
 
   return (
-    <div className={`bg-white rounded-2xl border border-brand-border p-4 sm:p-6 space-y-4 mt-4 ${mobileBar === 'fixed' ? 'mb-20 lg:mb-0' : ''}`}>
+    <div className={`bg-white rounded-2xl border border-brand-border p-4 sm:p-6 space-y-4 ${mobileBar === 'bare' ? '' : 'mt-4'} ${mobileBar === 'fixed' ? 'mb-20 lg:mb-0' : ''}`}>
       {desk && (
         <div className="flex justify-end">
           <button type="button" onClick={() => { setWantFocus(true); trackEvent('feature_open', { feature: 'carousel_design' }) }} className={`${outlineBtn} h-11 px-4 text-[15px]`}>
@@ -1033,7 +1074,7 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
             </div>
           )}
 
-          {mobileBar === 'inline' && actionBar}
+          {(mobileBar === 'inline' || mobileBar === 'bare') && actionBar}
         </>
       )}
 
@@ -1059,6 +1100,13 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
       {mobileBar === 'fixed' && actionBar}
 
       <BottomSheet open={moreOpen} onClose={() => setMoreOpen(false)} title="Еще">
+        {moreItems && moreItems.length > 0 && (
+          <div className="pt-1 border-b border-brand-border">
+            {moreItems.map(m => (
+              <button key={m.label} type="button" disabled={m.disabled} onClick={() => { setMoreOpen(false); m.onClick() }} className="w-full h-[52px] text-left text-[16px] text-brand-text cursor-pointer disabled:opacity-40">{m.label}</button>
+            ))}
+          </div>
+        )}
         {design && (
           <div className="pt-1">
             {(share || isTouch()) && (

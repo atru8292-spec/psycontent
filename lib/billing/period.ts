@@ -72,4 +72,15 @@ export function monthSegmentStart(periodStart: Date, anchor: number | null, now:
   return s
 }
 
+// Начало следующего месяца текстов (20.11, ревью «Сейчас»): тот же расчет, что у сервера (monthSegmentStart и
+// windowKey в lib/energy.ts), от начала окна period_start, а не от конца: после смены тарифа конец сдвинут бонусными
+// днями, и восстановление от него дает не тот день. null: следующий месяц начинается не раньше конца срока, значит
+// новые тексты будут только после продления. Одна функция для «Написать», Профиля и экрана оплаты.
+export function nextSegmentStart(periodStart: Date, anchor: number | null, until: Date, now: Date): Date | null {
+  if (isNaN(periodStart.getTime()) || isNaN(until.getTime())) return null
+  const a = anchor || anchorDayOf(periodStart)
+  const next = addMonthAnchored(monthSegmentStart(periodStart, anchor, now), a)
+  return next.getTime() < until.getTime() ? next : null
+}
+
 export const fmtDate =(d: Date | string) => new Date(d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' })

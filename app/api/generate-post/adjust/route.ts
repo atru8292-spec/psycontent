@@ -11,7 +11,7 @@ import { recordEvent } from '@/lib/generation/learning'
 import { zh6Popravit, zh6Write } from '@/lib/generation/zh6/write'
 import { formatByCode } from '@/lib/generation/zh6/formaty'
 import { zh6On, ZH6_ROLI } from '../new-pipeline'
-import { canConsume, commitConsume, recordRefusal } from '@/lib/energy'
+import { canConsume, commitConsume, recordRefusal, releaseConsume } from '@/lib/energy'
 import { errTag } from '@/lib/safe-error'
 
 // «Другой заход» zh6 пишет целый текст: считаем как генерацию текста, как набор на «Сделать»
@@ -81,30 +81,35 @@ export async function POST(req: NextRequest) {
           await recordRefusal(user.id, ZAHOD_OP)
           return NextResponse.json({ error: decision.message || 'Материалы закончились', limit: true }, { status: 429 })
         }
-        // прошлый заход (если был) идет в память как уже показанный: следующий возьмет другие примеры и конец
-        const prev = cr.zahod?.zh4?.zh6
-        if (prev && ctx.memory) {
-          const m: any = ctx.memory as any
-          m.zh6 = m.zh6 || { ustr: [], primery: [], kon: [], priemy: [] }
-          if (Array.isArray(prev.primery)) m.zh6.primery = [...(m.zh6.primery || []), ...prev.primery]
-          if (typeof prev.kon === 'string') m.zh6.kon = [...(m.zh6.kon || []), prev.kon]
-          if (typeof prev.ustr === 'string') m.zh6.ustr = [...(m.zh6.ustr || []), prev.ustr]
-          m.total = (Number(m.total ?? m.count) || 0) + 1
+        // бронь материала отпускается на любом исходе (сбой модели уходит в общий catch); после списания ее уже нет
+        try {
+          // прошлый заход (если был) идет в память как уже показанный: следующий возьмет другие примеры и конец
+          const prev = cr.zahod?.zh4?.zh6
+          if (prev && ctx.memory) {
+            const m: any = ctx.memory as any
+            m.zh6 = m.zh6 || { ustr: [], primery: [], kon: [], priemy: [] }
+            if (Array.isArray(prev.primery)) m.zh6.primery = [...(m.zh6.primery || []), ...prev.primery]
+            if (typeof prev.kon === 'string') m.zh6.kon = [...(m.zh6.kon || []), prev.kon]
+            if (typeof prev.ustr === 'string') m.zh6.ustr = [...(m.zh6.ustr || []), prev.ustr]
+            m.total = (Number(m.total ?? m.count) || 0) + 1
+          }
+          const kod = typeof zh4.zh6.ustr === 'string' && formatByCode(zh4.zh6.ustr) ? zh4.zh6.ustr : null
+          const r = await zh6Write(ctx, {
+            topic: p0.topic_for_text || postRes.data.topic || '',
+            format: toFormatCode(postRes.data.format_code || postRes.data.format),
+            intent: p0.intent || null,
+            formatKod: kod,
+            ...((ZH6_ROLI as readonly unknown[]).includes(zh4.rol) ? { rol: zh4.rol } : {}),
+          })
+          // текст материала не меняем, пока она не выбрала заход: заход ждет в check_result.zahod (action zahod_pick)
+          await db.from('generated_posts').update({ check_result: { ...cr, zahod: { text: r.text, zh4: r.zh4 } } }).eq('id', postId).eq('user_id', user.id)
+          await commitConsume(user.id, ZAHOD_OP, decision)
+          const first = r.text.split('\n').find(l => l.trim()) || ''
+          // формат ответа как у старых заходов; full: весь новый текст (у zh6 заход это новый текст, не одна строка)
+          return NextResponse.json({ hooks: [{ hook_type: 'zh6_zahod', text: first.trim(), why: '', full: r.text, formatName: r.zh6.formatName }] })
+        } finally {
+          await releaseConsume(decision)
         }
-        const kod = typeof zh4.zh6.ustr === 'string' && formatByCode(zh4.zh6.ustr) ? zh4.zh6.ustr : null
-        const r = await zh6Write(ctx, {
-          topic: p0.topic_for_text || postRes.data.topic || '',
-          format: toFormatCode(postRes.data.format_code || postRes.data.format),
-          intent: p0.intent || null,
-          formatKod: kod,
-          ...((ZH6_ROLI as readonly unknown[]).includes(zh4.rol) ? { rol: zh4.rol } : {}),
-        })
-        // текст материала не меняем, пока она не выбрала заход: заход ждет в check_result.zahod (action zahod_pick)
-        await db.from('generated_posts').update({ check_result: { ...cr, zahod: { text: r.text, zh4: r.zh4 } } }).eq('id', postId).eq('user_id', user.id)
-        await commitConsume(user.id, ZAHOD_OP, decision)
-        const first = r.text.split('\n').find(l => l.trim()) || ''
-        // формат ответа как у старых заходов; full: весь новый текст (у zh6 заход это новый текст, не одна строка)
-        return NextResponse.json({ hooks: [{ hook_type: 'zh6_zahod', text: first.trim(), why: '', full: r.text, formatName: r.zh6.formatName }] })
       }
       if (!(action in BUTTONS)) return NextResponse.json({ error: 'Неизвестное действие' }, { status: 400 })
       const fixed = await zh6Popravit(ctx, current, BUTTONS[action], typeof zh4.zh6.ustr === 'string' ? zh4.zh6.ustr : null)

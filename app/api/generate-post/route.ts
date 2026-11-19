@@ -278,6 +278,8 @@ export async function POST(req: NextRequest) {
       if (res.ok) {
         let delivered = false
         try { const data = await res.clone().json(); delivered = typeof data?.post === 'string' && data.post.trim().length > 0 } catch {}
+        // вопрос плана без текста: материал не списан, бронь отпускаем
+        if (!delivered) await gate.release()
         if (delivered) await gate.commit()
       } else {
         await gate.fail()
@@ -289,6 +291,7 @@ export async function POST(req: NextRequest) {
 
     // Старый путь пишет только пост и сторис. Карусель и Reels без нового движка живут на своих страницах.
     if (format !== 'post' && format !== 'stories') {
+      await gate.release()
       return NextResponse.json({ error: 'Этот формат пока собирается на отдельной странице' }, { status: 400 })
     }
 

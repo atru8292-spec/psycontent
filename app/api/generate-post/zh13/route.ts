@@ -9,7 +9,7 @@ import { NextRequest, NextResponse, after } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/auth'
-import { canConsume, commitConsume, recordFailure, recordRefusal } from '@/lib/energy'
+import { canConsume, commitConsume, recordFailure, recordRefusal, releaseConsume } from '@/lib/energy'
 import { serverTrack } from '@/lib/track-server'
 import { errTag } from '@/lib/safe-error'
 import { zh13Dlya } from '@/lib/generation/zh13/flag'
@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
   serverTrack(userId, 'make_start', { formats: kod ? (formatPo(kod)!.vid) : 'auto', n: 1, voice: body?.voice === true, format_kod: kod || 'auto', mode: mysl ? 'thought' : 'topic' })
 
   const t0 = Date.now()
+  // бронь материала (canConsume) отпускается в finally на любом исходе; после списания ее уже нет
   try {
     const knownNames = profile.full_name ? [String(profile.full_name)] : []
     const it = await napisat(db, userId, profile, { formatKod: kod, mysl, tema: topic, fromPostId }, knownNames, { t0 })
@@ -103,12 +104,14 @@ export async function POST(req: NextRequest) {
     // формат требует фактов о себе или сцены из фильма: не сбой, человеку понятное объяснение, ничего не списано
     if (e instanceof KodOshibki) {
       await recordFailure(userId, OP).catch(() => {})
-      return fail(e.kod, 422, { message: e.kod === 'net_faktov' ? 'Этот формат пишется только из твоих фактов. Впиши в «Свою мысль», что с тобой было' : 'Под эту тему в базе пока нет проверенной сцены из фильма. Выбери другой формат' })
+      return fail(e.kod, 422, { message: e.kod === 'net_faktov' ? 'Тут нужна твоя история. Впиши в «Свою мысль», что с тобой было' : 'Под эту тему пока не нашлось подходящего фильма. Выбери другой формат' })
     }
     console.error('zh13 generation failed:', errTag(e))
     await recordFailure(userId, OP).catch(() => {})
     const money = /credit_balance|insufficient_quota|openai_401/i.test(String(e?.message || e?.code || ''))
     return fail(money ? 'ai_unavailable' : 'format_failed', 502, { message: 'Этот текст не получился. Попробуй еще раз' })
+  } finally {
+    await releaseConsume(decision)
   }
 }
 

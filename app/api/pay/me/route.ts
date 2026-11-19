@@ -36,6 +36,8 @@ export async function GET() {
       plan: (paid || pastDue) && sub ? planOf(sub.plan_code) : null,
       status: sub?.status || 'trial',
       until: paid ? sub!.period_end : null,
+      // начало окна: от него считаются месяцы текстов (lib/billing/period.ts nextSegmentStart), как у сервера
+      periodStart: paid ? sub!.period_start : null,
       anchor: paid ? sub!.billing_anchor_day : null,
       autoRenew: autopay && !!((paid || pastDue) && sub!.auto_renew),
       nextChargeAt: autopay && (paid || pastDue) && sub!.auto_renew ? sub!.next_charge_at : null,

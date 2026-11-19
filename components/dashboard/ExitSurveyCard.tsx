@@ -11,7 +11,6 @@ import { useState } from 'react'
 import { Check, Loader2, X } from 'lucide-react'
 import { EXIT_COPY, STUCK_COPY, REASON_RU } from '@/lib/analytics/exit-copy'
 import { visibleReasons, OTHER_MAX, type ExitPlace, type ExitReason } from '@/lib/analytics/exit-survey'
-import { PRICING_FLAGS } from '@/lib/pricing'
 import { track } from '@/lib/track'
 import { QUIET_BTN_MUTED } from '@/lib/ui-classes'
 
@@ -20,7 +19,7 @@ export type ExitSurveyView = 'collapsed' | 'open' | 'thanks' | 'pause'
 const COUNTER_FROM = 240
 const SEND_ERROR = 'Не отправилось. Проверь интернет и нажми еще раз'
 
-export default function ExitSurveyCard({ place, onClose, paymentsOn = PRICING_FLAGS.paymentsOn, initialView = 'collapsed', initialContact = false }: {
+export default function ExitSurveyCard({ place, onClose, paymentsOn = false, initialView = 'collapsed', initialContact = false }: {
   place: ExitPlace
   onClose: () => void
   paymentsOn?: boolean

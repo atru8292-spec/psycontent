@@ -1,14 +1,14 @@
 // Опрос при уходе (аналитика 2, 24.10). GET: показывать ли карточку на главной (и отметка показа), POST: ответ.
 // Статус берем из analytics_churn, но визит считаем по прошлой сессии (события старше SESSION_MIN минут): иначе
 // app_open этого захода делает «Ушла» активной в момент входа. Свои слова человека пишутся только в exit_surveys,
-// в события идут только коды причин. Без таблицы exit_surveys или events карточка молча не показывается.
+// в события идут только коды причин. Причина «дорого» видна, только когда оплата открыта этому человеку (paymentsOnFor, 20.11). Без таблицы exit_surveys или events карточка молча не показывается.
 import { NextRequest, NextResponse } from 'next/server'
 import { errTag } from '@/lib/safe-error'
 import { getSessionUser } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/generation/db'
 import { serverTrack } from '@/lib/track-server'
 import { decideSurvey, decideStuck, cleanAnswer, SESSION_MIN, SURVEY_PAUSE_DAYS, type ExitPlace } from '@/lib/analytics/exit-survey'
-import { PRICING_FLAGS } from '@/lib/pricing'
+import { paymentsOnFor } from '@/lib/billing/ready'
 import { TAKE_EVENT } from '@/lib/analytics/definitions'
 
 const DAY = 86400000
@@ -39,7 +39,7 @@ export async function GET() {
     if (st.show) {
       const mark = await db.from('events').insert({ user_id: user.id, event: 'exit_survey_shown', props: { place: 'stuck' } })
       if (mark.error) { console.warn('exit_survey_shown:', errTag(mark.error)); return NextResponse.json({ show: false }) }
-      return NextResponse.json({ show: true, place: 'stuck', paymentsOn: PRICING_FLAGS.paymentsOn })
+      return NextResponse.json({ show: true, place: 'stuck', paymentsOn: paymentsOnFor(user.email) })
     }
     const d = decideSurvey({
       facts: churn.data.facts,
@@ -54,7 +54,7 @@ export async function GET() {
     // иначе карточка всплывала бы на каждом заходе (reviewer 24.10)
     const mark = await db.from('events').insert({ user_id: user.id, event: 'exit_survey_shown', props: { place: 'cooling' } })
     if (mark.error) { console.warn('exit_survey_shown:', errTag(mark.error)); return NextResponse.json({ show: false }) }
-    return NextResponse.json({ show: true, place: 'cooling', paymentsOn: PRICING_FLAGS.paymentsOn })
+    return NextResponse.json({ show: true, place: 'cooling', paymentsOn: paymentsOnFor(user.email) })
   } catch (e: any) {
     console.warn('exit-survey GET:', errTag(e))
     return NextResponse.json({ show: false })
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
   if (shown.error || !shown.data) return NextResponse.json({ error: 'not_shown' }, { status: 409 })
   const after = await db.from('exit_surveys').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('place', place).gte('created_at', shown.data.created_at)
   if (after.error || (after.count || 0) > 0) return NextResponse.json({ error: 'already' }, { status: 409 })
-  const a = body?.action === 'pause' && place !== 'stuck' ? { reasons: ['pause' as const], other: null, contact: false } : cleanAnswer(body, PRICING_FLAGS.paymentsOn, place)
+  const a = body?.action === 'pause' && place !== 'stuck' ? { reasons: ['pause' as const], other: null, contact: false } : cleanAnswer(body, paymentsOnFor(user.email), place)
   if (!a.reasons.length && !a.other) return NextResponse.json({ error: 'empty' }, { status: 400 })
   const { error } = await db.from('exit_surveys')
     .insert({ user_id: user.id, place, reasons: a.reasons, other_text: a.other, can_contact: a.contact })

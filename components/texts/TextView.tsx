@@ -101,7 +101,7 @@ export default function TextView({ rows, activeId, onActive, onTogglePublished }
         </button>
         <button type="button" onClick={open}
           className="h-12 px-6 inline-flex items-center gap-2 rounded-2xl border border-brand-text/70 text-brand-text font-semibold hover:bg-brand-bg cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent">
-          <PenTool className="w-4 h-4" aria-hidden="true" />Поправить
+          <PenTool className="w-4 h-4" aria-hidden="true" />Править текст
         </button>
         <button type="button" role="switch" aria-checked={!!row.published_at} onClick={() => onTogglePublished(row)}
           className={`h-12 px-6 inline-flex items-center gap-2 rounded-2xl font-semibold cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent ${row.published_at ? 'bg-brand-bg text-brand-text border border-brand-border' : 'border border-brand-text/70 text-brand-text hover:bg-brand-bg'}`}>

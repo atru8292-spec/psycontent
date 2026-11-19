@@ -74,7 +74,7 @@ export default function CookieBanner() {
       className={`fixed inset-x-0 z-[55] px-3 lg:px-6 bottom-0 pb-[max(12px,env(safe-area-inset-bottom))] lg:pb-6 ${topOnPhone ? 'max-lg:top-0 max-lg:bottom-auto max-lg:pt-[max(8px,env(safe-area-inset-top))] max-lg:pb-0' : ''} ${typing ? 'hidden' : ''}`}>
       <div className="mx-auto flex max-w-[720px] flex-col gap-3 rounded-2xl border border-brand-border bg-brand-card p-4 shadow-[0_6px_24px_rgb(59_42_34/0.14)] sm:flex-row sm:items-center sm:gap-5">
         <p className="min-w-0 text-[14px] leading-[1.45] text-brand-text">
-          Мы используем cookie и Яндекс Метрику, чтобы улучшать сервис и тексты.{' '}
+          Тут работают cookie и Яндекс Метрика: по ним я вижу, что в сервисе удобно, а что нет.{' '}
           <Link href={PRIVACY_PATH} className="whitespace-nowrap rounded-sm font-medium text-brand-accent underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent">Подробнее о данных</Link>
         </p>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0 sm:gap-2">

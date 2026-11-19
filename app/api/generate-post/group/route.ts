@@ -18,7 +18,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/auth'
-import { canConsume, commitConsume, recordFailure, recordRefusal } from '@/lib/energy'
+import { canConsume, commitConsume, recordFailure, recordRefusal, releaseConsume } from '@/lib/energy'
 import { buildContext, isNewPipeline } from '@/lib/generation/context'
 import { draft, refine, postFields, PIPELINE_VERSION, type GenRequest, type Plan } from '@/lib/generation/pipeline'
 import { isSimpleMode, simpleWrite, chooseIntent, chooseReelsFormat } from '@/lib/generation/simple'
@@ -154,7 +154,11 @@ export async function POST(req: NextRequest) {
   let original = ''
   if (sample?.kind === 'link') {
     const tg = await fetchTelegramPost(sample.url)
-    if ('error' in tg) return fail(tg.error === 'closed' ? 'sample_closed' : 'sample_failed', 422)
+    if ('error' in tg) {
+      // текст не начинали: бронь под все форматы отпускаем
+      await releaseConsume(decision)
+      return fail(tg.error === 'closed' ? 'sample_closed' : 'sample_failed', 422)
+    }
     original = tg.text
   } else if (sample?.kind === 'text') original = sample.text
 
@@ -363,6 +367,8 @@ export async function POST(req: NextRequest) {
         send({ type: 'error', error: 'Не получилось собрать мысль. Попробуй еще раз' })
       } finally {
         clearInterval(ping)
+        // бронь брали на все форматы, списан каждый записанный: остаток (упавшие, незаписанные) отпускаем
+        await releaseConsume(decision)
         // клиент мог закрыть вкладку: материалы все равно сохранены в «Моих текстах» и посчитаны
         try { controller.close() } catch { /* поток уже закрыт */ }
       }

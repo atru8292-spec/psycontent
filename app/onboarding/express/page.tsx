@@ -292,8 +292,9 @@ export default function ExpressOnboarding() {
     // новый мозг: тема в поле, Пост и Карусель выбраны, генерация только по нажатию.
     // Без флага старый экран как раньше: auto=1 сам пишет первый пост, теперь на этой теме (старый экран пишет только пост)
     // тема дня не в адресе, а через sessionStorage (lib/make-handoff.ts)
+    // zh13: кнопка сразу запускает первый текст на этой теме (go, одноразовый признак, аудит 19.11 Б1)
     router.push(zh13
-      ? makeHref({ first: '1', topic })
+      ? makeHref({ first: '1', topic, go: '1' })
       : newGen === false
       ? makeHref({ first: '1', auto: '1', topic })
       : makeHref({ first: '1', topic, formats: 'post,carousel' }))

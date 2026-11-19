@@ -33,12 +33,15 @@ export const EVENTS = {
   // ---- взяла текст в работу (главный сигнал ценности) ----
   material_take: ['how', 'format', 'post'],          // how copy|copy_caption|copy_text|share|zip|single|list|published, post = id материала
   material_adjust: ['action', 'format', 'post'],     // «Поправить», «Другой заход», «Еще формат» (сервер, /api/generate-post/adjust и group); post = id материала (с 24.10, для правок по тексту во вкладке «Тексты»)
+  make_next_topic: [],                               // клиент: «Следующая тема» после копирования на результате zh13
+  trial_spend_confirm: ['answer'],                   // клиент: ответ на «Потратить 1 пробный текст?» перед другим форматом (yes|no)
+  limit_wait: ['plan'],                              // клиент: «Подожду до ...» на карточке «Тексты закончились» (plan start|practice)
 
   // ---- деньги и лимиты ----
   limit_hit: ['reason', 'plan', 'op'],               // сервер: canConsume отказал (lib/energy.ts)
   paywall_view: ['where'],                           // клиент: показан LimitNotice или блок тарифов
   account_delete: ['reason', 'days', 'materials'],  // сервер: человек удалил аккаунт сам (без user_id: аккаунт и его строки стерты). reason коды чипов через запятую
-  plan_click: ['plan'],                              // клиент: нажала на тариф
+  plan_click: ['plan', 'where'],                     // клиент: нажала на тариф (where: tariffs, settings_trial, settings_zero, settings_renew, settings_ended, pay_screen)
   pay_start: ['plan', 'auto', 'via'],                // сервер: человек ушел на страницу ЮKassa (via sbp|any, auto согласие на автопродление)
   pay_done: ['plan', 'kind', 'via'],                 // сервер: платеж подтвержден API ЮKassa (kind first|renewal)
   pay_failed: ['kind', 'reason'],                    // сервер: платеж отменен (код причины ЮKassa)

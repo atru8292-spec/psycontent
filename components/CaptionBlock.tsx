@@ -1,6 +1,7 @@
 'use client'
 // Описание к публикации (у модели метка «Подпись:» в конце текста). Показываем отдельно от самого текста
 // рилса, карусели или поста и копируем отдельной кнопкой: в Instagram его вставляют в другое поле.
+// Заголовок везде «Описание», кнопка «Скопировать» (аудит UI 19.11: без «подписи под роликом»).
 import { track } from '@/lib/track'
 import { normFormat } from '@/lib/analytics/events'
 import { useState, type ReactNode } from 'react'
@@ -29,7 +30,7 @@ export default function CaptionBlock({ caption, title = 'Описание', mark
         <p className="min-w-0 text-[14px] font-semibold text-brand-text">{title}</p>
         <button type="button" onClick={copy}
           className={`-my-1 shrink-0 ${QUIET_BTN_SM}`}>
-          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Скопировано' : 'Скопировать описание'}
+          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Скопировано' : 'Скопировать'}
         </button>
       </div>
       <p className="text-[15px] leading-relaxed text-brand-text-secondary whitespace-pre-wrap break-words">{mark ? mark(caption) : caption}</p>

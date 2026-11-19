@@ -30,3 +30,7 @@ export const paymentsOnFor = (email: string | null | undefined) => billingReady(
 // возвращает автопродление как было (галочка, сохраненный способ, списания по таймеру). Экраны узнают режим из /api/pay/me и /api/me (поле autopay).
 export const autopayEnabled = () => process.env.AUTOPAY_ENABLED === '1'
 export const AUTOPAY_OFF_MESSAGE = 'Автопродления сейчас нет: карта не сохраняется, тариф продлевается вручную в «Настройках» → «Тариф».'
+
+// Оплата открыта всем (20.11): то же правило, что открывает кнопки и создание платежа, плюс пустой PAY_ONLY_EMAILS.
+// Для мест без почты человека: лендинг (серверный) и сводка опроса при уходе в /admin.
+export const paymentsOpenForAll = () => billingReady() && !(process.env.PAY_ONLY_EMAILS || '').split(',').some(x => x.trim())

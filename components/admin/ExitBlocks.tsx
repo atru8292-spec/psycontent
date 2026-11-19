@@ -9,7 +9,7 @@ import type { ExitReach, ExitStats, PersonExit, ExitAnswer } from '@/lib/analyti
 import type { AdminOpts } from '@/lib/analytics/admin-types'
 import { plural } from '@/lib/analytics/definitions'
 import { PERIOD_RU } from '@/lib/analytics/admin-view'
-import { PRICING_FLAGS } from '@/lib/pricing'
+import { paymentsOpenForAll } from '@/lib/billing/ready'
 import { Card, Section, Note, Bar, Flag, LoadError, href, num, whenDay } from './ui'
 
 export const PLACE_RU: Record<ExitPlace, string> = { cooling: 'на главной, после перерыва', delete: 'перед удалением', cancel: 'при отмене подписки', stuck: 'в начале, без первого текста' }
@@ -84,7 +84,10 @@ export function ExitSummary({ d, error, o, tz, now }: { d: ExitStats | null; err
 
 // причины по убыванию, нули в конце без полоски; проценты от ответов этого списка
 function ReasonList({ list, place }: { list: ExitAnswer[]; place: ExitPlace }) {
-  const counts = visibleReasons(PRICING_FLAGS.paymentsOn, place).map(r => ({ r, n: list.filter(a => a.reasons.includes(r)).length }))
+  // «дорого» в списке, когда оплата открыта всем (тот же признак, что у лендинга) или кто-то уже так ответил
+  // (тестовые почты при PAY_ONLY_EMAILS видят эту причину раньше остальных)
+  const withPrice = paymentsOpenForAll() || list.some(a => a.reasons.includes('expensive'))
+  const counts = visibleReasons(withPrice, place).map(r => ({ r, n: list.filter(a => a.reasons.includes(r)).length }))
     .sort((a, b) => b.n - a.n)
   const max = Math.max(1, ...counts.map(c => c.n))
   return (

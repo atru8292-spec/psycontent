@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft, Loader2, Search,
-  AlignLeft, Image, Film, FileText,
+  AlignLeft, Image, Film,
   TrendingUp, Zap, PenTool, RefreshCw,
   Globe, ChevronRight, BookOpen, Quote
 } from 'lucide-react'
@@ -34,7 +34,6 @@ const FORMAT_META: Record<string, { icon: any; label: string; color: string; bg:
   post:     { icon: AlignLeft, label: 'Пост',     color: 'text-brand-accent', bg: 'bg-brand-soft' },
   carousel: { icon: Image,     label: 'Карусель',  color: 'text-brand-accent', bg: 'bg-brand-soft' },
   reels:    { icon: Film,      label: 'Рилс',      color: 'text-brand-sage',  bg: 'bg-brand-soft' },
-  stories:  { icon: FileText,  label: 'Сторис',    color: 'text-brand-muted', bg: 'bg-brand-soft' },
 }
 
 const PILLAR_COLORS: Record<string, string> = {
@@ -118,8 +117,8 @@ function TopicCard({ topic, index, onGenerate }: { topic: Topic; index: number; 
           </p>
         </div>
         {topic.cta && (
-           <p className="text-xs uppercase tracking-wider font-bold text-brand-text-secondary mt-2">
-              Призыв к действию: <span className="text-brand-accent">{topic.cta}</span>
+           <p className="text-xs text-brand-text-secondary mt-2 leading-relaxed">
+              <span className="font-semibold text-brand-text">Чем закончить: </span><span className="text-brand-accent">{topic.cta}</span>
            </p>
         )}
       </div>
@@ -203,7 +202,7 @@ export default function TopicIdeas({ embedded = false }: { embedded?: boolean })
 
   const handleGenerate = (topic: Topic) => {
     // тема и рубрика не в адресе, а через sessionStorage (lib/make-handoff.ts)
-    router.push(makeHref({ topic: topic.topic, format: topic.format, pillar: topic.pillar }))
+    router.push(makeHref({ topic: topic.topic, format: topic.format === 'stories' ? 'post' : topic.format, pillar: topic.pillar }))
   }
 
   const blocks = [

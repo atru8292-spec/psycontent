@@ -18,9 +18,14 @@ import { EXAMPLES, COMPARE_TOPIC, COMPARE_CHATGPT, COMPARE_PSYCONT } from '@/com
 import { jsonLdString } from '@/lib/structured-data'
 import { PLANS, PLAN_COMMON_LINE, MATERIAL_NOTE, formatRub, planPerks, startLine } from '@/lib/pricing'
 import SiteFooter from '@/components/site/SiteFooter'
+import PayTrust from '@/components/PayTrust'
+import { paymentsOpenForAll, autopayEnabled } from '@/lib/billing/ready'
 
-// Год в подвале берется из даты сборки; пересобираем страницу раз в сутки, чтобы он сменился сам
-export const revalidate = 86400
+// Страница собирается заранее и пересобирается раз в 5 минут (20.11): признак «оплата открыта» (lib/billing/ready.ts)
+// читается из env сервера при пересборке. Раз в сутки было мало: после смены PAY_ONLY_EMAILS и перезапуска лендинг
+// до суток показывал бы старое. Полностью динамической не делаем: в странице нет ничего личного, а готовый HTML
+// отдается быстрее и не грузит сервер (рядом чужой проект). Год в подвале сменится так же сам.
+export const revalidate = 300
 
 // canonical только у главной (в layout он унаследовался бы всем страницам)
 export const metadata: Metadata = { alternates: { canonical: '/' } }
@@ -63,6 +68,10 @@ function PhoneShot({ src, alt, w, h }: { src: string; alt: string; w: number; h:
 }
 
 export default function Home() {
+  // строка «Без автосписаний · Карта или СБП · Чек на почту»: только когда оплата открыта всем и автоплатежей нет
+  // оплата закрыта всем: в тарифах «Оплата скоро» и вводная без «выберешь тариф» (иначе лендинг обещает то, чего нет)
+  const payOpen = paymentsOpenForAll()
+  const payTrust = payOpen && !autopayEnabled()
   return (
     <LandingShell>
       {/* JSON-LD для поисковиков и нейросетей: lib/structured-data.ts (цены из lib/pricing.ts, FAQ из того же источника, что на странице) */}
@@ -136,7 +145,10 @@ export default function Home() {
                 <MarginNote tone="accent" className="mt-2 pl-3">{WHY.oursNote}</MarginNote>
               </div>
             </div>
-            <p className="mt-6 max-w-[720px] text-[15px] text-brand-muted">{WHY.compareNote}</p>
+            <p className="mt-6 max-w-[720px] text-[15px] text-brand-muted">
+              <span className="lg:hidden">{WHY.compareNoteMobile}</span>
+              <span className="hidden lg:inline">{WHY.compareNote}</span>
+            </p>
           </div>
         </section>
 
@@ -241,7 +253,8 @@ export default function Home() {
         <section id="pricing" className="scroll-mt-[88px] bg-brand-card py-9 lg:py-24">
           <div className={WRAP}>
             <h2 className={H2}>{PRICING.title}</h2>
-            <p className={`mt-3 max-w-[640px] text-brand-muted ${TEXT}`}><span className="font-semibold text-brand-text">{PRICING.leadBold}</span> {PRICING.lead}</p>
+            <p className={`mt-3 max-w-[640px] text-brand-muted ${TEXT}`}><span className="font-semibold text-brand-text">{PRICING.leadBold}</span> {payOpen ? PRICING.lead : PRICING.leadSoon}</p>
+            {payTrust && <PayTrust className="mt-4 lg:mt-6 lg:text-[17px]" />}
             <div className="mt-5 grid gap-3 lg:mt-12 lg:grid-cols-3 lg:items-stretch lg:gap-6">
               {PLANS.map((p, i) => (
                 <div key={p.id} className={`flex flex-col rounded-3xl px-4 py-3.5 lg:p-8 ${PLAN_CARD[i]}`}>
@@ -256,12 +269,12 @@ export default function Home() {
                   <p className="mt-1 text-[15px] leading-[1.4] text-brand-muted lg:mt-3 lg:text-[18px]">{p.who}</p>
                   {/* что входит и как включается (описание услуги у каждого тарифа, нужно и для ЮKassa) */}
                   <p className="mt-2 text-[14px] leading-[1.45] text-brand-text lg:mt-4 lg:text-[16px] lg:leading-[1.5]">{p.what} {startLine(p)}</p>
-                  <p className="mt-1 text-[14px] leading-[1.4] text-brand-text lg:hidden">{planPerks(p)[0]}{p.price > 0 && <span className="text-brand-muted"> · {PRICING.soon.toLowerCase()}</span>}</p>
+                  <p className="mt-1 text-[14px] leading-[1.4] text-brand-text lg:hidden">{planPerks(p)[0]}{!payOpen && p.price > 0 && <span className="text-brand-muted"> · {PRICING.soon.toLowerCase()}</span>}</p>
                   <ul className="mt-5 mb-6 hidden lg:block">
                     {planPerks(p).map(perk => <li key={perk} className="border-t border-brand-border py-3 text-[18px] text-brand-text">{perk}</li>)}
                   </ul>
                   <div className="mt-auto max-lg:hidden">
-                    {p.price > 0 && <p className="mb-2 text-[14px] text-brand-muted">{PRICING.soon}</p>}
+                    {!payOpen && p.price > 0 && <p className="mb-2 text-[14px] text-brand-muted">{PRICING.soon}</p>}
                     <CtaButton place="pricing" plan={p.track} variant={p.price > 0 ? 'secondary' : 'primary'} className="w-full whitespace-nowrap !px-4 lg:!text-[16px]">
                       {p.price > 0 ? PRICING.ctaPaid : PRICING.ctaFree}
                     </CtaButton>

@@ -76,6 +76,10 @@ export interface Decision {
   reason?: string
   message?: string
   balance?: number
+  // резерв текстов (20261120100000_text_reserve): id резерва и ключ счетчика, под который он взят
+  reserveId?: string
+  reserveUser?: string
+  period?: string
 }
 
 interface PlanRow {
@@ -265,7 +269,50 @@ export async function logAiUsage(userId: string, operation: string, model: strin
 // ───────────────────────────────────────────────────────────────────────────
 // units: сколько текстов сразу (набор форматов из одной мысли, 04.10). По умолчанию 1, поведение прежнее.
 export async function canConsume(userId: string, operation: string, units = 1): Promise<Decision> {
-  const db = admin()
+  return canConsumeWith(admin(), userId, operation, units)
+}
+
+// Отказ по лимиту текстов: одни и те же тексты для резерва и старого пути
+function textLimitRefusal(planCode: string, cap: number, used: number, operation: string): Decision {
+  if (used >= cap) {
+    // у бесплатного «пробные» (витрина: 10 без срока), у платных лимит месячный по календарю (periodKey). Тексты copywriter-psycont 11.11:
+    // их же показывает новый «Сделать» (MakeFlow friendly), поэтому без глаголов от первого лица и без рода
+    const message = planCode === 'free' ? LIMIT_REFUSAL.trial(cap) : LIMIT_REFUSAL.month
+    return { ok: false, mode: 'text', operation, cost: 0, reason: 'text_limit', message }
+  }
+  // число показываем только на бесплатном (там «N из 10» и так видно); у платных потолок скрытый
+  const left = cap - used
+  const message = planCode === 'free'
+    ? `Пробных хватит еще на ${left} ${left % 10 === 1 && left % 100 !== 11 ? 'текст' : left % 10 >= 2 && left % 10 <= 4 && (left % 100 < 12 || left % 100 > 14) ? 'текста' : 'текстов'}, а форматов выбрано больше. Убери лишние и нажми еще раз.`
+    : 'На столько форматов текстов в этом месяце не хватит. Убери лишние и нажми еще раз.'
+  return { ok: false, mode: 'text', operation, cost: 0, reason: 'text_limit_partial', message }
+}
+
+const TEXT_READ_FAILED = 'Не получилось проверить остаток текстов. Попробуй еще раз через минуту.'
+
+// Резерв текстов (20.11): проверка и бронь одной SQL-функцией под замком пользователя, поэтому две вкладки
+// при остатке 1 не проходят обе. null: функции еще нет (код раньше миграции), тогда старый путь.
+async function reserveText(db: SupabaseClient, userId: string, plan: PlanCtx, cap: number, units: number, operation: string): Promise<Decision | null> {
+  const period = plan.code === 'free' ? periodKey() : (plan.windowKey || periodKey())
+  let data: any, error: any
+  try {
+    ({ data, error } = await db.rpc('reserve_text_usage', { p_user_id: userId, p_period: period, p_cap: cap, p_units: units, p_free: plan.code === 'free' }))
+  } catch (e: any) {
+    error = e
+  }
+  if (error && isMissingFunction(error)) return null
+  const used = Number(data?.used)
+  if (error || !data || typeof data.ok !== 'boolean' || !Number.isFinite(used)) {
+    // сбой резерва: не пускаем молча мимо лимита, как при сбое чтения счетчика
+    console.warn('canConsume: резерв материалов не взят', errTag(error || { code: 'bad_reply' }))
+    return { ok: false, mode: 'text', operation, cost: 0, reason: 'server_error', message: TEXT_READ_FAILED }
+  }
+  if (!data.ok) return textLimitRefusal(plan.code, cap, used, operation)
+  return { ok: true, mode: 'text', operation, cost: 0, reserveId: String(data.id), reserveUser: userId, period }
+}
+
+// То же с подменяемым клиентом базы (тесты без сети: scripts/test-limit-reserve.ts)
+export async function canConsumeWith(db: SupabaseClient, userId: string, operation: string, units = 1): Promise<Decision> {
   const op = OPERATIONS[operation]
   if (!op) return { ok: false, mode: 'blocked', operation, cost: 0, reason: 'unknown_operation', message: 'Неизвестная операция' }
 
@@ -276,28 +323,19 @@ export async function canConsume(userId: string, operation: string, units = 1): 
   if (op.kind === 'text') {
     const cap = plan.fair_use_text_cap
     if (cap === null || cap === undefined) return { ok: true, mode: 'text', operation, cost: 0 }
+    const n = Math.max(1, Math.floor(Number(units) || 1))
+    const reserved = await reserveText(db, userId, plan, cap, n, operation)
+    if (reserved) return reserved.ok || reserved.reason === 'server_error' ? reserved : refuse(reserved)
+    // запасной путь (миграции резерва еще нет): чтение счетчика без брони, гонка двух вкладок тут остается
     let count: number
     try {
       count = await usedForLimit(db, userId, plan.code, plan.windowKey)
     } catch (e: any) {
       // счетчик не прочитался (сбой базы): не пускаем молча мимо лимита; новый «Сделать» покажет свой текст о сбое
       console.warn('canConsume: счетчик материалов не прочитан', errTag(e))
-      return { ok: false, mode: 'text', operation, cost: 0, reason: 'server_error', message: 'Не получилось проверить остаток текстов. Попробуй еще раз через минуту.' }
+      return { ok: false, mode: 'text', operation, cost: 0, reason: 'server_error', message: TEXT_READ_FAILED }
     }
-    if (count >= cap) {
-      // у бесплатного «пробные» (витрина: 10 без срока), у платных лимит месячный по календарю (periodKey). Тексты copywriter-psycont 11.11:
-      // их же показывает новый «Сделать» (MakeFlow friendly), поэтому без глаголов от первого лица и без рода
-      const message = plan.code === 'free' ? LIMIT_REFUSAL.trial(cap) : LIMIT_REFUSAL.month
-      return refuse({ ok: false, mode: 'text', operation, cost: 0, reason: 'text_limit', message })
-    }
-    if (cap !== null && cap !== undefined && count + units > cap) {
-      // число показываем только на бесплатном (там «N из 10» и так видно); у платных потолок скрытый
-      const left = cap - count
-      const message = plan.code === 'free'
-        ? `Пробных хватит еще на ${left} ${left % 10 === 1 && left % 100 !== 11 ? 'текст' : left % 10 >= 2 && left % 10 <= 4 && (left % 100 < 12 || left % 100 > 14) ? 'текста' : 'текстов'}, а форматов выбрано больше. Убери лишние и нажми еще раз.`
-        : 'На столько форматов текстов в этом месяце не хватит. Убери лишние и нажми еще раз.'
-      return refuse({ ok: false, mode: 'text', operation, cost: 0, reason: 'text_limit_partial', message })
-    }
+    if (count + n > cap) return refuse(textLimitRefusal(plan.code, cap, count, operation))
     return { ok: true, mode: 'text', operation, cost: 0 }
   }
 
@@ -334,11 +372,39 @@ export async function canConsume(userId: string, operation: string, units = 1): 
 // commitConsume — ПРИМЕНИТЬ списание/пробу (вызывать ТОЛЬКО при успехе работы).
 // ───────────────────────────────────────────────────────────────────────────
 export async function commitConsume(userId: string, operation: string, decision: Decision): Promise<{ ok: boolean; balance?: number }> {
-  const db = admin()
+  return commitConsumeWith(admin(), userId, operation, decision)
+}
+
+// Списание одного материала из резерва: +1 к счетчику и -1 от брони одной SQL-функцией. Никогда не бросает:
+// текст уже отдан. Набор форматов зовет commitConsume на каждый записанный формат с тем же decision.
+// Ошибка не про отсутствие функции (сеть, таймаут, занятая база): бронь НЕ отпускаем (место держится, пока она не
+// истечет через 15 минут, лимит не обходится) и пробуем еще раз. Ошибка вызова в Postgres откатывает всю функцию,
+// поэтому повтор после ошибки не дает двойного +1; двойной счет возможен только если ответ потерялся после успеха.
+async function commitTextReserve(db: SupabaseClient, userId: string, decision: Decision): Promise<void> {
+  const args = { p_id: decision.reserveId, p_user_id: userId, p_period: decision.period || periodKey(), p_units: 1 }
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const { error } = await db.rpc('commit_text_reserve', args)
+      if (!error) return
+      // функцию откатили, а резерв остался от прошлой версии: считаем старым способом, чтобы материал не потерялся
+      if (isMissingFunction(error)) { await incrementText(db, userId, decision.period || periodKey()); return }
+      console.warn(`commitConsume: материал из резерва не записан, попытка ${attempt}`, errTag(error))
+    } catch (e: any) {
+      console.warn(`commitConsume: rpc резерва упал, попытка ${attempt}`, errTag(e))
+    }
+  }
+}
+
+export async function commitConsumeWith(db: SupabaseClient, userId: string, operation: string, decision: Decision): Promise<{ ok: boolean; balance?: number }> {
   const op = OPERATIONS[operation]
   const realCost = op?.realCostUsd ?? 0
   const cost = decision.cost
 
+  if (decision.mode === 'text' && decision.reserveId) {
+    await commitTextReserve(db, userId, decision)
+    await logUsage(db, userId, operation, 0, 0, realCost)
+    return { ok: true }
+  }
   if (decision.mode === 'text') {
     // ключ счетчика тот же, по которому считался лимит: окно оплаченной подписки или календарный месяц
     const ctx = await getPlanForUser(db, userId).catch(() => null)
@@ -364,6 +430,26 @@ export async function commitConsume(userId: string, operation: string, decision:
   const res = (data ?? {}) as { ok?: boolean; balance?: number }
   await logUsage(db, userId, operation, res.ok ? cost : 0, cost, realCost)
   return { ok: !!res.ok, balance: res.balance }
+}
+
+// Отпустить остаток резерва текстов (текст не выдан или набор форматов закончился). Звать на любом исходе
+// после canConsume: после полного списания резерва уже нет, вызов ничего не делает. Никогда не бросает;
+// если не позвали, резерв истечет сам через 15 минут.
+export async function releaseConsume(decision: Decision | null | undefined): Promise<void> {
+  if (!decision?.reserveId) return
+  try { await releaseConsumeWith(admin(), decision) } catch (e: any) { console.warn('releaseConsume:', errTag(e)) }
+}
+
+export async function releaseConsumeWith(db: SupabaseClient, decision: Decision | null | undefined): Promise<void> {
+  const id = decision?.reserveId
+  if (!id || !decision?.reserveUser) return
+  try {
+    // функция удаляет резерв только с тем же user_id
+    const { error } = await db.rpc('release_text_reserve', { p_id: id, p_user_id: decision.reserveUser })
+    if (error && !isMissingFunction(error)) console.warn('releaseConsume: резерв не отпущен', errTag(error))
+  } catch (e: any) {
+    console.warn('releaseConsume: rpc упал', errTag(e))
+  }
 }
 
 // Внешний сервис упал ПОСЛЕ проверки: энергию НЕ берём, но факт фиксируем.

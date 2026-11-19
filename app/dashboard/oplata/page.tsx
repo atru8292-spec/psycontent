@@ -4,6 +4,9 @@
 // согласия всегда раскрыт: он же пишется в базу), переход на страницу ЮKassa. Своей формы оплаты и логотипов нет.
 // СБП первым (главная кнопка), «Картой или другим способом» второй. Тариф включает только вебхук (lib/billing/core.ts).
 // Спецификация designer-psycont 17.11, тексты lib/billing/pay-texts.ts.
+// 20.11 (аудит Б3, В11): при продлении того же тарифа с нулем текстов плашка «тексты появятся только после ...»,
+// у вариантов подпись «с <даты>» или «сразу»; над выбором «Без автосписаний · Карта или СБП · Чек на почту»,
+// под кнопками «Сама оплата не повторится» (только при выключенных автоплатежах). Строки в lib/pricing.ts.
 import { Suspense, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -12,9 +15,13 @@ import { PAY, MANUAL, rubles, dateRu } from '@/lib/billing/pay-texts'
 import { manualWindow } from '@/lib/billing/period'
 import { consentText, PAID_PLANS, type PaidCode } from '@/lib/billing/plans'
 import { track } from '@/lib/track'
+import { useDashboardMe } from '@/lib/dashboard-me'
+import { isMaterials } from '@/lib/limit-texts'
+import { textsBackAt, ZERO, PAY_ONCE_LINE, PAY_ONCE_SHORT } from '@/lib/pricing'
+import PayTrust from '@/components/PayTrust'
 
 // autopay false (19.11): галочки нет, платят за месяц сами; продлить или сменить тариф можно при оплаченном
-type Me = { payments: boolean; paid: boolean; plan: { code?: string; name: string; price?: number } | null; until: string | null; autopay?: boolean; anchor?: number | null }
+type Me = { payments: boolean; paid: boolean; plan: { code?: string; name: string; price?: number } | null; until: string | null; autopay?: boolean; anchor?: number | null; periodStart?: string | null }
 
 function Oplata() {
   const router = useRouter()
@@ -22,6 +29,9 @@ function Oplata() {
   const plan: PaidCode = params.get('plan') === 'practice' ? 'practice' : 'start'
   const p = PAID_PLANS[plan]
   const [me, setMe] = useState<Me | null>(null)
+  // остаток текстов из сводки layout (/api/me), второй запрос не нужен
+  const { me: summary } = useDashboardMe()
+  const materials = isMaterials(summary?.materials) ? summary.materials : null
   const [agree, setAgree] = useState(false)
   const [busy, setBusy] = useState<null | 'sbp' | 'any'>(null)
   const [error, setError] = useState(false)
@@ -35,11 +45,23 @@ function Oplata() {
 
   const manual = me?.autopay === false
   // то же окно, что посчитает сервер (lib/billing/period.ts manualWindow): продлить, сменить или новый месяц
-  const win = manual && me ? manualWindow(new Date(),
-    me.paid && me.plan?.code && me.until ? { planCode: me.plan.code, price: me.plan.price || 0, end: new Date(me.until), anchor: me.anchor ?? null } : null, p) : null
+  // cur: оплаченный тариф (ручное продление), по нему окно каждого варианта
+  const cur = manual && me?.paid && me.plan?.code && me.until ? { planCode: me.plan.code, price: me.plan.price || 0, end: new Date(me.until), anchor: me.anchor ?? null } : null
+  const win = manual && me ? manualWindow(new Date(), cur, p) : null
   const winLine = !win ? '' : win.mode === 'extend' ? MANUAL.renewLine(dateRu(me!.until!), dateRu(win.end))
     : win.mode === 'switch' ? MANUAL.switchLine(p.name, me!.plan!.name, win.daysLeft, win.bonusDays, dateRu(win.end))
     : MANUAL.newLine(dateRu(win.end))
+
+  // подпись варианта: продление с конца оплаченного или смена сразу
+  const optionLine = (code: PaidCode) => {
+    if (!cur) return `${PAID_PLANS[code].materials} текстов в месяц`
+    const w = manualWindow(new Date(), cur, PAID_PLANS[code])
+    return w.mode === 'extend' ? ZERO.optionLater(dateRu(w.start), PAID_PLANS[code].materials) : ZERO.optionNow(PAID_PLANS[code].materials)
+  }
+  // тексты месяца кончились на оплаченном тарифе: продление того же тарифа их раньше конца оплаченного не вернет.
+  // Плашка по текущему тарифу, а не по выбранному варианту: человек сравнивает варианты, пока читает ее
+  const zero = !!cur && materials?.kind === 'month' && materials.remaining <= 0
+  const back = zero ? textsBackAt(new Date(), me!.periodStart ? new Date(me!.periodStart) : null, cur!.end, cur!.anchor) : null
 
   const choose = (code: PaidCode) => { if (!busy) router.replace(`/dashboard/oplata?plan=${code}`, { scroll: false }) }
 
@@ -61,8 +83,8 @@ function Oplata() {
     }
   }
 
-  const secondary = 'w-full h-12 rounded-2xl bg-brand-card border border-brand-accent/40 text-brand-accent text-[16px] font-semibold hover:bg-brand-soft transition cursor-pointer disabled:opacity-60 disabled:cursor-default'
-  const primary = 'w-full h-12 rounded-2xl bg-brand-accent text-white text-[16px] font-semibold hover:bg-brand-accent-hover transition cursor-pointer inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-default tabular-nums'
+  const secondary = 'w-full h-12 rounded-xl bg-brand-card border border-brand-border text-brand-text text-[16px] font-semibold hover:bg-brand-soft transition cursor-pointer disabled:opacity-60 disabled:cursor-default'
+  const primary = 'w-full h-12 rounded-xl bg-brand-accent text-white text-[16px] font-semibold hover:bg-brand-accent-hover transition cursor-pointer inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-default tabular-nums'
 
   const backBtn = (
     <button type="button" onClick={() => (window.history.length > 1 ? router.back() : router.push('/dashboard/settings#tariff'))}
@@ -106,6 +128,13 @@ function Oplata() {
         {backBtn}
         <h1 className="mt-1 text-[24px] leading-8 lg:text-[28px] font-bold text-brand-text">{win?.mode === 'extend' ? MANUAL.renewTitle : PAY.title}</h1>
 
+        {zero && back && (
+          <p className="mt-4 rounded-2xl bg-brand-soft border border-brand-border-soft px-4 py-3 text-[15px] leading-[22px] text-brand-text">
+            <span className="font-semibold">{ZERO.payTitle}</span> {ZERO.pay(dateRu(back.at), back.auto, cur!.planCode === 'start')}
+          </p>
+        )}
+        {me.payments && manual && !zero && <PayTrust className="mt-3" />}
+
         <div role="radiogroup" aria-label="Тариф" className="mt-4 space-y-2">
           {(Object.keys(PAID_PLANS) as PaidCode[]).map(code => {
             const on = code === plan
@@ -118,7 +147,7 @@ function Oplata() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[16px] font-semibold text-brand-text">{pl.name}</span>
-                  <span className="block text-[13px] text-brand-muted">{pl.materials} текстов в месяц</span>
+                  <span className="block text-[13px] text-brand-muted">{optionLine(code)}</span>
                 </span>
                 <span className="text-right shrink-0">
                   <span className="block text-[16px] font-semibold text-brand-text tabular-nums">{rubles(pl.price)}</span>
@@ -132,7 +161,7 @@ function Oplata() {
         {me.payments && manual && win && (
           <div className="mt-5 rounded-2xl bg-brand-card border border-brand-border p-4">
             <p className="text-[15px] leading-[22px] font-semibold text-brand-text">{winLine}</p>
-            <p className="mt-2 text-[13px] leading-5 text-brand-muted">{MANUAL.note}</p>
+            <p className="mt-2 text-[13px] leading-5 text-brand-muted">За 3 дня до конца срока придет письмо, продлить можно будет здесь же.</p>
           </div>
         )}
 
@@ -169,13 +198,14 @@ function Oplata() {
                   <p className="mt-1 text-[15px] leading-[22px] text-brand-text-secondary">{PAY.errorText}</p>
                 </div>
               )}
-              <button type="button" disabled={!!busy} onClick={() => { track('plan_click', { plan }); pay('sbp') }} className={primary}>
+              <button type="button" disabled={!!busy} onClick={() => { track('plan_click', { plan, where: 'pay_screen' }); pay('sbp') }} className={primary}>
                 {busy === 'sbp' ? <><Loader2 className="w-[18px] h-[18px] animate-spin" />{PAY.opening}</> : PAY.sbp(rubles(p.price))}
               </button>
               <p className="mt-1 text-center text-[13px] text-brand-muted">{PAY.sbpSub}</p>
-              <button type="button" disabled={!!busy} onClick={() => { track('plan_click', { plan }); pay('any') }} className={`mt-2 ${secondary} inline-flex items-center justify-center gap-2`}>
+              <button type="button" disabled={!!busy} onClick={() => { track('plan_click', { plan, where: 'pay_screen' }); pay('any') }} className={`mt-2 ${secondary} inline-flex items-center justify-center gap-2`}>
                 {busy === 'any' ? <><Loader2 className="w-[18px] h-[18px] animate-spin" />{PAY.opening}</> : PAY.card}
               </button>
+              {manual && <p className="mt-2 text-center text-[13px] leading-5 text-brand-text">{win?.mode === 'extend' ? PAY_ONCE_SHORT : PAY_ONCE_LINE}</p>}
               <p className="mt-2 text-center text-[13px] leading-5 text-brand-muted">
                 {PAY.offer}{' '}<a href="/offer" target="_blank" rel="noopener" className="underline underline-offset-2 text-brand-text">{PAY.offerLink}</a>.
               </p>
