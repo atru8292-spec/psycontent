@@ -14,6 +14,7 @@ const DATA: Record<string, Record<string, string>> = {
   autorenew_off: { until: '17 декабря' },
   receipt: { url: 'https://lknpd.nalog.ru/api/v1/receipt/222260732304/200abc1234/print' },
   refund: { amount: '817 ₽', days: '19' },
+  refund_future: { amount: '1 290 ₽', plan: 'Спокойный ритм', until: '17 декабря' },
   end_soon: { plan: 'Спокойный ритм', code: 'start', date: '20 декабря' },
   end_today: { plan: 'Спокойный ритм', code: 'start', date: '20 декабря', day: 'Сегодня' },
   ended: { plan: 'Спокойный ритм', code: 'start', date: '20 декабря' },
@@ -34,6 +35,12 @@ for (const [k, d] of Object.entries(DATA)) {
   if (MAIL[k].button) assert.ok(m.text.includes(`${MAIL[k].button!.label}: https://`), `${k}: кнопка в тексте`)
 }
 assert.ok(!renderPayMail('refund', DATA.refund, site)!.html.includes('btn-text"'), 'в возврате кнопки нет')
+{ // возврат продления, которое не началось: без «выключен» и «новый чек на оставшуюся сумму», с датой и суммой
+  const rf = renderPayMail('refund_future', DATA.refund_future, site)!
+  assert.ok(!rf.html.includes('btn-text"'), 'в возврате продления кнопки нет')
+  assert.ok(!/выключ|оставш/i.test(rf.text + rf.subject), 'нет «выключен» и «оставшуюся сумму»')
+  assert.ok(rf.text.includes('Возврат 1 290 ₽ за продление оформлен') && rf.text.includes('работает до 17 декабря, как и раньше'), 'сумма и дата')
+}
 const x = renderPayMail('paid', { ...DATA.paid, plan: '<script>alert(1)</script>' }, site)!
 assert.ok(!x.html.includes('<script>alert') && x.html.includes('&lt;script&gt;'), 'экранирование')
 assert.equal(renderPayMail('receipt', { url: 'javascript:alert(1)' }, site), null, 'чек без https не собирается')

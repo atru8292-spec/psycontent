@@ -203,6 +203,10 @@ function setup(start = '2026-11-20T09:00:00Z', autopay = false) {
     const s = (await t.m.repo.getSub(U))!
     assert.equal(s.period_end, '2026-12-20T09:00:00.000Z', 'оплаченное до 20 декабря работает'); assert.equal(s.plan_code, 'start')
     assert.equal(B.paidAccess(s, t.d.now()), true)
+    // письмо свое: «возврат за продление, работает до 20 декабря», без «выключен» (решение Арины 19.11)
+    const ml = t.mails.at(-1)!
+    assert.equal(ml.kind, 'refund_future')
+    assert.equal(ml.data.until, '20 декабря'); assert.equal(ml.data.amount.replace(/\s/g, ' '), '1 290 ₽'); assert.equal(ml.data.plan, 'Спокойный ритм')
   }
 
   // ── 11. тариф выключила Арина: письма «закончился» нет; возврат: тоже нет ──

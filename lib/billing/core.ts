@@ -90,7 +90,7 @@ export interface Repo {
   mailDelay(id: string, untilIso: string): Promise<void>
 }
 
-export type MailKind = 'paid' | 'reminder' | 'charge_failed' | 'charge_failed_final' | 'autorenew_off' | 'refund' | 'receipt' | 'end_soon' | 'end_today' | 'ended'
+export type MailKind = 'paid' | 'reminder' | 'charge_failed' | 'charge_failed_final' | 'autorenew_off' | 'refund' | 'refund_future' | 'receipt' | 'end_soon' | 'end_today' | 'ended'
 export interface Deps {
   now(): Date
   repo: Repo
@@ -605,7 +605,10 @@ export async function refundPayment(d: Deps, paymentId: string): Promise<RefundR
   // чек уже выбит: аннулировать и выбить новый на остаток; еще не выбит: выбить сразу на остаток (пометка refunded:сумма)
   await step(() => d.repo.updatePayment(p.id, { receipt_status: p.receipt_status === 'done' ? 'annul_need' : p.receipt_status, note: `${(p.note || '').replace(/,?refund_due/g, '')},refunded:${ref!.amount}` }), 'payment')
   const to = p.email || (p.user_id ? await d.repo.userEmail(p.user_id).catch(() => null) : null)
-  if (to) await sent(d.mail('refund', to, { amount: money(ref.amount), days: String(ref.days_left) }))
+  // продление, которое еще не началось, вернули целиком: свое письмо (тариф не выключен, работает до начала этого окна)
+  if (to) await sent(future
+    ? d.mail('refund_future', to, { amount: money(ref.amount), plan: planName(p.plan_code), until: dateRu(p.period_start!) })
+    : d.mail('refund', to, { amount: money(ref.amount), days: String(ref.days_left) }))
   return { ok: true, amount: ref.amount, daysLeft: ref.days_left, daysTotal: ref.days_total, status: r.status }
 }
 
