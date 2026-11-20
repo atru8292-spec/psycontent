@@ -13,6 +13,7 @@ import { getSessionUser } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/generation/db'
 import { cleanBatch, MinuteLimiter, MAX_PER_MINUTE_USER, MAX_PER_MINUTE_ANON, MAX_PER_REQUEST_ANON, MAX_PER_MINUTE_ANON_TOTAL, MAX_BODY_ANON } from '@/lib/analytics/ingest'
 import { errTag } from '@/lib/safe-error'
+import { isAdminEmail } from '@/lib/analytics/skip-admin'
 
 const perUser = new MinuteLimiter(MAX_PER_MINUTE_USER)
 const perIp = new MinuteLimiter(MAX_PER_MINUTE_ANON)
@@ -23,6 +24,8 @@ const empty = () => new Response(null, { status: 204 })
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser()
+    // аккаунты из ADMIN_EMAILS в аналитику не пишем (lib/analytics/skip-admin.ts)
+    if (user && isAdminEmail(user.email)) return empty()
     if (!user && Number(req.headers.get('content-length') || 0) > MAX_BODY_ANON) return empty()
     let body: any
     try { body = await req.json() } catch { return empty() }
