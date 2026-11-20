@@ -99,7 +99,7 @@ export default function Home() {
               <span aria-hidden className="absolute -right-[7px] bottom-6 h-3.5 w-3.5 rotate-45 border-t border-r border-brand-border-soft bg-brand-card lg:hidden" />
               <span aria-hidden className="absolute -bottom-[7px] right-10 hidden h-3.5 w-3.5 rotate-45 border-r border-b border-brand-border-soft bg-brand-card lg:block" />
             </figcaption>
-            <Image src="/vera/privet.webp" alt="Вера машет рукой" width={278} height={360} priority
+            <Image src="/vera/golosovoe.webp" alt="Вера наговаривает мысль в голосовое" width={671} height={720} priority
               className="-mb-3 h-[150px] w-auto shrink-0 lg:-mb-6 lg:h-[330px]" />
           </figure>
         </section>
@@ -145,7 +145,8 @@ export default function Home() {
                 <MarginNote tone="accent" className="mt-2 pl-3">{WHY.oursNote}</MarginNote>
               </div>
             </div>
-            <p className="mt-6 max-w-[720px] text-[15px] text-brand-muted">
+            <p className="mt-6 text-[17px] font-semibold leading-[1.4] text-brand-text lg:mt-8 lg:text-[19px]">{WHY.noTop}</p>
+            <p className="mt-2 max-w-[720px] text-[15px] text-brand-muted">
               <span className="lg:hidden">{WHY.compareNoteMobile}</span>
               <span className="hidden lg:inline">{WHY.compareNote}</span>
             </p>

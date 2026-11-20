@@ -6,6 +6,7 @@
 // Одна из двух анимаций лендинга: заметка «прикалывается», когда входит в экран (класс note-pin в globals.css,
 // только transform и opacity, один раз). Без JS и при reduced-motion заметка сразу стоит на месте.
 import { useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { Dekor } from './Paper'
 import { PAINS } from './content'
 
@@ -37,8 +38,20 @@ export default function PainBoard() {
           </p>
           <Dekor name="knopka-derevo" className="-top-6 left-1/2 z-10 w-[36px] -translate-x-1/2 rotate-[8deg] lg:w-[44px]" />
         </div>
+        {/* Фразы самих психологов из их чатов (PAINS.quotes) под заметкой */}
+        <div className="mt-9 lg:mt-12">
+          <p className="text-[14px] text-brand-on-dark-muted lg:text-[15px]">{PAINS.quotesLead}</p>
+          <ul className="mt-2">
+            {PAINS.quotes.map(q => (
+              <li key={q} className="border-b border-brand-on-dark-muted/25 py-3 text-[17px] leading-[1.45] text-brand-on-dark last:border-b-0 lg:py-4 lg:text-[19px]">{q}</li>
+            ))}
+          </ul>
+        </div>
       </div>
-      <div className="mt-7 lg:col-span-5 lg:mt-0">
+      <div className="mt-8 lg:col-span-5 lg:mt-0">
+        {/* Вера поздно вечером у ноутбука: блог как вторая работа. Украшение, alt пустой */}
+        <Image src="/vera/vecher.webp" alt="" width={880} height={782} sizes="(min-width: 1024px) 400px, 280px"
+          className="mb-7 ml-auto h-auto w-[260px] min-[390px]:w-[280px] lg:mx-0 lg:mb-10 lg:w-full lg:max-w-[400px]" />
         <p className="max-w-[520px] text-[17px] leading-[1.55] text-brand-on-dark [text-wrap:pretty] lg:text-[20px]">
           <span className="font-semibold text-brand-bg">{PAINS.afterLead}</span> {PAINS.after}
         </p>
