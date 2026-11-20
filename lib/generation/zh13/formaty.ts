@@ -180,7 +180,8 @@ const EKRAN: Record<string, { imya?: string; korotko?: string }> = {
   p_priznanie: { imya: 'Признание' },
   p_razoblachenie: { imya: 'Разбор расхожей фразы' },
   p_paradoks: { imya: 'Парадокс' },
-  p_perevod: { imya: 'Говорит и на самом деле' },
+  // только подпись на экране (copywriter-psycont 20.11); имя в FORMATY уходит в промпты, его не трогаем
+  p_perevod: { imya: 'Что стоит за словами' },
   p_antisovet: { imya: 'Вредный совет' },
   p_voprosy: { imya: 'Вопросы к себе' },
 }
