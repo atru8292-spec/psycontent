@@ -66,7 +66,7 @@ function loadFormaty(): Promise<Zh6Format[]> {
 const readLS = (k: string) => { try { return localStorage.getItem(k) } catch { return null } }
 const writeLS = (k: string, v: string | null) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v) } catch {} }
 const lowerFirst = (s: string) => (s ? s.charAt(0).toLowerCase() + s.slice(1) : s)
-const CARD_SHADOW = 'shadow-[0_1px_2px_rgba(59,42,34,.05),0_8px_24px_rgba(59,42,34,.06)]'
+const CARD_SHADOW = 'shadow-[0_1px_2px_rgba(59,42,34,.05)]'
 
 export default function Composer({ firstTime, topics, busy, onSubmit, initialText, initialFormats, askSampleText, onSampleCleared, plan, materials, until, paymentsOn, subline, below, take, onTextChange }: {
   materials?: Materials | null // остаток текстов: при 0 главная кнопка неактивна, строка под кнопкой
@@ -436,7 +436,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
 
       {/* На сегодня */}
       {showToday && (
-        <div className="mt-3.5 rounded-2xl bg-brand-soft-2 px-3.5 py-3 lg:pl-[18px] lg:pr-3 flex flex-col lg:flex-row lg:items-center gap-2.5 lg:gap-3.5">
+        <div className="mt-3.5 rounded-2xl bg-brand-soft-2 px-3.5 py-3 lg:pl-4 lg:pr-3 flex flex-col lg:flex-row lg:items-center gap-2.5 lg:gap-3.5">
           <div className="flex items-start lg:items-center gap-3.5 min-w-0 flex-1">
             <CalendarDays className="hidden lg:block w-5 h-5 text-brand-accent shrink-0" aria-hidden="true" />
             <div className="min-w-0 flex-1">
@@ -461,7 +461,7 @@ export default function Composer({ firstTime, topics, busy, onSubmit, initialTex
       )}
 
       {/* Что написать */}
-      <p className="hidden lg:block mt-[22px] mb-2.5 text-[13px] leading-[18px] font-medium text-brand-muted" id="what-h">Что написать</p>
+      <p className="hidden lg:block mt-6 mb-2.5 text-[13px] leading-[18px] font-medium text-brand-muted" id="what-h">Что написать</p>
       <div role="group" aria-labelledby="what-h" className="max-lg:mt-4 flex flex-wrap gap-2">
         {MAKE_FORMATS.map(f => {
           const on = formats.includes(f.id)

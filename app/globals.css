@@ -61,7 +61,7 @@ body {
            hover:bg-brand-accent-hover
            active:scale-[0.98]
            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2
-           transition-all cursor-pointer;
+           transition-[color,background-color,border-color,transform] duration-150 ease-out cursor-pointer;
   }
 
   /* Второстепенная кнопка: контур акцента */
@@ -73,7 +73,7 @@ body {
            hover:bg-brand-soft
            active:scale-[0.98]
            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2
-           transition-all cursor-pointer;
+           transition-[color,background-color,border-color,transform] duration-150 ease-out cursor-pointer;
   }
 
   /* Карточка */

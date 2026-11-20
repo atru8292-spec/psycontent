@@ -35,7 +35,7 @@ function Segments({ n, className = '' }: { n: number; className?: string }) {
 export function RhythmCard({ rhythm }: { rhythm: Rhythm | null }) {
   const r = rhythm || { written: 0, inBlog: 0 }
   return (
-    <section aria-labelledby="rhythm-h" className="rounded-[20px] bg-brand-soft px-5 py-[18px]">
+    <section aria-labelledby="rhythm-h" className="rounded-[20px] bg-brand-soft px-5 py-5">
       <div className="flex items-baseline justify-between gap-3">
         <h2 id="rhythm-h" className="text-[18px] leading-[26px] font-semibold text-brand-text">Ритм месяца</h2>
         {(r.written > 0 || r.inBlog > 0) && <span className="text-[13px] text-brand-muted">цель {RHYTHM_GOAL}</span>}
@@ -61,10 +61,10 @@ export function RhythmStrip({ rhythm }: { rhythm: Rhythm | null }) {
 }
 
 export function PlanCard({ plan, onPick, current }: { plan: PlanView | null | undefined; onPick: (t: TopicPick) => void; current?: string }) {
-  if (plan === undefined) return <section aria-busy="true" className="rounded-[20px] bg-brand-card shadow-[0_1px_2px_rgba(59,42,34,.05),0_8px_24px_rgba(59,42,34,.06)] h-[200px]" />
+  if (plan === undefined) return <section aria-busy="true" className="rounded-[20px] bg-brand-card shadow-[0_1px_2px_rgba(59,42,34,.05)] h-[200px]" />
   if (!plan || !plan.today) {
     return (
-      <section aria-labelledby="plan-h" className="rounded-[20px] bg-brand-card px-5 py-5 shadow-[0_1px_2px_rgba(59,42,34,.05),0_8px_24px_rgba(59,42,34,.06)]">
+      <section aria-labelledby="plan-h" className="rounded-[20px] bg-brand-card px-5 py-5 shadow-[0_1px_2px_rgba(59,42,34,.05)]">
         <h2 id="plan-h" className="text-[18px] leading-[26px] font-semibold text-brand-text">План тем</h2>
         <p className="mt-2 text-[14px] leading-5 text-brand-muted">
           {plan && !plan.today ? 'Все темы плана уже написаны. Новый план соберется за минуту.' : 'Плана тем пока нет. Соберется под то, с чем ты работаешь, за минуту: о чем писать и с какой первой строки.'}
@@ -78,7 +78,7 @@ export function PlanCard({ plan, onPick, current }: { plan: PlanView | null | un
   }
   const rows = [plan.prev, plan.today, ...plan.next].filter(Boolean) as NonNullable<PlanView['today']>[]
   return (
-    <section aria-labelledby="plan-h" className="rounded-[20px] bg-brand-card px-2.5 pt-4 pb-3 shadow-[0_1px_2px_rgba(59,42,34,.05),0_8px_24px_rgba(59,42,34,.06)]">
+    <section aria-labelledby="plan-h" className="rounded-[20px] bg-brand-card px-2.5 pt-4 pb-3 shadow-[0_1px_2px_rgba(59,42,34,.05)]">
       <div className="flex items-center justify-between gap-3 px-3 pb-1.5">
         <h2 id="plan-h" className="text-[18px] leading-[26px] font-semibold text-brand-text">План тем</h2>
         <Link href={PLAN_HREF} onClick={() => track('feature_open', { feature: 'plan' })}

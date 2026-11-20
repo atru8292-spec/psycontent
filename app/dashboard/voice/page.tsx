@@ -399,7 +399,7 @@ export default function VoicePage() {
               <button type="button" role="switch" aria-checked={matZvezdy ?? profanity === 'light'} onClick={() => saveZvezdy(!(matZvezdy ?? profanity === 'light'))}
                 className="w-full min-h-11 flex items-center gap-3 text-left cursor-pointer">
                 <span className={`relative w-11 h-6 rounded-full transition shrink-0 ${(matZvezdy ?? profanity === 'light') ? 'bg-brand-accent' : 'bg-brand-border'}`}>
-                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all ${(matZvezdy ?? profanity === 'light') ? 'left-[22px]' : 'left-0.5'}`} />
+                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-[left] duration-150 ease-out ${(matZvezdy ?? profanity === 'light') ? 'left-[22px]' : 'left-0.5'}`} />
                 </span>
                 <span className="min-w-0">
                   <span className="block text-sm text-brand-text">Ставить звездочки в мате</span>

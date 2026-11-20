@@ -490,7 +490,7 @@ export default function MakeFlow() {
           {thought && <p className="mt-1 text-[15px] leading-[22px] text-brand-muted break-words">{thought}</p>}
           <h1 className="mt-1 text-[22px] leading-7 lg:text-[26px] lg:leading-8 font-semibold text-brand-text" aria-live="polite">{head}</h1>
           {resumed && <p className="mt-1 text-[15px] leading-[22px] text-brand-text-secondary">{RESUME.line}</p>}
-          <ul aria-live="polite" className="mt-4 divide-y divide-brand-border rounded-[20px] bg-brand-card shadow-[0_1px_2px_rgba(59,42,34,.05),0_8px_24px_rgba(59,42,34,.06)]">
+          <ul aria-live="polite" className="mt-4 divide-y divide-brand-border rounded-[20px] bg-brand-card shadow-[0_1px_2px_rgba(59,42,34,.05)]">
             {items.map(x => {
               const Icon = ICON[x.format] || AlignLeft
               return (

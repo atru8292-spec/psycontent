@@ -311,7 +311,7 @@ function MenuBalance({ m, until, pay }: { m: Materials; until: string | null; pa
       <p className="mt-0.5 text-[13px] leading-[18px] text-brand-muted">{sub}</p>
       <div className="mt-2.5" role="img" aria-label={trial ? `${pl(left, 'Остался', 'Осталось', 'Осталось')} ${left} ${pl(left, 'пробный текст', 'пробных текста', 'пробных текстов')} из ${m.cap}` : `Осталось ${left} из ${m.cap} текстов`}>
         {dots ? (
-          <div className="flex gap-[5px]">
+          <div className="flex gap-1.5">
             {Array.from({ length: m.cap }, (_, i) => (
               <i key={i} className={`block w-2.5 h-2.5 rounded-full ${i < left ? 'bg-brand-lilac shadow-[inset_0_0_0_1.5px_var(--color-brand-text)]' : 'bg-brand-border'}`} />
             ))}

@@ -44,7 +44,7 @@ const ADJUST = [
 const NOT_LIKE_REASONS = ['слишком умно', 'слишком сладко', 'не мои слова', 'длинно', 'не та тема']
 const PLACEHOLDER_RE = /\[добавь:[^\]]*\]/g
 const LONG = 600
-const SHADOW = 'shadow-[0_1px_2px_rgba(59,42,34,.05),0_8px_24px_rgba(59,42,34,.06)]'
+const SHADOW = 'shadow-[0_1px_2px_rgba(59,42,34,.05)]'
 const FAIL_MARK = 'Отметить не получилось. Проверь интернет и нажми еще раз'
 
 const sendVoiceEvent = (payload: Record<string, unknown>) =>
@@ -62,7 +62,7 @@ function replaceFirstLine(text: string, line: string): string {
 // Блок правой колонки результата: на компьютере белая карточка с заголовком, на телефоне без карточки, заголовок тише
 export function AsideCard({ title, sub, children }: { title: string; sub?: string; children: ReactNode }) {
   return (
-    <section className="min-w-0 xl:rounded-[20px] xl:bg-brand-card xl:px-5 xl:py-[18px] xl:shadow-[0_1px_2px_rgba(59,42,34,.05),0_8px_24px_rgba(59,42,34,.06)]">
+    <section className="min-w-0 xl:rounded-[20px] xl:bg-brand-card xl:px-5 xl:py-5 xl:shadow-[0_1px_2px_rgba(59,42,34,.05)]">
       <h2 className="text-[14px] leading-5 text-brand-muted xl:text-[18px] xl:leading-[26px] xl:font-semibold xl:text-brand-text">{title}</h2>
       {sub && <p className="hidden xl:block mt-0.5 text-[13px] leading-[18px] text-brand-muted">{sub}</p>}
       <div className="mt-2.5 xl:mt-3">{children}</div>
@@ -283,7 +283,7 @@ export default function FormatPane({ item, onChange, onPublished, onMore, moreCo
   return (
     <div className={`min-w-0 ${isCarousel ? '' : 'xl:flex xl:items-start xl:gap-10'} ${phoneBar ? 'max-lg:pb-[84px]' : ''}`}>
       <div className={`min-w-0 ${isCarousel ? '' : 'xl:w-[704px] xl:shrink-0'}`}>
-        <div className={`rounded-[20px] bg-brand-card ${SHADOW} p-5 lg:px-[30px] lg:py-7 min-w-0 overflow-hidden`}>
+        <div className={`rounded-[20px] bg-brand-card ${SHADOW} p-5 lg:px-8 lg:py-7 min-w-0 overflow-hidden`}>
           {editing ? (
             <textarea value={text} onChange={e => onChange({ text: e.target.value })} autoFocus aria-label="Текст"
               rows={Math.min(24, Math.max(8, text.split('\n').length + 2))}

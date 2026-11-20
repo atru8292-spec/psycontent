@@ -42,7 +42,7 @@ type Ready = {
 }
 type Variant = Ready | { status: 'pending'; kod: string | null } | { status: 'failed'; kod: string | null; error: string; limit?: boolean; zanovo?: boolean; fromPostId?: string }
 
-const SHADOW = 'shadow-[0_1px_2px_rgba(59,42,34,.05),0_8px_24px_rgba(59,42,34,.06)]'
+const SHADOW = 'shadow-[0_1px_2px_rgba(59,42,34,.05)]'
 const PAD = 'px-4 pt-3 lg:px-12 lg:pt-11 pb-8'
 const VID: Record<string, string> = { reels: 'Рилс', carousel: 'Карусель', post: 'Пост' }
 const GOING: Record<string, string> = { reels: 'Рилс пишется', carousel: 'Карусель собирается', post: 'Пост пишется' }
@@ -92,6 +92,38 @@ function Glavnoe({ text }: { text: string }) {
           })}
         </div>
       ))}
+    </div>
+  )
+}
+
+// На телефоне длинный текст свернут примерно на экран (15 строк по 26 px) с затуханием и «Читать дальше».
+// Короче 16 строк показывается целиком. На десктопе всегда целиком. Копируется всегда весь текст.
+const SVERNUTO_PX = 15 * 26
+const POROG_PX = 16 * 26
+function Svernutyi({ open, onOpen, children }: { open: boolean; onOpen: () => void; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [dlinnyi, setDlinnyi] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const check = () => setDlinnyi(!mq.matches && el.scrollHeight > POROG_PX + 8)
+    check()
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    mq.addEventListener('change', check)
+    return () => { ro.disconnect(); mq.removeEventListener('change', check) }
+  }, [])
+  const svernut = dlinnyi && !open
+  return (
+    <div>
+      <div ref={ref} className="relative overflow-hidden" style={svernut ? { maxHeight: SVERNUTO_PX } : undefined}>
+        {children}
+        {svernut && <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-brand-card" />}
+      </div>
+      {svernut && (
+        <button type="button" onClick={onOpen} className={`mt-1 -ml-2 ${BTN_T}`}>Читать дальше<ChevronDown className="w-4 h-4" /></button>
+      )}
     </div>
   )
 }
@@ -162,6 +194,7 @@ export default function Zh13Flow() {
   const [moreOpen, setMoreOpen] = useState(false)
   const [spisokOpen, setSpisokOpen] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [polnost, setPolnost] = useState(false) // «Читать дальше» на телефоне
   const [copied, setCopied] = useState(false)
   const [slow, setSlow] = useState(false)
   const [trialAsk, setTrialAsk] = useState<string | null>(null) // формат, который ждет «Потратить 1 пробный текст?»
@@ -203,7 +236,7 @@ export default function Zh13Flow() {
     const t = setTimeout(() => setSlow(true), 60000)
     return () => clearTimeout(t)
   }, [busy])
-  useEffect(() => { setEditing(false); setCopied(false); setVseOpen(false) }, [idx])
+  useEffect(() => { setEditing(false); setCopied(false); setVseOpen(false); setPolnost(false) }, [idx])
 
   // правка на телефоне: клавиатура кладется поверх, «Готово» держим над ней (тот же прием, что в анкете express)
   useEffect(() => {
@@ -335,7 +368,7 @@ export default function Zh13Flow() {
           <Squiggle variant={0} width="150px" />
 
           <div className={`mt-4 lg:mt-5 rounded-[20px] bg-brand-card ${SHADOW} ring-brand-accent/40 focus-within:ring-2 transition`}>
-            <label htmlFor="zh13-mysl" className="block px-4 lg:px-5 pt-3.5 lg:pt-4 text-[14px] font-semibold text-brand-text">Своя мысль <span className="font-normal text-brand-muted">· можно пропустить</span></label>
+            <label htmlFor="zh13-mysl" className="block px-4 lg:px-5 pt-3.5 lg:pt-4 text-[14px] font-semibold text-brand-text">Своя мысль</label>
             <textarea id="zh13-mysl" ref={area} value={mysl} onChange={e => setMysl(e.target.value)} readOnly={transcribing} rows={3}
               placeholder={transcribing ? 'Расшифровка...' : 'Что хочется сказать? Можно пару слов или голосом'}
               className={`block w-full resize-none bg-transparent px-4 lg:px-5 pt-1.5 text-[16px] lg:text-[17px] leading-[26px] text-brand-text placeholder:text-[#A39A8C] focus:outline-none ${transcribing ? 'animate-pulse' : ''}`} />
@@ -380,7 +413,7 @@ export default function Zh13Flow() {
                 className={`w-full lg:w-auto ${BTN_P} lg:px-7`}>
                 Написать · 1 текст
               </button>
-              <p className="max-lg:mt-1.5 max-lg:text-center text-[14px] leading-5 text-brand-muted" aria-live="polite">{spend || 'Обычно 20-60 секунд, текст сохранится в «Моих текстах»'}</p>
+              <p className="max-lg:mt-1.5 empty:hidden max-lg:text-center text-[14px] leading-5 text-brand-muted" aria-live="polite">{spend}</p>
             </div>
           )}
         </div>
@@ -503,7 +536,7 @@ export default function Zh13Flow() {
               </div>
             )}
 
-            <div className={`mt-4 rounded-[20px] bg-brand-card ${SHADOW} p-5 lg:px-[30px] lg:py-7 min-w-0`}>
+            <div className={`mt-4 rounded-[20px] bg-brand-card ${SHADOW} p-5 lg:px-8 lg:py-7 min-w-0`}>
               {karusel && <p className="mb-3 text-[15px] font-semibold text-brand-text">Текст карусели</p>}
               {editing ? (
                 <>
@@ -512,17 +545,15 @@ export default function Zh13Flow() {
                     rows={Math.min(24, Math.max(8, tekst.split('\n').length + 2))}
                     className="block w-full max-h-[50dvh] overflow-y-auto px-3 py-2.5 rounded-xl border border-brand-border bg-white text-brand-text text-[16px] leading-relaxed focus:outline-none focus:border-brand-accent resize-none" />
                   {/* липкая панель: над клавиатурой и у нижнего края, пока поле длинное */}
-                  <div ref={doneBar} className="sticky bottom-0 -mx-5 lg:-mx-[30px] px-5 lg:px-[30px] pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] bg-brand-card rounded-b-[20px] flex items-center gap-2">
+                  <div ref={doneBar} className="sticky bottom-0 -mx-5 lg:-mx-8 px-5 lg:px-8 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] bg-brand-card rounded-b-[20px] flex items-center gap-2">
                     <button type="button" onClick={gotovo} className={`${BTN_P} max-lg:flex-1`}>Готово</button>
                   </div>
                 </>
               ) : (
                 <>
-                  <Glavnoe text={tekst} />
+                  <Svernutyi key={`${idx}:${tekst.length}`} open={polnost} onOpen={() => setPolnost(true)}><Glavnoe text={tekst} /></Svernutyi>
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-                    <button type="button" onClick={() => setEditing(true)} className={BTN_S}><PenLine className="w-[18px] h-[18px]" />Править текст</button>
-                    <button type="button" onClick={() => document.getElementById('zh13-eshe')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                      className={`lg:hidden ${BTN_T}`}>Другие форматы<ChevronDown className="w-4 h-4" /></button>
+                    <button type="button" onClick={() => { setPolnost(true); setEditing(true) }} className={BTN_S}><PenLine className="w-[18px] h-[18px]" />Править текст</button>
                   </div>
                 </>
               )}

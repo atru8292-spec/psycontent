@@ -9,7 +9,7 @@ import { Check, ChevronDown, Plus } from 'lucide-react'
 import { GRUPPY, KTO, POL_KOROTKO, vybratGruppu, vybratTemu, type Klienty } from '@/lib/anketa'
 
 export function chipCls(on: boolean, dim = false, size: 'sm' | 'md' = 'md') {
-  const s = size === 'sm' ? 'min-h-[34px] px-2.5 text-[14px]' : 'min-h-[34px] px-3 py-[5px] text-[14px] leading-[18px]'
+  const s = size === 'sm' ? 'min-h-[34px] px-2.5 text-[14px]' : 'min-h-[34px] px-3 py-1.5 text-[14px] leading-[18px]'
   return `${s} inline-flex items-center gap-1.5 rounded-full text-left cursor-pointer transition ${on ? 'bg-brand-soft border-[1.5px] border-brand-accent text-brand-text font-semibold' : 'border border-brand-border text-brand-text bg-brand-card'} ${dim ? 'opacity-50' : ''}`
 }
 

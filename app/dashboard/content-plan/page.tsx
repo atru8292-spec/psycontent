@@ -82,8 +82,8 @@ function pluralMaterial(n: number): string {
 
 function rhythmCaption(n: number): string {
   if (n === 0) return 'В этом месяце пока ни одного текста. Напишешь первый, и тут появится твой ритм.'
-  if (n < RHYTHM_GOAL) return 'Ты в процессе. Держи ритм, и блог понемногу набирает вес.'
-  return 'Четыре в месяц, ты в том ритме, с которого блог начинает приводить людей.'
+  if (n < RHYTHM_GOAL) return `До цели еще ${RHYTHM_GOAL - n} ${pluralMaterial(RHYTHM_GOAL - n)}`
+  return 'Четыре в месяц: так тебя видно регулярно, а это то, что приводит людей'
 }
 
 function RhythmTracker({ count }: { count: number }) {
@@ -244,8 +244,8 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
       animate={{ opacity: 1, y: 0 }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className={`relative rounded-2xl border transition-all duration-200 overflow-hidden ${
-        item.done ? 'border-brand-border-soft bg-brand-soft/30 opacity-70' : 'border-brand-border bg-white hover:border-brand-accent/40 hover:shadow-md'
+      className={`relative rounded-2xl border transition-colors duration-150 overflow-hidden ${
+        item.done ? 'border-brand-border-soft bg-brand-soft/30 opacity-70' : 'border-brand-border bg-white hover:border-brand-accent/40'
       }`}
     >
       {/* Шапка */}
@@ -300,7 +300,7 @@ function DayCard({ item, onToggle, onGenerate }: { item: DayItem; onToggle: () =
 
       {/* Кнопка */}
       {!item.done && (
-        <div className={`px-5 pb-5 md:px-4 md:pb-4 md:transition-all md:duration-200 ${hover ? 'md:block' : 'md:hidden'} block`}>
+        <div className={`px-5 pb-5 md:px-4 md:pb-4 ${hover ? 'md:block' : 'md:hidden'} block`}>
           <button
             onClick={(e) => { e.stopPropagation(); onGenerate(); }}
             className={`w-full flex items-center justify-center gap-2.5 py-4 md:py-2.5 rounded-xl text-white text-[16px] md:text-xs font-semibold transition cursor-pointer active:scale-[0.98] ${

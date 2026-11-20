@@ -174,7 +174,7 @@ function Bar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0
   return (
     <div className="h-2 w-full bg-brand-soft-2 rounded-full overflow-hidden mt-3">
-      <div className="h-full bg-brand-sage rounded-full transition-all" style={{ width: `${pct}%` }} />
+      <div className="h-full bg-brand-sage rounded-full transition-[width] duration-150 ease-out" style={{ width: `${pct}%` }} />
     </div>
   )
 }

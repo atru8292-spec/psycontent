@@ -416,7 +416,7 @@ export default function EditProfile() {
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.3 }}
           >
-            <h2 className="text-2xl md:text-4xl font-extrabold text-brand-text mb-4 leading-tight">
+            <h2 className="text-2xl md:text-4xl font-semibold text-brand-text mb-4 leading-tight">
               {q.title}
             </h2>
             {q.subtitle && <p className="text-lg text-brand-text-secondary mb-10">{q.subtitle}</p>}

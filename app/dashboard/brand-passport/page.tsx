@@ -461,7 +461,7 @@ export default function BrandPassport() {
               {STEPS.map(step => (
                 <div key={step.chunk} className="flex items-center gap-3">
                   <div className={[
-                    'w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold transition-all duration-300',
+                    'w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold transition-colors duration-150',
                     generatingChunk > step.chunk ? 'bg-brand-sage text-white' : '',
                     generatingChunk === step.chunk ? 'bg-brand-accent text-white' : '',
                     generatingChunk < step.chunk ? 'bg-gray-100 text-gray-400' : '',
@@ -469,7 +469,7 @@ export default function BrandPassport() {
                     {generatingChunk > step.chunk ? '✓' : step.chunk}
                   </div>
                   <span className={[
-                    'text-sm transition-all duration-300',
+                    'text-sm transition-colors duration-150',
                     generatingChunk === step.chunk ? 'text-brand-text font-semibold' : '',
                     generatingChunk > step.chunk ? 'text-brand-sage' : 'text-brand-text-secondary',
                   ].join(' ')}>

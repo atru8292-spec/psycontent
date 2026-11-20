@@ -22,8 +22,7 @@ import { appendVoiceText } from '@/components/VoiceTextarea'
 import { useVoiceRecorder } from '@/lib/use-voice-recorder'
 
 const EASE = [0.22, 1, 0.36, 1] as const
-const SHADOW_REST = 'shadow-[0_1px_2px_rgba(59,42,34,0.04),0_8px_24px_rgba(59,42,34,0.05)]'
-const SHADOW_HOVER = 'shadow-[0_4px_10px_-4px_rgba(59,42,34,0.12),0_20px_44px_-18px_rgba(59,42,34,0.22)]'
+const SHADOW_REST = 'shadow-[0_1px_2px_rgba(59,42,34,0.05)]'
 
 // Тексты около-экранные (микрокопи через copywriter-psycont). Вопросы в lib/archetype-quiz.
 const T = {
@@ -58,7 +57,7 @@ function BackBtn({ onClick, className = '' }: { onClick: () => void; className?:
   return (
     <button
       onClick={onClick}
-      className={`group inline-flex items-center gap-1.5 rounded-full border border-brand-border-soft/70 pl-2.5 pr-3.5 h-9 text-[13px] font-medium text-brand-muted bg-[#FDFBF7]/70 lg:bg-transparent hover:bg-brand-soft hover:text-brand-text hover:border-brand-soft active:scale-[0.97] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${className}`}
+      className={`group relative after:absolute after:-inset-1 after:content-[''] inline-flex items-center gap-1.5 rounded-full border border-brand-border-soft/70 pl-2.5 pr-3.5 h-9 text-[13px] font-medium text-brand-muted bg-[#FDFBF7]/70 lg:bg-transparent hover:bg-brand-soft hover:text-brand-text hover:border-brand-soft active:scale-[0.97] transition-[color,background-color,border-color,transform] duration-150 ease-out cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${className}`}
     >
       <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
       <span className="hidden min-[360px]:inline">Назад</span>
@@ -240,17 +239,17 @@ export default function ArchetypeTest() {
     const inOpen = phase === 'open' || phase === 'finishing'
     return (
       <div className="flex flex-col items-center gap-1.5">
-        <div className="flex items-center gap-[3px]">
+        <div className="flex items-center gap-1">
           {SITUATIONS.map((_, i) => {
             const done = i < situAnswered || phase === 'break' || inOpen
             const now = phase === 'situation' && i === sIdx
-            return <span key={`a${i}`} className={`h-[3px] rounded-full transition-all duration-300 ${now ? 'w-5 bg-brand-accent' : done ? 'w-3 bg-brand-accent' : 'w-3 bg-brand-text/15'}`} />
+            return <span key={`a${i}`} className={`h-[3px] rounded-full transition-[width,background-color] duration-150 ease-out ${now ? 'w-5 bg-brand-accent' : done ? 'w-3 bg-brand-accent' : 'w-3 bg-brand-text/15'}`} />
           })}
           <span className="w-2" />
           {OPEN_QUESTIONS.map((_, i) => {
             const done = inOpen && i < openAnswered
             const now = phase === 'open' && i === oIdx
-            return <span key={`b${i}`} className={`h-[3px] rounded-full transition-all duration-300 ${now ? 'w-5 bg-brand-accent' : done ? 'w-3 bg-brand-accent' : 'w-3 bg-brand-text/15'}`} />
+            return <span key={`b${i}`} className={`h-[3px] rounded-full transition-[width,background-color] duration-150 ease-out ${now ? 'w-5 bg-brand-accent' : done ? 'w-3 bg-brand-accent' : 'w-3 bg-brand-text/15'}`} />
           })}
         </div>
         {phase === 'situation' && <span className="text-xs text-brand-muted">Ситуация {sIdx + 1} из {SITU_COUNT}</span>}
@@ -280,16 +279,17 @@ export default function ArchetypeTest() {
 
       {/* ШАПКА */}
       {phase !== 'finishing' && phase !== 'result' && (
-        <header className="relative z-10 shrink-0 h-14 flex items-center justify-between px-5 sm:px-6">
-          <div className="w-24 lg:w-28 flex items-center">
+        <header className="relative z-10 shrink-0 flex flex-wrap items-center justify-between px-5 sm:px-6 pt-2 lg:pt-0 lg:h-14 lg:flex-nowrap">
+          <div className="lg:w-28 flex items-center">
             {(phase === 'situation' || phase === 'open') && (
               <BackBtn onClick={phase === 'situation' ? backSituation : backOpen} />
             )}
           </div>
-          {(phase === 'situation' || phase === 'open') ? <Progress /> : <span />}
-          <div className="w-24 lg:w-28 flex justify-end">
+          {/* на телефоне прогресс второй строкой: в одну с «Назад» и «Пропустить» на 375 не влезает */}
+          {(phase === 'situation' || phase === 'open') ? <div className="max-lg:order-last max-lg:basis-full max-lg:mt-1"><Progress /></div> : <span />}
+          <div className="lg:w-28 flex justify-end">
             {phase === 'situation' && (
-              <button onClick={skipSituation} className="text-sm text-brand-muted hover:text-brand-text transition-colors cursor-pointer">Пропустить</button>
+              <button onClick={skipSituation} className="min-h-11 px-1 text-sm text-brand-muted hover:text-brand-text transition-colors cursor-pointer whitespace-nowrap">Пропустить</button>
             )}
           </div>
         </header>
@@ -297,8 +297,8 @@ export default function ArchetypeTest() {
 
       {/* ТЕЛО */}
       <main className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
-        <div className={`w-full max-w-[560px] mx-auto px-6 my-auto py-6 ${phase === 'result' ? 'lg:max-w-[920px]' : 'lg:max-w-[660px]'}`}>
-          <div className={`lg:bg-[#FDFBF7] lg:rounded-[32px] lg:border lg:border-brand-border-soft/70 lg:py-11 lg:shadow-[0_2px_4px_rgba(59,42,34,0.03),0_24px_60px_-24px_rgba(59,42,34,0.16),0_8px_20px_-12px_rgba(51,71,43,0.10)] ${phase === 'result' ? 'lg:px-14' : 'lg:px-12'}`}>
+        <div className={`w-full max-w-[560px] mx-auto px-6 my-auto py-6 ${phase === 'situation' || phase === 'open' ? 'max-lg:my-0 max-lg:pt-5' : ''} ${phase === 'result' ? 'lg:max-w-[920px]' : 'lg:max-w-[660px]'}`}>
+          <div className={`lg:bg-[#FDFBF7] lg:rounded-[32px] lg:border lg:border-brand-border-soft/70 lg:py-11 lg:shadow-[0_1px_2px_rgba(59,42,34,0.05)] ${phase === 'result' ? 'lg:px-14' : 'lg:px-12'}`}>
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div key={stepKey} custom={dir} variants={stepVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.26, ease: EASE }}>
 
@@ -319,7 +319,6 @@ export default function ArchetypeTest() {
                 const chosen = answers[sit.id]
                 return (
                   <div>
-                    <p className="text-xs lg:text-[13px] font-semibold uppercase tracking-[0.16em] text-brand-muted mb-3">Ситуация</p>
                     <h2 className="text-xl sm:text-2xl lg:text-[28px] lg:leading-[1.25] font-semibold text-brand-text leading-snug mb-6 lg:mb-8">{sit.scene}</h2>
                     <div className="flex flex-col gap-3">
                       {sit.options.map((opt, i) => {
@@ -329,9 +328,9 @@ export default function ArchetypeTest() {
                           <button
                             key={i}
                             onClick={() => selectOption(i)}
-                            className={`group relative text-left rounded-2xl border px-5 py-4 pl-6 lg:px-6 lg:py-[18px] lg:pl-7 transition-all duration-200 cursor-pointer ${SHADOW_REST} ${isSel ? 'bg-brand-soft border-brand-accent' : 'bg-[#FDFBF7] border-brand-border/70 hover:-translate-y-0.5 hover:border-brand-sage/50'} ${!isSel ? 'hover:' + SHADOW_HOVER : ''} ${dimmed ? 'opacity-55' : 'opacity-100'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg`}
+                            className={`group relative text-left rounded-2xl border px-5 py-4 pl-6 lg:px-6 lg:py-5 lg:pl-7 transition-[background-color,border-color,opacity] duration-150 ease-out cursor-pointer ${SHADOW_REST} ${isSel ? 'bg-brand-soft border-brand-accent' : 'bg-[#FDFBF7] border-brand-border/70 hover:border-brand-sage/50'} ${dimmed ? 'opacity-55' : 'opacity-100'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg`}
                           >
-                            <span className={`absolute left-2 top-4 bottom-4 w-[3px] rounded-full origin-center transition-all duration-200 ${isSel ? 'bg-brand-accent scale-y-100' : 'bg-brand-soft-2 scale-y-75'}`} />
+                            <span className={`absolute left-2 top-4 bottom-4 w-[3px] rounded-full origin-center transition-[transform,background-color] duration-150 ease-out ${isSel ? 'bg-brand-accent scale-y-100' : 'bg-brand-soft-2 scale-y-75'}`} />
                             <span className="block text-[15px] sm:text-[17px] lg:text-[18px] text-brand-text/90 leading-snug pr-6">{opt.text}</span>
                             {isSel && (
                               <motion.span initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.22, ease: EASE }} className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-sage">
@@ -367,7 +366,6 @@ export default function ArchetypeTest() {
                 const q = OPEN_QUESTIONS[oIdx]
                 return (
                   <div>
-                    <p className="text-xs lg:text-[13px] font-semibold uppercase tracking-[0.16em] text-brand-muted mb-3">Своими словами</p>
                     <h2 className="text-xl sm:text-2xl lg:text-[28px] lg:leading-[1.25] font-semibold text-brand-text leading-snug mb-5">{q.prompt}</h2>
                     <div className="relative">
                       <textarea
@@ -425,10 +423,9 @@ export default function ArchetypeTest() {
                 const paras = story.split('\n').map((p) => p.trim()).filter(Boolean)
                 const glyph = (
                   <motion.div initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5, ease: EASE }} className="relative mx-auto mb-5 w-[104px] h-[104px] lg:w-[120px] lg:h-[120px]">
-                    <motion.div aria-hidden animate={reduced.current ? {} : { opacity: [0.5, 0.7, 0.5] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }} className="absolute inset-[-14px] rounded-full blur-[22px]" style={{ backgroundColor: accent + '33' }} />
-                    <div className="relative w-full h-full rounded-full flex items-center justify-center" style={{ backgroundColor: accent + '14', boxShadow: `inset 0 0 0 1px ${accent}33, 0 8px 20px -8px ${accent}55` }}>
+                    <div className="relative w-full h-full rounded-full flex items-center justify-center" style={{ backgroundColor: accent + '14', boxShadow: `inset 0 0 0 1px ${accent}33` }}>
                       <div className="absolute inset-[10px] rounded-full" style={{ backgroundColor: '#FDFBF7', boxShadow: `inset 0 0 0 1px ${accent}22` }} />
-                      <div className="absolute inset-[22px] rounded-full" style={{ background: `radial-gradient(120% 120% at 30% 25%, ${accent}26, ${accent}12)`, boxShadow: `inset 0 1px 2px ${accent}22` }} />
+                      <div className="absolute inset-[22px] rounded-full" style={{ backgroundColor: `${accent}1C` }} />
                       <div className="relative flex items-center justify-center" style={{ color: accent }}>
                         {sel.flexible ? <FlexibleGlyph size={50} /> : <ArchetypeGlyph k={pk} size={50} />}
                       </div>
@@ -437,7 +434,6 @@ export default function ArchetypeTest() {
                 )
                 return (
                   <div className="text-center">
-                    <p className="text-xs lg:text-[13px] font-semibold uppercase tracking-[0.16em] text-brand-muted mb-5">Твой авторский почерк</p>
                     <div className="lg:grid lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] lg:gap-x-12 lg:items-start">
                       {/* ЛЕВАЯ КОЛОНКА: паспорт архетипа */}
                       <div className="lg:text-center">

@@ -70,21 +70,21 @@ function TopicCard({ topic, index, onGenerate }: { topic: Topic; index: number; 
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.03 }}
-      className="bg-white rounded-2xl border border-brand-border p-5 hover:border-brand-accent/40 hover:shadow-md transition-all group flex flex-col h-full"
+      className="bg-white rounded-2xl border border-brand-border p-5 hover:border-brand-accent/40 transition-colors group flex flex-col h-full"
     >
       {/* Header row */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1 bg-brand-bg px-2 py-0.5 rounded-md border border-brand-border">
              <BlockIcon className={`w-3 h-3 ${blk.color}`} />
-             <span className={`text-xs font-bold uppercase tracking-wider ${blk.color}`}>{blk.label}</span>
+             <span className={`text-xs font-bold ${blk.color}`}>{blk.label}</span>
           </div>
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${pillarColor}`}>
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${pillarColor}`}>
             {pillarLabel(topic.pillar)}
           </span>
           <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${fmt.bg}`}>
             <Icon className={`w-3 h-3 ${fmt.color}`} />
-            <span className={`text-xs font-bold uppercase tracking-wider ${fmt.color}`}>{fmt.label}</span>
+            <span className={`text-xs font-bold ${fmt.color}`}>{fmt.label}</span>
           </div>
         </div>
       </div>
@@ -98,7 +98,7 @@ function TopicCard({ topic, index, onGenerate }: { topic: Topic; index: number; 
       <div className="p-3 rounded-xl bg-brand-highlight border border-brand-accent/20 mb-3">
         <div className="flex items-center gap-1.5 mb-1.5">
           <Zap className="w-3.5 h-3.5 text-brand-accent" />
-          <span className="text-xs font-bold text-brand-accent uppercase tracking-wide">Первая строка</span>
+          <span className="text-xs font-bold text-brand-accent">Первая строка</span>
         </div>
         <p className="text-xs text-brand-text italic leading-relaxed">«{topic.hook}»</p>
       </div>
@@ -277,7 +277,7 @@ export default function TopicIdeas({ embedded = false }: { embedded?: boolean })
             <EmptyState
               variant={1}
               title="Темы из жизни и науки"
-              subtitle="Найдутся темы, о которых сейчас говорят люди, свежие исследования и цитаты, которые подойдут. Все под то, с чем ты работаешь, и твой подход. Около минуты."
+              subtitle="Темы, о которых сейчас говорят люди, свежие исследования и цитаты под то, с чем ты работаешь. Около минуты."
               actionLabel="Найти темы"
               onAction={handleSearch}
             />
@@ -305,20 +305,7 @@ export default function TopicIdeas({ embedded = false }: { embedded?: boolean })
               <Globe className="w-6 h-6 text-brand-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
             </div>
             <h2 className="text-xl font-bold text-brand-text mb-2">Идет поиск тем...</h2>
-            <p className="text-brand-text-secondary mb-6">Свежие темы, исследования и цитаты под то, с чем ты работаешь</p>
-            <div className="flex flex-col items-center gap-2 text-sm text-brand-text-secondary">
-              {[
-                'Темы, о которых говорят люди...',
-                'Научные статьи за 2023-2026 годы...',
-                'Цитаты классиков и современников...',
-                'Первые строки к темам...',
-              ].map((s, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse" style={{ animationDelay: `${i * 0.5}s` }} />
-                  {s}
-                </div>
-              ))}
-            </div>
+            <p className="text-brand-text-secondary mb-6">Около минуты</p>
           </motion.div>
         )}
 

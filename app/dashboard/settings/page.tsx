@@ -189,7 +189,7 @@ export default function SettingsPage() {
             {desk ? (
               <div className="space-y-4">
                 <Card id="voice" title="Голос" status={voiceStatus} action={<Link href="/dashboard/voice" className={BTN_SM}>Открыть</Link>}>
-                  <p className="mt-2.5 text-sm leading-5 text-brand-text">Голос подстраивается сам по правкам и диктовке. Здесь можно сказать по-своему или показать свои посты.</p>
+                  <p className="mt-2.5 text-sm leading-5 text-brand-text">Здесь можно сказать по-своему или показать свои посты.</p>
                   <SubRow title="Паспорт бренда" status="Кто ты в блоге, для кого пишешь и как звучишь. Можно скачать в PDF" action={<Link href="/dashboard/brand-passport" className={BTN_SM}>Открыть</Link>} />
                   {!newPipe && (
                     <div id="archetype" className="scroll-mt-20 mt-4 pt-4 border-t border-brand-border">

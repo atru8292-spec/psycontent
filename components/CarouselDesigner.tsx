@@ -1034,7 +1034,7 @@ export default function CarouselDesigner({ postId, text, onTextChange, focus, on
             {cur > 0 && <button type="button" onClick={() => go(cur - 1)} aria-label="Предыдущий слайд" className="hidden sm:flex absolute left-2 top-[45%] -translate-y-1/2 w-11 h-11 rounded-full bg-white/90 border border-brand-border items-center justify-center text-brand-text cursor-pointer"><ChevronLeft className="w-5 h-5" /></button>}
             {cur < total - 1 && <button type="button" onClick={() => go(cur + 1)} aria-label="Следующий слайд" className="hidden sm:flex absolute right-2 top-[45%] -translate-y-1/2 w-11 h-11 rounded-full bg-white/90 border border-brand-border items-center justify-center text-brand-text cursor-pointer"><ChevronRight className="w-5 h-5" /></button>}
             <div className="flex justify-center gap-1.5 mt-3" aria-hidden="true">
-              {design.slides.map((s, i) => <span key={s.n} onClick={() => go(i)} className={`h-1.5 rounded-full transition-all cursor-pointer ${i === cur ? 'w-5 bg-brand-text' : 'w-1.5 bg-brand-border'}`} />)}
+              {design.slides.map((s, i) => <span key={s.n} onClick={() => go(i)} className={`h-1.5 rounded-full transition-[width,background-color] duration-150 ease-out cursor-pointer ${i === cur ? 'w-5 bg-brand-text' : 'w-1.5 bg-brand-border'}`} />)}
             </div>
             <p className="mt-2 text-center text-[14px] text-brand-muted tabular-nums">Слайд {cur + 1} из {total}{editN == null ? ' · нажми на текст, чтобы поправить' : ''}</p>
           </div>

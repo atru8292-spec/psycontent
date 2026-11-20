@@ -45,7 +45,7 @@ export default function AdminNav({ demoAllowed }: { demoAllowed: boolean }) {
   const Switch = ({ short }: { short?: boolean }) => (
     <Link href={toggleHref} role="switch" aria-checked={all} className="inline-flex items-center gap-2 min-h-11 text-[14px] focus-visible:outline-2 outline-offset-2 outline-brand-accent rounded-lg">
       <span className={`relative inline-flex h-6 w-10 shrink-0 rounded-full transition-colors ${all ? 'bg-brand-accent' : 'bg-brand-border'}`}>
-        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${all ? 'left-[18px]' : 'left-0.5'}`} />
+        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-[left] duration-150 ease-out ${all ? 'left-[18px]' : 'left-0.5'}`} />
       </span>
       {short ? 'Служебные' : 'Показать служебных'}
     </Link>

@@ -268,7 +268,7 @@ export default function MyTexts() {
           </div>
         ) : !cards.length ? (
           <div className="mt-10 text-center px-2">
-            <p className="text-[16px] leading-6 text-brand-text">Тут соберется все, что напишешь: посты, карусели, рилс. Одна мысль, одна карточка</p>
+            <p className="text-[16px] leading-6 text-brand-text">Тут соберется все, что напишешь: посты, карусели, рилс</p>
             <button type="button" onClick={() => router.push('/dashboard/make')} className="mt-4 h-12 px-6 rounded-2xl bg-brand-accent text-white font-semibold hover:bg-brand-accent-hover cursor-pointer">Написать первый текст</button>
           </div>
         ) : !shown.length ? (
