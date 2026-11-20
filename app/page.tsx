@@ -100,7 +100,8 @@ export default function Home() {
               <span aria-hidden className="absolute -bottom-[7px] right-10 hidden h-3.5 w-3.5 rotate-45 border-r border-b border-brand-border-soft bg-brand-card lg:block" />
             </figcaption>
             <Image src="/vera/golosovoe.webp" alt="Вера наговаривает мысль в голосовое" width={671} height={720} priority
-              className="-mb-3 h-[150px] w-auto shrink-0 lg:-mb-6 lg:h-[330px]" />
+              sizes="(min-width: 1024px) 320px, 150px"
+              className="-mb-3 h-[130px] w-auto shrink-0 min-[360px]:h-[150px] lg:-mb-6 lg:h-[330px]" />
           </figure>
         </section>
 

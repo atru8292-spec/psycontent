@@ -40,8 +40,8 @@ export default function PainBoard() {
         </div>
         {/* Фразы самих психологов из их чатов (PAINS.quotes) под заметкой */}
         <div className="mt-9 lg:mt-12">
-          <p className="text-[14px] text-brand-on-dark-muted lg:text-[15px]">{PAINS.quotesLead}</p>
-          <ul className="mt-2">
+          <p id="pain-quotes" className="text-[14px] text-brand-on-dark-muted lg:text-[15px]">{PAINS.quotesLead}</p>
+          <ul aria-labelledby="pain-quotes" className="mt-2">
             {PAINS.quotes.map(q => (
               <li key={q} className="border-b border-brand-on-dark-muted/25 py-3 text-[17px] leading-[1.45] text-brand-on-dark last:border-b-0 lg:py-4 lg:text-[19px]">{q}</li>
             ))}
