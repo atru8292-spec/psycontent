@@ -7,11 +7,10 @@ import { notFound } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/auth'
 
-const list = (v: string | undefined) => (v || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+import { isAdminUser } from '@/lib/admin-emails'
 
-export const adminEmails = () => list(process.env.ADMIN_EMAILS)
-// служебные аккаунты: их не считаем нигде, пока не включен переключатель «Показать служебных»
-export const internalEmails = () => list(process.env.INTERNAL_EMAILS)
+// списки почт и правило «кто админ» живут в lib/admin-emails.ts (без Next, их берет и аналитика)
+export { adminEmails, internalEmails } from '@/lib/admin-emails'
 // Опечатка в ADMIN_TZ не должна ронять кабинет: неизвестный пояс заменяем на Барнаул
 export const adminTz = () => {
   const v = (process.env.ADMIN_TZ || '').trim()
@@ -20,8 +19,7 @@ export const adminTz = () => {
 }
 
 export function isAdmin(user: Pick<User, 'email' | 'email_confirmed_at'> | null | undefined): boolean {
-  const email = (user?.email || '').toLowerCase()
-  return !!email && !!user?.email_confirmed_at && adminEmails().includes(email)
+  return isAdminUser(user)
 }
 
 // Для роутов /api/admin/* и данных кабинета: не админ, значит null. Один запрос к auth на рендер (cache).
