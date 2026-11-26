@@ -1,7 +1,7 @@
 'use client'
 
 // «Настройки» (вариант А, 17.11; макет A8 на компьютере, A11 на телефоне). Бывший «Профиль».
-// Группы: Голос (с паспортом бренда и, у старого мозга, архетипом), Практика, Оформление каруселей, Тариф, Аккаунт.
+// Группы: Голос (у старого мозга с архетипом; паспорт бренда убран 26.11), Практика, Оформление каруселей, Тариф, Аккаунт.
 // На телефоне Тариф первым блоком, остальное строками; ниже «Помощь» и подсказка «на экран Домой».
 // Сводку /api/me берем из layout (DashboardMeContext), второй раз не тянем.
 import { useCallback, useEffect, useState } from 'react'
@@ -190,7 +190,6 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <Card id="voice" title="Голос" status={voiceStatus} action={<Link href="/dashboard/voice" className={BTN_SM}>Открыть</Link>}>
                   <p className="mt-2.5 text-sm leading-5 text-brand-text">Здесь можно сказать по-своему или показать свои посты.</p>
-                  <SubRow title="Паспорт бренда" status="Кто ты в блоге, для кого пишешь и как звучишь. Можно скачать в PDF" action={<Link href="/dashboard/brand-passport" className={BTN_SM}>Открыть</Link>} />
                   {!newPipe && (
                     <div id="archetype" className="scroll-mt-20 mt-4 pt-4 border-t border-brand-border">
                       <ArchetypeBlock profile={profile} sel={sel} onTest={() => router.push('/onboarding/archetype')} />
@@ -212,7 +211,6 @@ export default function SettingsPage() {
                   <RowToggle id="carousel" title="Оформление каруселей" status={carouselStatus} open={openRow === 'carousel'} onToggle={() => setOpenRow(r => (r === 'carousel' ? null : 'carousel'))}>
                     <MyCarouselDesign />
                   </RowToggle>
-                  <RowLink href="/dashboard/brand-passport" title="Паспорт бренда" status="Кто ты в блоге, на одной странице, в PDF" />
                   {!newPipe && (
                     <RowToggle id="archetype" title="Архетип" status={archetypeStatus} open={openRow === 'archetype'} onToggle={() => setOpenRow(r => (r === 'archetype' ? null : 'archetype'))}>
                       <ArchetypeBlock profile={profile} sel={sel} onTest={() => router.push('/onboarding/archetype')} />
@@ -261,17 +259,6 @@ function Card({ id, title, status, action, children, className = '' }: { id?: st
   )
 }
 
-function SubRow({ title, status, action }: { title: string; status: string; action: React.ReactNode }) {
-  return (
-    <div className="mt-4 pt-4 border-t border-brand-border flex items-start justify-between gap-4">
-      <div className="min-w-0">
-        <h3 className="text-[15px] font-semibold text-brand-text">{title}</h3>
-        <p className="mt-0.5 text-sm leading-5 text-brand-muted">{status}</p>
-      </div>
-      {action}
-    </div>
-  )
-}
 
 function RowLink({ id, href, title, status }: { id?: string; href: string; title: string; status: string }) {
   return (

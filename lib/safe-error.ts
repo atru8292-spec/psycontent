@@ -1,6 +1,6 @@
 // Безопасные ошибки (16.11, блок 1 запуска). В журнал pm2 и человеку не уходит ни текст ответа модели,
 // ни куски профиля или поста: только код ошибки. Причина: сырой ответ OpenAI попадал в psycont-error.log
-// (lib/openrouter.ts, lib/generation/ai.ts) и человеку на экран (generate-passport).
+// (lib/openrouter.ts, lib/generation/ai.ts) и человеку на экран.
 
 // Ошибка с кодом без текста: статус OpenAI (openai_429, openai_401, openai_500), openai_bad_json, openai_empty.
 export class CodedError extends Error {

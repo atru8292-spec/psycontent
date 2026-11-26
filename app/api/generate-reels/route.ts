@@ -72,7 +72,7 @@ const getStyleInstruction = (style: string) => {
 - Голос спокойный, интимный, как будто говоришь на ухо`
 }
 
-const SYSTEM_PROMPT = `Ты пишешь сценарии Reels за практикующего психолога, его голосом, чтобы цепляло с первой секунды через узнавание, а не приманку. Психолог может не любить камеру, предлагай форматы без лица. Опирайся на его голос из паспорта. Текст и реплики пиши от первого лица самого психолога, он автор, а не герой. Не упоминай его в третьем лице (по имени, «психолог», «она»). Пиши букву «е» вместо «ё», без тире.
+const SYSTEM_PROMPT = `Ты пишешь сценарии Reels за практикующего психолога, его голосом, чтобы цепляло с первой секунды через узнавание, а не приманку. Психолог может не любить камеру, предлагай форматы без лица. Опирайся на его голос из профиля. Текст и реплики пиши от первого лица самого психолога, он автор, а не герой. Не упоминай его в третьем лице (по имени, «психолог», «она»). Пиши букву «е» вместо «ё», без тире.
 
 ═══════════════════════════════
 ЖЕЛЕЗНЫЕ ПРАВИЛА
@@ -127,13 +127,9 @@ export async function POST(req: NextRequest) {
 
     const supabase = getSupabaseAdmin()
 
-    const [profileRes, passportRes] = await Promise.all([
-      supabase.from('onboarding_profiles').select('*').eq('user_id', userId).single(),
-      supabase.from('brand_passports').select('content').eq('user_id', userId).single()
-    ])
+    const profileRes = await supabase.from('onboarding_profiles').select('*').eq('user_id', userId).single()
 
     const profile = profileRes.data || {}
-    const passport = typeof passportRes.data?.content === 'string' ? passportRes.data.content : (passportRes.data?.content ? JSON.stringify(passportRes.data.content) : '')
     const approaches = Array.isArray(profile.approaches) ? profile.approaches : []
 
     let profileContext = ''
@@ -148,8 +144,6 @@ export async function POST(req: NextRequest) {
     const archetypeContext = getArchetypeContextFromProfile(profile)
 
     const prompt = `${profileContext}
-
-${passport ? `ПАСПОРТ БРЕНДА:\n${passport.substring(0, 600)}` : ''}
 
 ═══════════════════════════════
 СТИЛЬ ПОДХОДА

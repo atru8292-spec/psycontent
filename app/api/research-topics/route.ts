@@ -175,10 +175,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ topics: data?.topics || [] })
     }
 
-    const [profileRes, passportRes] = await Promise.all([
-      supabaseAdmin.from('onboarding_profiles').select('*').eq('user_id', userId).single(),
-      supabaseAdmin.from('brand_passports').select('content').eq('user_id', userId).single(),
-    ])
+    const profileRes = await supabaseAdmin.from('onboarding_profiles').select('*').eq('user_id', userId).single()
 
     // Различаем «нет строки профиля» (PGRST116) от ошибки чтения (права/сеть/JWT).
     if (profileRes.error && profileRes.error.code !== 'PGRST116') {
@@ -188,7 +185,6 @@ export async function POST(request: NextRequest) {
     const profile = profileRes.data
     if (!profile) return NextResponse.json({ error: 'need_onboarding', message: 'Сначала заполни профиль', redirect: '/onboarding' }, { status: 404 })
 
-    const passport = passportRes.data?.content || ''
     const approaches = Array.isArray(profile.approaches) ? profile.approaches : []
     const niches = Array.isArray(profile.niches) ? profile.niches : []
 
@@ -199,8 +195,6 @@ export async function POST(request: NextRequest) {
     const prompt = `Ты — глубокий исследователь контента для практикующего психолога. Текущий период: 2026 год.
 
 ${profileContext}
-
-${passport ? `ПАСПОРТ БРЕНДА:\n${passport.substring(0, 1000)}` : ''}
 
 ═══════════════════════════════════════
 ЗАДАНИЕ: Найди 30 тем для контента

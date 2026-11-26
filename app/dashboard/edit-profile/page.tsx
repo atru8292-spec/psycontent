@@ -7,10 +7,10 @@ import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowRight, ArrowLeft, Check, CheckCircle, User,
-  Heart, MapPin, Loader2, AlertTriangle
+  Heart, MapPin, Loader2
 } from 'lucide-react'
 import VoiceTextarea from '@/components/VoiceTextarea'
-import { QUIET_BTN_MUTED, QUIET_BTN_SM_MUTED } from '@/lib/ui-classes'
+import { QUIET_BTN_SM_MUTED } from '@/lib/ui-classes'
 import { syncEmailName } from '@/lib/auth-name'
 import { KtoPrihodit, PickChips, SChemRabotaesh, chipCls } from '@/components/anketa/AnketaBlocks'
 import { EMPTY_KLIENTY, frazyDlya, gruppaTemy, parseKlienty, temyPoKrugu, type Klienty } from '@/lib/anketa'
@@ -148,7 +148,7 @@ const questions = [
 ]
 
 // Значения тумблера видео. Храним строкой в существующем поле video_attitude,
-// чтобы generate-passport читал осмысленную фразу (схему БД не трогаем).
+// чтобы промпты читали осмысленную фразу (схему БД не трогаем).
 const VIDEO_YES = 'Снимаю видео'
 const VIDEO_NO = 'Пока без видео'
 
@@ -340,28 +340,15 @@ export default function EditProfile() {
           </div>
           <h1 className="text-3xl font-bold text-brand-text mb-4">Готово, профиль обновлен</h1>
           <p className="text-brand-text-secondary mb-6 leading-relaxed">
-            Ответы сохранены. Паспорт бренда собирался по старым ответам, его стоит пересобрать, чтобы он звучал по-новому.
+            Ответы сохранены. Следующие тексты PsyCont напишет уже с ними.
           </p>
-
-          <div className="bg-brand-soft border border-brand-border-soft rounded-xl p-4 mb-6 flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-brand-sage shrink-0 mt-0.5" />
-            <p className="text-sm text-brand-text text-left">
-              Загляни в паспорт и нажми «Пересобрать», он подтянет свежие данные.
-            </p>
-          </div>
 
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => router.push('/dashboard/brand-passport')}
+              onClick={() => router.push('/dashboard')}
               className="w-full py-4 bg-brand-accent hover:bg-brand-accent-hover text-white rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-lg cursor-pointer"
             >
-              Пересобрать паспорт <ArrowRight className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className={`w-full ${QUIET_BTN_MUTED}`}
-            >
-              Вернуться в кабинет
+              Вернуться в кабинет <ArrowRight className="w-5 h-5" />
             </button>
           </div>
         </motion.div>

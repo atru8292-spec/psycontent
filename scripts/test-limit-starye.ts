@@ -164,7 +164,7 @@ async function main() {
   const np = src('app/api/generate-post/new-pipeline.ts')
   assert.ok(!/canConsume|commitConsume|materialGate/.test(np), 'new-pipeline.ts без своего лимита (без двойного списания)')
   // служебные роуты не тронуты
-  for (const f of ['app/api/generate-content-plan/route.ts', 'app/api/generate-carousel-topics/route.ts', 'app/api/research-topics/route.ts', 'app/api/generate-passport/route.ts']) {
+  for (const f of ['app/api/generate-content-plan/route.ts', 'app/api/generate-carousel-topics/route.ts', 'app/api/research-topics/route.ts']) { // generate-passport удален 26.11
     assert.ok(!/materialGate|canConsume|commitConsume/.test(src(f)), `${f}: не списывает`)
   }
 

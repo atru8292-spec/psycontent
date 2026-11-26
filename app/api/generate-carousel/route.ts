@@ -16,7 +16,7 @@ function getSupabaseAdmin() {
   return createClient(url, key)
 }
 
-const CAROUSEL_SYSTEM_PROMPT = `Ты собираешь карусели за практикующего психолога, его голосом из паспорта. Не маркетолог, а думающий психолог, который раскладывает важное по слайдам просто и цепляюще. Первый слайд цепляет узнаванием, не приманкой. Текст слайдов пиши от первого лица самого психолога, он автор, а не герой. Не упоминай его в третьем лице (по имени, «психолог», «она»). Пиши букву «е» вместо «ё», без тире.
+const CAROUSEL_SYSTEM_PROMPT = `Ты собираешь карусели за практикующего психолога, его голосом из профиля. Не маркетолог, а думающий психолог, который раскладывает важное по слайдам просто и цепляюще. Первый слайд цепляет узнаванием, не приманкой. Текст слайдов пиши от первого лица самого психолога, он автор, а не герой. Не упоминай его в третьем лице (по имени, «психолог», «она»). Пиши букву «е» вместо «ё», без тире.
 
 ═══════════════════════════════
 СТРУКТУРА КАРУСЕЛИ (8-10 слайдов)
@@ -116,13 +116,9 @@ export async function POST(req: NextRequest) {
 
     const supabase = getSupabaseAdmin()
 
-    const [profileRes, passportRes] = await Promise.all([
-      supabase.from('onboarding_profiles').select('*').eq('user_id', userId).single(),
-      supabase.from('brand_passports').select('content').eq('user_id', userId).single()
-    ])
+    const profileRes = await supabase.from('onboarding_profiles').select('*').eq('user_id', userId).single()
 
     const profile = profileRes.data || {}
-    const passport = typeof passportRes.data?.content === 'string' ? passportRes.data.content : (passportRes.data?.content ? JSON.stringify(passportRes.data.content) : '')
 
     let profileContext = ''
     try {
@@ -137,7 +133,6 @@ export async function POST(req: NextRequest) {
     const prompt = `
 ${profileContext}
 
-${passport ? `ПАСПОРТ БРЕНДА:\n${passport.substring(0, 600)}` : ''}
 ${archetypeContext ? `
 ═══════════════════════════════
 АВТОРСКИЙ ПОЧЕРК

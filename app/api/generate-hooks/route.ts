@@ -162,13 +162,9 @@ export async function POST(req: NextRequest) {
 
     const supabase = getSupabaseAdmin()
 
-    const [profileRes, passportRes] = await Promise.all([
-      supabase.from('onboarding_profiles').select('*').eq('user_id', userId).single(),
-      supabase.from('brand_passports').select('content').eq('user_id', userId).single(),
-    ])
+    const profileRes = await supabase.from('onboarding_profiles').select('*').eq('user_id', userId).single()
 
     const profile = profileRes.data || {}
-    const passport = typeof passportRes.data?.content === 'string' ? passportRes.data.content : (passportRes.data?.content ? JSON.stringify(passportRes.data.content) : '')
 
     let profileContext = ''
     try {
@@ -183,7 +179,6 @@ export async function POST(req: NextRequest) {
     const userPrompt = `
 ${profileContext}
 
-${passport ? `ПАСПОРТ БРЕНДА (кратко):\n${passport.substring(0, 500)}` : ''}
 ${archetypeContext ? `
 ═══════════════════════
 АВТОРСКИЙ ПОЧЕРК

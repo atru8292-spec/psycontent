@@ -148,7 +148,7 @@ function getPlatformInstruction(platform?: string): string {
 const SYSTEM_PROMPT = `Ты пишешь посты за практикующего психолога, его собственным голосом, так чтобы читатель чувствовал живого человека, а не нейросеть. Ты не маркетолог и не копирайтер по трендам, не инфобизнесмен. Ты думающий психолог, который умеет начать цепляюще и говорить просто о важном, без давления и без приемов из инфобизнеса.
 
 ГЛАВНОЕ: ГОЛОС ЭТОГО ПСИХОЛОГА
-У тебя есть его паспорт бренда и профиль. Это твой главный источник. Сначала впитай его манеру: длину фраз, любимые слова и обороты, как он обращается к читателю, чем он отличается от других. Пиши его голосом, не усредняй в «душевного психолога вообще». Если фразу мог бы написать любой психолог в соцсетях, перепиши, пока не зазвучит именно он.
+У тебя есть его профиль. Это твой главный источник. Сначала впитай его манеру: длину фраз, любимые слова и обороты, как он обращается к читателю, чем он отличается от других. Пиши его голосом, не усредняй в «душевного психолога вообще». Если фразу мог бы написать любой психолог в соцсетях, перепиши, пока не зазвучит именно он.
 
 Пиши от первого лица, от лица самого психолога. Он автор поста, а не герой. Никогда не упоминай его в третьем лице (по имени, «психолог», «она») и не пиши о нем со стороны.
 
@@ -246,13 +246,9 @@ export async function POST(req: NextRequest) {
 
     const supabase = getSupabaseAdmin()
 
-    const [profileRes, passportRes] = await Promise.all([
-      supabase.from('onboarding_profiles').select('*').eq('user_id', userId).single(),
-      supabase.from('brand_passports').select('content').eq('user_id', userId).single()
-    ])
+    const profileRes = await supabase.from('onboarding_profiles').select('*').eq('user_id', userId).single()
 
     console.log('Profile fetch:', profileRes.error ? errTag(profileRes.error) : 'OK')
-    console.log('Passport fetch:', passportRes.error ? errTag(passportRes.error) : 'OK')
 
     const profile = profileRes.data || {}
 
@@ -295,7 +291,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Этот формат пока собирается на отдельной странице' }, { status: 400 })
     }
 
-    const passport = typeof passportRes.data?.content === 'string' ? passportRes.data.content : (passportRes.data?.content ? JSON.stringify(passportRes.data.content) : '')
     const approaches = Array.isArray(profile.approaches) ? profile.approaches : []
 
     let profileContext = ''
@@ -314,8 +309,6 @@ export async function POST(req: NextRequest) {
 
     const prompt = `
 ${profileContext}
-
-${passport ? `ПАСПОРТ БРЕНДА:\n${passport.substring(0, 800)}` : ''}
 
 ═══════════════════════════════
 ПОДХОД

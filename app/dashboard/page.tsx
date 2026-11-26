@@ -8,7 +8,6 @@ import {
   PenTool, Layers, Zap, FileText,
   Wrench, Film, RefreshCcw, Search, History,
   CheckCircle2, Circle, ArrowRight, TrendingUp,
-  Map,
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
 import { isArchetypeIncomplete } from '@/lib/profile-status'
@@ -30,7 +29,6 @@ const toolGroups = [
     label: 'Стратегия',
     items: [
       { icon: FileText,   title: 'Контент-план',        desc: '30 дней публикаций',                 href: '/dashboard/content-plan',        badge: null,    soft: false },
-      { icon: Map,        title: 'Паспорт бренда',      desc: 'Позиционирование и тон, PDF',               href: '/dashboard/brand-passport',      badge: null,    soft: true  },
       { icon: Wrench,     title: 'Исследование тем',    desc: '30 трендовых тем под твою нишу',     href: '/dashboard/research',            badge: null,    soft: false },
       { icon: Search,     title: 'Анализ конкурентов',  desc: 'Разбор Reels/TikTok/YouTube',        href: '/dashboard/competitor-analysis', badge: null,    soft: false },
     ],
@@ -60,7 +58,7 @@ export default function Dashboard() {
   const [profile, setProfile]     = useState<any>(null)
   const [loading, setLoading]     = useState(true)
   const [checklist, setChecklist] = useState<string[]>([])
-  const [stats, setStats]         = useState({ posts: 0, plan: false, passport: false })
+  const [stats, setStats]         = useState({ posts: 0, plan: false })
   // новый кабинет: zh6 архетип не читает, карточку теста не показываем (null пока не знаем, тоже не показываем)
   const [newPipe, setNewPipe]     = useState<boolean | null>(null)
   // опрос при уходе: сервер решает, показывать ли (GET /api/exit-survey). surveySeen держит одну просьбу
@@ -84,8 +82,7 @@ export default function Dashboard() {
       if (prof) setProfile(prof)
 
       const completed: string[] = ['onboarding']
-      const [passRes, postsRes, planRes, surveyRes] = await Promise.all([
-        supabase.from('brand_passports').select('id').eq('user_id', user.id).maybeSingle(),
+      const [postsRes, planRes, surveyRes] = await Promise.all([
         supabase.from('generated_posts').select('id', { count: 'exact' }).eq('user_id', user.id),
         supabase.from('content_plans').select('id').eq('user_id', user.id).maybeSingle(),
         fetch('/api/exit-survey').then(r => (r.ok ? r.json() : null)).catch(() => null),
@@ -98,7 +95,6 @@ export default function Dashboard() {
         markOtherAskToday()
       }
 
-      if (passRes.data) completed.push('passport')
       if (postsRes.data && postsRes.data.length > 0) completed.push('post')
       if (planRes.data) completed.push('plan')
 
@@ -106,7 +102,6 @@ export default function Dashboard() {
       setStats({
         posts: postsRes.count || postsRes.data?.length || 0,
         plan: !!planRes.data,
-        passport: !!passRes.data,
       })
       setLoading(false)
     }
@@ -147,12 +142,6 @@ export default function Dashboard() {
               <TrendingUp className="w-3.5 h-3.5 text-brand-accent" />
               {stats.posts} постов
             </div>
-            {stats.passport && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-brand-soft border border-brand-border-soft text-sm text-brand-text font-medium">
-                <Map className="w-3.5 h-3.5 text-brand-accent" />
-                Карта готова
-              </div>
-            )}
             {stats.plan && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-brand-soft border border-brand-border-soft text-sm text-brand-text font-medium">
                 <FileText className="w-3.5 h-3.5 text-brand-sage" />
@@ -240,19 +229,6 @@ export default function Dashboard() {
                 </button>
               )
             })}
-          </div>
-          {/* Паспорт бренда вне нумерации, по желанию */}
-          <div className="mt-3 pt-3 border-t border-brand-border">
-            <p className="text-[10px] font-bold text-brand-muted uppercase tracking-widest mb-2">по желанию</p>
-            <button onClick={() => router.push('/dashboard/brand-passport')}
-              className="w-full flex items-center gap-3 p-3 rounded-2xl text-left bg-brand-bg hover:bg-brand-soft transition cursor-pointer">
-              <Map className="w-4 h-4 text-brand-sage shrink-0" />
-              <span className="min-w-0">
-                <span className="block text-sm text-brand-text">Паспорт бренда</span>
-                <span className="block text-xs text-brand-muted leading-snug">позиционирование и тон на одной странице, PDF</span>
-              </span>
-              <ArrowRight className="w-3.5 h-3.5 text-brand-muted ml-auto shrink-0" />
-            </button>
           </div>
         </motion.div>
       )}

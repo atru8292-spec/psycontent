@@ -15,13 +15,14 @@ import { QUIET_BTN } from '@/lib/ui-classes'
 
 // Меню кабинета, вариант А (макеты A1, A2, A8, A11; 17.11). Один набор пунктов для всех: «Написать», «Темы»,
 // «Мои тексты», «Настройки», внизу «Помощь». Старые экраны (карусели, хуки, рилс, рерайт, анализ конкурента,
-// исследование тем) открываются по прямой ссылке; паспорт бренда и голос входят в «Настройки», исследование в «Темы».
+// исследование тем) открываются по прямой ссылке; голос входит в «Настройки», исследование в «Темы». Паспорт бренда
+// убран 26.11 (решение Арины): /dashboard/brand-passport уводит в «Настройки».
 type NavItem = { icon: typeof PenLine; label: string; href: string; also: string[] }
 const NAV: NavItem[] = [
   { icon: PenLine, label: 'Написать', href: '/dashboard/make', also: ['/dashboard/post-generator'] },
   { icon: Lightbulb, label: 'Темы', href: '/dashboard/content-plan', also: ['/dashboard/research'] },
   { icon: List, label: 'Мои тексты', href: '/dashboard/post-history', also: [] },
-  { icon: User, label: 'Настройки', href: '/dashboard/settings', also: ['/dashboard/voice', '/dashboard/edit-profile', '/dashboard/brand-passport', '/dashboard/pomosch'] },
+  { icon: User, label: 'Настройки', href: '/dashboard/settings', also: ['/dashboard/voice', '/dashboard/edit-profile', '/dashboard/pomosch'] },
 ]
 const HELP_HREF = '/dashboard/pomosch'
 

@@ -189,21 +189,15 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const [profileRes, passportRes] = await Promise.all([
-      supabase.from('onboarding_profiles').select('*').eq('user_id', userId).single(),
-      supabase.from('brand_passports').select('content').eq('user_id', userId).single()
-    ])
+    const profileRes = await supabase.from('onboarding_profiles').select('*').eq('user_id', userId).single()
 
     const profile = profileRes.data || {}
-    const passport = typeof passportRes.data?.content === 'string' ? passportRes.data.content : (passportRes.data?.content ? JSON.stringify(passportRes.data.content) : '')
     const approaches = Array.isArray(profile.approaches) ? profile.approaches : []
 
     const profileContext = buildProfileContext(profile)
     const approachStyle = getApproachRewriteStyle(approaches)
 
     const prompt = `${profileContext}
-
-${passport ? `ПАСПОРТ БРЕНДА:\n${passport.substring(0, 500)}` : ''}
 
 ═══════════════════════════════
 СТИЛЬ ПОДХОДА
