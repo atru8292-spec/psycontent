@@ -34,7 +34,7 @@ async function main() {
       async create(userId, hash) { const id = `aaaaaaaa-aaaa-4aaa-8aaa-${String(rows.length).padStart(12, '0')}`; rows.push({ id, user_id: userId, transcript_hash: hash, paid_at: null, created_at: new Date(NOW).toISOString() }); return id },
       async markPaid(id, userId) { const r = rows.find(x => x.id === id && x.user_id === userId && !x.paid_at); if (!r) return false; r.paid_at = new Date(NOW).toISOString(); return true },
       async get(id, userId) { if (opts.failGet) return undefined; return rows.find(x => x.id === id && x.user_id === userId) ?? null },
-      async claimStep(id, userId, step) { calls.claim++; const r: any = rows.find(x => x.id === id && x.user_id === userId && x.paid_at); if (!r || r[`step${step}_at`]) return false; r[`step${step}_at`] = 'x'; return true },
+      async claimStep(id, userId, step) { calls.claim++; const r: any = rows.find(x => x.id === id && x.user_id === userId && x.paid_at); if (!r || r[`step${step}_at`] || (step > 2 && !r[`step${step - 1}_at`])) return false; r[`step${step}_at`] = 'x'; return true },
       async releaseStep(id, userId, step) { calls.release++; const r: any = rows.find(x => x.id === id && x.user_id === userId); if (r) r[`step${step}_at`] = null },
     }
     return { store, calls }
@@ -71,6 +71,37 @@ async function main() {
     r = await go(paidId, 2)
     assert.equal(r.ok, true, 'после сбоя модели (шаг освобожден) повтор проходит')
     for (const s of [3, 4] as const) assert.equal((await go(paidId, s)).ok, true, `шаг ${s} проходит`)
+    // порядок шагов (26.11): шаг 4 до шага 3 и шаг 3 до шага 2 не пускаем
+    {
+      const id = (await store.create(ME, cr.hashTranscript(T)))!
+      await store.markPaid(id, ME)
+      let o = await go(id, 4)
+      assert.equal(o.ok, false); if (!o.ok) assert.equal(o.code, 'step_order', 'шаг 4 раньше шага 3: отказ')
+      o = await go(id, 3)
+      assert.equal(o.ok, false); if (!o.ok) assert.equal(o.code, 'step_order', 'шаг 3 раньше шага 2: отказ')
+      assert.equal((await go(id, 2)).ok, true)
+      assert.equal((await go(id, 4)).ok, false, 'шаг 4 после 2, но до 3: отказ')
+      assert.equal((await go(id, 3)).ok, true)
+      assert.equal((await go(id, 4)).ok, true, 'по порядку проходит')
+    }
+    // гонка: validateRun прочитал строку до отката шага 2, claim шага 3 должен отказать условием в update
+    {
+      const id = (await store.create(ME, cr.hashTranscript(T)))!
+      await store.markPaid(id, ME)
+      assert.equal((await go(id, 2)).ok, true)
+      const raced: import('../lib/competitor-run').RunStore = { ...store, async get(i, u) { const r = await store.get(i, u); const copy = r ? { ...r } : r; await store.releaseStep(i, u, 2); return copy } }
+      const o = await cr.checkContinuation(raced, { runId: id, userId: ME, transcript: T, step: 3, now: NOW + 60_000 })
+      assert.equal(o.ok, false, 'шаг 2 откатили между чтением и claim: шаг 3 не занят')
+    }
+    // длины (26.11)
+    assert.equal(cr.checkLengths({ transcript: T, collectedAnalysis: '' }), null)
+    assert.equal(cr.checkLengths({ transcript: 'а'.repeat(cr.MAX_TRANSCRIPT) }), null, 'ровно предел проходит')
+    const long = cr.checkLengths({ transcript: 'а'.repeat(cr.MAX_TRANSCRIPT + 1) })
+    assert.ok(long && !long.ok && long.code === 'too_long' && long.status === 413, 'длиннее предела: 413')
+    const big = cr.checkLengths({ transcript: T, collectedAnalysis: 'б'.repeat(cr.MAX_COLLECTED + 1) })
+    assert.ok(big && !big.ok && big.code === 'bad_collected', 'огромный собранный разбор: отказ')
+    const notStr = cr.checkLengths({ transcript: T, collectedAnalysis: { x: 1 } })
+    assert.ok(notStr && !notStr.ok, 'собранный разбор не строка: отказ')
     // пробелы по краям расшифровки не меняют хеш
     assert.equal(cr.hashTranscript(`  ${T}\n`), cr.hashTranscript(T))
     // все тексты отказов мягкие, без кодов и английского
@@ -106,6 +137,11 @@ async function main() {
     const page = src('app/dashboard/competitor-analysis/page.tsx')
     assert.ok(/res\.headers\.get\('X-Analysis-Id'\)/.test(page), 'экран: читает id шага 1')
     assert.ok(/stepNum > 1 && analysisId \? \{ analysisId \}/.test(page), 'экран: передает id в шагах 2-4')
+    assert.ok(/setResume\(\{ id: analysisId, step: stepNum/.test(page) && /resume\.transcript === transcript/.test(page), 'экран: повтор после сбоя шага 2-4 продолжает тот же разбор')
+    const lenAt = route.indexOf('checkLengths({ transcript')
+    assert.ok(lenAt > 0 && lenAt < route.indexOf("canConsume(user.id, 'competitor_deep')"), 'роут: длины проверяются до энергии и модели')
+    assert.ok(/\.slice\(0, 40\)/.test(route), 'роут: площадка в промпт короткой строкой')
+    assert.ok(src('lib/competitor-run.ts').includes(".not(`step${step - 1}_at`, 'is', null)"), 'хранилище: порядок в условии update claimStep')
     const mig = src('supabase/migrations/20261112110000_competitor_runs.sql')
     assert.ok(/enable row level security/.test(mig) && /for select using \(auth\.uid\(\) = user_id\)/.test(mig), 'миграция: RLS, чтение только свое')
     assert.ok(!/for (insert|update|delete|all)/i.test(mig), 'миграция: клиентских политик записи нет')

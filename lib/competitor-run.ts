@@ -4,11 +4,20 @@
 // строка того же человека (чужой id выглядит как несуществующий), оплачена, не старше RUN_MAX_AGE_MS,
 // та же расшифровка (sha256, сам текст не храним), этот шаг еще не делался (каждый шаг один раз).
 // Шаг занимается до модели условным update и снимается обратно, если модель упала.
+// Порядок шагов (26.11): шаг 3 только после того, как ЗАНЯТ шаг 2, шаг 4 после занятого шага 3 (отметка
+// ставится до модели, отметки «готов» нет). Параллельный вызов шагов через API этим не запрещен, но каждый шаг
+// по-прежнему проходит модель один раз, поэтому денег и лимита это не касается.
+// Предел расшифровки (MAX_TRANSCRIPT) держит расход токенов: без него один запрос с огромной расшифровкой стоил бы
+// как сотни разборов. Предел собранного разбора (MAX_COLLECTED) только для базы: в модель он не идет.
 // Тексты отказов без сырых ошибок; экран показывает их как плашку лимита (402 и 403).
 import { createHash } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export const RUN_MAX_AGE_MS = 24 * 60 * 60 * 1000
+// около часа речи; обычный рилс 1-3 тыс. знаков
+export const MAX_TRANSCRIPT = 40000
+// четыре шага разбора вместе около 10 тыс. знаков, запас в пять раз
+export const MAX_COLLECTED = 50000
 export type ContinuationStep = 2 | 3 | 4
 
 export interface RunRow {
@@ -34,6 +43,8 @@ export const RUN_TEXTS = {
   expired: 'Этот разбор начат больше суток назад, его уже не продолжить. Нажми «Анализировать под психолога» еще раз.',
   mismatch: START_OVER,
   stepUsed: START_OVER,
+  stepOrder: START_OVER,
+  tooLong: 'Расшифровка вышла очень длинной, тут больше 40 тысяч знаков. Оставь только сам ролик и вставь заново, энергия не потратилась.',
   checkFailed: 'Не получилось открыть разбор. Попробуй еще раз через минуту.',
   startFailed: 'Разбор сейчас не запускается. Энергия не потрачена, попробуй еще раз через минуту.',
 }
@@ -57,6 +68,7 @@ export function validateRun(row: RunRow | null, ctx: { userId: string; transcrip
   if (!Number.isFinite(born) || now - born > RUN_MAX_AGE_MS) return { ok: false, status: 403, code: 'run_expired', message: RUN_TEXTS.expired }
   if (row.transcript_hash !== ctx.transcriptHash) return { ok: false, status: 403, code: 'run_mismatch', message: RUN_TEXTS.mismatch }
   if (row[`step${ctx.step}_at` as const]) return { ok: false, status: 403, code: 'step_used', message: RUN_TEXTS.stepUsed }
+  if (ctx.step > 2 && !row[`step${ctx.step - 1}_at` as 'step2_at' | 'step3_at']) return { ok: false, status: 403, code: 'step_order', message: RUN_TEXTS.stepOrder }
   return { ok: true }
 }
 
@@ -96,8 +108,11 @@ export function supabaseRunStore(db: SupabaseClient): RunStore {
     },
     async claimStep(id, userId, step) {
       const col = `step${step}_at`
-      const { data, error } = await db.from(T).update({ [col]: new Date().toISOString() })
-        .eq('id', id).eq('user_id', userId).not('paid_at', 'is', null).is(col, null).select('id')
+      // прошлый шаг занят (не обязательно готов): тем же условным update, чтобы порядок держался и при гонке с его откатом
+      let q: any = db.from(T).update({ [col]: new Date().toISOString() })
+        .eq('id', id).eq('user_id', userId).not('paid_at', 'is', null).is(col, null)
+      if (step > 2) q = q.not(`step${step - 1}_at`, 'is', null)
+      const { data, error } = await q.select('id')
       if (error) { console.warn('competitor_runs claim:', code(error)); return false }
       return Array.isArray(data) && data.length === 1
     },
@@ -120,4 +135,14 @@ export async function checkContinuation(store: RunStore, req: { runId: unknown; 
   try { claimed = await store.claimStep(req.runId, req.userId, req.step) } catch (e) { console.warn('competitor_runs claim:', code(e)) }
   if (!claimed) return { ok: false, status: 403, code: 'step_used', message: RUN_TEXTS.stepUsed }
   return { ok: true }
+}
+
+// Длины до всего остального (до энергии и модели). null: все в пределах.
+export function checkLengths(body: { transcript: string; collectedAnalysis?: unknown }): RunCheck | null {
+  if (body.transcript.length > MAX_TRANSCRIPT) return { ok: false, status: 413, code: 'too_long', message: RUN_TEXTS.tooLong }
+  const c = body.collectedAnalysis
+  if (c !== undefined && c !== null && (typeof c !== 'string' || c.length > MAX_COLLECTED)) {
+    return { ok: false, status: 400, code: 'bad_collected', message: RUN_TEXTS.startFailed }
+  }
+  return null
 }

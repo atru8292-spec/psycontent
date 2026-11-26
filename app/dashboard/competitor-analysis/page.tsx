@@ -33,6 +33,7 @@ export default function CompetitorAnalysisPage() {
   const router = useRouter()
   const [url, setUrl] = useState('')
   const [step, setStep] = useState<Step>('idle')
+  const [resume, setResume] = useState<{ id: string; step: number; collected: string; transcript: string } | null>(null)
   const [transcript, setTranscript] = useState('')
   const [platform, setPlatform] = useState('')
   const [analysis, setAnalysis] = useState('')
@@ -104,20 +105,25 @@ export default function CompetitorAnalysisPage() {
 
   const handleAnalyze = async () => {
     if (!transcript) return
+    // повтор после сбоя шага 2-4 той же расшифровки: продолжаем оплаченный разбор с упавшего шага,
+    // а не начинаем новый (новый шаг 1 списал бы энергию второй раз, 26.11)
+    const from = resume && resume.transcript === transcript ? resume : null
+    setResume(null)
     setError('')
     setLimitNotice('')
-    setAnalysis('')
     setStep('analyzing')
     setCurrentAnalysisStep(0)
 
-    let collectedAnalysis = ''
+    let collectedAnalysis = from ? from.collected : ''
+    setAnalysis(collectedAnalysis)
     // id оплаченного шага 1 (заголовок X-Analysis-Id): без него сервер шаги 2-4 не пускает
-    let analysisId: string | null = null
+    let analysisId: string | null = from ? from.id : null
+    let stepNum = from ? from.step : 1
 
     try {
       const token = await getToken()
 
-      for (let stepNum = 1; stepNum <= 4; stepNum++) {
+      for (; stepNum <= 4; stepNum++) {
         setCurrentAnalysisStep(stepNum)
 
         const res: Response = await fetch('/api/analyze-competitor', {
@@ -183,6 +189,7 @@ export default function CompetitorAnalysisPage() {
       loadHistory()
 
     } catch (e) {
+      if (stepNum > 1 && stepNum <= 4 && analysisId) setResume({ id: analysisId, step: stepNum, collected: collectedAnalysis, transcript })
       setError(e instanceof Error ? e.message : 'Ошибка анализа')
       setStep('transcribed')
       setCurrentAnalysisStep(0)
@@ -190,6 +197,7 @@ export default function CompetitorAnalysisPage() {
   }
 
   const handleReset = () => {
+    setResume(null)
     setStep('idle'); setUrl(''); setTranscript(''); setAnalysis('')
     setPlatform(''); setError(''); setLimitNotice(''); setCurrentAnalysisStep(0)
   }

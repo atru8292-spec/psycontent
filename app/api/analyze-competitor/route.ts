@@ -4,7 +4,7 @@ import { canConsume, commitConsume, recordFailure, recordRefusal, logAiUsage, ty
 import { anonymize, deanonymize, safeRestoredPrefix } from '@/lib/anonymize'
 import { imenaNer } from '@/lib/imena-ner'
 import { iterateSSEData } from '@/lib/sse-stream'
-import { checkContinuation, hashTranscript, supabaseRunStore, RUN_TEXTS, type ContinuationStep } from '@/lib/competitor-run'
+import { checkContinuation, checkLengths, hashTranscript, supabaseRunStore, RUN_TEXTS, type ContinuationStep } from '@/lib/competitor-run'
 import { errTag } from '@/lib/limit-gate'
 
 // Мягкий текст сбоя модели (12.11): сырой ответ OpenAI и текст исключения человеку не уходят.
@@ -47,12 +47,18 @@ export async function POST(request: NextRequest) {
 
     // 2. Парсим тело
     const reqBody = await request.json()
-    const { url, transcript, platform, step, collectedAnalysis = '', analysisId } = reqBody
+    const { transcript, step, collectedAnalysis = '', analysisId } = reqBody
+    // площадка идет прямо в промпт, адрес в базу: короткие строки без переносов (26.11)
+    const platform = typeof reqBody.platform === 'string' ? reqBody.platform.replace(/\s+/g, ' ').trim().slice(0, 40) : ''
+    const url = typeof reqBody.url === 'string' ? reqBody.url.trim().slice(0, 2000) : ''
 
     // 3. Валидация
     if (typeof transcript !== 'string' || transcript.trim().length < 20) {
       return new Response(JSON.stringify({ error: 'Транскрипция обязательна' }), { status: 400 })
     }
+
+    const tooLong = checkLengths({ transcript, collectedAnalysis })
+    if (tooLong && !tooLong.ok) return json({ error: tooLong.message, code: tooLong.code }, tooLong.status)
 
     const stepNum = Number(step)
     if (!stepNum || !STEP_PROMPTS[stepNum]) {
