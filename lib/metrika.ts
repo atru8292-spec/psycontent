@@ -16,7 +16,7 @@ const LAND_URL_KEY = 'psy_land_url'      // адрес первого входа
 // Цели в Метрике: «Целевое событие, идентификатор содержит». Только эти идентификаторы.
 export const GOALS = [
   'land_cta', 'land_signup_open', 'signup_submit', 'signup_done', 'login_yandex',
-  'onb_step_1', 'onb_step_2', 'onb_step_3', 'onb_step_4', 'onb_step_5', 'onb_done',
+  'onb_step_1', 'onb_step_2', 'onb_step_3', 'onb_step_4', 'onb_step_5', 'onb_step_6', 'onb_done',
   'make_first_click', 'first_material', 'first_copy',
   'paywall_view', 'plan_click', 'pay_success',
 ] as const
@@ -212,10 +212,10 @@ export function goalsFromTrack(event: string, props?: Record<string, string | nu
       break
     case 'onb_step_done': {
       const n = Number(props?.step)
-      if (n >= 1 && n <= 5) goal(`onb_step_${n}` as Goal)
+      // анкета 2 (26.11): шесть вопросов; пропуск необязательных 4 и 5 тоже пишет onb_step_done (done() в express)
+      if (n >= 1 && n <= 6) goal(`onb_step_${n}` as Goal)
       break
     }
-    case 'onb_skip': if (Number(props?.step) === 5) goal('onb_step_5'); break // пятый вопрос необязательный: пропуск тоже пройденный шаг
     case 'onb_done': goal('onb_done'); break
     case 'paywall_view': goal('paywall_view'); break
     case 'plan_click': goal('plan_click'); break

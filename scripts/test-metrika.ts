@@ -52,8 +52,8 @@ async function main() {
     ['land_cta_click', { place: 'pricing', plan: 'calm' }, ['land_cta', 'plan_click']],
     ['onb_step_done', { step: 1 }, ['onb_step_1']], ['onb_step_done', { step: 2 }, ['onb_step_2']],
     ['onb_step_done', { step: 3 }, ['onb_step_3']], ['onb_step_done', { step: 4 }, ['onb_step_4']],
-    ['onb_step_done', { step: 5 }, ['onb_step_5']], ['onb_skip', { step: 5 }, ['onb_step_5']],
-    ['onb_step_done', { step: 6 }, []],
+    ['onb_step_done', { step: 5 }, ['onb_step_5']], ['onb_skip', { step: 5 }, []],
+    ['onb_step_done', { step: 6 }, ['onb_step_6']], ['onb_step_done', { step: 7 }, []],
     ['onb_done', undefined, ['onb_done']],
     ['paywall_view', { where: 'limit' }, ['paywall_view']],
     ['plan_click', { plan: 'calm' }, ['plan_click']],
@@ -123,7 +123,7 @@ async function main() {
 
   // идентификаторы целей ровно как в Метрике
   assert.deepEqual([...M.GOALS].sort(), ['first_copy', 'first_material', 'land_cta', 'land_signup_open', 'login_yandex', 'make_first_click',
-    'onb_done', 'onb_step_1', 'onb_step_2', 'onb_step_3', 'onb_step_4', 'onb_step_5', 'pay_success', 'paywall_view', 'plan_click',
+    'onb_done', 'onb_step_1', 'onb_step_2', 'onb_step_3', 'onb_step_4', 'onb_step_5', 'onb_step_6', 'pay_success', 'paywall_view', 'plan_click',
     'signup_done', 'signup_submit'])
   console.log('test-metrika: все проверки прошли')
 }

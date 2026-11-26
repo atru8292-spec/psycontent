@@ -90,7 +90,8 @@ const VOICE_RU: Record<string, string> = {
 export const voiceKindRu = (k: string) => VOICE_RU[k] || k
 const FROM_RU: Record<string, string> = { thought: 'из мысли', topic: 'из темы', same: 'по образцу', draft: 'из черновика' }
 // Вопросы экспресс-онбординга по порядку (app/onboarding/express)
-export const ONB_STEP_RU: Record<number, string> = { 1: 'Имя', 2: 'Подход', 3: 'Ниша', 4: 'Как говоришь с клиентами', 5: 'Слова клиента' }
+// анкета 2 (19.11): шесть вопросов знакомства (app/onboarding/express)
+export const ONB_STEP_RU: Record<number, string> = { 1: 'Имя', 2: 'Подход', 3: 'С чем работает', 4: 'Кто приходит', 5: 'Что говорят клиенты', 6: 'Как ответит' }
 export const onbStepRu = (n: number) => ONB_STEP_RU[n] || `Вопрос ${n}`
 const fmts = (v: unknown) => String(v || '').split(',').filter(Boolean).map(formatRu).join(' + ')
 const sec = (ms: unknown) => (typeof ms === 'number' ? `${Math.round(ms / 1000)} с` : '')
