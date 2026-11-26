@@ -56,6 +56,8 @@ export default function AuthModal({
   const openedAt = useRef(Date.now())
   const [trap, setTrap] = useState('')
   const captcha = useSmartCaptcha(isOpen && mode === 'register')
+  // веб-почта для кнопки «Открыть почту» на экране ожидания письма (26.11)
+  const pochta = awaiting ? webPochta(awaiting) : null
 
   // при каждом открытии начинаем с того режима, с которым открыли («Войти» или «Попробовать»)
   useEffect(() => {
@@ -189,8 +191,8 @@ export default function AuthModal({
                 {resent ? T.resentConfirm(awaiting) : T.checkEmail(awaiting)}
               </p>
               {error && <div className="mt-3 w-full text-left"><Notice kind="error">{error}</Notice></div>}
-              {webPochta(awaiting) && (
-                <a href={webPochta(awaiting)!} target="_blank" rel="noopener noreferrer" className="btn-primary w-full py-3 text-sm mt-5 text-center">
+              {pochta && (
+                <a href={pochta} target="_blank" rel="noopener noreferrer" aria-label={`${T.openMail}, откроется в новой вкладке`} className="btn-primary w-full py-3 text-sm mt-5 text-center">
                   {T.openMail}
                 </a>
               )}
@@ -198,7 +200,7 @@ export default function AuthModal({
                 type="button"
                 onClick={() => resendConfirm(awaiting)}
                 disabled={resending || cd.left > 0}
-                className={`btn-secondary w-full py-3 text-sm ${webPochta(awaiting) ? 'mt-3' : 'mt-5'} disabled:opacity-50`}
+                className={`btn-secondary w-full py-3 text-sm ${pochta ? 'mt-3' : 'mt-5'} disabled:opacity-50`}
               >
                 {resending ? <><Loader2 className="w-4 h-4 animate-spin" /> {T.forgotSending}</> : T.resendConfirm}
               </button>

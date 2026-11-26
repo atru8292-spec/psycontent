@@ -27,6 +27,7 @@ function admin() {
   if (!url || !key) throw new Error('Missing Supabase env variables')
   return createClient(url, key)
 }
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const clean = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : '')
 
 export async function POST(req: NextRequest) {
@@ -38,6 +39,8 @@ export async function POST(req: NextRequest) {
   let body: any
   try { body = await req.json() } catch { return NextResponse.json({ error: 'bad_request' }, { status: 400 }) }
   const kod = typeof body?.format === 'string' && formatPo(body.format) ? body.format : null
+  // номер запуска от экрана (26.11): по нему экран найдет текст, если ответ оборвется (GET ?run=)
+  const runId = typeof body?.runId === 'string' && UUID_RE.test(body.runId) ? body.runId : null
   const mysl = clean(body?.mysl, 1500) || null
   const topic = clean(body?.topic, 300) || null
   const fromPostId = clean(body?.fromPostId, 64) || null
@@ -82,7 +85,7 @@ export async function POST(req: NextRequest) {
       content: it.rez.tekst, pipeline_version: VERSIYA, pipeline_status: 'ready', draft_content: it.rez.tekst,
       group_id: groupId,
       // карусель zh6: выбор zh6 (zh4) рядом, как у текстов zh6, по нему память zh6 и кнопки
-      check_result: { mode: 'zh13', ms_total: Date.now() - t0, zh13: it.meta, ...(it.meta.zh4 ? { zh4: it.meta.zh4 } : {}) },
+      check_result: { mode: 'zh13', ms_total: Date.now() - t0, ...(runId ? { run_id: runId } : {}), zh13: it.meta, ...(it.meta.zh4 ? { zh4: it.meta.zh4 } : {}) },
     }, { basicId: true })
     if (!postId) {
       await recordFailure(userId, OP)
@@ -109,7 +112,7 @@ export async function POST(req: NextRequest) {
     console.error('zh13 generation failed:', errTag(e))
     await recordFailure(userId, OP).catch(() => {})
     const money = /credit_balance|insufficient_quota|openai_401/i.test(String(e?.message || e?.code || ''))
-    return fail(money ? 'ai_unavailable' : 'format_failed', 502, { message: 'Этот текст не получился. Попробуй еще раз' })
+    return fail(money ? 'ai_unavailable' : 'format_failed', 500, { message: 'Этот текст не получился. Попробуй еще раз' })
   } finally {
     await releaseConsume(decision)
   }
@@ -119,22 +122,24 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
+  if (!zh13Dlya(user.email)) return NextResponse.json({ error: 'not_available' }, { status: 403 })
   const id = clean(req.nextUrl.searchParams.get('post'), 64)
   // ?tema=1: какую тему возьмет генератор при пустом поле (26.11, активация: подсказка поля называет ее, а не
   // «тему из того, с чем ты работаешь»). Сбой или анкеты без тем: tema null, экран оставляет общую подсказку
   if (req.nextUrl.searchParams.get('tema') === '1') {
     try {
-      const prof = await admin().from('onboarding_profiles').select('*').eq('user_id', user.id).maybeSingle()
+      const prof = await admin().from('onboarding_profiles').select('niches, one_niche').eq('user_id', user.id).maybeSingle()
       return NextResponse.json({ tema: prof.data ? await sleduyushchayaTema(admin(), user.id, prof.data) : null })
     } catch { return NextResponse.json({ tema: null }) }
   }
-  // ?since=<мс>: последний свой zh13-текст после этого времени (26.11, активация). Экран зовет это, когда ответ
-  // генерации оборвался (связь, свернутый браузер, обновление страницы), а сервер текст уже дописал и списал:
-  // иначе человек видел «сбой» и тратил второй пробный. Не старше 10 минут назад; нет текста: 404 not_yet
-  const since = Number(req.nextUrl.searchParams.get('since'))
-  if (!id && Number.isFinite(since) && since > Date.now() - 10 * 60000) {
+  // ?run=<uuid>: свой zh13-текст этого запуска (26.11, активация). Экран зовет это, когда ответ генерации оборвался
+  // (связь, свернутый браузер, предел nginx, обновление страницы), а сервер текст уже дописал и списал: иначе
+  // человек видел «сбой» и тратил второй пробный. Ищем ровно запуск (не по времени: вторая вкладка и часы
+  // телефона подсовывали чужой текст). Нет текста: 404 not_yet
+  const run = req.nextUrl.searchParams.get('run') || ''
+  if (!id && UUID_RE.test(run)) {
     const q = await admin().from('generated_posts').select('id, group_id, content, check_result, pipeline_version').eq('user_id', user.id)
-      .eq('pipeline_version', VERSIYA).gte('created_at', new Date(since).toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle()
+      .eq('pipeline_version', VERSIYA).eq('check_result->>run_id', run).gte('created_at', new Date(Date.now() - 15 * 60000).toISOString()).limit(1).maybeSingle()
     if (q.error) return NextResponse.json({ error: 'server_error' }, { status: 500 })
     if (!q.data || typeof q.data.check_result?.zh13?.glavnoe !== 'string') return NextResponse.json({ error: 'not_yet' }, { status: 404 })
     return NextResponse.json(otvet(q.data))

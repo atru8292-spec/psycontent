@@ -228,8 +228,9 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     // самый первый текст человека всегда пост (26.11, разбор пути нового психолога): лендинг обещает «первый пост»,
     // а из 26 форматов 19 это рилсы; сценарий рилса нельзя просто взять, его надо снимать. Рилсы и карусель
     // со второго текста и в «Эта же мысль в другом формате»
+    // ранжируем все форматы: первым берем лучший пост, а «Подойдет еще» покажет и рилсы с каруселью (ревью 26.11)
     const posty = FORMATY.filter(x => x.vid === 'post' && dostupen(x, usl))
-    rang = posty.length > 1 ? await ranzhirovat({ tema, mysl, situaciya, formaty: posty, timeoutMs: Math.min(15000, deadline - Date.now() - 50000), userId: uchet, knownNames }) : []
+    rang = await ranzhirovat({ tema, mysl, situaciya, formaty: FORMATY.filter(x => dostupen(x, usl)), timeoutMs: Math.min(15000, deadline - Date.now() - 50000), userId: uchet, knownNames })
     const pervyy = rang.map(x => formatPo(x.kod)).find((x): x is Format13 => !!x && x.vid === 'post' && dostupen(x, usl)) || posty[n % Math.max(1, posty.length)]
     vybor = pervyy
       ? { kod: pervyy.kod, cel: pervyy.cel, huk: vybratHuk(pervyy, undefined, n) || pervyy.huki[0], pochemu: 'первый текст постом' }

@@ -45,23 +45,31 @@ type Ready = {
 }
 type Variant = Ready | { status: 'pending'; kod: string | null } | { status: 'failed'; kod: string | null; error: string; limit?: boolean; zanovo?: boolean; fromPostId?: string }
 
-// Запуск генерации идет (26.11, активация): отметка в sessionStorage до запроса. Если ответ оборвался (связь,
-// свернутый браузер, обновление страницы), а сервер текст дописал и списал, экран спрашивает его по ?since=
-// до 4 минут и показывает, вместо «сбоя» и второго потраченного пробного (как psycont_make_running у MakeFlow).
+// Запуск генерации идет (26.11, активация): номер запуска (uuid) уходит на сервер и в sessionStorage до запроса.
+// Если ответ оборвался (сам fetch упал или прокси вернул 502-504 без нашего JSON), а сервер текст дописал и
+// списал, экран до 4 минут спрашивает GET ?run=<номер> и показывает ровно этот текст, вместо «сбоя» и второго
+// потраченного пробного. Наш собственный ответ об ошибке (JSON с error) ждать не заставляет: сразу сбой.
 const RUN_KEY = 'psy_zh13_run'
 const RUN_WAIT_MS = 4 * 60000
-const readRun = (): { t: number } | null => { try { const r = JSON.parse(sessionStorage.getItem(RUN_KEY) || 'null'); return r && typeof r.t === 'number' && Date.now() - r.t < RUN_WAIT_MS ? r : null } catch { return null } }
-const markRun = (t: number) => { try { sessionStorage.setItem(RUN_KEY, JSON.stringify({ t })) } catch {} }
-const clearRun = () => { try { sessionStorage.removeItem(RUN_KEY) } catch {} }
-const sleepMs = (ms: number) => new Promise(r => setTimeout(r, ms))
-// текст, записанный после t (минус 5 с на расхождение часов), или null, когда от t прошло 4 минуты
-async function zhdatTekst(t: number): Promise<any | null> {
-  while (Date.now() - t < RUN_WAIT_MS) {
+type Run = { t: number; id: string }
+const readRun = (): Run | null => { try { const r = JSON.parse(sessionStorage.getItem(RUN_KEY) || 'null'); return r && typeof r.t === 'number' && typeof r.id === 'string' && Date.now() - r.t < RUN_WAIT_MS ? r : null } catch { return null } }
+const markRun = (r: Run) => { try { sessionStorage.setItem(RUN_KEY, JSON.stringify(r)) } catch {} }
+// стираем только свою отметку: старый опрос не должен стереть отметку нового запуска
+const clearRun = (id: string) => { try { if (readRun()?.id === id || !readRun()) sessionStorage.removeItem(RUN_KEY) } catch {} }
+const newRunId = (): string => {
+  try { if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID() } catch {}
+  return 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g, () => Math.floor(Math.random() * 16).toString(16))
+}
+const sleepMs = (ms: number, signal?: AbortSignal) => new Promise<void>(res => { const h = setTimeout(res, ms); signal?.addEventListener('abort', () => { clearTimeout(h); res() }, { once: true }) })
+// текст запуска или null: прошло 4 минуты от t, сессии нет (401/403) или экран ушел (signal)
+async function zhdatTekst(run: Run, signal?: AbortSignal): Promise<any | null> {
+  while (Date.now() - run.t < RUN_WAIT_MS && !signal?.aborted) {
     try {
-      const r = await fetch(`/api/generate-post/zh13?since=${t - 5000}`, { cache: 'no-store' })
+      const r = await fetch(`/api/generate-post/zh13?run=${run.id}`, { cache: 'no-store', signal })
+      if (r.status === 401 || r.status === 403) return null
       if (r.ok) { const d = await r.json(); if (typeof d?.glavnoe === 'string') return d }
-    } catch { /* связи нет: ждем дальше */ }
-    await sleepMs(5000)
+    } catch { /* связи нет или ушли: проверим условие цикла */ }
+    await sleepMs(5000, signal)
   }
   return null
 }
@@ -208,6 +216,10 @@ export default function Zh13Flow() {
 
   const [mysl, setMysl] = useState('')
   const titleRef = useRef<HTMLHeadingElement>(null)
+  // текущий запуск и отмена опроса при уходе с экрана: результат старого опроса не трогает новый запуск
+  const runRef = useRef<string | null>(null)
+  const pollAbort = useRef<AbortController | null>(null)
+  useEffect(() => () => pollAbort.current?.abort(), [])
   const [formatKod, setFormatKod] = useState<string | null>(null)
   const [formatOpen, setFormatOpen] = useState(false)
   const [voiceOpen, setVoiceOpen] = useState(false)
@@ -248,9 +260,13 @@ export default function Zh13Flow() {
     // страницу обновили, пока писался текст: показываем ожидание и ждем его (26.11)
     const run = post ? null : readRun()
     if (run) {
+      runRef.current = run.id
+      const ac = new AbortController()
+      pollAbort.current = ac
       setVarianty([{ status: 'pending', kod: null }]); setIdx(0); setView('result')
-      void zhdatTekst(run.t).then(d => {
-        clearRun()
+      void zhdatTekst(run, ac.signal).then(d => {
+        if (ac.signal.aborted || runRef.current !== run.id) return
+        clearRun(run.id)
         if (d) { setVarianty([{ status: 'ready', ...d }]); refreshMe?.() }
         else { setVarianty([]); setView('compose'); setComposeError({ text: `${SBOY} Попробуй через минуту` }) }
       })
@@ -259,6 +275,7 @@ export default function Zh13Flow() {
 
   // при каждом возврате к вводу: какая тема будет при пустом поле (после текста круг сдвигается)
   useEffect(() => {
+    setTemaKruga(null) // пока идет запрос, не показываем тему прошлого круга
     if (view !== 'compose' || topic) return
     let on = true
     fetch('/api/generate-post/zh13?tema=1', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null))
@@ -309,30 +326,44 @@ export default function Zh13Flow() {
     if (opts.first) setView('result')
     // цель Метрики «первый запуск» (один раз на человека); база отвечает до того, как сервер запишет make_start (26.11)
     void goalFirst('make')
-    const runT = Date.now()
-    markRun(runT)
-    // ответ оборвался, а текст мог дописаться: ждем его до 4 минут, только потом сбой
+    const run: Run = { t: Date.now(), id: newRunId() }
+    runRef.current = run.id
+    markRun(run)
+    // ответ оборвался, а текст мог дописаться: ждем ровно этот запуск до 4 минут, только потом сбой
     const iskat = async (): Promise<boolean> => {
-      const d = await zhdatTekst(runT)
-      if (!d) return false
-      clearRun()
+      pollAbort.current?.abort()
+      const ac = new AbortController()
+      pollAbort.current = ac
+      const d = await zhdatTekst(run, ac.signal)
+      if (!d || runRef.current !== run.id || ac.signal.aborted) return false
+      clearRun(run.id)
       setVarianty(prev => prev.map((x, i) => (i === pos ? { status: 'ready', ...d } : x)))
       refreshMe?.()
       return true
     }
     try {
-      const r = await fetch('/api/generate-post/zh13', {
+      let r: Response | null = null
+      try {
+        r = await fetch('/api/generate-post/zh13', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          runId: run.id,
           format: opts.kod || 'auto', ...(opts.fromPostId ? { fromPostId: opts.fromPostId, zanovo: !!opts.zanovo } : {}),
           ...(opts.first && mysl.trim() ? { mysl: mysl.trim() } : {}), ...(opts.first && tema && !mysl.trim() ? { topic: tema } : {}),
           voice: rec.state !== 'idle',
         }),
-      })
-      // 502/503/504: оборвал прокси (предел 120 с), сервер мог дописать
-      if (r.status >= 502 && r.status <= 504 && await iskat()) return
-      clearRun()
-      const d = await r.json().catch(() => ({}))
+        })
+      } catch { r = null } // сам запрос оборвался: сервер мог дописать
+      const d: any = r ? await r.json().catch(() => null) : null
+      // ждем только обрыв: нет ответа или 502-504 от прокси без нашего JSON (наша ошибка всегда JSON с error)
+      const obryv = !r || (r.status >= 502 && r.status <= 504 && !(d && typeof d === 'object' && ('error' in d || 'glavnoe' in d)))
+      if (obryv) {
+        if (await iskat()) return
+        if (runRef.current !== run.id) return // за это время запустили новый текст
+        throw new Error('obryv')
+      }
+      clearRun(run.id)
+      if (!r) throw new Error('obryv')
       // 429 с server_error это сбой чтения счетчика, а не конец тарифа: показываем как обычный сбой
       if (r.status === 429 && d?.error !== 'server_error') {
         const text = typeof d?.message === 'string' && d.message.trim() ? d.message.trim() : END.trial.short
@@ -354,8 +385,7 @@ export default function Zh13Flow() {
       void goalFirst('material') // цель Метрики: первый готовый текст
       refreshMe?.()
     } catch (e: any) {
-      if (await iskat()) return
-      clearRun()
+      clearRun(run.id)
       const offline = typeof navigator !== 'undefined' && navigator.onLine === false
       const text = offline ? 'Пропала связь. Проверь интернет и нажми еще раз, мысль на месте' : `${SBOY} ${opts.first ? 'Мысль на месте, попробуй через минуту' : 'Прошлый вариант на месте'}`
       if (opts.first) { setVarianty([]); setView('compose'); setComposeError({ text }) }
@@ -650,7 +680,7 @@ export default function Zh13Flow() {
                     </button>
                   </div>
                 )}
-                <button type="button" onClick={sleduyushchaya} className={`mt-1 -ml-2 ${BTN_T}`}>Следующая тема<ArrowRight className="w-4 h-4" /></button>
+                <button type="button" onClick={sleduyushchaya} disabled={busy} className={`mt-1 -ml-2 ${BTN_T}`}>Следующая тема<ArrowRight className="w-4 h-4" /></button>
               </div>
             )}
 
