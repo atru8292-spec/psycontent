@@ -212,6 +212,16 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     if (vybran.trebuet === 'fakty' && !fakty) throw new KodOshibki('net_faktov')
     if (vybran.trebuet === 'scena' && !scena) throw new KodOshibki('net_sceny')
     vybor = { kod: vybran.kod, cel: vybran.cel, huk: vybratHuk(vybran, istoriyaSmesi[0]?.huk, n) || vybran.huki[0], pochemu: 'выбран психологом' }
+  } else if (n === 0) {
+    // самый первый текст человека всегда пост (26.11, разбор пути нового психолога): лендинг обещает «первый пост»,
+    // а из 26 форматов 19 это рилсы; сценарий рилса нельзя просто взять, его надо снимать. Рилсы и карусель
+    // со второго текста и в «Эта же мысль в другом формате»
+    const posty = FORMATY.filter(x => x.vid === 'post' && dostupen(x, usl))
+    rang = posty.length > 1 ? await ranzhirovat({ tema, mysl, situaciya, formaty: posty, timeoutMs: Math.min(15000, deadline - Date.now() - 50000), userId: uchet, knownNames }) : []
+    const pervyy = rang.map(x => formatPo(x.kod)).find((x): x is Format13 => !!x && x.vid === 'post' && dostupen(x, usl)) || posty[n % Math.max(1, posty.length)]
+    vybor = pervyy
+      ? { kod: pervyy.kod, cel: pervyy.cel, huk: vybratHuk(pervyy, undefined, n) || pervyy.huki[0], pochemu: 'первый текст постом' }
+      : vybratFormat([], istoriyaSmesi, n, usl)
   } else {
     rang = await ranzhirovat({ tema, mysl, situaciya, formaty: FORMATY.filter(x => dostupen(x, usl)), timeoutMs: Math.min(15000, deadline - Date.now() - 50000), userId: uchet, knownNames })
     vybor = vybratFormat(rang.map(x => x.kod), istoriyaSmesi, n, usl)
