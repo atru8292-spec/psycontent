@@ -80,8 +80,8 @@ export default function PohozheNaTebya({ postId }: { postId: string }) {
       <div aria-live="polite">
         {shag === 'net' && (
           <div className="mt-1">
-            <p className="text-[14px] leading-5 text-brand-text-secondary">Спасибо, разберемся. Ближе к тебе тексты станут, когда покажешь пару своих фраз.</p>
-            <Link href="/dashboard/voice" className={`mt-1 -ml-2 px-2 inline-flex min-h-11 items-center rounded-xl text-[15px] font-semibold text-brand-accent hover:bg-brand-soft-2 ${FOCUS}`}>Показать, как я говорю</Link>
+            <p className="text-[14px] leading-5 text-brand-text-secondary">Спасибо, разберемся. Тексты звучат ближе, когда у нас есть твои слова.</p>
+            <Link href="/dashboard/voice" className={`mt-1 -ml-2 px-2 inline-flex min-h-11 items-center rounded-xl text-[15px] font-semibold text-brand-accent hover:bg-brand-soft-2 ${FOCUS}`}>Покажи, как ты говоришь</Link>
           </div>
         )}
       </div>
