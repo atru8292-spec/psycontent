@@ -150,9 +150,9 @@ async function refillIfDue(db: SupabaseClient, userId: string, plan: PlanRow): P
   }).eq('user_id', userId)
 }
 
-function periodKey(): string {
-  const n = new Date()
-  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`
+// месяц по Москве явно (26.11): раньше брался пояс сервера, он совпадал с Москвой только по настройке машины
+export function periodKey(now: Date = new Date()): string {
+  return new Date(now.getTime() + 3 * 3600000).toISOString().slice(0, 7)
 }
 
 
@@ -475,7 +475,10 @@ export interface AccountSummary {
   textTrial: { remaining: number; cap: number } | null
   // Остаток материалов для показа (16.11, блок 1 запуска): пробный «без срока» или месячный у платных.
   // null: тариф без предела (Тест) или счетчик не прочитался (тогда остаток просто не показываем)
-  materials: { remaining: number; cap: number; kind: 'trial' | 'month' } | null
+  // used: сколько засчитано против лимита (для карточки /admin, 26.11)
+  materials: { remaining: number; cap: number; used: number; kind: 'trial' | 'month' } | null
+  // счетчик должен был быть, но не прочитался (сбой базы): отличает это от тарифа без предела
+  materialsUnread: boolean
 }
 
 export async function getAccountSummary(userId: string): Promise<AccountSummary> {
@@ -501,20 +504,25 @@ export async function getAccountSummary(userId: string): Promise<AccountSummary>
     }
   }
 
-  // Остаток проб текста — ТОЛЬКО для Free (это его витрина «N из 10»).
-  // Платным число скрыто (у них «Безлимит»), тарифу Тест — не показываем.
+  // Остаток проб текста только для Free (витрина «N из 10»). Платным остаток отдается ниже в materials (kind month),
+  // тарифу Тест не показываем.
   let textTrial: AccountSummary['textTrial'] = null
+  let trialUsed = 0
+  let unread = false
   if (plan.code === 'free' && plan.fair_use_text_cap != null) {
     // сводка не должна падать из-за сбоя чтения счетчика: тогда остаток просто не показываем
     const used = await usedForLimit(db, userId, plan.code, plan.windowKey).catch(() => null)
     if (used !== null) textTrial = { remaining: Math.max(0, plan.fair_use_text_cap - used), cap: plan.fair_use_text_cap }
+    if (used !== null) trialUsed = used
+    else unread = true
   }
 
   let materials: AccountSummary['materials'] = null
-  if (plan.code === 'free') materials = textTrial ? { ...textTrial, kind: 'trial' } : null
+  if (plan.code === 'free') materials = textTrial ? { ...textTrial, used: trialUsed, kind: 'trial' } : null
   else if (!plan.is_unlimited && plan.fair_use_text_cap != null) {
     const used = await usedForLimit(db, userId, plan.code, plan.windowKey).catch(() => null)
-    if (used !== null) materials = { remaining: Math.max(0, plan.fair_use_text_cap - used), cap: plan.fair_use_text_cap, kind: 'month' }
+    if (used !== null) materials = { remaining: Math.max(0, plan.fair_use_text_cap - used), cap: plan.fair_use_text_cap, used, kind: 'month' }
+    else unread = true
   }
 
   return {
@@ -522,5 +530,6 @@ export async function getAccountSummary(userId: string): Promise<AccountSummary>
     energy,
     textTrial,
     materials,
+    materialsUnread: unread,
   }
 }

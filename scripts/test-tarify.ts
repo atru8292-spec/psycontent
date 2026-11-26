@@ -66,6 +66,13 @@ async function main() {
     assert.ok(m, `в миграции есть ${code}`)
     assert.deepEqual([m![1], Number(m![2]), Number(m![3])], [p.name, p.price, p.materials], `${code} совпадает с витриной ${p.name}`)
   }
+  // месяц счетчика по Москве при любом поясе сервера (26.11)
+  {
+    const { periodKey } = await import('../lib/energy')
+    assert.equal(periodKey(new Date('2026-11-30T20:59:00Z')), '2026-11', '23:59 МСК 30 ноября: ноябрь')
+    assert.equal(periodKey(new Date('2026-11-30T21:00:00Z')), '2026-12', '00:00 МСК 1 декабря: декабрь')
+    assert.equal(periodKey(new Date('2026-12-31T21:00:00Z')), '2027-01', 'переход года по Москве')
+  }
   console.log('ok: пробный без срока, платные по месяцам, «Другой заход» тратит лимит, витрина и миграция совпадают')
 }
 main().catch(e => { console.error(e); process.exit(1) })

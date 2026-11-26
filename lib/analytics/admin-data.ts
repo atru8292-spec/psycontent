@@ -9,6 +9,7 @@ import { adminTz, internalEmails, adminOrNull } from '@/lib/admin'
 import * as demo from './demo'
 import type { AdminOpts, Period, PersonRow, Overview, FunnelStep, Onboarding, MakeStats, Features, Costs, PersonDetail } from './admin-types'
 import { errTag } from '@/lib/safe-error'
+import { getAccountSummary } from '@/lib/energy'
 
 export type Loaded<T> = { data: T | null; error: null | 'no_migration' | 'failed' }
 
@@ -62,8 +63,23 @@ export const loadOnboarding = (o: AdminOpts) => (o.demo ? demoOk<Onboarding>(() 
 export const loadMake = (o: AdminOpts) => (o.demo ? demoOk<MakeStats>(() => demo.demoMake()) : rpc<MakeStats>('analytics_make', { ...base(o), ...range(o.period) }))
 export const loadFeatures = (o: AdminOpts) => (o.demo ? demoOk<Features>(() => demo.demoFeatures()) : rpc<Features>('analytics_features', { ...base(o), p_tz: adminTz() }))
 export const loadCosts = (o: AdminOpts) => (o.demo ? demoOk<Costs>(() => demo.demoCosts()) : rpc<Costs>('analytics_costs', { ...base(o), ...range(o.period), p_tz: adminTz() }))
-export const loadPerson = (o: AdminOpts, id: string) =>
-  (o.demo ? demoOk<PersonDetail | null>(() => demo.demoPerson(id)) : rpc<PersonDetail | null>('analytics_person', { p_user_id: id, p_tz: adminTz() }))
+// Счетчик материалов в карточке (26.11): analytics_person считает календарный месяц, а лимит у бесплатного
+// «10 без срока» (сумма всех месяцев), у оплаченного тарифа месяц окна оплаты (ключ wYYYY-MM-DD). Поэтому число
+// берем из той же сводки, что видит сам человек (getAccountSummary: тот же тариф и тот же подсчет, что у лимита).
+// Сбой чтения: пометка «не прочитан», а не месячное число функции под чужой подписью.
+export async function loadPerson(o: AdminOpts, id: string): Promise<Loaded<PersonDetail | null>> {
+  if (o.demo) return demoOk<PersonDetail | null>(() => demo.demoPerson(id))
+  const r = await rpc<PersonDetail | null>('analytics_person', { p_user_id: id, p_tz: adminTz() })
+  if (r.data) {
+    let sum: Awaited<ReturnType<typeof getAccountSummary>> | null = null
+    try { sum = await getAccountSummary(id) } catch (e) { console.warn('admin person used:', errTag(e)) }
+    const m = sum?.materials
+    r.data.text_usage = m
+      ? { period: null, count: m.used, cap: m.cap, kind: m.kind }
+      : { period: null, count: 0, cap: null, kind: !sum || sum.materialsUnread ? 'unread' : null }
+  }
+  return r
+}
 
 // Лендинг за 7 дней: уникальные session_id по land_view, land_cta_click, land_demo_submit.
 // Прямой запрос к events (без SQL-функции и миграции). Служебных тут не отделить: на лендинге человек

@@ -6,7 +6,7 @@ import { adminTz, requireAdmin } from '@/lib/admin'
 import { optsFrom, loadPerson } from '@/lib/analytics/admin-data'
 import type { PersonDetail, AdminOpts } from '@/lib/analytics/admin-types'
 import { RISK_LEVEL_RU, reasonText, fmtNum, plural } from '@/lib/analytics/definitions'
-import { FEATURE_RU, formatRu, opRu, srcRu, voiceKindRu, timelineLine, onbStepRu } from '@/lib/analytics/admin-view'
+import { FEATURE_RU, formatRu, opRu, srcRu, voiceKindRu, timelineLine, onbStepRu, textUsageRu } from '@/lib/analytics/admin-view'
 import { loadPersonExit, type PersonExit } from '@/lib/analytics/admin-a2'
 import { PersonExitSection } from '@/components/admin/ExitBlocks'
 import { Card, Section, RiskPill, StatusBadge, PageHead, DownloadLink, LoadError, Bar, href, rub, when, dayKey, dayLabel, timeOf, duration } from '@/components/admin/ui'
@@ -218,7 +218,7 @@ function Money({ p }: { p: PersonDetail }) {
           </ul>
         )}
         {!m.rub_all && <p className="text-[13px] text-brand-muted">Трат пока нет</p>}
-        {p.text_usage.cap ? <p className="text-[13px]">Текст: {p.text_usage.count} из {p.text_usage.cap} пробных</p> : null}
+        {textUsageRu(p.text_usage) ? <p className="text-[13px]">Материалы: {textUsageRu(p.text_usage)}</p> : null}
       </Card>
     </Section>
   )

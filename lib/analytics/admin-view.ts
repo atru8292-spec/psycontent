@@ -135,3 +135,10 @@ export function timelineLine(t: TimelineItem): { text: string; kind: TimelineKin
     default: return { text: t.event, kind: 'other' }
   }
 }
+
+// Счетчик материалов в карточке человека и в выгрузке (26.11, loadPerson): пробные за все время или месяц тарифа
+export function textUsageRu(t: { count: number; cap: number | null; kind?: 'trial' | 'month' | 'unread' | null }): string | null {
+  if (t.kind === 'unread') return 'счетчик не прочитан'
+  if (!t.cap) return null
+  return t.kind === 'month' ? `${t.count} из ${t.cap} в этом месяце тарифа` : `${t.count} из ${t.cap} пробных (за все время)`
+}

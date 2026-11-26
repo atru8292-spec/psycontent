@@ -6,7 +6,7 @@
 import { STATUS_RU, RISK_LEVEL_RU, reasonText, PAYMENT_FEE, TAX, share } from './definitions'
 import { FUNNEL_RU, type PersonRow, type Overview, type FunnelStep, type Onboarding, type MakeStats, type Features, type Costs, type PersonDetail } from './admin-types'
 import { FORMAT_RU, MODE_RU } from './events'
-import { FEATURE_RU, SCREEN_RU, opRu, styleRu, srcRu, stepOf, timelineLine, onbStepRu } from './admin-view'
+import { FEATURE_RU, SCREEN_RU, opRu, styleRu, srcRu, stepOf, timelineLine, onbStepRu, textUsageRu } from './admin-view'
 
 export type Table = { name: string; headers: string[]; rows: (string | number | boolean | null | undefined)[][] }
 
@@ -158,7 +158,7 @@ export function personTables(p: PersonDetail, tz: string, now = new Date()): Tab
         ['Ритм, дней', c.rhythm_days], ['Причины', c.reasons.map(r => `${reasonText(r, c.facts, c, now)} (${r.points > 0 ? '+' : ''}${r.points})`).join(', ')],
         ['Онбординг начат', fmtDate(p.intro_at, tz)], ['Онбординг пройден', fmtDate(p.done_at, tz)], ['Микрофон не дали', p.mic_denied],
         ['Траты за 30 дней, ₽', rub(p.money.rub_30)], ['Траты за все время, ₽', rub(p.money.rub_all)],
-        ['Пробных текстов в этом месяце', p.text_usage.cap ? `${p.text_usage.count} из ${p.text_usage.cap}` : p.text_usage.count],
+        ['Материалы против лимита', textUsageRu(p.text_usage)],
       ],
     },
     { name: 'onboarding_shagi', headers: ['Вопрос', 'Увидела', 'Ответила', 'Секунд на шаге'], rows: p.onboarding.map(s => [`${s.step}. ${onbStepRu(s.step)}`, fmtDate(s.viewed_at, tz), fmtDate(s.done_at, tz), s.ms === null ? null : Math.round(s.ms / 1000)]) },

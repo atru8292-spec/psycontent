@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useDashboardMe } from '@/lib/dashboard-me'
 import { supabase } from '@/lib/supabase'
 import { motion, useReducedMotion } from 'framer-motion'
 import {
@@ -60,7 +61,9 @@ export default function Dashboard() {
   const [checklist, setChecklist] = useState<string[]>([])
   const [stats, setStats]         = useState({ posts: 0, plan: false })
   // новый кабинет: zh6 архетип не читает, карточку теста не показываем (null пока не знаем, тоже не показываем)
-  const [newPipe, setNewPipe]     = useState<boolean | null>(null)
+  // флаг берем из сводки layout (DashboardMeContext), второй запрос /api/me не делаем (26.11)
+  const { me, loaded: meLoaded } = useDashboardMe()
+  const newPipe: boolean | null = !meLoaded ? null : (me && typeof me.newPipeline === 'boolean' ? me.newPipeline : false)
   // опрос при уходе: сервер решает, показывать ли (GET /api/exit-survey). surveySeen держит одну просьбу
   // на визит: пока опрос был на экране, карточку голоса не показываем, даже после закрытия опроса
   const [survey, setSurvey]       = useState<{ place: ExitPlace; paymentsOn: boolean } | null>(null)
@@ -72,7 +75,6 @@ export default function Dashboard() {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
-      fetch('/api/me').then(r => (r.ok ? r.json() : null)).then(j => setNewPipe(j && typeof j.newPipeline === 'boolean' ? j.newPipeline : false)).catch(() => setNewPipe(false))
 
       const { data: prof, error: profErr } = await supabase
         .from('onboarding_profiles').select('*').eq('user_id', user.id).single()

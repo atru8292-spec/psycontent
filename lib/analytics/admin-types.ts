@@ -75,7 +75,8 @@ export type PersonDetail = {
   formats: { format: string; made: number; taken: number }[]
   voice: { by_kind: { kind: string; n: number }[]; weeks: { week: string; copied_clean: number; edited: number; avg_change_ratio: number | null; not_like: number; mine: number }[] }
   money: { rub_30: number; rub_all: number; by_operation_30: { operation: string; rub: number; calls: number }[]; by_model_30: { model: string; rub: number; calls: number }[]; by_operation_all: { operation: string; rub: number; calls: number }[] }
-  text_usage: { period: string | null; count: number; cap: number | null }
+  // kind (26.11, loadPerson): trial = пробные за все время, month = месяц оплаченного тарифа, unread = счетчик не прочитан
+  text_usage: { period: string | null; count: number; cap: number | null; kind?: 'trial' | 'month' | 'unread' | null }
 }
 
 export type Period = '7' | '30' | 'all'
