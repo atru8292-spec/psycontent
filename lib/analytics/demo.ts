@@ -101,12 +101,12 @@ export function demoFunnel(now = NOW()): FunnelStep[] {
 export function demoOnboarding(now = NOW()): Onboarding {
   const ps = demoPeople(now)
   const viewed = (s: number) => ps.filter(p => (p.onb_last_step || 0) >= s).length
-  const ms = [6200, 9100, 3300, 48000, 15000]
+  const ms = [6200, 9100, 3300, 21000, 15000, 48000]
   return {
     intro: ps.length + 2, finished: ps.filter(p => p.onb_done).length,
-    steps: [1, 2, 3, 4, 5].map(s => {
+    steps: [1, 2, 3, 4, 5, 6].map(s => {
       const dropped = ps.filter(p => !p.onb_done && p.onb_last_step === s)
-      return { step: s, viewed: viewed(s) + (s === 1 ? 2 : 0), done: viewed(s + 1) + (s === 5 ? ps.filter(p => p.onb_done).length - viewed(6) : 0), median_ms: ms[s - 1], dropped: dropped.length, dropped_users: dropped.map(p => p.user_id) }
+      return { step: s, viewed: viewed(s) + (s === 1 ? 2 : 0), done: viewed(s + 1) + (s === 6 ? ps.filter(p => p.onb_done).length - viewed(7) : 0), median_ms: ms[s - 1], dropped: dropped.length, dropped_users: dropped.map(p => p.user_id) }
     }),
   }
 }
@@ -200,7 +200,7 @@ export function demoPerson(id: string, now = NOW()): PersonDetail | null {
     user_id: p.user_id, email: p.email, full_name: p.full_name, registered_at: p.registered_at, plan_code: p.plan_code, plan_name: p.plan_name,
     plan_price: p.plan_price, src: p.src, last_visit_at: p.last_visit_at, churn: p.churn,
     intro_at: p.registered_at, done_at: p.onb_done ? p.registered_at : null, mic_denied: i === 4,
-    onboarding: [1, 2, 3, 4, 5].map(s => ({ step: s, viewed_at: (p.onb_last_step || 0) >= s ? p.registered_at : null, done_at: (p.onb_last_step || 0) > s || p.onb_done ? p.registered_at : null, ms: (p.onb_last_step || 0) >= s ? [5200, 8800, 2900, 51000, 13000][s - 1] : null })),
+    onboarding: [1, 2, 3, 4, 5, 6].map(s => ({ step: s, viewed_at: (p.onb_last_step || 0) >= s ? p.registered_at : null, done_at: (p.onb_last_step || 0) > s || p.onb_done ? p.registered_at : null, ms: (p.onb_last_step || 0) >= s ? [5200, 8800, 2900, 19000, 13000, 51000][s - 1] : null })),
     timeline: tl,
     features: [{ feature: 'texts', n: 7 }, { feature: 'carousel_design', n: 5 }, { feature: 'ideas', n: 2 }],
     formats: [{ format: 'post', made: Math.ceil(p.materials / 2), taken: Math.ceil(p.materials_taken / 2) }, { format: 'carousel', made: Math.floor(p.materials / 2), taken: Math.floor(p.materials_taken / 2) }],

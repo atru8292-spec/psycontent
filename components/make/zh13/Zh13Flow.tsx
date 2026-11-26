@@ -28,6 +28,7 @@ import { BTN_P, BTN_S, BTN_T } from './knopki'
 import { useVoiceRecorder } from '@/lib/use-voice-recorder'
 import { useDashboardMe } from '@/lib/dashboard-me'
 import { track } from '@/lib/track'
+import { goalFirst, prepareFirsts } from '@/lib/metrika'
 import { isMaterials, spendLine, shagov, END, TARIFF_HREF, TRIAL_SPEND, type Materials } from '@/lib/limit-texts'
 import { dateRu } from '@/lib/billing/pay-texts'
 import { FORMATY, imyaNaEkrane, korotkoNaEkrane, sZaglavnoy } from '@/lib/generation/zh13/formaty'
@@ -174,6 +175,8 @@ function KakSnyat({ v, open, onToggle, aside }: { v: Ready; open: boolean; onTog
 
 export default function Zh13Flow() {
   const { me, typing, refresh: refreshMe } = useDashboardMe()
+  // ответ базы «было ли раньше» нужен до первого нажатия «Написать» (цели Метрики make_first_click, first_material)
+  useEffect(() => { prepareFirsts() }, [])
   const materials: Materials | null = isMaterials(me?.materials) ? me.materials : null
   const until = useMemo(() => { try { return me?.paidUntil ? dateRu(me.paidUntil) : undefined } catch { return undefined } }, [me?.paidUntil])
   const noMaterials = !!materials && materials.remaining <= 0
@@ -259,6 +262,8 @@ export default function Zh13Flow() {
     setVarianty(prev => (opts.first ? [{ status: 'pending', kod: opts.kod }] : [...prev, { status: 'pending', kod: opts.kod }]))
     setIdx(pos)
     if (opts.first) setView('result')
+    // цель Метрики «первый запуск» (один раз на человека); база отвечает до того, как сервер запишет make_start (26.11)
+    void goalFirst('make')
     try {
       const r = await fetch('/api/generate-post/zh13', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -287,6 +292,7 @@ export default function Zh13Flow() {
       if (!r.ok || typeof d?.glavnoe !== 'string') throw new Error(String(r.status))
       const v: Ready = { status: 'ready', postId: d.postId, groupId: d.groupId, kod: d.kod, vid: d.vid, imya: d.imya, glavnoe: d.glavnoe, podpis: d.podpis || '', nadpis: d.nadpis || '', kakSnyat: d.kakSnyat || [], podoydet: d.podoydet || [], tema: d.tema, mysl: d.mysl, text: d.text }
       setVarianty(prev => prev.map((x, i) => (i === pos ? v : x)))
+      void goalFirst('material') // цель Метрики: первый готовый текст
       refreshMe?.()
     } catch (e: any) {
       const offline = typeof navigator !== 'undefined' && navigator.onLine === false

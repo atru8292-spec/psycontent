@@ -104,7 +104,7 @@ function Onboarding({ p }: { p: PersonDetail }) {
       <Card className="p-4 lg:p-5 space-y-3">
         {!seen.length && !p.intro_at ? <p className="text-brand-muted">До онбординга не дошла</p> : (
           <>
-            <p className="font-medium">{p.done_at ? `Онбординг пройден${total ? ` за ${duration(total)}` : ''}` : `Прошла ${done.length} из ${p.onboarding.length || 5} вопросов`}</p>
+            <p className="font-medium">{p.done_at ? `Онбординг пройден${total ? ` за ${duration(total)}` : ''}` : `Прошла ${done.length} из ${p.onboarding.length || 6} вопросов`}</p>
             <ol className="space-y-1">
               {p.onboarding.map(s => (
                 <li key={s.step} className={`flex justify-between gap-3 min-h-10 items-center ${leftAt === s.step ? 'bg-brand-soft rounded-lg px-2 font-medium' : ''}`}>

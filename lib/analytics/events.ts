@@ -17,10 +17,10 @@ export const EVENTS = {
 
   // ---- онбординг (app/onboarding/express) ----
   onb_intro: [],                                     // показали вход с Верой
-  onb_step_view: ['step'],                           // показали вопрос 1-5
+  onb_step_view: ['step'],                           // показали вопрос 1-6 (анкета 2 с 19.11; до нее 5 вопросов)
   onb_step_done: ['step', 'ms'],                     // ответила и пошла дальше, ms на шаге
-  onb_skip: ['step'],                                // пропустила необязательный (5)
-  onb_situation_change: ['index'],                   // «Другая ситуация» на 4-м вопросе
+  onb_skip: ['step'],                                // пропустила необязательный (4 или 5); пропуск пишет и onb_step_done
+  onb_situation_change: ['index'],                   // «Другая ситуация» на 6-м вопросе
   onb_mic_denied: [],                                // браузер не дал микрофон
   onb_done: [],                                      // профиль сохранен
   onb_first_click: [],                               // «Сделать пост и карусель» на финале

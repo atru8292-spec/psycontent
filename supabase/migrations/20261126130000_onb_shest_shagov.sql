@@ -202,4 +202,8 @@ $function$
 
 ;
 
+revoke all on function public.analytics_onboarding(text[], boolean, timestamptz, timestamptz) from public, anon, authenticated;
+grant execute on function public.analytics_onboarding(text[], boolean, timestamptz, timestamptz) to service_role;
+revoke all on function public.analytics_person(uuid, text) from public, anon, authenticated;
+grant execute on function public.analytics_person(uuid, text) to service_role;
 commit;
