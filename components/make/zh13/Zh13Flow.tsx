@@ -360,6 +360,8 @@ export default function Zh13Flow() {
       if (obryv) {
         if (await iskat()) return
         if (runRef.current !== run.id) return // за это время запустили новый текст
+        // ушла с экрана: отметку оставляем, при возврате за 4 минуты ожидание продолжится (ревью 26.11)
+        if (pollAbort.current?.signal.aborted) return
         throw new Error('obryv')
       }
       clearRun(run.id)
