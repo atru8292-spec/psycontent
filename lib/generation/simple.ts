@@ -247,7 +247,7 @@ export async function simpleWrite(ctx: GenContext, req: GenRequest): Promise<{ t
     userId: ctx.userId, operation: 'generate_post_simple_path', writer: true, knownNames: s.knownNames,
   })
   // имя автора в строке «Я Ольга, психолог»: обезличивание иногда возвращает голую метку [ИМЯ] без номера
-  const named = s.name ? text.replace(/(^|\n)(Я|Меня зовут)\s+\[ИМЯ(?:-\d+)?\]/giu, `$1$2 ${s.name}`) : text
+  const named = s.name ? text.replace(/(^|\n)(Я|Меня зовут)\s+\[ИМЯ(?:-[МЖ])?(?:-\d+)?\]/giu, `$1$2 ${s.name}`) : text
   const draft = finalNet(named)
   // h7: наговорили длинно, монтажер вырезает целые фразы до потолка (до половины текста)
   const c = hyps.has('h7') && isReels(format) && format !== 'reels_bez_slov'

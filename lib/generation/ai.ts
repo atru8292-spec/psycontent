@@ -7,6 +7,7 @@
 
 import { appendFileSync } from 'node:fs'
 import { anonymize, deanonymize } from '@/lib/anonymize'
+import { imenaNer } from '@/lib/imena-ner'
 import { logAiUsage, type OpenAIUsage } from '@/lib/energy'
 import { CodedError, openAiError } from '@/lib/safe-error'
 import { noteOpenAiError } from '@/lib/bot/incidents'
@@ -44,7 +45,9 @@ export function modelFor(writer?: boolean): string {
 }
 
 export async function callModel(o: CallOpts): Promise<string> {
-  const { masked, map } = anonymize(o.user, { extraNames: o.knownNames })
+  // имена людей ищет служба imena (spaCy + словарь); без нее работают только правила anonymize
+  const ner = (await imenaNer(o.user)) || undefined
+  const { masked, map } = anonymize(o.user, { extraNames: o.knownNames, ner })
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) throw new Error('OPENAI_API_KEY is not set')
 

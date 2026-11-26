@@ -1,0 +1,30 @@
+[Unit]
+Description=PsyCont imena: поиск имен людей перед отправкой текста в нейросеть (spaCy + pymorphy3)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=psycont-imena
+Group=psycont-imena
+WorkingDirectory=/opt/psycont-imena
+EnvironmentFile=/opt/psycont-imena/.env
+# Только 127.0.0.1: текст людей в сеть не выходит, порт наружу закрыт. Один воркер: каждый грузит свою копию модели.
+ExecStart=/opt/psycont-imena/venv/bin/uvicorn app:app --host 127.0.0.1 --port 8091 --workers 1
+Restart=always
+RestartSec=5
+# Чтобы не мешать сайту, голосу и Razbor на том же сервере: одно ядро из четырех, память до 1,5 ГБ, низкий приоритет.
+CPUQuota=100%
+MemoryHigh=1200M
+MemoryMax=1536M
+Nice=10
+# сеть только localhost: служба никуда не ходит и принимает только с 127.0.0.1
+IPAddressAllow=localhost
+IPAddressDeny=any
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

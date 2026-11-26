@@ -221,10 +221,16 @@ const CITY_AMB_RE = new RegExp('(?<![' + NL + '])(' + CITY_PREP + '[ \\t]+)(' + 
 const LABEL: Record<string, string> = {
   city: 'ГОРОД',
   name: 'ИМЯ', patronymic: 'ОТЧЕСТВО', surname: 'ФАМИЛИЯ',
+  nameM: 'ИМЯ-М', nameF: 'ИМЯ-Ж',
   phone: 'ТЕЛЕФОН', email: 'ПОЧТА', handle: 'КОНТАКТ',
 }
 
-export function anonymize(text: string, opts?: { extraNames?: string[] }): { masked: string; map: AnonMap } {
+// Имена, которые нашла служба imena (spaCy + словарь имен, lib/imena-ner.ts): точные словоформы из этого текста
+// и род, если служба в нем уверена (m, f или пусто). Метка с родом [ИМЯ-М-1], [ИМЯ-Ж-1] подсказывает нейросети,
+// «он» это или «она», чтобы в тексте не вышло «Андрей пришла».
+export type NerImya = { t: string; g: '' | 'm' | 'f' }
+
+export function anonymize(text: string, opts?: { extraNames?: string[]; ner?: NerImya[] }): { masked: string; map: AnonMap } {
   if (!text || typeof text !== 'string') return { masked: text, map: {} }
   const map: AnonMap = {}
   const counters: Record<string, number> = {}
@@ -258,6 +264,21 @@ export function anonymize(text: string, opts?: { extraNames?: string[] }): { mas
   // 1.7) Города (до имен: «Владимир», «Королев», «Энгельс» после предлога места это город, а не человек).
   s = s.replace(CITY_RE, m => put('city', m))
   s = s.replace(CITY_AMB_RE, (_m, pre, c) => pre + put('city', c))
+
+  // 1.8) Имена от службы imena (26.11.2026): точная словоформа, целым словом, только с заглавной.
+  // Стоит до правил ниже: имя получает метку с родом, а правила закрывают то, что служба пропустила
+  // (или все, если служба не ответила).
+  // Вместе с именем закрываются до двух следующих слов с заглавной («Анна Кулькина», «Анной Петровной Кулькиной»):
+  // правила ниже фамилию после уже стоящей метки не видят, и без этого со службой закрывалось бы меньше, чем без нее
+  // (ревью 26.11). Дефис в границах, как у городов: «Анна-Мария» не режется пополам.
+  const ner = (opts?.ner ?? []).filter(x => x && typeof x.t === 'string' && /^[А-ЯЁ][а-яё]+(?:-[А-ЯЁ][а-яё]+)?$/.test(x.t))
+  if (ner.length) {
+    const kind = new Map(ner.map(x => [x.t, x.g === 'm' ? 'nameM' : x.g === 'f' ? 'nameF' : 'name']))
+    const forms = Array.from(kind.keys()).sort((a, b) => b.length - a.length)
+    const cap = '[ \\t]+[А-ЯЁ][а-яё]+(?:-[А-ЯЁ][а-яё]+)?'
+    const re = new RegExp('(?<![' + NL + '-])(' + forms.map(escapeRe).join('|') + ')((?:' + cap + '){0,2})(?![' + NL + '-])', 'g')
+    s = s.replace(re, (m, first: string) => put(kind.get(first) || 'name', m))
+  }
 
   // 2) Имена по маркеру (ловит редкие имена без словаря). Маркер сохраняем.
   s = s.replace(MARKER_RE, (_m, pre, nm) => pre + put('name', nm))

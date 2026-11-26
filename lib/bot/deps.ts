@@ -209,7 +209,7 @@ export const signalsRepo: SignalsRepo = {
     return must(await db().from('bot_incidents').select('kind, code, created_at').gt('created_at', since).in('kind', ['gen', 'openai', 'pay_webhook', 'billing']).order('created_at', { ascending: true }).limit(1000), 'fresh') as any[]
   },
   async genHour(since) {
-    const r = await db().from('bot_incidents').select('id', { count: 'exact', head: true }).eq('kind', 'gen').gte('created_at', since)
+    const r = await db().from('bot_incidents').select('id', { count: 'exact', head: true }).eq('kind', 'gen').not('code', 'like', 'anon_ner%').gte('created_at', since)
     if (r.error) throw Object.assign(new Error('gen'), { code: 'db_gen_hour' })
     return r.count || 0
   },

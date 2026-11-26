@@ -1,0 +1,12 @@
+# Служба imena (26.11.2026). Версии проверены на калибровке 26.11 (Python 3.12, uv 0.13.8).
+spacy==3.8.18
+thinc==8.3.14
+numpy==2.5.5
+pymorphy3==2.0.6
+pymorphy3-dicts-ru==2.4.417150.4580142
+fastapi==0.111.0
+uvicorn==0.30.1
+pydantic==2.14.4
+# Модель spaCy ставится отдельно файлом с проверкой sha256 (README-deploy.md):
+#   ru_core_news_md-3.8.0  sha256 43f456d40e4b70726874e01ce01fce32f50089ba98a2660292e9a6c63a06ebe9  (40 МБ)
+#   ru_core_news_lg-3.8.0  sha256 90bd584be86772b647e1b15cdc62e09d3a7182284ee23da95e19c2bf71aa0189  (490 МБ)

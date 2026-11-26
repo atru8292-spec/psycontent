@@ -163,7 +163,10 @@ export function evaluateSignals(i: SignalInput): Signal[] {
   const by = (pred: (x: { kind: string; code: string }) => boolean) => i.fresh.filter(pred)
   // серия и «за час» только если есть свежий сбой с прошлой проверки: иначе ночью сигнал повторялся бы по старой
   // проблеме каждые 30 минут. n = число новых сбоев, а не запусков таймера (ревью 18.11)
-  const gen = by(x => x.kind === 'gen').length
+  // сбои службы имен (anon_ner_*) пишутся видом gen, но это не сбой генерации: текст ушел с обычной маскировкой.
+  // У них свой сигнал ниже, в счет «генерация падает» они не идут (26.11)
+  const isAnon = (x: { code: string }) => String(x.code || '').startsWith('anon_ner')
+  const gen = by(x => x.kind === 'gen' && !isAnon(x)).length
   if (gen > 0 && i.streak >= STREAK_MIN) out.push({ key: 'gen_streak', text: SIGNAL.genStreak(i.streak), n: gen })
   if (gen > 0 && i.genHour >= HOUR_MIN) out.push({ key: 'gen_hour', text: SIGNAL.genHour(i.genHour), n: gen })
   const o401 = by(x => x.kind === 'openai' && openAiSignalKey(x.code) === 'openai_401')
@@ -174,6 +177,8 @@ export function evaluateSignals(i: SignalInput): Signal[] {
   if (o429.length) out.push({ key: 'openai_429', text: SIGNAL.openai429(o429.length), n: o429.length })
   const pw = by(x => x.kind === 'pay_webhook')
   if (pw.length) out.push({ key: 'pay_webhook', text: SIGNAL.payWebhook(pw.length, [...new Set(pw.map(x => x.code))].slice(0, 4).join(', ')), n: pw.length })
+  const an = by(x => x.kind === 'gen' && isAnon(x))
+  if (an.length) out.push({ key: 'anon_ner', text: SIGNAL.anonNer([...new Set(an.map(x => x.code))].slice(0, 3).join(', ')), n: an.length })
   const bl = by(x => x.kind === 'billing')
   if (bl.length) out.push({ key: 'billing', text: SIGNAL.billing(bl.length), n: bl.length })
   return out

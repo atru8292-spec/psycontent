@@ -7,6 +7,7 @@
 // 'anthropic/claude-sonnet-4-5' вычищен из генераторов (не влиял на вызов).
 
 import { anonymize, deanonymize } from '@/lib/anonymize'
+import { imenaNer } from '@/lib/imena-ner'
 import { logAiUsage, type OpenAIUsage } from '@/lib/energy'
 import { CodedError, openAiError } from '@/lib/safe-error'
 import { noteOpenAiError } from '@/lib/bot/incidents'
@@ -87,7 +88,8 @@ export async function generateWithAI(
   // Обезличиваем пользовательский текст перед отправкой в OpenAI (152-ФЗ),
   // после ответа возвращаем замены. Системный промпт — наши правила, без ПДн.
   // knownNames — имя психолога из профиля, маскируется гарантированно везде.
-  const { masked, map } = anonymize(userPrompt, { extraNames: opts?.knownNames })
+  const ner = (await imenaNer(userPrompt)) || undefined
+  const { masked, map } = anonymize(userPrompt, { extraNames: opts?.knownNames, ner })
   const { content, usage } = await callOpenAI(
     {
       model: DEFAULT_MODEL,
@@ -111,7 +113,8 @@ export async function generateWithWebSearch(
   userPrompt: string,
   opts?: { userId?: string; operation?: string; knownNames?: string[] }
 ) {
-  const { masked, map } = anonymize(userPrompt, { extraNames: opts?.knownNames })
+  const ner = (await imenaNer(userPrompt)) || undefined
+  const { masked, map } = anonymize(userPrompt, { extraNames: opts?.knownNames, ner })
   const { content, usage } = await callOpenAI(
     {
       model: DEFAULT_MODEL,

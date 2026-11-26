@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { canConsume, commitConsume, recordFailure, recordRefusal, logAiUsage, type Decision } from '@/lib/energy'
 import { anonymize, deanonymize, safeRestoredPrefix } from '@/lib/anonymize'
+import { imenaNer } from '@/lib/imena-ner'
 import { iterateSSEData } from '@/lib/sse-stream'
 import { checkContinuation, hashTranscript, supabaseRunStore, RUN_TEXTS, type ContinuationStep } from '@/lib/competitor-run'
 import { errTag } from '@/lib/limit-gate'
@@ -98,7 +99,8 @@ export async function POST(request: NextRequest) {
 
     // 5. Формируем промт + обезличиваем перед OpenAI (восстановим в потоке/сохранении)
     const userPrompt = `Платформа: ${platform || 'Unknown'}\n\nТранскрипция видео:\n${transcript}\n\n${STEP_PROMPTS[stepNum]}`
-    const { masked: maskedUserPrompt, map: anonMap } = anonymize(userPrompt)
+    const ner = (await imenaNer(userPrompt)) || undefined
+    const { masked: maskedUserPrompt, map: anonMap } = anonymize(userPrompt, { ner })
 
     // 6. Запрос к OpenRouter
     // сеть до OpenAI упала (fetch бросил): тот же мягкий сбой, шаг освобождаем

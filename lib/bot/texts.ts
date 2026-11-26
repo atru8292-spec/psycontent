@@ -99,6 +99,7 @@ export const SIGNAL = {
   payWebhook: (n: number, codes: string) => `Уведомление ЮKassa не прошло проверку или упало: ${n} (${codes})`,
   billing: (n: number) => `Таймер оплаты отработал с ошибками: ${n}`,
   dbDown: 'База не отвечает',
+  anonNer: (codes: string) => `Служба имен не ответила (${codes}). Тексты уходят в нейросеть с обычной маскировкой, редкие имена клиентов могут пройти. Генерация работает`,
   repeats: (n: number) => `С прошлого сигнала повторялось: ${n}`,
   flush: (what: string, n: number) => `${what}: еще ${n} за полчаса`,
 }
@@ -113,4 +114,5 @@ export const SIGNAL_KEY_RU: Record<string, string> = {
   pay_webhook: 'Уведомление ЮKassa',
   billing: 'Таймер оплаты',
   db_down: 'База не отвечает',
+  anon_ner: 'Служба имен',
 }
