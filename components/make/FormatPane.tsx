@@ -246,9 +246,9 @@ export default function FormatPane({ item, onChange, onPublished, onMore, moreCo
   )
 
   const reactions = postId ? (
-    <AsideCard title="Как тебе текст?" sub="Следующие тексты подстроятся под ответ">
+    <AsideCard title="Как тебе текст?">
       {reaction ? (
-        <p className="text-[14px] leading-5 text-brand-text-secondary" role="status">Принято, это учтется в следующих текстах</p>
+        <p className="text-[14px] leading-5 text-brand-text-secondary" role="status">Спасибо, разберемся</p>
       ) : (
         <>
           <div className="flex flex-wrap gap-2">
@@ -269,7 +269,7 @@ export default function FormatPane({ item, onChange, onPublished, onMore, moreCo
               <input value={note} onChange={e => setNote(e.target.value)} placeholder="Или своими словами, что не так" aria-label="Что не так"
                 className="w-full h-11 px-3 rounded-xl border border-brand-border bg-white text-[16px] text-brand-text focus:outline-none focus:border-brand-accent" />
               <button type="button" disabled={!reasons.length && !note.trim()} onClick={() => react('not_like')}
-                className="h-11 px-5 rounded-xl text-[15px] font-semibold text-white bg-brand-accent disabled:opacity-40 cursor-pointer">Учесть</button>
+                className="h-11 px-5 rounded-xl text-[15px] font-semibold text-white bg-brand-accent disabled:opacity-40 cursor-pointer">Передать нам</button>
             </div>
           )}
         </>

@@ -65,10 +65,11 @@ export const EVENTS = {
   help_faq_open: ['q'],                              // клиент: раскрыла вопрос; q короткий код из lib/help-faq.ts, текст вопроса не идет
 
   // ---- опрос при уходе (аналитика 2, lib/analytics/exit-survey.ts); свои слова человека сюда не попадают никогда ----
-  exit_survey_shown: ['place'],                      // сервер: карточку решили показать (place cooling|delete|cancel)
+  exit_survey_shown: ['place', 'kind'],                      // сервер: показ (place cooling|stuck|delete|cancel); kind help = карточка помощи на «Написать» с 26.11, не опрос
   exit_survey_open: ['place'],                       // клиент: раскрыла карточку («Рассказать»)
   exit_survey_sent: ['place', 'reasons', 'own', 'contact'], // сервер: ответ записан; reasons коды через запятую, own true|false (написала ли свои слова)
   exit_survey_dismiss: ['place'],                    // клиент: «Не сейчас» или крестик
+  help_card_click: ['place', 'to'],                  // клиент: карточка помощи на «Написать» (26.11), place stuck|cooling, to support|close (показ: exit_survey_shown с kind help)
 
   // ---- лендинг (app/page.tsx): единственные события, которые сервер принимает без входа ----
   land_view: [],                                     // открыли главную, один раз за загрузку

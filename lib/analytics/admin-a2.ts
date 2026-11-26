@@ -90,7 +90,8 @@ export async function loadExitStats(o: AdminOpts): Promise<Loaded<ExitStats>> {
     if (from) e = e.gte('created_at', from)
     const r = await e.limit(5000)
     if (r.error) throw new Error(r.error.message)
-    return (r.data || []).filter((x: any) => allowed.has(x.user_id))
+    // показы карточки помощи (с 26.11, props.kind help) это не опрос: без этого фильтра «не ответила» росло бы зря
+    return (r.data || []).filter((x: any) => allowed.has(x.user_id) && x.props?.kind !== 'help')
   }
   try {
     const [shown, dismissed] = await Promise.all([list('exit_survey_shown'), list('exit_survey_dismiss')])
@@ -107,7 +108,7 @@ export async function loadPersonExit(o: AdminOpts, userId: string): Promise<Load
   const db = getSupabaseAdmin()
   const [ans, shown, dis] = await Promise.all([
     db.from('exit_surveys').select('id, user_id, place, reasons, other_text, can_contact, created_at').eq('user_id', userId).order('created_at', { ascending: false }),
-    db.from('events').select('created_at').eq('user_id', userId).eq('event', 'exit_survey_shown').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    db.from('events').select('created_at').eq('user_id', userId).eq('event', 'exit_survey_shown').is('props->>kind', null).order('created_at', { ascending: false }).limit(1).maybeSingle(),
     db.from('events').select('created_at').eq('user_id', userId).eq('event', 'exit_survey_dismiss').order('created_at', { ascending: false }).limit(1).maybeSingle(),
   ])
   if (ans.error) return { data: null, error: missing(ans.error.code) ? 'no_migration' : 'failed' }

@@ -12,9 +12,6 @@ import {
 } from 'lucide-react'
 import Squiggle from '@/components/Squiggle'
 import { isArchetypeIncomplete } from '@/lib/profile-status'
-import ExitSurveyCard from '@/components/dashboard/ExitSurveyCard'
-import { markOtherAskToday } from '@/lib/voice-asks'
-import type { ExitPlace } from '@/lib/analytics/exit-survey'
 
 const toolGroups = [
   {
@@ -64,10 +61,6 @@ export default function Dashboard() {
   // флаг берем из сводки layout (DashboardMeContext), второй запрос /api/me не делаем (26.11)
   const { me, loaded: meLoaded } = useDashboardMe()
   const newPipe: boolean | null = !meLoaded ? null : (me && typeof me.newPipeline === 'boolean' ? me.newPipeline : false)
-  // опрос при уходе: сервер решает, показывать ли (GET /api/exit-survey). surveySeen держит одну просьбу
-  // на визит: пока опрос был на экране, карточку голоса не показываем, даже после закрытия опроса
-  const [survey, setSurvey]       = useState<{ place: ExitPlace; paymentsOn: boolean } | null>(null)
-  const [surveySeen, setSurveySeen] = useState(false)
   const reduce = useReducedMotion()
   const router = useRouter()
 
@@ -84,18 +77,11 @@ export default function Dashboard() {
       if (prof) setProfile(prof)
 
       const completed: string[] = ['onboarding']
-      const [postsRes, planRes, surveyRes] = await Promise.all([
+      // опрос при уходе отсюда убран 26.11: карточка помощи живет на «Написать» (components/make/HelpCard.tsx)
+      const [postsRes, planRes] = await Promise.all([
         supabase.from('generated_posts').select('id', { count: 'exact' }).eq('user_id', user.id),
         supabase.from('content_plans').select('id').eq('user_id', user.id).maybeSingle(),
-        fetch('/api/exit-survey').then(r => (r.ok ? r.json() : null)).catch(() => null),
       ])
-
-      if (surveyRes?.show) {
-        setSurvey({ place: surveyRes.place || 'cooling', paymentsOn: !!surveyRes.paymentsOn })
-        setSurveySeen(true)
-        // одна просьба в день: просьба про голос после поста сегодня не придет
-        markOtherAskToday()
-      }
 
       if (postsRes.data && postsRes.data.length > 0) completed.push('post')
       if (planRes.data) completed.push('plan')
@@ -171,15 +157,8 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      {/* Опрос при уходе: тем, кто остыл или ушел и вернулся. Пока он был на экране, другие просьбы в этот визит молчат */}
-      {survey && (
-        <motion.div initial={reduce ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.07 }}>
-          <ExitSurveyCard place={survey.place} paymentsOn={survey.paymentsOn} onClose={() => setSurvey(null)} />
-        </motion.div>
-      )}
-
       {/* Настроить голос точнее: экспресс-юзеру после первого поста (апселл по горячим следам) */}
-      {newPipe === false && !surveySeen && stats.posts > 0 && isArchetypeIncomplete(profile) && (
+      {newPipe === false && stats.posts > 0 && isArchetypeIncomplete(profile) && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
           className="soft-panel mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>

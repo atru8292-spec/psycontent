@@ -24,6 +24,8 @@ import { useShellBare } from '@/components/dashboard/DashboardShell'
 import BottomSheet from '../BottomSheet'
 import VoiceSheet, { VOICE_MAX, VOICE_NEAR } from '../VoiceSheet'
 import EndCard from './EndCard'
+import HelpCard from './HelpCard'
+import PohozheNaTebya from './PohozheNaTebya'
 import { BTN_P, BTN_S, BTN_T } from './knopki'
 import { useVoiceRecorder } from '@/lib/use-voice-recorder'
 import { useDashboardMe } from '@/lib/dashboard-me'
@@ -174,7 +176,7 @@ function KakSnyat({ v, open, onToggle, aside }: { v: Ready; open: boolean; onTog
 }
 
 export default function Zh13Flow() {
-  const { me, typing, refresh: refreshMe } = useDashboardMe()
+  const { me, loaded: meLoaded, typing, refresh: refreshMe } = useDashboardMe()
   // ответ базы «было ли раньше» нужен до первого нажатия «Написать» (цели Метрики make_first_click, first_material)
   useEffect(() => { prepareFirsts() }, [])
   const materials: Materials | null = isMaterials(me?.materials) ? me.materials : null
@@ -184,6 +186,7 @@ export default function Zh13Flow() {
   const paymentsOn = me?.paymentsOn === true
 
   const [mysl, setMysl] = useState('')
+  const titleRef = useRef<HTMLHeadingElement>(null)
   const [formatKod, setFormatKod] = useState<string | null>(null)
   const [formatOpen, setFormatOpen] = useState(false)
   const [voiceOpen, setVoiceOpen] = useState(false)
@@ -370,7 +373,12 @@ export default function Zh13Flow() {
     return (
       <div className={`${PAD} xl:max-w-[752px]`}>
         <div className={`min-w-0 ${stick ? 'max-lg:pb-[120px]' : ''}`}>
-          <h1 className="text-[26px] leading-8 lg:text-[32px] lg:leading-10 font-semibold tracking-[-0.3px] text-brand-text">О чем сегодня?</h1>
+          {/* застряла или вернулась после паузы: помощь с конкретным шагом (26.11); при конце текстов там своя карточка */}
+          {/* только когда сводка пришла и тексты есть: иначе показ тратился бы на того, у кого сейчас появится EndCard */}
+          {meLoaded && materials && !noMaterials && (
+            <HelpCard skip={() => !!mysl.trim() || document.activeElement === area.current} onClose={() => titleRef.current?.focus()} />
+          )}
+          <h1 ref={titleRef} tabIndex={-1} className="outline-none text-[26px] leading-8 lg:text-[32px] lg:leading-10 font-semibold tracking-[-0.3px] text-brand-text">О чем сегодня?</h1>
           <Squiggle variant={0} width="150px" />
 
           <div className={`mt-4 lg:mt-5 rounded-[20px] bg-brand-card ${SHADOW} ring-brand-accent/40 focus-within:ring-2 transition`}>
@@ -587,6 +595,9 @@ export default function Zh13Flow() {
                 <button type="button" onClick={sleduyushchaya} className={`mt-1 -ml-2 ${BTN_T}`}>Следующая тема<ArrowRight className="w-4 h-4" /></button>
               </div>
             )}
+
+            {/* главный показатель продукта: звучит ли как человек (26.11, на старом экране это было в FormatPane); ниже отметки «в блоге» (North Star) */}
+            {ready.postId && <PohozheNaTebya key={ready.postId} postId={ready.postId} />}
 
             {/* Эта же мысль в другом формате */}
             <section className={`mt-4 rounded-[20px] bg-brand-card ${SHADOW} p-4 lg:p-5 scroll-mt-16`} aria-labelledby="zh13-eshe-h" id="zh13-eshe">
