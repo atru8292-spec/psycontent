@@ -94,6 +94,22 @@ async function feedbackAvtora(db: SupabaseClient, userId: string): Promise<Feedb
   } catch { return [] } // поправки не главное: без них текст пишется как раньше
 }
 
+// Тема по кругу из анкеты, не две последние подряд (общая для napisat и подсказки на экране, 26.11)
+export const TEMA_ZAPASNAYA = 'то, с чем ко мне приходят чаще всего'
+export function temaPoKrugu(temy: string[], n: number, rows: Proshloe[]): string {
+  const nedavnie = rows.slice(0, 2).map(r => r.z.tema)
+  for (let i = 0; i < temy.length; i++) { const t = temy[(n + i) % temy.length]; if (!nedavnie.includes(t) || temy.length <= 2) return t }
+  return TEMA_ZAPASNAYA
+}
+// Какую тему возьмет napisat при пустом поле (экран «Написать» показывает ее в подсказке)
+export async function sleduyushchayaTema(db: SupabaseClient, userId: string, profile: any): Promise<string | null> {
+  const temy = temyAnkety(profile)
+  if (!temy.length) return null
+  const { n, rows } = await istoriya(db, userId)
+  const t = temaPoKrugu(temy, n, rows)
+  return t === TEMA_ZAPASNAYA ? null : t
+}
+
 export function avtorIz(profile: any): Avtor13 {
   const s = buildAuthorSettings(profile)
   const k = parseKlienty(profile?.klienty)
@@ -185,11 +201,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   let tema: string | null = null
   if (!mysl) {
     tema = (z.tema || origin?.z?.tema || '').trim() || null
-    if (!tema && temy.length) {
-      const nedavnie = rows.slice(0, 2).map(r => r.z.tema)
-      for (let i = 0; i < temy.length; i++) { const t = temy[(n + i) % temy.length]; if (!nedavnie.includes(t) || temy.length <= 2) { tema = t; break } }
-    }
-    if (!tema) tema = 'то, с чем ко мне приходят чаще всего'
+    if (!tema) tema = temaPoKrugu(temy, n, rows)
   }
   const situaciya = origin?.z?.situaciya !== undefined && origin ? origin.z.situaciya || null
     : mysl ? situaciyaDlyaMysli(mysl, temy, n, bylyeSit) : situaciyaTemy(tema!, n, bylyeSit)

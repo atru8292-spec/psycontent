@@ -212,6 +212,8 @@ export default function Zh13Flow() {
   const [formatOpen, setFormatOpen] = useState(false)
   const [voiceOpen, setVoiceOpen] = useState(false)
   const [topic, setTopic] = useState<string | null>(null)
+  // тема, которую сервер возьмет при пустом поле (26.11): только для подсказки, на сервер не уходит, он выберет сам
+  const [temaKruga, setTemaKruga] = useState<string | null>(null)
   const [varianty, setVarianty] = useState<Variant[]>([])
   const [idx, setIdx] = useState(0)
   const [view, setView] = useState<'compose' | 'result'>('compose')
@@ -254,6 +256,15 @@ export default function Zh13Flow() {
       })
     }
   }, [])
+
+  // при каждом возврате к вводу: какая тема будет при пустом поле (после текста круг сдвигается)
+  useEffect(() => {
+    if (view !== 'compose' || topic) return
+    let on = true
+    fetch('/api/generate-post/zh13?tema=1', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null))
+      .then(d => { if (on) setTemaKruga(typeof d?.tema === 'string' && d.tema.trim() ? d.tema.trim().slice(0, 300) : null) }).catch(() => {})
+    return () => { on = false }
+  }, [view, topic])
 
   const appendVoice = useCallback((v: string) => setMysl(prev => (prev.trim() ? `${prev.trim()} ${v}` : v)), [])
   const rec = useVoiceRecorder(appendVoice, { maxSeconds: VOICE_MAX, nearSeconds: VOICE_NEAR })
@@ -436,7 +447,7 @@ export default function Zh13Flow() {
             <div className="h-[68px] flex items-center gap-2 pl-4 lg:pl-5 pr-3">
               <p className="min-w-0 flex-1 text-[13px] leading-[18px] text-brand-muted" aria-live="polite">
                 {transcribing ? <span className="inline-flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" />Расшифровка...</span>
-                  : mysl.trim() ? 'Текст будет из этой мысли, смысл не поменяется' : topic ? `Если пусто, напишу на тему «${topic}»` : 'Если пусто, напишу на тему из того, с чем ты работаешь'}
+                  : mysl.trim() ? 'Текст будет из этой мысли, смысл не поменяется' : topic ? `Если пусто, напишу на тему «${topic}»` : temaKruga ? `Если пусто, напишу на тему «${temaKruga}»` : 'Если пусто, напишу на тему из того, с чем ты работаешь'}
               </p>
               <button type="button" onClick={() => { rec.reset(); setVoiceOpen(true) }} disabled={transcribing} aria-label="Записать голосом"
                 className="w-14 h-14 rounded-full bg-brand-accent text-white flex items-center justify-center hover:bg-brand-accent-hover active:scale-95 transition cursor-pointer disabled:opacity-50 shrink-0">

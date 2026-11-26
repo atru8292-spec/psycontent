@@ -13,7 +13,7 @@ import { canConsume, commitConsume, recordFailure, recordRefusal, releaseConsume
 import { serverTrack } from '@/lib/track-server'
 import { errTag } from '@/lib/safe-error'
 import { zh13Dlya } from '@/lib/generation/zh13/flag'
-import { napisat, VERSIYA, KodOshibki } from '@/lib/generation/zh13/pishi'
+import { napisat, VERSIYA, KodOshibki, sleduyushchayaTema } from '@/lib/generation/zh13/pishi'
 import { formatPo } from '@/lib/generation/zh13/formaty'
 import { vstavitKachestvo, doschitatKachestvo, zapisatDeystvie } from '@/lib/generation/zh13/kachestvo-db'
 import { savePost } from '../new-pipeline'
@@ -120,6 +120,14 @@ export async function GET(req: NextRequest) {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
   const id = clean(req.nextUrl.searchParams.get('post'), 64)
+  // ?tema=1: какую тему возьмет генератор при пустом поле (26.11, активация: подсказка поля называет ее, а не
+  // «тему из того, с чем ты работаешь»). Сбой или анкеты без тем: tema null, экран оставляет общую подсказку
+  if (req.nextUrl.searchParams.get('tema') === '1') {
+    try {
+      const prof = await admin().from('onboarding_profiles').select('*').eq('user_id', user.id).maybeSingle()
+      return NextResponse.json({ tema: prof.data ? await sleduyushchayaTema(admin(), user.id, prof.data) : null })
+    } catch { return NextResponse.json({ tema: null }) }
+  }
   // ?since=<мс>: последний свой zh13-текст после этого времени (26.11, активация). Экран зовет это, когда ответ
   // генерации оборвался (связь, свернутый браузер, обновление страницы), а сервер текст уже дописал и списал:
   // иначе человек видел «сбой» и тратил второй пробный. Не старше 10 минут назад; нет текста: 404 not_yet
