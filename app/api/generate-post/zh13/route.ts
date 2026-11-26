@@ -120,17 +120,33 @@ export async function GET(req: NextRequest) {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
   const id = clean(req.nextUrl.searchParams.get('post'), 64)
+  // ?since=<мс>: последний свой zh13-текст после этого времени (26.11, активация). Экран зовет это, когда ответ
+  // генерации оборвался (связь, свернутый браузер, обновление страницы), а сервер текст уже дописал и списал:
+  // иначе человек видел «сбой» и тратил второй пробный. Не старше 10 минут назад; нет текста: 404 not_yet
+  const since = Number(req.nextUrl.searchParams.get('since'))
+  if (!id && Number.isFinite(since) && since > Date.now() - 10 * 60000) {
+    const q = await admin().from('generated_posts').select('id, group_id, content, check_result, pipeline_version').eq('user_id', user.id)
+      .eq('pipeline_version', VERSIYA).gte('created_at', new Date(since).toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle()
+    if (q.error) return NextResponse.json({ error: 'server_error' }, { status: 500 })
+    if (!q.data || typeof q.data.check_result?.zh13?.glavnoe !== 'string') return NextResponse.json({ error: 'not_yet' }, { status: 404 })
+    return NextResponse.json(otvet(q.data))
+  }
   if (!id) return NextResponse.json({ error: 'bad_request' }, { status: 400 })
   const r = await admin().from('generated_posts').select('id, group_id, content, check_result, pipeline_version').eq('id', id).eq('user_id', user.id).maybeSingle()
   // сбой чтения не выдаем за «нет такого текста»: 404 значит «текст не от zh13», экран тогда открывает прежний
   if (r.error) return NextResponse.json({ error: 'server_error' }, { status: 500 })
   const m = r.data?.check_result?.zh13
   if (!r.data || r.data.pipeline_version !== VERSIYA || !m || typeof m.glavnoe !== 'string') return NextResponse.json({ error: 'not_found' }, { status: 404 })
+  return NextResponse.json(otvet(r.data))
+}
+
+function otvet(row: any) {
+  const m = row.check_result.zh13
   const f = formatPo(m.kod)
-  return NextResponse.json({
-    postId: r.data.id, groupId: r.data.group_id, kod: m.kod, vid: m.vid, imya: f?.imya || m.kod,
+  return {
+    postId: row.id, groupId: row.group_id, kod: m.kod, vid: m.vid, imya: f?.imya || m.kod,
     glavnoe: m.glavnoe, podpis: m.podpis || '', nadpis: m.nadpis || '', kakSnyat: m.kakSnyat || [],
     podoydet: (m.podoydet || []).map((p: any) => ({ ...p, imya: formatPo(p.kod)?.imya || p.kod })),
-    tema: m.tema || null, mysl: m.mysl || null, text: r.data.content,
-  })
+    tema: m.tema || null, mysl: m.mysl || null, text: row.content,
+  }
 }

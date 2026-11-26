@@ -45,6 +45,27 @@ type Ready = {
 }
 type Variant = Ready | { status: 'pending'; kod: string | null } | { status: 'failed'; kod: string | null; error: string; limit?: boolean; zanovo?: boolean; fromPostId?: string }
 
+// Запуск генерации идет (26.11, активация): отметка в sessionStorage до запроса. Если ответ оборвался (связь,
+// свернутый браузер, обновление страницы), а сервер текст дописал и списал, экран спрашивает его по ?since=
+// до 4 минут и показывает, вместо «сбоя» и второго потраченного пробного (как psycont_make_running у MakeFlow).
+const RUN_KEY = 'psy_zh13_run'
+const RUN_WAIT_MS = 4 * 60000
+const readRun = (): { t: number } | null => { try { const r = JSON.parse(sessionStorage.getItem(RUN_KEY) || 'null'); return r && typeof r.t === 'number' && Date.now() - r.t < RUN_WAIT_MS ? r : null } catch { return null } }
+const markRun = (t: number) => { try { sessionStorage.setItem(RUN_KEY, JSON.stringify({ t })) } catch {} }
+const clearRun = () => { try { sessionStorage.removeItem(RUN_KEY) } catch {} }
+const sleepMs = (ms: number) => new Promise(r => setTimeout(r, ms))
+// текст, записанный после t (минус 5 с на расхождение часов), или null, когда от t прошло 4 минуты
+async function zhdatTekst(t: number): Promise<any | null> {
+  while (Date.now() - t < RUN_WAIT_MS) {
+    try {
+      const r = await fetch(`/api/generate-post/zh13?since=${t - 5000}`, { cache: 'no-store' })
+      if (r.ok) { const d = await r.json(); if (typeof d?.glavnoe === 'string') return d }
+    } catch { /* связи нет: ждем дальше */ }
+    await sleepMs(5000)
+  }
+  return null
+}
+
 const SHADOW = 'shadow-[0_1px_2px_rgba(59,42,34,.05)]'
 const PAD = 'px-4 pt-3 lg:px-12 lg:pt-11 pb-8'
 const VID: Record<string, string> = { reels: 'Рилс', carousel: 'Карусель', post: 'Пост' }
@@ -222,6 +243,16 @@ export default function Zh13Flow() {
       if (d && typeof d.glavnoe === 'string') { setVarianty([{ status: 'ready', ...d }]); setIdx(0); setView('result') }
       else setComposeError({ text: 'Не получилось открыть текст. Обнови страницу, он сохранен в «Моих текстах»' })
     }).catch(() => setComposeError({ text: 'Не получилось открыть текст. Проверь интернет и обнови страницу' }))
+    // страницу обновили, пока писался текст: показываем ожидание и ждем его (26.11)
+    const run = post ? null : readRun()
+    if (run) {
+      setVarianty([{ status: 'pending', kod: null }]); setIdx(0); setView('result')
+      void zhdatTekst(run.t).then(d => {
+        clearRun()
+        if (d) { setVarianty([{ status: 'ready', ...d }]); refreshMe?.() }
+        else { setVarianty([]); setView('compose'); setComposeError({ text: `${SBOY} Попробуй через минуту` }) }
+      })
+    }
   }, [])
 
   const appendVoice = useCallback((v: string) => setMysl(prev => (prev.trim() ? `${prev.trim()} ${v}` : v)), [])
@@ -267,6 +298,17 @@ export default function Zh13Flow() {
     if (opts.first) setView('result')
     // цель Метрики «первый запуск» (один раз на человека); база отвечает до того, как сервер запишет make_start (26.11)
     void goalFirst('make')
+    const runT = Date.now()
+    markRun(runT)
+    // ответ оборвался, а текст мог дописаться: ждем его до 4 минут, только потом сбой
+    const iskat = async (): Promise<boolean> => {
+      const d = await zhdatTekst(runT)
+      if (!d) return false
+      clearRun()
+      setVarianty(prev => prev.map((x, i) => (i === pos ? { status: 'ready', ...d } : x)))
+      refreshMe?.()
+      return true
+    }
     try {
       const r = await fetch('/api/generate-post/zh13', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -276,6 +318,9 @@ export default function Zh13Flow() {
           voice: rec.state !== 'idle',
         }),
       })
+      // 502/503/504: оборвал прокси (предел 120 с), сервер мог дописать
+      if (r.status >= 502 && r.status <= 504 && await iskat()) return
+      clearRun()
       const d = await r.json().catch(() => ({}))
       // 429 с server_error это сбой чтения счетчика, а не конец тарифа: показываем как обычный сбой
       if (r.status === 429 && d?.error !== 'server_error') {
@@ -298,6 +343,8 @@ export default function Zh13Flow() {
       void goalFirst('material') // цель Метрики: первый готовый текст
       refreshMe?.()
     } catch (e: any) {
+      if (await iskat()) return
+      clearRun()
       const offline = typeof navigator !== 'undefined' && navigator.onLine === false
       const text = offline ? 'Пропала связь. Проверь интернет и нажми еще раз, мысль на месте' : `${SBOY} ${opts.first ? 'Мысль на месте, попробуй через минуту' : 'Прошлый вариант на месте'}`
       if (opts.first) { setVarianty([]); setView('compose'); setComposeError({ text }) }
