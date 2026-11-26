@@ -68,6 +68,7 @@ export const T = {
   shortPassword: 'В пароле нужно хотя бы 6 символов',
   badCredentials: 'Почта или пароль не подходят. Проверь и попробуй еще раз.',
   checkEmailTitle: 'Осталось подтвердить почту',
+  openMail: 'Открыть почту',
   checkEmail: (email: string) =>
     `Письмо ушло на ${email}. Открой его и нажми «Подтвердить почту», без этого войти не получится. Ссылка работает 1 час. Если письма нет через пару минут, загляни в спам. А если аккаунт на эту почту у тебя уже был, нового письма не будет. Тогда просто войди или нажми «Не помню пароль».`,
   notConfirmed: 'Почта пока не подтверждена. Найди письмо от PsyCont и нажми в нем ссылку. Если письма нет или ссылка устарела, можно получить новое.',
@@ -125,3 +126,18 @@ export const T = {
   linkExpiredResend: 'Прислать письмо заново',
   linkExpiredLogin: 'Войти',
 } as const
+
+// Веб-почта по домену адреса (26.11, активация): кнопка «Открыть почту» на экране «Осталось подтвердить почту»,
+// чтобы не искать письмо самой. Неизвестный домен: кнопки нет.
+const POCHTA: [RegExp, string][] = [
+  [/^(gmail|googlemail)\.com$/, 'https://mail.google.com/'],
+  [/^(mail|bk|list|inbox|internet)\.ru$/, 'https://e.mail.ru/inbox/'],
+  [/^(yandex\.(ru|com|by|kz|ua)|ya\.ru)$/, 'https://mail.yandex.ru/'],
+  [/^(rambler\.ru|lenta\.ru|ro\.ru|autorambler\.ru|myrambler\.ru)$/, 'https://mail.rambler.ru/'],
+  [/^(icloud|me|mac)\.com$/, 'https://www.icloud.com/mail/'],
+  [/^(outlook|hotmail|live|msn)\.com$/, 'https://outlook.live.com/mail/'],
+]
+export function webPochta(email: string): string | null {
+  const d = String(email || '').split('@')[1]?.trim().toLowerCase() || ''
+  return POCHTA.find(([re]) => re.test(d))?.[1] || null
+}

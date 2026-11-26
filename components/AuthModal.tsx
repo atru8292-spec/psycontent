@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Mail, Loader2 } from 'lucide-react'
-import { authErrorKind, MIN_PASSWORD, T } from '@/lib/auth-texts'
+import { authErrorKind, MIN_PASSWORD, T, webPochta } from '@/lib/auth-texts'
 import { Notice, PasswordInput, StateIcon, useCooldown } from '@/components/auth/AuthShell'
 import RequestLinkForm from '@/components/auth/RequestLinkForm'
 import { requestLink } from '@/components/auth/request-link'
@@ -189,11 +189,16 @@ export default function AuthModal({
                 {resent ? T.resentConfirm(awaiting) : T.checkEmail(awaiting)}
               </p>
               {error && <div className="mt-3 w-full text-left"><Notice kind="error">{error}</Notice></div>}
+              {webPochta(awaiting) && (
+                <a href={webPochta(awaiting)!} target="_blank" rel="noopener noreferrer" className="btn-primary w-full py-3 text-sm mt-5 text-center">
+                  {T.openMail}
+                </a>
+              )}
               <button
                 type="button"
                 onClick={() => resendConfirm(awaiting)}
                 disabled={resending || cd.left > 0}
-                className="btn-secondary w-full py-3 text-sm mt-5 disabled:opacity-50"
+                className={`btn-secondary w-full py-3 text-sm ${webPochta(awaiting) ? 'mt-3' : 'mt-5'} disabled:opacity-50`}
               >
                 {resending ? <><Loader2 className="w-4 h-4 animate-spin" /> {T.forgotSending}</> : T.resendConfirm}
               </button>
