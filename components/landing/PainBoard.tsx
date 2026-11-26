@@ -1,6 +1,6 @@
 'use client'
 // Блок проблемы на шоколаде: одна заметка в линейку на деревянной кнопке (текст PAINS.note), рядом на шоколаде
-// что берет PsyCont и тихая строка. Раньше здесь была доска из трех заметок болей.
+// три ценности (StoryBrand, 26.11) и тихая строка. Раньше здесь была доска из трех заметок болей.
 // Линейка с шагом 30 px: строки текста тоже по 30 px на любой ширине, сдвиг фона = верхний отступ минус 4,
 // иначе линии режут текст.
 // Одна из двух анимаций лендинга: заметка «прикалывается», когда входит в экран (класс note-pin в globals.css,
@@ -50,11 +50,20 @@ export default function PainBoard() {
       </div>
       <div className="mt-8 lg:col-span-5 lg:mt-0">
         {/* Вера поздно вечером у ноутбука: блог как вторая работа. Украшение, alt пустой */}
-        <Image src="/vera/vecher.webp" alt="" width={880} height={782} sizes="(min-width: 1024px) 400px, 280px"
-          className="mb-7 ml-auto h-auto w-[260px] min-[390px]:w-[280px] lg:mx-0 lg:mb-10 lg:w-full lg:max-w-[400px]" />
-        <p className="max-w-[520px] text-[17px] leading-[1.55] text-brand-on-dark [text-wrap:pretty] lg:text-[20px]">
-          <span className="font-semibold text-brand-bg">{PAINS.afterLead}</span> {PAINS.after}
-        </p>
+        <Image src="/vera/vecher.webp" alt="" width={880} height={782} sizes="(min-width: 1024px) 320px, 200px"
+          className="mb-5 ml-auto h-auto w-[200px] lg:mx-0 lg:mb-8 lg:w-full lg:max-w-[320px]" />
+        <p className="max-w-[520px] text-[17px] leading-[1.55] font-semibold text-brand-bg [text-wrap:pretty] lg:text-[20px]">{PAINS.afterLead}</p>
+        {/* что берет PsyCont: три строки (StoryBrand value proposition), маркер лепесток знака, без иконок и заголовка */}
+        <ul className="mt-4 max-w-[520px] space-y-2.5 lg:mt-6 lg:space-y-3.5">
+          {PAINS.values.map((v, i) => (
+            <li key={v} className="flex items-start gap-3 text-[17px] leading-[1.45] font-medium text-brand-bg lg:text-[20px]">
+              <svg viewBox="-44 -44 88 106" aria-hidden="true" className={`mt-[7px] h-[11px] w-[9px] shrink-0 text-brand-lilac lg:mt-[9px] lg:h-[13px] lg:w-[11px] ${['rotate-[-12deg]', 'rotate-[6deg]', 'rotate-[-3deg]'][i % 3]}`}>
+                <path d="M-40,0 C-40,38 -20,49.2 -32,58 C6,58.8 6.22,54.82 30.64,25.71 A40,40 0 1 0 -40,0 Z" fill="currentColor" />
+              </svg>
+              <span className="min-w-0">{v}</span>
+            </li>
+          ))}
+        </ul>
         <p className="mt-5 max-w-[480px] text-[15px] leading-[1.5] text-brand-on-dark-muted lg:mt-8 lg:text-[16px]">{PAINS.quiet}</p>
       </div>
     </div>
