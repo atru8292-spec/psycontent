@@ -522,7 +522,8 @@ export default function ExpressOnboarding() {
           <p className="mt-1 text-[18px] leading-6 font-semibold text-brand-text line-clamp-3 break-words">{topic}</p>
         </div>
         <button type="button" onClick={startFirst} disabled={newGen === null} className={`mt-5 ${green} disabled:opacity-60`}>{zh13 ? 'Написать первый текст' : newGen === false ? 'Написать пост' : 'Написать пост и карусель'}</button>
-        <button type="button" onClick={() => router.push('/dashboard/make?first=1')}
+        {/* тема уходит и сюда (26.11): на «Написать» подсказка поля назовет ее, если человек передумает писать свою мысль */}
+        <button type="button" onClick={() => router.push(makeHref({ first: '1', topic }))}
           className="mt-2 h-12 w-full rounded-2xl border border-brand-border bg-brand-card text-center text-[15px] font-semibold text-brand-text cursor-pointer hover:bg-brand-soft-2">Или начни со своей мысли</button>
       </div>
     )
