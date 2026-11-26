@@ -24,8 +24,8 @@ model: opus
 3. ЛИМИТЫ И ЭНЕРГИЯ: дорогие операции проверяют лимит ДО, списывают энергию ПОСЛЕ
    успеха. Текст не должен жечь энергию (по модели монетизации).
 
-4. ПРОЕКТНЫЕ ЛОВУШКИ: не перепутан ли supabase vs supabaseAdmin (три роута на
-   admin: generate-content-plan, research-topics, generate-passport). Auth учитывает
+4. ПРОЕКТНЫЕ ЛОВУШКИ: не перепутан ли supabase vs supabaseAdmin (два роута на
+   admin: generate-content-plan, research-topics; generate-passport удален 26.11). Auth учитывает
    РФ (не только Google).
 
 5. БРЕНД ВО ФРОНТЕ: цвета бренда (не фиолетовый #7C5CFC, а аметист #5B4FA0), шрифт

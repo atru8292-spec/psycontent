@@ -13,8 +13,8 @@ n8n для автоматизаций.
 существующие роуты и схему БД. Не ломай то что работает.
 
 КРИТИЧНЫЕ ЗАМЕТКИ ПО ПРОЕКТУ:
-- Три роута используют supabaseAdmin (НЕ supabase): generate-content-plan,
-  research-topics, generate-passport. Не перепутать клиента при рефакторинге.
+- Два роута используют supabaseAdmin (НЕ supabase): generate-content-plan,
+  research-topics (generate-passport удален 26.11). Не перепутать клиента при рефакторинге.
 - Авторизация: Google OAuth ограничен в РФ. Нужны Yandex OAuth, VK ID, Telegram
   Login. Учитывать при работе с auth.
 - Данные пользователей в Yandex RU (переезд с Supabase US/Vercel на свой VPS).
