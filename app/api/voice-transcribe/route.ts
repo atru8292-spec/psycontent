@@ -11,8 +11,20 @@
 import { NextRequest, NextResponse, after } from 'next/server'
 import { getSessionUser } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/generation/db'
-import { recordEvent, maybeRebuildVoice } from '@/lib/generation/learning'
+import { recordEvent, maybeRebuildVoice, rebuildVoice } from '@/lib/generation/learning'
 import { errTag } from '@/lib/safe-error'
+import { overlap } from '@/lib/generation/sample'
+
+// пересборки голоса по «Сказать своими словами»: не чаще раза в 10 минут и не больше 3 в сутки на человека
+const peresborki = new Map<string, number[]>()
+function zanyatPeresborku(uid: string): boolean {
+  const now = Date.now()
+  const list = (peresborki.get(uid) || []).filter(t => now - t < 86400000)
+  if (list.length >= 3 || (list.length && now - list[list.length - 1] < 10 * 60000)) { peresborki.set(uid, list); return false }
+  list.push(now)
+  peresborki.set(uid, list)
+  return true
+}
 
 export const runtime = 'nodejs'
 // Верхний порог ожидания. Длинный монолог (6.3) на small/CPU идет дольше короткой
@@ -101,6 +113,35 @@ export async function POST(request: NextRequest) {
     // purpose=sample: расшифровка ЧУЖОГО рилса для «Сделать так же». Это не ее речь: в память голоса не идет,
     // в базу не пишется (оригинал не храним). По умолчанию (поле без purpose) это ее голос, как раньше.
     const isSample = form.get('purpose') === 'sample'
+    // purpose=golos (26.11): «Сказать своими словами» под текстом после «Не совсем». Ответ golos:
+    //  copy  расшифровка похожа на наш же текст (прочитала вслух): не пишем, иначе нейросеть учится сама у себя;
+    //  short короче 250 знаков: речь сохраняем, но в слепок отдельным образцом она не войдет, пересборки нет;
+    //  ok    пересборка голоса запущена сразу (после ответа, 30-60 с);
+    //  saved речь сохранена, пересборку отсек предел (раз в 10 минут, 3 в сутки на человека), войдет в следующую.
+    // Предел держит память процесса (pm2 psycont один): место занимается до вызова модели и на сбое не снимается.
+    if (form.get('purpose') === 'golos') {
+      const uid = user.id
+      const db = getSupabaseAdmin()
+      const postId = String(form.get('postId') || '')
+      if (/^[0-9a-f-]{36}$/i.test(postId)) {
+        const p = await db.from('generated_posts').select('content').eq('id', postId).eq('user_id', uid).maybeSingle()
+        // порог выше, чем у образцов «Сделать так же»: одна процитированная фраза («тут написано ..., а я бы сказала») не чтение
+        const o = p.data?.content ? overlap(String(p.data.content), text) : null
+        if (o && (o.trigramShare > 0.3 || o.chains.length >= 3)) return NextResponse.json({ text, golos: 'copy' })
+      }
+      const golos = text.length < 250 ? 'short' : zanyatPeresborku(uid) ? 'ok' : 'saved'
+      if (text.length >= 80) {
+        after(async () => {
+          try {
+            if (!(await recordEvent(db, uid, { kind: 'speech', after: text, data: { from: 'golos' } }))) return
+            if (golos !== 'ok') return
+            const { data: prof } = await db.from('onboarding_profiles').select('*').eq('user_id', uid).single()
+            if (prof) await rebuildVoice(db, uid, prof)
+          } catch (e: any) { console.warn('golos rebuild:', errTag(e)) }
+        })
+      }
+      return NextResponse.json({ text, golos })
+    }
     if (text.length >= 80 && !isSample) {
       const uid = user.id
       after(async () => {

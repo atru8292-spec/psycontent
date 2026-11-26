@@ -76,6 +76,7 @@ function authorBlock(s: AuthorSettings): string {
     s.intensity === 'hot' ? 'Говорит на эмоциях, резко, может капсом одно слово.' : s.intensity === 'calm' ? 'Говорит спокойно и бережно.' : s.intensity === 'live' ? 'Говорит живо, как в разговоре.' : '',
     matRule(s),
     s.voiceBrief ? `Как звучит автор по его текстам:\n${s.voiceBrief}` : s.toneVerbal ? `Как автор сам описал свою манеру: ${s.toneVerbal}` : '',
+    s.popravki || '',
   ].filter(Boolean).join('\n')
 }
 

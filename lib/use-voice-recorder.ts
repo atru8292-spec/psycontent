@@ -15,7 +15,9 @@ const MAX_SECONDS = 120 // авто-стоп на 2 минутах (решени
 const NEAR_LIMIT = 105 // 1:45, мягкое предупреждение «заканчивай мысль»
 
 // Экран «Сделать» пишет до 3 минут с предупреждением за 20 секунд (задача sdelat-i-brend, раздел 3)
-export type VoiceOptions = { maxSeconds?: number; nearSeconds?: number }
+// purpose: метка для сервера (golos: запись «Сказать своими словами» под текстом, сервер сразу пересобирает голос);
+// onResult получает весь ответ сервера (например golos ok|short), onText как раньше только текст
+export type VoiceOptions = { maxSeconds?: number; nearSeconds?: number; purpose?: string; fields?: Record<string, string>; onResult?: (data: any) => void }
 
 export interface VoiceRecorder {
   state: VoiceState
@@ -52,6 +54,12 @@ export function useVoiceRecorder(onText: (text: string) => void, opts?: VoiceOpt
   // onText в ref, чтобы upload видел свежий колбэк (замыкание с актуальным value поля).
   const onTextRef = useRef(onText)
   onTextRef.current = onText
+  const purposeRef = useRef(opts?.purpose)
+  purposeRef.current = opts?.purpose
+  const fieldsRef = useRef(opts?.fields)
+  fieldsRef.current = opts?.fields
+  const resultRef = useRef(opts?.onResult)
+  resultRef.current = opts?.onResult
 
   const clearTimer = () => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
@@ -64,6 +72,8 @@ export function useVoiceRecorder(onText: (text: string) => void, opts?: VoiceOpt
       const ext = blob.type.includes('mp4') ? 'mp4' : blob.type.includes('ogg') ? 'ogg' : 'webm'
       const fd = new FormData()
       fd.append('file', blob, `voice.${ext}`)
+      if (purposeRef.current) fd.append('purpose', purposeRef.current)
+      for (const [k, v] of Object.entries(fieldsRef.current || {})) fd.append(k, v)
       const res = await fetch('/api/voice-transcribe', { method: 'POST', body: fd })
       if (!res.ok) { setState('error'); setErrorKind('network'); return }
       const data = await res.json().catch(() => null)
@@ -71,6 +81,7 @@ export function useVoiceRecorder(onText: (text: string) => void, opts?: VoiceOpt
       // Отменили пока ждали расшифровку -> текст не вставляем (фантомная вставка).
       if (cancelledRef.current) { setState('idle'); return }
       if (!text) { setState('error'); setErrorKind('empty'); return }
+      resultRef.current?.(data)
       onTextRef.current(text)
       setState('idle')
       setElapsed(0)

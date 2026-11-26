@@ -17,6 +17,8 @@ export type AuthorSettings = {
   address: string
   profanityRule: string
   readerGenderRule: string
+  // поправки по «Не совсем» (26.11): ставит только zh13 для своей карусели zh6, прод zh6 их не задает
+  popravki?: string
   disclosure: 1 | 2 | 3
   voiceCore: string
   voiceCoreShort: string

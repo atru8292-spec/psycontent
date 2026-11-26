@@ -60,6 +60,40 @@ export async function istoriya(db: SupabaseClient, userId: string): Promise<{ n:
   return { n: cnt.count || rows.length, rows }
 }
 
+// Ответы «Не совсем» на прошлые тексты (26.11, решение Арины: генератор учится на реакциях). Берем вердикты not_like
+// за 30 дней (generated_posts.feedback, пишет /api/voice-events), считаем причины и даем писателю одну строку.
+// Только известные коды причин: свои слова человека в промпт не идут. «не та тема» про выбор темы, писателю не нужна.
+const POPRAVKA: Record<string, { bylo: string; nado: string }> = {
+  'слишком умно': { bylo: 'слишком заумно', nado: 'проще, бытовыми словами, без терминов' },
+  'слишком сладко': { bylo: 'слишком сладко', nado: 'суше и прямее, без утешений и нежностей' },
+  'не мои слова': { bylo: 'не мои слова', nado: 'ближе к тому, как автор говорит сам, без книжных оборотов' },
+  'длинно': { bylo: 'слишком длинно', nado: 'короче' },
+}
+const razy = (n: number) => (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? `${n} раза` : `${n} раз`)
+// feedback от новых к старым. Берем только not_like новее последнего «Да, это я» (ревью 26.11: иначе одно «длинно»
+// месяц подряд пережимало бы длину). kak: ты (промпт zh13 на «ты», род автора) или автор (блок автора карусели zh6).
+export function popravkiIz(feedback: { verdict?: unknown; reasons?: unknown }[], kak: 'ty-f' | 'ty-m' | 'avtor' = 'ty-f'): string {
+  const n = new Map<string, number>()
+  for (const f of feedback) {
+    if (f?.verdict === 'mine') break
+    if (f?.verdict !== 'not_like' || !Array.isArray(f.reasons)) continue
+    for (const r of new Set(f.reasons)) if (typeof r === 'string' && POPRAVKA[r]) n.set(r, (n.get(r) || 0) + 1)
+  }
+  if (!n.size) return ''
+  const kody = [...n.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => k)
+  const bylo = kody.map(k => `${POPRAVKA[k].bylo}${n.get(k)! > 1 ? ` (${razy(n.get(k)!)})` : ''}`).join(', ')
+  const kto = kak === 'avtor' ? 'автор отметил' : kak === 'ty-m' ? 'ты отметил' : 'ты отметила'
+  return `В прошлых текстах ${kto}: ${bylo}. Поэтому пиши ${kody.map(k => POPRAVKA[k].nado).join('; ')}.`
+}
+type Feedback = { verdict?: unknown; reasons?: unknown }
+async function feedbackAvtora(db: SupabaseClient, userId: string): Promise<Feedback[]> {
+  try {
+    const r = await db.from('generated_posts').select('feedback').eq('user_id', userId).not('feedback', 'is', null)
+      .gte('created_at', new Date(Date.now() - 30 * 86400000).toISOString()).order('created_at', { ascending: false }).limit(10)
+    return r.error ? [] : (r.data || []).map((x: any) => x.feedback || {})
+  } catch { return [] } // поправки не главное: без них текст пишется как раньше
+}
+
 export function avtorIz(profile: any): Avtor13 {
   const s = buildAuthorSettings(profile)
   const k = parseKlienty(profile?.klienty)
@@ -136,7 +170,7 @@ function situaciyaDlyaMysli(mysl: string, temy: string[], n: number, bylo: strin
 export async function napisat(db: SupabaseClient, userId: string, profile: any, z: Zapros13, knownNames: string[], opts?: { bezUcheta?: boolean; t0?: number }): Promise<Itog13> {
   const t0 = opts?.t0 || Date.now()
   const deadline = t0 + 95000
-  const { n, rows } = await istoriya(db, userId)
+  const [{ n, rows }, feedback] = await Promise.all([istoriya(db, userId), feedbackAvtora(db, userId)])
   let origin: Proshloe | null = null
   if (z.fromPostId) {
     const r = await db.from('generated_posts').select('id, created_at, topic, group_id, check_result').eq('id', z.fromPostId).eq('user_id', userId).maybeSingle()
@@ -187,7 +221,9 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   const posledOpory = rows.map(r => r.z.opora).filter(Boolean)
   const opora = vybratOporu(opory, n, posledOpory)
   const huk = HUK_TEKST[vybor.huk] || ''
-  const avtor = avtorIz(profile)
+  const avtor0 = avtorIz(profile)
+  const popravki = popravkiIz(feedback, avtor0.rod === 'm' ? 'ty-m' : 'ty-f')
+  const avtor: Avtor13 = { ...avtor0, ...(popravki ? { popravki } : {}) }
   const nedavnieObr = new Set<string>(rows.slice(0, 3).flatMap(r => r.z.obrazcy || []))
   const obrazcy = podobrat(f, tema || mysl || '', tema ? situaciiTemy(tema) : [], avtor.mat !== 'net', n, nedavnieObr)
   const kuski = D.kuski[f.vid]
@@ -216,6 +252,9 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     // род читателя как у остальных форматов zh13: без рода, если аудитория не «в основном женщины» (только в этом
     // вызове, настройки прода zh6 не меняются)
     if (!/женщин/i.test(avtor.gender || '')) ctx.settings.readerGenderRule = 'без родовых окончаний'
+    // поправки по «Не совсем» и в карусели (ревью 26.11: иначе «учтем» было бы неправдой для каруселей)
+    const pz = popravkiIz(feedback, 'avtor')
+    if (pz) ctx.settings.popravki = pz
     const req: GenRequest = { topic: tema || (mysl || '').slice(0, 300), format: 'carousel', intent: null, intentChoices: null, userDetail: mysl }
     const r = await zh6Write(ctx, req)
     const syroe = await cleanAds(ctx, 'carousel', r.text)

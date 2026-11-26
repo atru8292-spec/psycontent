@@ -49,13 +49,14 @@ function Wave({ rec }: { rec: VoiceRecorder }) {
   )
 }
 
-export default function VoiceSheet({ open, rec, onClose, onWriteText, maxSeconds = VOICE_MAX, prompt = 'Говори как обычно, паузы не страшны.' }: {
+export default function VoiceSheet({ open, rec, onClose, onWriteText, maxSeconds = VOICE_MAX, prompt = 'Говори как обычно, паузы не страшны.', bezTeksta = false }: {
   open: boolean
   rec: VoiceRecorder
   onClose: () => void
   onWriteText: () => void
   maxSeconds?: number // предел записи для подсчета «Осталось N секунд» (онбординг: 60)
   prompt?: string     // подсказка над волной (онбординг: «как с клиенткой»)
+  bezTeksta?: boolean // нет поля для текста (запись «Сказать своими словами»): без «Написать текстом» при выключенном микрофоне
 }) {
   const [intro, setIntro] = useState(false)
   const [tooShort, setTooShort] = useState(false)
@@ -96,8 +97,8 @@ export default function VoiceSheet({ open, rec, onClose, onWriteText, maxSeconds
     body = <p className="text-[18px] leading-6 text-brand-text py-4">{isIosSafari() ? 'Сейчас Safari спросит про микрофон. Нажми «Разрешить»' : 'Сейчас браузер спросит про микрофон. Нажми «Разрешить»'}</p>
     footer = <button type="button" onClick={okIntro} className={`w-full ${btn} bg-brand-accent text-white hover:bg-brand-accent-hover`}>Понятно</button>
   } else if (denied) {
-    body = <p className="text-[16px] leading-6 text-brand-text py-4">{isIosSafari() ? 'Микрофон выключен. Включи его: Настройки → Safari → Микрофон. Или напиши текстом' : 'Микрофон выключен. Включи его в настройках браузера для этого сайта. Или напиши текстом'}</p>
-    footer = <button type="button" onClick={onWriteText} className={`w-full ${btn} bg-brand-accent text-white hover:bg-brand-accent-hover`}>Написать текстом</button>
+    body = <p className="text-[16px] leading-6 text-brand-text py-4">{isIosSafari() ? 'Микрофон выключен. Включи его: Настройки → Safari → Микрофон' : 'Микрофон выключен. Включи его в настройках браузера для этого сайта'}{bezTeksta ? '' : '. Или напиши текстом'}</p>
+    footer = bezTeksta ? null : <button type="button" onClick={onWriteText} className={`w-full ${btn} bg-brand-accent text-white hover:bg-brand-accent-hover`}>Написать текстом</button>
   } else if (empty) {
     body = <p className="text-[16px] leading-6 text-brand-text py-4">Ничего не слышно. Попробуй еще раз, поближе к телефону</p>
     footer = <button type="button" onClick={again} className={`w-full ${btn} bg-brand-accent text-white hover:bg-brand-accent-hover`}>Еще раз</button>

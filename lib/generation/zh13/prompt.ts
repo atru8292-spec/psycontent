@@ -19,6 +19,8 @@ export type Avtor13 = {
   age: string[]
   gender: string | null
   format: string[]
+  // поправки по ответам «Не совсем» на прошлые тексты (26.11, pishi.ts popravkiIz); пусто: строки нет
+  popravki?: string
 }
 export type Obrazec13 = { id: string; format: 'reels' | 'carousel' | 'post'; podacha: string; ton: string; mat: boolean; tekst: string; istochnik?: string; kody?: string[]; huk?: string; tema?: string; metod?: boolean }
 export type Zadanie13 = {
@@ -105,7 +107,7 @@ export function prompt13(a: Avtor13, z: Zadanie13): { system: string; user: stri
   const mat = a.mat === 'mozhno' ? 'Мат можно.' : a.mat === 'tochechno' ? 'Мат можно точечно, со звездочкой в середине слова.' : 'Без мата.'
   const opora = z.mysl ? `${z.opora} (бери это, только если подходит к мысли)` : z.opora
   const ktoStr = kto(a)
-  const psiholog = `Ты психолог, ${a.rod === 'm' ? 'мужчина' : 'женщина'}.${ktoStr ? ` Твои клиенты: ${ktoStr}.` : ''} Как ты смотришь на людей: ${opora}. Голос: ${a.golos}. К зрителю ${a.vy ? 'на «вы»' : 'на «ты»'}. ${mat}`
+  const psiholog = `Ты психолог, ${a.rod === 'm' ? 'мужчина' : 'женщина'}.${ktoStr ? ` Твои клиенты: ${ktoStr}.` : ''} Как ты смотришь на людей: ${opora}. Голос: ${a.golos}. К зрителю ${a.vy ? 'на «вы»' : 'на «ты»'}. ${mat}${a.popravki ? ` ${a.popravki}` : ''}`
 
   // рилсы R1 (оценки Арины 19.11: «выложила бы» 4 из 5 против 2 из 5 у Р3 с «как сказал бы вслух»)
   const ritm = kusokBlok(RITM[f.vid], z.kusok)
