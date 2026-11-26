@@ -6,5 +6,8 @@ Requires=docker.service
 [Service]
 Type=oneshot
 ExecStart=/bin/bash /opt/supabase/backup/backup.sh
+# 26.11.2026: вторая страховка от зависания (у oneshot по умолчанию предела нет, зависший запуск не дал бы
+# таймеру начать следующую ночь)
+TimeoutStartSec=2h
 Nice=10
 IOSchedulingClass=idle

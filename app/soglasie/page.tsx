@@ -1,6 +1,6 @@
 // Текст согласия на обработку персональных данных отдельной страницей: по 152-ФЗ (в редакции с 01.09.2025) согласие
 // оформляется отдельно от других документов. Галочка при регистрации ссылается сюда (components/AuthModal.tsx).
-// При любой правке текста поменять CONSENT_VERSION и DOCS_DATE в lib/rekvizity.ts. Текст не проверял юрист (на 14.11.2026).
+// При любой правке текста поменять CONSENT_VERSION и CONSENT_DATE в lib/rekvizity.ts. Текст не проверял юрист (на 14.11.2026).
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import LegalPage, { Part, List } from '@/components/site/LegalPage'
