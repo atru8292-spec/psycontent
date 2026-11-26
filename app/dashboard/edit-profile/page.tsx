@@ -329,26 +329,35 @@ export default function EditProfile() {
   // Завершение
   if (completed) {
     return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center p-6">
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center p-4 sm:p-6">
+        {/* только проявление, без масштаба: движение не нужно тем, кто выключил анимации */}
         <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="bg-white max-w-lg w-full rounded-2xl p-8 border border-brand-border text-center shadow-xl"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="bg-white max-w-lg w-full rounded-2xl p-6 sm:p-8 border border-brand-border text-center"
         >
-          <div className="w-20 h-20 bg-brand-soft rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-10 h-10 text-brand-sage" />
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-brand-soft rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-8 h-8 sm:w-10 sm:h-10 text-brand-sage" />
           </div>
-          <h1 className="text-3xl font-bold text-brand-text mb-4">Готово, профиль обновлен</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-brand-text mb-4">Готово, профиль обновлен</h1>
           <p className="text-brand-text-secondary mb-6 leading-relaxed">
-            Ответы сохранены. Следующие тексты PsyCont напишет уже с ними.
+            Ответы сохранены. Со следующего текста PsyCont пишет уже по ним. Готовые тексты остаются как были.
           </p>
 
           <div className="flex flex-col gap-3">
+            {/* /dashboard у нового кабинета сразу уводит на «Написать», поэтому ведем прямо туда, а «назад» это «Настройки»,
+                откуда сюда приходят по кнопке «Изменить» у «Практики» (дизайнер 26.11) */}
             <button
-              onClick={() => router.push('/dashboard')}
-              className="w-full py-4 bg-brand-accent hover:bg-brand-accent-hover text-white rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-lg cursor-pointer"
+              onClick={() => router.push('/dashboard/make')}
+              className="w-full py-4 bg-brand-accent hover:bg-brand-accent-hover text-white rounded-xl font-semibold transition flex items-center justify-center gap-2 cursor-pointer"
             >
-              Вернуться в кабинет <ArrowRight className="w-5 h-5" />
+              Написать текст <ArrowRight className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => router.push('/dashboard/settings')}
+              className={`mx-auto ${QUIET_BTN_SM_MUTED}`}
+            >
+              Вернуться в настройки
             </button>
           </div>
         </motion.div>

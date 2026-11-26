@@ -29,7 +29,19 @@ fi
 mv .next-novaya .next
 # NEXT_DIST_DIR не должен попасть в процесс сайта: next start искал бы .next-novaya
 env -u NEXT_DIST_DIR pm2 restart psycont --update-env
-sleep 2
 echo "==> 5/5 Проверка"
-curl -s -o /dev/null -w "Проверка: psycont отвечает -> HTTP %{http_code}\n" http://localhost:3001
+# 26.11.2026: раньше была одна попытка через 2 секунды, сайт не успевал подняться, и скрипт падал с «HTTP 000»
+# при рабочей выкатке. Теперь ждем ответа до 30 секунд.
+CODE=000
+for i in $(seq 1 30); do
+  sleep 1
+  CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 2 http://127.0.0.1:3001 || true)
+  [ "$CODE" = 200 ] && break
+done
+echo "Проверка: psycont отвечает -> HTTP $CODE (попыток: $i)"
+if [ "$CODE" != 200 ]; then
+  echo "ВНИМАНИЕ: сайт не ответил 200 за 30 попыток. Посмотреть: pm2 logs psycont --nostream --lines 50"
+  echo "Откат сборки: cd /var/www/psycont && rm -rf .next-bad && mv .next .next-bad && mv .next-staraya .next && pm2 restart psycont"
+  exit 1
+fi
 echo "Готово. Боевой сайт обновлен."
