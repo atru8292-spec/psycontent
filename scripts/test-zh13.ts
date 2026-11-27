@@ -76,7 +76,7 @@ ok('промпт: образцы, опора, ритм своего формат
     const f0 = FORMATY.find(f => !f.zh6)!
     const pb = prompt13(b, { f: f0, tema: 'Тревога', mysl: null, situaciya: null, opora: OPORY['КПТ'][0], huk: '', obrazcy: [], kusok: 'кусок' }).user
     assert.ok(/Как ты подаешь: с иронией.*; и прямо/.test(pb), 'манера в промпте')
-    assert.ok(/О личном не пишешь; про работу можно/.test(pb), 'о себе в промпте')
+    assert.ok(/Про семью и личную жизнь не пишешь; про работу можно: учеба, своя терапия/.test(pb), 'о себе в промпте')
     assert.ok(/даже «блин» и «жопа» не пиши/.test(pb), 'строгий запрет')
     assert.ok(/в основном мужчины: к читателю пиши в мужском роде/.test(pb), 'мужской род читателя')
     const pa = prompt13(avtorIz({ ...profil, profanity: null }), { f: f0, tema: 'Тревога', mysl: null, situaciya: null, opora: OPORY['КПТ'][0], huk: '', obrazcy: [], kusok: 'кусок' }).user
