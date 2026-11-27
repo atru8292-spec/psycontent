@@ -53,11 +53,11 @@ const EMPTY: Answers = { name: '', gender: null, approaches: [], klienty: EMPTY_
 
 // Тексты шагов 5-6 (copywriter-psycont 27.11) и коды манер, как в генераторе (MANERA в lib/generation/zh13/prompt.ts)
 const T6 = {
-  manHint: 'Выбери одну или две', neZnayu: 'Пока не знаю', neZnayuSub: 'Тогда первый текст выйдет спокойным, дальше PsyCont подстроится под твои правки',
+  manHint: 'Выбери одну или две', neZnayu: 'Пока не знаю', neZnayuSub: 'Первый текст выйдет спокойным',
   tretya: 'Можно до двух. Сними одну, чтобы выбрать другую',
   title6: 'Еще три мелочи', hint6: 'Все это поменяешь потом в «Настройках»',
   address: 'К читателю:', ty: 'На ты', vy: 'На вы',
-  oSebe: 'Рассказываешь о себе в блоге?', da: 'Да', daSub: 'И про личное, только с твоих слов', net: 'Нет', netSub: 'Про работу можно: «ко мне приходят», «в практике вижу»',
+  oSebe: 'Рассказываешь о себе в блоге?', da: 'Да', daSub: 'И про личное, только с твоих слов', net: 'Нет', netSub: 'Про работу можно: «ко\u00A0мне приходят», «в\u00A0практике вижу»',
   mat: 'Материшься в текстах?', matNo: 'Нет', matNoSub: 'Ни мата, ни даже «блин»', matLight: 'Иногда', matLightSub: 'Со звездочками внутри слова', matFree: 'Да', matFreeSub: 'Без звездочек, как в жизни',
   missAll: 'Отметь по одному ответу в каждом вопросе', missAddr: 'Выбери, на ты или на вы', missMat: 'Выбери ответ про мат',
 }
@@ -454,7 +454,8 @@ export default function ExpressOnboarding() {
     const full = a.manera.length >= 2
     body = (
       <div>
-        {title('Как ты пишешь в блоге?')}
+        {/* в одну строку на 375 (на «Как ты пишешь в блоге?» пятая карточка уходила под кнопку, снимок 27.11) */}
+        {title('Как ты пишешь?')}
         <p id="onb-manera-hint" className="mt-1.5 text-[14px] leading-5 text-brand-muted">{T6.manHint}</p>
         <div role="group" aria-label="Как ты пишешь в блоге" aria-describedby="onb-manera-hint" className="mt-3 flex flex-col gap-1.5">
           {MANERY.map(m => {
