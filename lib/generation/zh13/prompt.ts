@@ -14,14 +14,30 @@ export type Avtor13 = {
   rod: 'm' | 'f'
   vy: boolean
   golos: string
-  mat: 'net' | 'tochechno' | 'mozhno'
+  // strogo: явное «Нет» в знакомстве (без грубых слов вообще); net: не выбрано, как раньше
+  mat: 'net' | 'strogo' | 'tochechno' | 'mozhno'
   gruppy: string[]
   age: string[]
   gender: string | null
   format: string[]
   // поправки по ответам «Не совсем» на прошлые тексты (26.11, pishi.ts popravkiIz); пусто: строки нет
   popravki?: string
+  // манера из знакомства «Как ты пишешь в блоге?» (27.11, onboarding_profiles.manera), коды MANERA; пусто: строки нет
+  manera?: string[]
+  // о себе (disclosure): true можно «я» о работе и наблюдениях, false только о читателе, null не задано
+  oSebe?: boolean | null
 }
+
+// Манеры из разбора 245 рилсов (_знания/разборы/MANERY-PSIHOLOGOV-2026-11-27.md): как это звучит у живых психологов
+export const MANERA: Record<string, string> = {
+  obyasnyayu: 'объясняешь, как это устроено: механизм простыми словами и пример из жизни',
+  ironiya: 'с иронией: коротко и горько, над ситуацией и над собой, без длинных шуток и без насмешки над конкретным человеком',
+  pryamo: 'прямо: коротко, уверенно, без смягчений, оговорок и «иногда»',
+  berezhno: 'бережно, по-доброму: снимаешь вину уверенно, без «может быть» и «иногда», мягкость в смысле, а не в осторожных словах',
+  posvoyski: 'по-свойски, на равных: разговорными словами, без дистанции специалиста',
+}
+export const manera = (kody: unknown): string[] =>
+  (Array.isArray(kody) ? kody : []).filter((k): k is string => typeof k === 'string' && !!MANERA[k]).slice(0, 2)
 export type Obrazec13 = { id: string; format: 'reels' | 'carousel' | 'post'; podacha: string; ton: string; mat: boolean; tekst: string; istochnik?: string; kody?: string[]; huk?: string; tema?: string; metod?: boolean }
 export type Zadanie13 = {
   f: Format13
@@ -104,17 +120,21 @@ export function prompt13(a: Avtor13, z: Zadanie13): { system: string; user: stri
       z.situaciya ? `Если к мысли подходит ситуация «${z.situaciya}», можно от нее оттолкнуться; не подходит, не бери.` : '',
     ].filter(Boolean).join(' ')
     : `Сделай свой ${chto}. Тема: ${chistTema(z.tema || '')}.${z.situaciya ? ` Ситуация, от которой можно оттолкнуться: ${z.situaciya}.` : ''}`
-  const mat = a.mat === 'mozhno' ? 'Мат можно.' : a.mat === 'tochechno' ? 'Мат можно точечно, со звездочкой в середине слова.' : 'Без мата.'
+  // «Нет» в знакомстве строгое (27.11): без мата и без грубых слов, даже «блин» и «жопа»
+  const mat = a.mat === 'mozhno' ? 'Мат можно, без звездочек.' : a.mat === 'tochechno' ? 'Мат и грубые слова можно точечно, мат со звездочкой в середине слова.' : a.mat === 'strogo' ? 'Без мата и без грубых слов, даже «блин» и «жопа» не пиши.' : 'Без мата.'
+  const podacha = a.manera?.length ? ` Как ты подаешь: ${a.manera.map(k => MANERA[k]).join('; и ')}.` : ''
+  const oSebe = a.oSebe === true ? ' О себе можно сказать «я» про свою работу и наблюдения, факты своей жизни не выдумывай.' : a.oSebe === false ? ' О себе не пишешь: без «я тоже так делала», только о читателе и его ситуации.' : ''
   const opora = z.mysl ? `${z.opora} (бери это, только если подходит к мысли)` : z.opora
   const ktoStr = kto(a)
-  const psiholog = `Ты психолог, ${a.rod === 'm' ? 'мужчина' : 'женщина'}.${ktoStr ? ` Твои клиенты: ${ktoStr}.` : ''} Как ты смотришь на людей: ${opora}. Голос: ${a.golos}. К зрителю ${a.vy ? 'на «вы»' : 'на «ты»'}. ${mat}${a.popravki ? ` ${a.popravki}` : ''}`
+  const psiholog = `Ты психолог, ${a.rod === 'm' ? 'мужчина' : 'женщина'}.${ktoStr ? ` Твои клиенты: ${ktoStr}.` : ''} Как ты смотришь на людей: ${opora}. Голос: ${a.golos}. К зрителю ${a.vy ? 'на «вы»' : 'на «ты»'}.${podacha}${oSebe} ${mat}${a.popravki ? ` ${a.popravki}` : ''}`
 
   // рилсы R1 (оценки Арины 19.11: «выложила бы» 4 из 5 против 2 из 5 у Р3 с «как сказал бы вслух»)
   const ritm = kusokBlok(RITM[f.vid], z.kusok)
   const podpisi = f.vid === 'post' ? '' : `Так звучат живые подписи под роликами и каруселями:\n${PODPISI.map(x => `- ${x}`).join('\n')}\nПодпись не начинай с «Можно» и «Иногда».`
   // «Подожди,» в начале переносился из живых образцов неудобных вопросов во все тексты формата (zh11, zh13)
   const podozhdi = f.kod === 'voprosy' ? 'Первый вопрос не начинай со слова «Подожди».' : ''
-  const rod = /женщин/i.test(a.gender || '') ? '' : 'Твои читатели и мужчины, и женщины: к читателю пиши без рода (не «сама», не «устала», не «бездельница»).'
+  // «в основном мужчины» мужским родом читателя (27.11; раньше выходило без рода и звучало деревянно)
+  const rod = /женщин/i.test(a.gender || '') ? '' : /мужчин/i.test(a.gender || '') ? 'Твои читатели в основном мужчины: к читателю пиши в мужском роде.' : 'Твои читатели и мужчины, и женщины: к читателю пиши без рода (не «сама», не «устала», не «бездельница»).'
 
   // пары «было / живо» случайно из пула формата (z.seedPar только для тестов)
   const pary = paryDlya(f.kod, f.vid, z.seedPar)

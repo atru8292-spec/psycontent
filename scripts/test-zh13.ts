@@ -65,7 +65,23 @@ const profil = { author_gender: 'female', reader_address: 'ty', profanity: 'no',
 
 ok('промпт: образцы, опора, ритм своего формата, без названия подхода, род читателя, «Подойдет еще»', () => {
   const a = avtorIz(profil)
-  assert.equal(a.vy, false); assert.equal(a.mat, 'net'); assert.deepEqual(a.gruppy, ['Тревога и стресс'])
+  assert.equal(a.vy, false); assert.equal(a.mat, 'strogo', 'явное «нет» строгое'); assert.deepEqual(a.gruppy, ['Тревога и стресс'])
+  assert.equal(avtorIz({ ...profil, profanity: null }).mat, 'net', 'не выбрано: как раньше')
+  {
+    // знакомство 27.11: манера, о себе, строгий запрет, мужской род читателя
+    const b = avtorIz({ ...profil, manera: ['ironiya', 'pryamo', 'lishnee', 'berezhno'], disclosure: 3, klienty: { ...profil.klienty, gender: 'В основном мужчины' } })
+    assert.deepEqual(b.manera, ['ironiya', 'pryamo'], 'не больше двух известных')
+    assert.equal(b.oSebe, false)
+    assert.equal(avtorIz(profil).oSebe, null, 'disclosure не задан: строки нет')
+    const f0 = FORMATY.find(f => !f.zh6)!
+    const pb = prompt13(b, { f: f0, tema: 'Тревога', mysl: null, situaciya: null, opora: OPORY['КПТ'][0], huk: '', obrazcy: [], kusok: 'кусок' }).user
+    assert.ok(/Как ты подаешь: с иронией.*; и прямо/.test(pb), 'манера в промпте')
+    assert.ok(/О себе не пишешь/.test(pb), 'о себе в промпте')
+    assert.ok(/даже «блин» и «жопа» не пиши/.test(pb), 'строгий запрет')
+    assert.ok(/в основном мужчины: к читателю пиши в мужском роде/.test(pb), 'мужской род читателя')
+    const pa = prompt13(avtorIz({ ...profil, profanity: null }), { f: f0, tema: 'Тревога', mysl: null, situaciya: null, opora: OPORY['КПТ'][0], huk: '', obrazcy: [], kusok: 'кусок' }).user
+    assert.ok(!/Как ты подаешь|О себе/.test(pa) && /Без мата\./.test(pa), 'старый профиль без изменений')
+  }
   for (const f of FORMATY.filter(f => !f.zh6)) {
     const obr = podobrat(f, 'Тревога и накручивание', [], false, 0, new Set())
     const p = prompt13(a, { f, tema: 'Тревога и накручивание', mysl: null, situaciya: 'партнер не отвечает час, а в голове уже авария', opora: OPORY['КПТ'][0], huk: 'Первая фраза: вопрос.', obrazcy: obr, kusok: 'кусок' })

@@ -10,7 +10,7 @@ import { buildAuthorSettings } from '../settings'
 import { GRUPPY, parseKlienty, situaciiTemy, nishaProfilya } from '@/lib/anketa'
 import { FORMATY, HUKI_MYSLI, formatPo, vybratAuto, type Format13 } from './formaty'
 import { oporyPsihologa, vybratOporu } from './opory'
-import { prompt13, type Avtor13, type Obrazec13 } from './prompt'
+import { prompt13, manera, type Avtor13, type Obrazec13 } from './prompt'
 import { razobrat, type Rezultat13 } from './razbor'
 import { proverit, type Proverka } from './proverka'
 import { taZheTema, pohozhe, shodstvo, slova } from './tekst'
@@ -120,7 +120,9 @@ export function avtorIz(profile: any): Avtor13 {
     rod: profile?.author_gender === 'male' ? 'm' : 'f',
     vy: /на вы/.test(s.address),
     golos,
-    mat: profile?.profanity === 'free' ? 'mozhno' : profile?.profanity === 'light' ? 'tochechno' : 'net',
+    mat: profile?.profanity === 'free' ? 'mozhno' : profile?.profanity === 'light' ? 'tochechno' : profile?.profanity === 'no' ? 'strogo' : 'net',
+    manera: manera(profile?.manera),
+    oSebe: Number(profile?.disclosure) === 3 ? false : Number(profile?.disclosure) === 2 || Number(profile?.disclosure) === 1 ? true : null,
     gruppy: gruppy.length ? gruppy : (nishaProfilya(profile) ? [nishaProfilya(profile)] : []),
     age: k.age, gender: k.gender, format: k.format,
   }
@@ -248,7 +250,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   const popravki = popravkiIz(feedback, avtor0.rod === 'm' ? 'ty-m' : 'ty-f')
   const avtor: Avtor13 = { ...avtor0, ...(popravki ? { popravki } : {}) }
   const nedavnieObr = new Set<string>(rows.slice(0, 3).flatMap(r => r.z.obrazcy || []))
-  const obrazcy = podobrat(f, tema || mysl || '', tema ? situaciiTemy(tema) : [], avtor.mat !== 'net', n, nedavnieObr)
+  const obrazcy = podobrat(f, tema || mysl || '', tema ? situaciiTemy(tema) : [], (avtor.mat === 'tochechno' || avtor.mat === 'mozhno'), n, nedavnieObr)
   const kuski = D.kuski[f.vid]
   const kusok = kuski[n % kuski.length]
 
@@ -263,7 +265,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     if (!rez.podpis) return null
     const moral = podpisMoral(rez.podpis), perev = podpisPerevertysh(rez.podpis), vopros = voprosToje && podpisVopros(rez.podpis)
     if (!moral && !perev && !vopros) return null
-    const x = await perepisatPodpis({ podpis: rez.podpis, glavnoe: rez.glavnoe, prichina: moral ? 'moral' : perev ? 'perevertysh' : 'vopros', obrazcy: PODPISI, mat: a.mat !== 'net', deadline, userId: uchet, knownNames, moral: podpisMoral, vopros: podpisVopros })
+    const x = await perepisatPodpis({ podpis: rez.podpis, glavnoe: rez.glavnoe, prichina: moral ? 'moral' : perev ? 'perevertysh' : 'vopros', obrazcy: PODPISI, mat: a.mat === 'tochechno' || a.mat === 'mozhno', deadline, userId: uchet, knownNames, moral: podpisMoral, vopros: podpisVopros })
     if (x.vzyato) { rez.tekst = rez.tekst.replace(rez.podpis, x.posle); rez.podpis = x.posle }
     return x
   }
@@ -344,7 +346,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   const mk = moralKonca(f, rez.tekst, rez.glavnoe, mysl)
   if (mk) pometki2.push({ kod: 'moral_konec', fraza: mk })
   for (const x of pometki2) if (!pometki.some(y => y.kod === x.kod && y.fraza === x.fraza)) pometki.push(x)
-  const pr = await perepisatFrazy({ text: `${rez.glavnoe}\n\n${rez.podpis}`, kod: f.kod, nadpis: rez.nadpis, pometki: pometki2, kusok: kusok.tekst, mat: avtor.mat !== 'net', deadline, userId: uchet, knownNames })
+  const pr = await perepisatFrazy({ text: `${rez.glavnoe}\n\n${rez.podpis}`, kod: f.kod, nadpis: rez.nadpis, pometki: pometki2, kusok: kusok.tekst, mat: (avtor.mat === 'tochechno' || avtor.mat === 'mozhno'), deadline, userId: uchet, knownNames })
   for (const x of pr.perepis) if (x.vzyato) { rez.tekst = rez.tekst.replace(x.do, x.posle); rez.glavnoe = rez.glavnoe.replace(x.do, x.posle); rez.podpis = rez.podpis.replace(x.do, x.posle) }
   // подпись с моралью: переписываем только подпись (своя мысль в конце текста моралью не считается, подпись проверяем всегда)
   const pp = await podpisBezMorali(rez, avtor, mysl, f.kod === 'voprosy' ? null : 'vopros', false)
