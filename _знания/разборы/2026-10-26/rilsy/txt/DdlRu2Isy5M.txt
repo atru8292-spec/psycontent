@@ -1,0 +1,4 @@
+# DdlRu2Isy5M | @kunduzay_baxadirovna | 15.2 с | звук: да
+# Расшифровка Whisper large-v3 (whisper.cpp), ru. Возможны ошибки распознавания.
+
+[0:00.0-0:15.0] Субтитры делал DimaTorzok

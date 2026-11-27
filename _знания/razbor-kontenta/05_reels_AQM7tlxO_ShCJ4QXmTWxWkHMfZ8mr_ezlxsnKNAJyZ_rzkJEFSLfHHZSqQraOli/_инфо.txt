@@ -1,0 +1,3 @@
+тип: reels
+источник: input/AQM7tlxO_ShCJ4QXmTWxWkHMfZ8mr_ezlxsnKNAJyZ_rzkJEFSLfHHZSqQraOli.mp4
+кадров: 33
