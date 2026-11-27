@@ -7,7 +7,7 @@
 
 export type ExamplePost = { id: string; manner: string; kind: string; text: string; note?: string }
 
-// Блок «Прямо, с иронией или с крепким словцом»: три манеры подачи
+// Блок «Прямо, с иронией или с матом»: три манеры подачи
 export const EXAMPLES: ExamplePost[] = [
   {
     id: 'yulia_ne_zlyus',
@@ -49,7 +49,7 @@ export const EXAMPLES: ExamplePost[] = [
   },
   {
     id: 'olga_podrugi',
-    manner: 'с крепким словцом',
+    manner: 'с матом',
     kind: 'рилс, отвечает на вопрос',
     // zh6: мат везде целиком или везде со звездочкой, по выбору психолога, иначе как в его текстах (matZvezdy в zh6/write.ts)
     note: 'Целиком или со звездочкой, как решишь ты или подскажут твои тексты.',
