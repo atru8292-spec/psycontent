@@ -122,7 +122,7 @@ export function avtorIz(profile: any): Avtor13 {
     golos,
     mat: profile?.profanity === 'free' ? 'mozhno' : profile?.profanity === 'light' ? 'tochechno' : profile?.profanity === 'no' ? 'strogo' : 'net',
     manera: manera(profile?.manera),
-    oSebe: Number(profile?.disclosure) === 3 ? false : Number(profile?.disclosure) === 2 || Number(profile?.disclosure) === 1 ? true : null,
+    oSebe: ({ 1: 'lichnoe', 2: 'rabota', 3: 'nichego' } as const)[Number(profile?.disclosure) as 1 | 2 | 3] ?? null,
     gruppy: gruppy.length ? gruppy : (nishaProfilya(profile) ? [nishaProfilya(profile)] : []),
     age: k.age, gender: k.gender, format: k.format,
   }

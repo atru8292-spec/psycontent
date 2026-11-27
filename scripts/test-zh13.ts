@@ -69,14 +69,14 @@ ok('промпт: образцы, опора, ритм своего формат
   assert.equal(avtorIz({ ...profil, profanity: null }).mat, 'net', 'не выбрано: как раньше')
   {
     // знакомство 27.11: манера, о себе, строгий запрет, мужской род читателя
-    const b = avtorIz({ ...profil, manera: ['ironiya', 'pryamo', 'lishnee', 'berezhno'], disclosure: 3, klienty: { ...profil.klienty, gender: 'В основном мужчины' } })
+    const b = avtorIz({ ...profil, manera: ['ironiya', 'pryamo', 'lishnee', 'berezhno'], disclosure: 2, klienty: { ...profil.klienty, gender: 'В основном мужчины' } })
     assert.deepEqual(b.manera, ['ironiya', 'pryamo'], 'не больше двух известных')
-    assert.equal(b.oSebe, false)
+    assert.equal(b.oSebe, 'rabota')
     assert.equal(avtorIz(profil).oSebe, null, 'disclosure не задан: строки нет')
     const f0 = FORMATY.find(f => !f.zh6)!
     const pb = prompt13(b, { f: f0, tema: 'Тревога', mysl: null, situaciya: null, opora: OPORY['КПТ'][0], huk: '', obrazcy: [], kusok: 'кусок' }).user
     assert.ok(/Как ты подаешь: с иронией.*; и прямо/.test(pb), 'манера в промпте')
-    assert.ok(/О себе не пишешь/.test(pb), 'о себе в промпте')
+    assert.ok(/О личном не пишешь; про работу можно/.test(pb), 'о себе в промпте')
     assert.ok(/даже «блин» и «жопа» не пиши/.test(pb), 'строгий запрет')
     assert.ok(/в основном мужчины: к читателю пиши в мужском роде/.test(pb), 'мужской род читателя')
     const pa = prompt13(avtorIz({ ...profil, profanity: null }), { f: f0, tema: 'Тревога', mysl: null, situaciya: null, opora: OPORY['КПТ'][0], huk: '', obrazcy: [], kusok: 'кусок' }).user
