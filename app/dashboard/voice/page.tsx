@@ -13,6 +13,7 @@ import { ArrowLeft, Loader2, Plus, Trash2, Check, ChevronDown, Mic } from 'lucid
 import { supabase } from '@/lib/supabase'
 import VoiceTextarea from '@/components/VoiceTextarea'
 import { QUIET_BTN, QUIET_BTN_MUTED } from '@/lib/ui-classes'
+import { MANERY, MANERA_MAX, maneraIz } from '@/lib/manera'
 
 type Story = { text: string; level: 'personal' | 'work' | 'practice' }
 
@@ -143,6 +144,8 @@ export default function VoicePage() {
   const [address, setAddress] = useState<'ty' | 'vy' | 'vy_devochki' | null>(null)
   const [profanity, setProfanity] = useState<'no' | 'light' | 'free' | null>(null)
   const [intensity, setIntensity] = useState<'calm' | 'live' | 'hot' | null>(null)
+  // манера из знакомства (27.11), до двух; тот же выбор, что на шаге 5 знакомства
+  const [manera, setManera] = useState<string[]>([])
   // ползунки тона (те же, что в экспрессе): 0..100, высокое = формально / серьезно / бережно
   const [tone, setTone] = useState<Record<ToneAxis, number>>({ tone_formal: 50, tone_serious: 50, tone_cautious: 50 })
   const [toneSaved, setToneSaved] = useState<string | null>(null)
@@ -189,6 +192,7 @@ export default function VoicePage() {
         setAddress(p.reader_address ?? null)
         setProfanity(p.profanity ?? null)
         setIntensity(p.intensity ?? null)
+        setManera(maneraIz(p.manera))
         // ?? 50, не || 50: ноль это валидный край «очень разговорно»
         setTone({ tone_formal: p.tone_formal ?? 50, tone_serious: p.tone_serious ?? 50, tone_cautious: p.tone_cautious ?? 50 })
         setDisclosure(p.disclosure ?? null)
@@ -289,7 +293,7 @@ export default function VoicePage() {
   }
 
   // Мат и эмоции сохраняются сразу по клику: это главные ручки голоса, без кнопки «Сохранить»
-  const saveTone = async (patch: { profanity?: string; intensity?: string } | Partial<Record<ToneAxis, number>>) => {
+  const saveTone = async (patch: { profanity?: string; intensity?: string; manera?: string[] } | Partial<Record<ToneAxis, number>>) => {
     if (!userId) return
     setToneSaved(null)
     const { error } = await supabase.from('onboarding_profiles').update(patch).eq('user_id', userId)
@@ -387,6 +391,27 @@ export default function VoicePage() {
         {/* Как ты звучишь: мат и эмоции на виду, это то, что психологи чаще всего хотят поменять */}
         <section className={card}>
           <h2 className="text-lg font-bold text-brand-text">Как ты звучишь</h2>
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-brand-text">Как ты пишешь в блоге</p>
+            <p className="text-xs text-brand-muted leading-relaxed">Одну или две. Если не выбрано, первый текст спокойный, дальше PsyCont подстраивается под правки.</p>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Как ты пишешь в блоге">
+              {MANERY.map(m => {
+                const on = manera.includes(m.kod)
+                const off = !on && manera.length >= MANERA_MAX
+                return (
+                  <button key={m.kod} type="button" aria-pressed={on} aria-disabled={off || undefined} title={off ? 'Уже две. Сними одну, чтобы выбрать эту' : `«${m.primer}»`}
+                    onClick={() => {
+                      if (off) return
+                      const next = on ? manera.filter(k => k !== m.kod) : [...manera, m.kod]
+                      setManera(next); saveTone({ manera: next })
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-sm border transition cursor-pointer ${on ? 'bg-brand-accent text-white border-brand-accent' : off ? 'bg-white text-brand-muted border-dashed border-brand-border' : 'bg-white text-brand-text-secondary border-brand-border hover:border-brand-accent'}`}>
+                    {m.imya}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
           <div className="space-y-2">
             <p className="text-sm font-semibold text-brand-text">Мат</p>
             <p className="text-xs text-brand-muted leading-relaxed">Мат разрешен, если он есть в твоей речи. Если в жизни можешь сказать «да пошло оно все», посты тоже могут. Тут никто не осудит.</p>

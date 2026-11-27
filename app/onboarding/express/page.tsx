@@ -14,14 +14,13 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { makeHref } from '@/lib/make-handoff'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { ChevronLeft, Check, Plus, Mic, Loader2 } from 'lucide-react'
+import { ChevronLeft, Check, Plus, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { useVoiceRecorder } from '@/lib/use-voice-recorder'
-import VoiceSheet from '@/components/make/VoiceSheet'
 import { firstTopic } from '@/lib/first-topic'
-import { EMPTY_KLIENTY, frazyDlya, parseKlienty, replikiDlya, temyPoKrugu, type Klienty } from '@/lib/anketa'
-import { KtoPrihodit, PickChips, SChemRabotaesh } from '@/components/anketa/AnketaBlocks'
+import { EMPTY_KLIENTY, parseKlienty, temyPoKrugu, type Klienty } from '@/lib/anketa'
+import { KtoPrihodit, SChemRabotaesh } from '@/components/anketa/AnketaBlocks'
 import { track } from '@/lib/track'
+import { MANERY } from '@/lib/manera'
 import { syncEmailName } from '@/lib/auth-name'
 
 // Метки подхода = ровно ключи getApproachContext в generate-post (иначе стилевой блок
@@ -36,7 +35,6 @@ const TOP_APPROACHES = ['КПТ', 'Гештальт', 'Психоанализ', 
 const ALL_APPROACHES = [...TOP_APPROACHES, ...APPROACHES.filter(x => !TOP_APPROACHES.includes(x))]
 const STORE = 'psycont_onb_express'
 const TOTAL = 6
-const VOICE_LIMIT = 60
 // Просмотр для проверки верстки: только в dev-сборке, ?preview=1 пропускает проверку профиля и ничего не пишет в базу.
 // В проде переменная NODE_ENV = production, режим не включается.
 const isPreview = () => process.env.NODE_ENV !== 'production' && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1'
@@ -44,11 +42,24 @@ const isPreview = () => process.env.NODE_ENV !== 'production' && typeof window !
 type Answers = {
   name: string; gender?: 'female' | 'male' | null; approaches: string[]
   klienty: Klienty; topics: string[]; ownTopic: string; phrases: string[]; ownPhrase: string
-  // 6-й вопрос: реплика клиентки по первой отмеченной группе (lib/anketa replikiDlya), «Другая ситуация» листает дальше
+  // до 27.11 вопросы 5 «Что говорят клиенты» и 6 «Как ты ответишь на такое?»; поля остаются, чтобы старый черновик
+  // из sessionStorage не ломался, в базу больше не пишутся
   tone: string; situation: number; situationFor?: string
+  // 27.11 «Как ты пишешь в блоге?»: шаг 5 манера (до двух кодов MANERA из lib/generation/zh13/prompt.ts), шаг 6 три коротких
+  manera: string[]; address: 'ty' | 'vy' | null; mat: 'no' | 'light' | 'free' | null; oSebe: 'da' | 'net' | null
 }
 
-const EMPTY: Answers = { name: '', gender: null, approaches: [], klienty: EMPTY_KLIENTY, topics: [], ownTopic: '', phrases: [], ownPhrase: '', tone: '', situation: 0 }
+const EMPTY: Answers = { name: '', gender: null, approaches: [], klienty: EMPTY_KLIENTY, topics: [], ownTopic: '', phrases: [], ownPhrase: '', tone: '', situation: 0, manera: [], address: null, mat: null, oSebe: null }
+
+// Тексты шагов 5-6 (copywriter-psycont 27.11) и коды манер, как в генераторе (MANERA в lib/generation/zh13/prompt.ts)
+const T6 = {
+  manHint: 'Одну или две', neZnayu: 'Пока не знаю', tretya: 'Уже две. Сними одну, чтобы выбрать эту',
+  title6: 'И еще три коротких', hint6: 'Все это можно поменять в Настройках',
+  address: 'К читателю', ty: 'На ты', vy: 'На вы',
+  oSebe: 'Рассказываешь о себе в блоге?', da: 'Да', daSub: 'и про личное', net: 'Нет', netSub: 'только о работе',
+  mat: 'Материшься в блоге?', matNo: 'Нет', matNoSub: 'ни мата, ни «блин»', matLight: 'Иногда', matLightSub: 'со звездочками', matFree: 'Да', matFreeSub: 'без звездочек',
+  missAll: 'Выбери, как обращаешься к читателю, и про мат', missAddr: 'Осталось выбрать: на ты или на вы', missMat: 'Осталось ответить про мат',
+}
 // 0 вход, 1-6 вопросы, 7 финал
 type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
 
@@ -87,10 +98,8 @@ export default function ExpressOnboarding() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [topic, setTopic] = useState('')
-  const [voiceOpen, setVoiceOpen] = useState(false)
   const stepStart = useRef(Date.now())
   const titleRef = useRef<HTMLHeadingElement>(null)
-  const fieldRef = useRef<HTMLTextAreaElement>(null)
   const actionRef = useRef<HTMLDivElement>(null)
   const uidRef = useRef<string | null>(null)
   const areaRef = useRef<HTMLDivElement>(null)
@@ -145,13 +154,6 @@ export default function ExpressOnboarding() {
     return () => { active = false }
   }, [router])
 
-  // на 6-й шаг с новыми группами: первая реплика по первой группе; уже листала для этих групп, не сбиваем
-  useEffect(() => {
-    if (step !== 6) return
-    const n = a.klienty.groups.join(',')
-    if (a.situationFor !== n) setA(x => ({ ...x, situation: 0, situationFor: n }))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step])
 
   // каждый шаг пишется в sessionStorage
   useEffect(() => {
@@ -220,17 +222,7 @@ export default function ExpressOnboarding() {
 
   // темы: отмеченные по кругу между группами и своя тема в конце; фразы так же
   const topics = [...new Set([...temyPoKrugu(a.klienty.groups, a.topics), ...(a.ownTopic.trim() ? [a.ownTopic.trim()] : [])])]
-  const phrases = [...a.phrases, ...(a.ownPhrase.trim() ? [a.ownPhrase.trim()] : [])]
-  // на 6-м шаге «Дальше» ждет конца расшифровки, иначе текст придет после сохранения и потеряется
-  const valid: Record<number, boolean> = { 1: !!a.name.trim() && !!a.gender, 2: a.approaches.length > 0, 3: a.klienty.groups.length > 0, 4: true, 5: true, 6: !!a.tone.trim() }
-
-  // запись голоса до минуты; текст встает в конец поля
-  const appendTone = useCallback((t: string) => setA(x => ({ ...x, tone: x.tone.trim() ? `${x.tone.trim()} ${t}` : t })), [])
-  const rec = useVoiceRecorder(appendTone, { maxSeconds: VOICE_LIMIT, nearSeconds: VOICE_LIMIT - 10 })
-  const transcribing = rec.state === 'transcribing'
-  const transcribeFailed = rec.state === 'error' && rec.errorKind === 'network'
-  if (transcribing) valid[6] = false
-  useEffect(() => { if (rec.state === 'error' && rec.errorKind === 'denied') track('onb_mic_denied') }, [rec.state, rec.errorKind])
+  const valid: Record<number, boolean> = { 1: !!a.name.trim() && !!a.gender, 2: a.approaches.length > 0, 3: a.klienty.groups.length > 0, 4: true, 5: a.manera.length > 0, 6: !!a.address && !!a.mat }
 
   const save = async () => {
     if (saving) return
@@ -248,20 +240,26 @@ export default function ExpressOnboarding() {
       approaches: a.approaches,
       niches: topics,
       one_niche: topics[0] || '',
-      tone_verbal: a.tone.trim(),
-      client_pain_phrases: phrases.join('\n'),
       klienty: a.klienty,
+      // 27.11 «Как ты пишешь в блоге?» (читает zh13 avtorIz); tone_verbal и client_pain_phrases знакомство больше не пишет
+      manera: a.manera.slice(0, 2),
+      reader_address: a.address,
+      profanity: a.mat,
+      ...(a.mat === 'light' ? { mat_zvezdy: true } : a.mat === 'free' ? { mat_zvezdy: false } : {}),
+      // ступени Настроек: 1 можно и про личное, 2 без личного, про работу можно; не ответила: поле не трогаем
+      ...(a.oSebe === 'da' ? { disclosure: 1 } : a.oSebe === 'net' ? { disclosure: 2 } : {}),
     }
     // upsert, чтобы полная распаковка потом ДОПОЛНЯЛА строку, а не падала на дубле user_id
     let saveErr: unknown = null
     try {
       if (!isPreview()) {
         saveErr = (await supabase.from('onboarding_profiles').upsert(profileData, { onConflict: 'user_id' })).error
-        // миграция klienty еще не применена: сохраняем все остальное без нового поля, ответы не теряются
-        if (saveErr && /klienty/.test(String((saveErr as { message?: string }).message || ''))) {
-          const { klienty: _k, ...rest } = profileData
-          void _k
-          saveErr = (await supabase.from('onboarding_profiles').upsert(rest, { onConflict: 'user_id' })).error
+        // миграция manera (или klienty) еще не применена: сохраняем все остальное без нового поля, ответы не теряются
+        for (const pole of ['manera', 'klienty']) {
+          if (saveErr && new RegExp(pole).test(String((saveErr as { message?: string }).message || ''))) {
+            delete profileData[pole]
+            saveErr = (await supabase.from('onboarding_profiles').upsert(profileData, { onConflict: 'user_id' })).error
+          }
         }
       }
     } catch (e) { saveErr = e }
@@ -274,13 +272,20 @@ export default function ExpressOnboarding() {
     // имя для писем входа («{имя}, привет!»), в фоне, без ожидания
     if (!isPreview()) void syncEmailName(a.name)
     // первая тема без модели: ситуация из первой отмеченной темы (та же логика, что «Не знаю, о чем писать»)
-    setTopic(firstTopic(topics[0], phrases.join('\n'), topics))
+    setTopic(firstTopic(topics[0], '', topics))
     track('onb_done')
     setSaving(false)
     go(7)
   }
 
   const next = () => {
+    // шаг 6: тап по неактивной «Готово» ведет к первому неотвеченному вопросу (дизайнер 27.11)
+    if (step === 6 && !valid[6] && !moving && !saving) {
+      const el = document.querySelector<HTMLInputElement>(!a.address ? 'input[name="onb-address"]' : 'input[name="onb-mat"]')
+      el?.closest('fieldset')?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' })
+      el?.focus({ preventScroll: true })
+      return
+    }
     if (moving || saving || !valid[step]) return
     if (step >= 1 && step <= TOTAL) done(step)
     if (step === TOTAL) save()
@@ -312,7 +317,7 @@ export default function ExpressOnboarding() {
   const green = 'w-full h-[52px] rounded-2xl text-[16px] font-semibold bg-brand-accent text-white hover:bg-brand-accent-hover cursor-pointer transition'
   const outline = 'w-full h-[52px] rounded-2xl text-[16px] font-semibold border-[1.5px] border-brand-accent text-brand-accent bg-brand-card cursor-pointer transition'
   // вопросы 2 и 6 крупнее, чтобы не было пустоты; на 3-5 свои плотные чипы (components/anketa), иначе не влезает в 375×667
-  const big = step === 2 || step === 6
+  const big = step === 2
   const chip = (on: boolean, dim = false) => `${big ? 'min-h-[52px] px-5 text-[17px]' : 'h-11 px-4 text-[15px]'} inline-flex items-center gap-1.5 rounded-full cursor-pointer transition ${on ? 'bg-brand-soft border-[1.5px] border-brand-accent text-brand-text font-semibold' : 'border border-brand-border text-brand-text'} ${dim ? 'opacity-50' : ''}`
   const inputCls = 'h-14 w-full rounded-[20px] bg-brand-card border-[1.5px] border-brand-border px-4 text-[16px] text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-accent focus:ring-[3px] focus:ring-brand-soft'
 
@@ -320,7 +325,7 @@ export default function ExpressOnboarding() {
     1: !a.name.trim() ? 'Напиши имя' : 'Выбери, как пишешь о себе',
     2: 'Выбери хотя бы один подход',
     3: 'Отметь хотя бы одну группу',
-    6: transcribing ? 'Секунду, идет расшифровка' : 'Наговори или напиши, что ответишь',
+    6: !a.address && !a.mat ? T6.missAll : !a.address ? T6.missAddr : T6.missMat,
   }
   const nextBlock = (label = 'Дальше') => (
     // прилипает к низу экрана, если карточка длиннее окна (длинный список групп на 375×667)
@@ -330,7 +335,7 @@ export default function ExpressOnboarding() {
         {saving ? <span className="inline-flex items-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />Сохраняется</span> : label}
       </button>
       <p id="onb-missing" className="mt-2 min-h-[18px] text-center text-[13px] text-brand-muted" role="status">
-        {limitHint ? 'Можно до трех. Сними один, чтобы выбрать другой' : !valid[step] ? missing[step] || '' : ''}
+        {limitHint ? (step === 5 ? T6.tretya : 'Можно до трех. Сними один, чтобы выбрать другой') : !valid[step] ? missing[step] || '' : ''}
       </p>
     </div>
   )
@@ -351,21 +356,6 @@ export default function ExpressOnboarding() {
       <h1 ref={titleRef} tabIndex={-1} className="text-[29px] leading-[34px] font-semibold text-brand-text outline-none">{t}</h1>
       {hint && <p className="mt-1.5 text-[16px] leading-[22px] text-brand-muted">{hint}</p>}
     </>
-  )
-
-  // поле с пилюлей «Наговорить» внутри рамки (как поле на «Сделать»)
-  const voiceField = (value: string, onChange: (v: string) => void, placeholder: string, label: string, primaryMic: boolean) => (
-    <div className="rounded-[20px] bg-brand-card border-[1.5px] border-brand-border focus-within:border-brand-accent focus-within:ring-[3px] focus-within:ring-brand-soft transition">
-      <textarea ref={fieldRef} value={value} onChange={e => onChange(e.target.value)} readOnly={transcribing} rows={2} aria-label={label}
-        placeholder={transcribing ? 'Идет расшифровка...' : placeholder}
-        className={`block w-full ${big ? 'min-h-[88px]' : 'min-h-[72px]'} max-h-[144px] resize-none bg-transparent px-4 pt-3.5 text-[16px] leading-6 text-brand-text placeholder:text-brand-muted focus:outline-none ${transcribing ? 'animate-pulse' : ''}`} />
-      <div className="h-16 flex items-center justify-end pr-1.5">
-        <button type="button" onClick={() => { rec.reset(); setVoiceOpen(true) }} disabled={transcribing}
-          className={`h-[52px] px-5 rounded-full inline-flex items-center gap-2 text-[16px] font-semibold cursor-pointer transition disabled:opacity-60 ${primaryMic ? 'bg-brand-accent text-white hover:bg-brand-accent-hover' : 'bg-brand-card border-[1.5px] border-brand-accent text-brand-accent'}`}>
-          {transcribing ? <><Loader2 className="w-[22px] h-[22px] animate-spin" />Расшифровка</> : <><Mic className="w-[22px] h-[22px]" />Наговорить</>}
-        </button>
-      </div>
-    </div>
   )
 
   // ---------- карточки ----------
@@ -459,55 +449,83 @@ export default function ExpressOnboarding() {
       </div>
     )
   } else if (step === 5) {
-    const has = phrases.length > 0
+    // Манера (27.11, разбор 245 рилсов): одну или две; «Пока не знаю» в слоте кнопки, пока ничего не выбрано
+    const full = a.manera.length >= 2
     body = (
       <div>
-        {title('Что говорят клиенты?', 'Так посты заговорят их словами')}
-        {/* без микрофона: здесь слова клиента, а записи с микрофона идут в память ее голоса */}
-        <div className="mt-3">
-          <PickChips options={frazyDlya(a.klienty.groups)} selected={a.phrases} first={6}
-            onChange={v => setA({ ...a, phrases: v })}
-            own={a.ownPhrase} onOwn={v => setA({ ...a, ownPhrase: v })} ownPlaceholder="Своя фраза клиента" ownLabel="Своя фраза клиента" />
+        {title('Как ты пишешь в блоге?')}
+        <p id="onb-manera-hint" className="mt-1.5 text-[14px] leading-5 text-brand-muted">{T6.manHint}</p>
+        <div role="group" aria-label="Как ты пишешь в блоге" aria-describedby="onb-manera-hint" className="mt-3 flex flex-col gap-1.5">
+          {MANERY.map(m => {
+            const on = a.manera.includes(m.kod)
+            const off = full && !on
+            return (
+              <button key={m.kod} type="button" aria-pressed={on} aria-disabled={off || undefined}
+                aria-labelledby={`man-${m.kod}`} aria-describedby={`man-${m.kod}-p`}
+                onClick={() => {
+                  if (on) { setLimitHint(false); setA({ ...a, manera: a.manera.filter(k => k !== m.kod) }); return }
+                  if (full) { setLimitHint(true); return }
+                  setLimitHint(false); setA({ ...a, manera: [...a.manera, m.kod] })
+                }}
+                className={`w-full min-h-[56px] rounded-2xl border-[1.5px] px-3 py-2 flex items-start gap-2.5 text-left cursor-pointer transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${on ? 'bg-brand-soft border-brand-accent' : 'bg-brand-card border-brand-border hover:border-brand-accent/40'}`}>
+                <span aria-hidden="true" className={`mt-px w-5 h-5 shrink-0 rounded-md flex items-center justify-center ${on ? 'bg-brand-accent' : off ? 'border-[1.5px] border-dashed border-brand-border' : 'border-[1.5px] border-brand-border bg-brand-card'}`}>
+                  {on && <Check className="w-3.5 h-3.5 text-white" />}
+                </span>
+                <span className="min-w-0">
+                  <span id={`man-${m.kod}`} className="block text-[16px] leading-5 font-semibold text-brand-text">{m.imya}</span>
+                  <span id={`man-${m.kod}-p`} className={`mt-0.5 block text-[14px] leading-[19px] ${on ? 'text-brand-text' : 'text-brand-muted'}`}>«{m.primer}»</span>
+                </span>
+              </button>
+            )
+          })}
         </div>
-        {skipBlock(5, has)}
+        {a.manera.length ? nextBlock() : (
+          <div ref={actionRef} className="sticky bottom-0 z-10 bg-brand-bg pt-2 pb-[max(4px,env(safe-area-inset-bottom))] mt-3">
+            <button type="button" disabled={moving} className={outline}
+              onClick={() => { setLimitHint(false); setA({ ...a, manera: [] }); track('onb_skip', { step: 5 }); done(5); go(6) }}>
+              {T6.neZnayu}
+            </button>
+            <p id="onb-missing" className="mt-2 min-h-[18px] text-center text-[13px] text-brand-muted" role="status">{limitHint ? T6.tretya : ''}</p>
+          </div>
+        )}
       </div>
     )
   } else if (step === 6) {
-    const repliki = replikiDlya(a.klienty.groups)
-    const sit = repliki[(a.situation || 0) % repliki.length]
+    // Три коротких (27.11): ты/вы и мат обязательны, «о себе» можно не отвечать (тогда поле в базе не трогаем)
+    const variant = (name: string, checked: boolean, onPick: () => void, text: string, sub?: string, req = false) => (
+      <label className={`${sub ? 'min-h-[60px]' : 'min-h-[48px]'} rounded-2xl border-[1.5px] px-2 py-2 flex flex-col items-center justify-center text-center cursor-pointer transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-accent has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-brand-bg ${checked ? 'bg-brand-soft border-brand-accent' : 'bg-brand-card border-brand-border hover:border-brand-accent/40'}`}>
+        <input type="radio" name={name} checked={checked} onChange={onPick} required={req} className="sr-only" />
+        <span className={`inline-flex items-center gap-1.5 text-[16px] leading-5 text-brand-text ${checked ? 'font-semibold' : ''}`}>{checked && <Check className="w-4 h-4 text-brand-accent" aria-hidden="true" />}{text}</span>
+        {sub && <span className="mt-0.5 text-[13px] leading-4 text-brand-muted">{sub}</span>}
+      </label>
+    )
+    const legend = 'text-[17px] leading-6 font-semibold text-brand-text'
     body = (
       <div>
-        {title('Как ты ответишь на такое?')}
-        {/* карточка-ситуация: как пузырь Веры, но с меткой */}
-        <div className="mt-3 rounded-[20px] bg-brand-soft border border-brand-border-soft px-4 py-2.5">
-          <p className="text-[13px] leading-[18px] text-brand-muted">На сессии говорят:</p>
-          <p className="mt-1 text-[17px] leading-[23px] text-brand-text">«{sit}»</p>
-        </div>
-        <button type="button" onClick={() => {
-          const n = ((a.situation || 0) + 1) % repliki.length
-          setA({ ...a, situation: n })
-          track('onb_situation_change', { index: n })
-        }} className="h-11 px-4 rounded-xl border border-brand-border bg-brand-card text-[15px] text-brand-accent font-semibold cursor-pointer hover:bg-brand-soft-2">Другая ситуация</button>
-        {/* Вера 80 px, справа ее пузырь и строка-задание: так блок ниже и влезает на 375×667 */}
-        <div className="flex items-start gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/vera/slushaet.webp" alt="" aria-hidden="true" width={59} height={80} style={{ height: 80, width: 59, filter: 'drop-shadow(0 2px 6px rgba(59,42,34,.12))' }} className="shrink-0" />
-          <div className="min-w-0">
-            <div className="relative inline-block bg-brand-soft border border-brand-border-soft rounded-[16px] px-3 py-2 text-[15px] leading-5 text-brand-text">
-              <span aria-hidden="true" className="absolute -left-[6px] top-4 w-2.5 h-2.5 rotate-45 bg-brand-soft border-l border-b border-brand-border-soft" />
-              Я запомню, как ты звучишь
-            </div>
-            <p className="mt-2 text-[16px] leading-[22px] text-brand-muted">Ответь своими словами, как на сессии. Пары фраз хватит</p>
+        {title(T6.title6, T6.hint6)}
+        <fieldset className="mt-5">
+          <legend className={legend}>{T6.address}</legend>
+          <div className="mt-2 grid grid-cols-2 gap-2 items-stretch">
+            {variant('onb-address', a.address === 'ty', () => setA({ ...a, address: 'ty' }), T6.ty, undefined, true)}
+            {variant('onb-address', a.address === 'vy', () => setA({ ...a, address: 'vy' }), T6.vy, undefined, true)}
           </div>
-        </div>
-        <div className="mt-2.5">{voiceField(a.tone, v => setA({ ...a, tone: v }), 'Или напиши, что ответишь', 'Что ты ответишь', !a.tone.trim())}</div>
-        {transcribeFailed && (
-          <div className="mt-2 flex items-center justify-between gap-2 text-[14px] text-brand-text">
-            <span className="min-w-0">Не получилось расшифровать. Запись цела</span>
-            <button type="button" onClick={rec.retry} className="h-11 px-4 rounded-full border border-brand-border font-semibold cursor-pointer shrink-0">Еще раз</button>
+        </fieldset>
+        <fieldset className="mt-5">
+          <legend className={legend}>{T6.oSebe}</legend>
+          <div className="mt-2 grid grid-cols-2 gap-2 items-stretch">
+            {variant('onb-osebe', a.oSebe === 'da', () => setA({ ...a, oSebe: 'da' }), T6.da, T6.daSub)}
+            {variant('onb-osebe', a.oSebe === 'net', () => setA({ ...a, oSebe: 'net' }), T6.net, T6.netSub)}
           </div>
-        )}
-        {nextBlock()}
+        </fieldset>
+        <fieldset className="mt-5">
+          <legend className={legend}>{T6.mat}</legend>
+          <div className="mt-2 grid grid-cols-3 gap-2 items-stretch">
+            {variant('onb-mat', a.mat === 'no', () => setA({ ...a, mat: 'no' }), T6.matNo, T6.matNoSub, true)}
+            {variant('onb-mat', a.mat === 'light', () => setA({ ...a, mat: 'light' }), T6.matLight, T6.matLightSub, true)}
+            {variant('onb-mat', a.mat === 'free', () => setA({ ...a, mat: 'free' }), T6.matFree, T6.matFreeSub, true)}
+          </div>
+        </fieldset>
+        {nextBlock('Готово')}
       </div>
     )
   } else {
@@ -572,8 +590,7 @@ export default function ExpressOnboarding() {
 
       {/* dev-просмотр still=1: без CSS-переходов, в фоновой вкладке они не доигрываются и снимки врут */}
       {reduce && isPreview() && <style>{'*{transition:none!important;animation:none!important}'}</style>}
-      <VoiceSheet open={voiceOpen} rec={rec} maxSeconds={VOICE_LIMIT} prompt="Говори, как на сессии. Паузы не страшны." onClose={() => setVoiceOpen(false)}
-        onWriteText={() => { setVoiceOpen(false); rec.reset(); setTimeout(() => fieldRef.current?.focus(), 50) }} />
+
     </div>
   )
 }
