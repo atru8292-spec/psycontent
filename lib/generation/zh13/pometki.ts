@@ -30,7 +30,8 @@ export function pometitRod(text: string, auditoriya: string, kod = ''): Pometka[
   if (kod === 'voprosy') return []
   const zh = /женщин/i.test(auditoriya), m = /мужчин/i.test(auditoriya)
   const ploho = (f: string) => (!zh && ROD_Z.test(f)) || (!m && ROD_M.test(f))
-  const bezRoley = text.split('\n').filter(l => !/^\s*[А-ЯЁ][а-яё]+(?: \d)?\s*:/u.test(l)).join('\n')
+  // роль бывает из нескольких слов («Сестра с ключами:», прогон 3): до четырех слов перед двоеточием в начале строки
+  const bezRoley = text.split('\n').filter(l => !/^\s*[А-ЯЁ][а-яё]+(?:\s+[а-яё]+){0,3}(?: \d)?\s*:/u.test(l)).join('\n')
   return [...new Set(frazy(bezRoley).filter(ploho))].map(fraza => ({ kod: 'rod', fraza }))
 }
 
