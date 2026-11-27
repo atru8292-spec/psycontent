@@ -293,7 +293,7 @@ export default function VoicePage() {
   }
 
   // Мат и эмоции сохраняются сразу по клику: это главные ручки голоса, без кнопки «Сохранить»
-  const saveTone = async (patch: { profanity?: string; intensity?: string; manera?: string[] } | Partial<Record<ToneAxis, number>>) => {
+  const saveTone = async (patch: { profanity?: string; intensity?: string; manera?: string[]; mat_zvezdy?: boolean | null } | Partial<Record<ToneAxis, number>>) => {
     if (!userId) return
     setToneSaved(null)
     const { error } = await supabase.from('onboarding_profiles').update(patch).eq('user_id', userId)
@@ -392,14 +392,14 @@ export default function VoicePage() {
         <section className={card}>
           <h2 className="text-lg font-bold text-brand-text">Как ты звучишь</h2>
           <div className="space-y-2">
-            <p className="text-sm font-semibold text-brand-text">Как ты пишешь в блоге</p>
-            <p className="text-xs text-brand-muted leading-relaxed">Одну или две. Если не выбрано, первый текст спокойный, дальше PsyCont подстраивается под правки.</p>
+            <p className="text-sm font-semibold text-brand-text">Манера</p>
+            <p className="text-xs text-brand-muted leading-relaxed">Выбери одну или две. Пока ничего не выбрано, PsyCont пишет спокойно и подстраивается под твои правки</p>
             <div className="flex flex-wrap gap-2" role="group" aria-label="Как ты пишешь в блоге">
               {MANERY.map(m => {
                 const on = manera.includes(m.kod)
                 const off = !on && manera.length >= MANERA_MAX
                 return (
-                  <button key={m.kod} type="button" aria-pressed={on} aria-disabled={off || undefined} title={off ? 'Уже две. Сними одну, чтобы выбрать эту' : `«${m.primer}»`}
+                  <button key={m.kod} type="button" aria-pressed={on} aria-disabled={off || undefined} title={off ? 'Можно до двух. Сними одну, чтобы выбрать другую' : `«${m.primer}»`}
                     onClick={() => {
                       if (off) return
                       const next = on ? manera.filter(k => k !== m.kod) : [...manera, m.kod]
@@ -415,23 +415,13 @@ export default function VoicePage() {
           <div className="space-y-2">
             <p className="text-sm font-semibold text-brand-text">Мат</p>
             <p className="text-xs text-brand-muted leading-relaxed">Мат разрешен, если он есть в твоей речи. Если в жизни можешь сказать «да пошло оно все», посты тоже могут. Тут никто не осудит.</p>
-            <Choice value={profanity} onChange={v => { setProfanity(v); saveTone({ profanity: v }) }} options={[
-              { v: 'no', label: 'Без мата' },
-              { v: 'light', label: zh6Ui ? 'Иногда' : 'Иногда, со звездочкой' },
-              { v: 'free', label: 'Как в жизни' },
+            {/* подписи как в знакомстве (шаг 6, 27.11); звездочки задает сам выбор: Иногда со звездочками, Да без (отдельный переключатель убран, он противоречил подписям) */}
+            <Choice value={profanity} onChange={v => { setProfanity(v); setMatZvezdy(v === 'light' ? true : v === 'free' ? false : null); saveTone({ profanity: v, mat_zvezdy: v === 'light' ? true : v === 'free' ? false : null }) }} options={[
+              { v: 'no', label: 'Нет' },
+              { v: 'light', label: 'Иногда' },
+              { v: 'free', label: 'Да' },
             ]} />
-            {zh6Ui && profanity && profanity !== 'no' && (
-              <button type="button" role="switch" aria-checked={matZvezdy ?? profanity === 'light'} onClick={() => saveZvezdy(!(matZvezdy ?? profanity === 'light'))}
-                className="w-full min-h-11 flex items-center gap-3 text-left cursor-pointer">
-                <span className={`relative w-11 h-6 rounded-full transition shrink-0 ${(matZvezdy ?? profanity === 'light') ? 'bg-brand-accent' : 'bg-brand-border'}`}>
-                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-[left] duration-150 ease-out ${(matZvezdy ?? profanity === 'light') ? 'left-[22px]' : 'left-0.5'}`} />
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-sm text-brand-text">Ставить звездочки в мате</span>
-                  <span className="block text-xs text-brand-muted">Слово понятно, но не целиком: «п*здец»</span>
-                </span>
-              </button>
-            )}
+            <p className="text-xs text-brand-muted">{profanity === 'no' ? 'Ни мата, ни даже «блин»' : profanity === 'light' ? 'Со звездочками внутри слова' : profanity === 'free' ? 'Без звездочек, как в жизни' : 'Если не выбрано, без мата.'}</p>
           </div>
           <div className="space-y-2">
             <p className="text-sm font-semibold text-brand-text">Эмоции</p>

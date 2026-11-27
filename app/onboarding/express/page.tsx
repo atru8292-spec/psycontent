@@ -53,12 +53,13 @@ const EMPTY: Answers = { name: '', gender: null, approaches: [], klienty: EMPTY_
 
 // Тексты шагов 5-6 (copywriter-psycont 27.11) и коды манер, как в генераторе (MANERA в lib/generation/zh13/prompt.ts)
 const T6 = {
-  manHint: 'Одну или две', neZnayu: 'Пока не знаю', tretya: 'Уже две. Сними одну, чтобы выбрать эту',
-  title6: 'И еще три коротких', hint6: 'Все это можно поменять в Настройках',
-  address: 'К читателю', ty: 'На ты', vy: 'На вы',
-  oSebe: 'Рассказываешь о себе в блоге?', da: 'Да', daSub: 'и про личное', net: 'Нет', netSub: 'только о работе',
-  mat: 'Материшься в блоге?', matNo: 'Нет', matNoSub: 'ни мата, ни «блин»', matLight: 'Иногда', matLightSub: 'со звездочками', matFree: 'Да', matFreeSub: 'без звездочек',
-  missAll: 'Выбери, как обращаешься к читателю, и про мат', missAddr: 'Осталось выбрать: на ты или на вы', missMat: 'Осталось ответить про мат',
+  manHint: 'Выбери одну или две', neZnayu: 'Пока не знаю', neZnayuSub: 'Тогда первый текст выйдет спокойным, дальше PsyCont подстроится под твои правки',
+  tretya: 'Можно до двух. Сними одну, чтобы выбрать другую',
+  title6: 'Еще три мелочи', hint6: 'Все это поменяешь потом в «Настройках»',
+  address: 'К читателю:', ty: 'На ты', vy: 'На вы',
+  oSebe: 'Рассказываешь о себе в блоге?', da: 'Да', daSub: 'И про личное, только с твоих слов', net: 'Нет', netSub: 'Про работу можно: «ко мне приходят», «в практике вижу»',
+  mat: 'Материшься в текстах?', matNo: 'Нет', matNoSub: 'Ни мата, ни даже «блин»', matLight: 'Иногда', matLightSub: 'Со звездочками внутри слова', matFree: 'Да', matFreeSub: 'Без звездочек, как в жизни',
+  missAll: 'Отметь по одному ответу в каждом вопросе', missAddr: 'Выбери, на ты или на вы', missMat: 'Выбери ответ про мат',
 }
 // 0 вход, 1-6 вопросы, 7 финал
 type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
@@ -347,7 +348,7 @@ export default function ExpressOnboarding() {
         className={has ? green : outline}>
         {has ? 'Дальше' : 'Пропустить'}
       </button>
-      <p className="mt-2 text-center text-[13px] text-brand-muted">Можно дописать потом в настройках</p>
+      <p className="mt-2 text-center text-[13px] text-brand-muted">Можно дописать потом в «Настройках»</p>
     </div>
   )
   const title = (t: string, hint?: string) => (
@@ -364,7 +365,7 @@ export default function ExpressOnboarding() {
     body = (
       <div>
         <Vera src="/vera/privet.webp" h={120} w={93} tilt="-rotate-2" delay={!reduce} caption="Вера · помогаю вести блог">
-          <p className="text-[16px] leading-[22px]">Расскажи о практике и о том, как ты пишешь. Пять коротких вопросов, пара минут. Остальное берет PsyCont</p>
+          <p className="text-[16px] leading-[22px]">Расскажи о практике и о том, как ты пишешь. Шесть коротких вопросов, пара минут. Остальное берет PsyCont</p>
         </Vera>
         <button type="button" onClick={() => { if (!moving) go(1) }} className={`mt-8 ${green}`}>Начать</button>
       </div>
@@ -485,7 +486,7 @@ export default function ExpressOnboarding() {
               onClick={() => { setLimitHint(false); setA({ ...a, manera: [] }); track('onb_skip', { step: 5 }); done(5); go(6) }}>
               {T6.neZnayu}
             </button>
-            <p id="onb-missing" className="mt-2 min-h-[18px] text-center text-[13px] text-brand-muted" role="status">{limitHint ? T6.tretya : ''}</p>
+            <p id="onb-missing" className="mt-2 min-h-[18px] text-center text-[13px] text-brand-muted" role="status">{limitHint ? T6.tretya : T6.neZnayuSub}</p>
           </div>
         )}
       </div>
