@@ -374,7 +374,7 @@ export default function ExpressOnboarding() {
     body = (
       <div>
         <Vera src="/vera/privet.webp" h={120} w={93} tilt="-rotate-2" delay={!reduce} caption="Вера · помогаю вести блог">
-          <p className="text-[16px] leading-[22px]">Расскажи о своей практике. Шесть коротких вопросов, пара минут, один можно наговорить голосом. Остальное берет PsyCont</p>
+          <p className="text-[16px] leading-[22px]">Расскажи о практике и о том, как ты пишешь. Пять коротких вопросов, пара минут. Остальное берет PsyCont</p>
         </Vera>
         <button type="button" onClick={() => { if (!moving) go(1) }} className={`mt-8 ${green}`}>Начать</button>
       </div>
