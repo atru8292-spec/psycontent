@@ -15,7 +15,7 @@ import { prompt13, manera, matStroka, podachaStroka, type Avtor13, type Obrazec1
 import { razobrat, type Rezultat13 } from './razbor'
 import { proverit, type Proverka } from './proverka'
 import { taZheTema, pohozhe, shodstvo, slova, obshieCepochki } from './tekst'
-import { pometit, pometitObrashcheniya, pometitKopiyuZhizni, rubrikaVoprosov, type Pometka } from './pometki'
+import { pometit, pometitObrashcheniya, pometitKopiyuZhizni, pometitRod, rubrikaVoprosov, type Pometka } from './pometki'
 import { perepisatFrazy, perepisatPodpis, type Perepis } from './perepis'
 import { podpisMoral, podpisVopros, podpisPerevertysh, moralKonca } from './proverka'
 import { HUK_TEKST, type Cel, type Huk } from './formaty'
@@ -172,26 +172,26 @@ export function podobrat(f: Format13, tema: string, situacii: string[], mat: boo
 
 // Примеры жизни темы (27.11, Арина: «он сам придумывает, а не берет с шаблона»). Раньше писатель получал одну
 // готовую ситуацию по кругу от числа текстов психолога, и у всех новых психологов первый текст темы выходил про одно
-// и то же. Теперь 3 живые строки темы идут образцом уровня, свою ситуацию писатель придумывает сам. Порядок строк
-// свой у каждого психолога (семя от userId и темы), строки из его последних текстов уходят в конец; если у темы
-// есть фразы «что говорят вокруг», одна из трех строк такая.
-export function primeryZhizni(tema: string, userId: string, bylo: string[], k = 3, krome: string[] = []): string[] {
+// и то же. Теперь живая строка темы идет образцом, свою сцену писатель придумывает от нее. Порядок строк свой у
+// каждого психолога (семя от userId и темы), строки из его последних текстов уходят в конец.
+// 27.11, прогон 2: с тремя строками и «оттолкнись от одной» модель у двух психологов выбирала одну и ту же, самую
+// яркую (паника: оба «в туалете на работе звонит маме»). Теперь одна ситуация на текст (k = 2: ситуация и, если есть,
+// одна фраза «что говорят вокруг»), у каждого психолога своя по кругу: выбирать «самую яркую» не из чего.
+export function primeryZhizni(tema: string, userId: string, bylo: string[], k = 2, krome: string[] = []): string[] {
   const t = temaAnkety(tema)
   if (!t || !t.situacii.length) return []
-  // у темы 3-4 строки: даем две (ревью 27.11), иначе набор у всех психологов один и тот же, меняется только порядок
-  if (t.situacii.length <= 4) k = Math.min(k, 2)
   // своя мысль: строки, у которых общая цепочка 5 слов с мыслью автора, не даем (иначе слова автора метились бы копией)
   const chuzhie = (xs: string[]) => xs.filter(x => !krome.some(m => obshieCepochki(x, m, 5).length))
   const svezhie = (xs: string[]) => [...xs.filter(x => !bylo.includes(x)), ...xs.filter(x => bylo.includes(x))]
   const s = svezhie(peremeshat(chuzhie(t.situacii), seedIz(`${userId}|${t.tema}`)))
   const v = svezhie(peremeshat(chuzhie(t.vokrug || []), seedIz(`${userId}|vokrug|${t.tema}`)))
-  return v.length && k > 1 ? [...s.slice(0, k - 1), v[0]] : s.slice(0, k)
+  return v.length && k > 1 ? [...s.slice(0, k - 1), v[0]] : s.slice(0, Math.max(1, k - 1))
 }
 
 // своя мысль: примеры только из темы анкеты, похожей на мысль (по названию темы или ее ситуациям)
 function primeryDlyaMysli(mysl: string, temy: string[], userId: string, bylo: string[]): string[] {
   for (const t of temy) {
-    if (pohozhe(mysl, t) || situaciiTemy(t).some(x => pohozhe(mysl, x))) return primeryZhizni(t, userId, bylo, 3, [mysl])
+    if (pohozhe(mysl, t) || situaciiTemy(t).some(x => pohozhe(mysl, x))) return primeryZhizni(t, userId, bylo, 2, [mysl])
   }
   return []
 }
@@ -363,11 +363,11 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   // остальные пометки: перепись только помеченной фразы, текст вокруг не трогаем
   // плюс повтор обращения («Слушай,») в тексте или подряд с прошлым текстом (место может быть в подписи) и мораль
   // в конце текста: переписываются так же, одной фразой; копия живой строки темы первой (переписей не больше четырех)
-  const pometki2 = [...pometitKopiyuZhizni(`${rez.glavnoe}\n${rez.podpis}`, primery, svoe), ...(perepisCelikom?.vzyato ? pometit(rez.glavnoe, f.kod, rez.nadpis) : pometki), ...pometitObrashcheniya(rez.glavnoe, rez.podpis, proshlyy)]
+  const pometki2 = [...pometitKopiyuZhizni(`${rez.glavnoe}\n${rez.podpis}`, primery, svoe), ...pometitRod(`${rez.glavnoe}\n${rez.podpis}`, avtor.gender || '', f.kod), ...(perepisCelikom?.vzyato ? pometit(rez.glavnoe, f.kod, rez.nadpis) : pometki), ...pometitObrashcheniya(rez.glavnoe, rez.podpis, proshlyy)]
   const mk = moralKonca(f, rez.tekst, rez.glavnoe, mysl)
   if (mk) pometki2.push({ kod: 'moral_konec', fraza: mk })
   for (const x of pometki2) if (!pometki.some(y => y.kod === x.kod && y.fraza === x.fraza)) pometki.push(x)
-  const pr = await perepisatFrazy({ text: `${rez.glavnoe}\n\n${rez.podpis}`, kod: f.kod, nadpis: rez.nadpis, pometki: pometki2, kusok: kusok.tekst, mat: (avtor.mat === 'tochechno' || avtor.mat === 'mozhno'), matPravilo: avtor.mat === 'strogo' ? matStroka(avtor) : undefined, deadline, userId: uchet, knownNames, primery })
+  const pr = await perepisatFrazy({ text: `${rez.glavnoe}\n\n${rez.podpis}`, kod: f.kod, nadpis: rez.nadpis, pometki: pometki2, kusok: kusok.tekst, mat: (avtor.mat === 'tochechno' || avtor.mat === 'mozhno'), matPravilo: avtor.mat === 'strogo' ? matStroka(avtor) : undefined, deadline, userId: uchet, knownNames, primery, auditoriya: avtor.gender || '' })
   for (const x of pr.perepis) if (x.vzyato) { rez.tekst = rez.tekst.replace(x.do, x.posle); rez.glavnoe = rez.glavnoe.replace(x.do, x.posle); rez.podpis = rez.podpis.replace(x.do, x.posle) }
   // подпись с моралью: переписываем только подпись (своя мысль в конце текста моралью не считается, подпись проверяем всегда)
   const pp = await podpisBezMorali(rez, avtor, mysl, f.kod === 'voprosy' ? null : 'vopros', false)
@@ -385,7 +385,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   proverka.detali.pometki = pometki
   if (pr.perepis.length) proverka.detali.perepis = pr.perepis
   if (perepisCelikom) proverka.detali.perepisCelikom = perepisCelikom
-  for (const x of [...pometit(rez.glavnoe, f.kod, rez.nadpis), ...pometitObrashcheniya(rez.glavnoe, rez.podpis, proshlyy), ...pometitKopiyuZhizni(`${rez.glavnoe}\n${rez.podpis}`, primery, svoe)]) if (!proverka.problemy.includes(`pometka_${x.kod}`)) proverka.problemy.push(`pometka_${x.kod}`)
+  for (const x of [...pometit(rez.glavnoe, f.kod, rez.nadpis), ...pometitObrashcheniya(rez.glavnoe, rez.podpis, proshlyy), ...pometitKopiyuZhizni(`${rez.glavnoe}\n${rez.podpis}`, primery, svoe), ...pometitRod(`${rez.glavnoe}\n${rez.podpis}`, avtor.gender || '', f.kod)]) if (!proverka.problemy.includes(`pometka_${x.kod}`)) proverka.problemy.push(`pometka_${x.kod}`)
   const meta: Meta13 = {
     kod: f.kod, vid: f.vid, rezhim, tema, mysl, primery, opora, huk: huk || null, obrazcy: obrazcy.map(x => x.id), kusok: kusok.id,
     kakSnyat: rez.kakSnyat, podoydet: rez.podoydet, nadpis: rez.nadpis, podpis: rez.podpis, glavnoe: rez.glavnoe, ms: Date.now() - t0, popytki,

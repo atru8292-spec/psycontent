@@ -13,7 +13,7 @@ import { anketaTopics } from '../lib/first-topic'
 import { zh13Dlya } from '../lib/generation/zh13/flag'
 import { vysheePoroga } from '../lib/generation/zh13/kachestvo-db'
 import { situaciiTemy, temaAnkety, GRUPPY } from '../lib/anketa'
-import { pometit, rubrikaVoprosov, pometitKopiyuZhizni } from '../lib/generation/zh13/pometki'
+import { pometit, rubrikaVoprosov, pometitKopiyuZhizni, pometitRod } from '../lib/generation/zh13/pometki'
 import { TEKSTY_PRAVOK, paryDlya, gruppaPar } from '../lib/generation/zh13/pravki'
 import { progonSmesi } from './zh13-smes'
 import { dostupen, tyazhelayaTema } from '../lib/generation/zh13/smes'
@@ -104,7 +104,7 @@ ok('промпт: образцы, опора, ритм своего формат
     assert.ok(p.user.includes('Так эта тема выглядит в жизни у живых людей: партнер не отвечает час, а в голове уже авария; мама говорит: «это от усталости».'), f.kod)
     // 27.11 после прогона: «оттолкнись от одной из строк» (строки у психологов разные), у формата без сюжета свое
     if (f.kod === 'pov_assoc') assert.ok(p.user.includes('бери такое же, но свое') && !p.user.includes('Оттолкнись'), f.kod)
-    else assert.ok(p.user.includes('Оттолкнись от одной из этих строк: та же жизнь, но свои детали и свои слова.') && p.user.includes('даже то, что боится сказать вслух'), f.kod)
+    else assert.ok(p.user.includes('Оттолкнись от этого: та же жизнь, но свои детали и свои слова.') && p.user.includes('даже то, что боится сказать вслух'), f.kod)
     assert.ok(p.user.includes('Как ты смотришь на людей (это твой взгляд, а не план текста)'), f.kod)
     // совет как у живых: не в каждом тексте, один, без оговорок (оценки Арины 27.11)
     assert.ok(p.user.includes('Совет нужен не в каждом тексте') && !p.user.includes('учитывать, что в жизни бывает по-разному'), f.kod)
@@ -222,6 +222,14 @@ ok('повтор оборотов 4+ слов между текстами пси
   assert.deepEqual(povtoryOborotov('и я не на это', ['и я не на это']), [])
 })
 
+ok('род читателя: смешанная аудитория метит оба рода, «Неудобные вопросы» и реплики ролей не трогаем (27.11)', () => {
+  const t = 'И ты киваешь, потому что и сам видишь, как ему тяжело.\nТы не обязан быть сильным.\nТы устала, это видно.\nТы стоишь у окна.\nМама: Ты опять поздно пришла?'
+  assert.equal(pometitRod(t, 'Все').length, 3)
+  assert.deepEqual(pometitRod(t, 'В основном женщины').map(x => x.fraza), ['И ты киваешь, потому что и сам видишь, как ему тяжело.', 'Ты не обязан быть сильным.'])
+  assert.deepEqual(pometitRod(t, 'В основном мужчины').map(x => x.fraza), ['Ты устала, это видно.'])
+  assert.deepEqual(pometitRod('Когда все засмеялись, ты хоть посмотрел на меня?', 'Все', 'voprosy'), [])
+})
+
 ok('«не там, где..., а там, где...» метится парой фраз, одно «там, где» нет; сценки 6-8 реплик (27.11)', () => {
   const t = 'Вроде бы тебе помогают. Отдых начинается не всегда там, где ребенка берут на руки. Иногда он начинается там, где от тебя ничего не требуется.'
   assert.deepEqual(pometit(t, 'p_paradoks').filter(x => x.kod === 'tam_gde').map(x => x.fraza), ['Отдых начинается не всегда там, где ребенка берут на руки. Иногда он начинается там, где от тебя ничего не требуется.'])
@@ -236,17 +244,17 @@ ok('живые строки темы: у разных психологов ра�
   assert.ok(vse.length >= 6, 'живые ситуации темы загружены')
   const nabor = (u: string) => primeryZhizni(tema, u, [])
   assert.deepEqual(nabor('u1'), nabor('u1'), 'у одного психолога порядок один')
-  assert.equal(nabor('u1').length, 3)
+  assert.equal(nabor('u1').length, 2, 'одна ситуация и одна фраза «вокруг»')
   // разброс: у 50 психологов первая строка не одна и та же (раньше у всех новых была первая строка темы)
   const pervye = new Set(Array.from({ length: 50 }, (_, i) => nabor(`user-${i}`)[0]))
   assert.ok(pervye.size >= Math.min(5, vse.length - 1), `первых строк разных ${pervye.size}`)
-  // одна из трех строк: что говорят вокруг (у этой темы они есть)
+  // вторая строка: что говорят вокруг (у этой темы они есть)
   const t = temaAnkety(tema)!
-  assert.ok(t.vokrug && t.vokrug.length && t.vokrug.includes(nabor('u1')[2]), 'третья строка из «вокруг»')
+  assert.ok(t.vokrug && t.vokrug.length && t.vokrug.includes(nabor('u1')[1]), 'вторая строка из «вокруг»')
   // строки из последних текстов психолога уходят в конец
   const bylo = nabor('u1')
   const dalshe = primeryZhizni(tema, 'u1', bylo)
-  assert.ok(!bylo.slice(0, 2).some(x => dalshe.slice(0, 2).includes(x)), 'недавние ситуации не повторяются')
+  assert.ok(dalshe[0] !== bylo[0], 'недавняя ситуация не повторяется')
   assert.deepEqual(primeryZhizni('Своя тема без анкеты', 'u1', []), [])
   // копия живой строки: 5 слов подряд метятся, пересказ своими словами нет
   const pr = ['в магазине по привычке идешь к полке с маминой любимой едой']
@@ -265,12 +273,12 @@ ok('живые строки темы: у разных психологов ра�
   assert.equal(sdvigIz(''), 0)
 })
 
-ok('темы с 3-4 строками: по две строки, наборы у психологов разные (ревью 27.11)', () => {
+ok('темы с 3-4 строками: одна строка, у психологов разные (27.11)', () => {
   const malaya = GRUPPY.flatMap(g => g.temy).find(t => t.situacii.length === 3 && !t.vokrug)!
   assert.ok(malaya, 'есть тема с тремя строками')
   const nabory = new Set(Array.from({ length: 30 }, (_, i) => primeryZhizni(malaya.tema, `user-${i}`, []).slice().sort().join('|')))
-  assert.equal(primeryZhizni(malaya.tema, 'u1', []).length, 2)
-  assert.ok(nabory.size >= 2, `наборов ${nabory.size}`)
+  assert.equal(primeryZhizni(malaya.tema, 'u1', []).length, 1)
+  assert.equal(nabory.size, 3, `разных строк ${nabory.size}`)
 })
 
 ok('тема дня: у разных психологов в один день разная, у одного стабильная (27.11)', () => {
