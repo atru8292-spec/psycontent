@@ -1,0 +1,5 @@
+# DeBLbgqsb7B | @your_loone | 52.7 с | звук: да
+# Расшифровка Whisper large-v3 (whisper.cpp), ru. Возможны ошибки распознавания.
+
+[0:00.0-0:30.0] Субтитры делал DimaTorzok
+[0:30.0-0:48.0] Добавил субтитры DimaTorzok

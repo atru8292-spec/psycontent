@@ -1,0 +1,5 @@
+# DdeAQ_JNB_I | @stillvasilisa | 44.4 с | звук: да
+# Расшифровка Whisper large-v3 (whisper.cpp), ru. Возможны ошибки распознавания.
+
+[0:00.0-0:30.0] Субтитры создавал DimaTorzok
+[0:30.0-0:44.3] Субтитры создавал DimaTorzok
