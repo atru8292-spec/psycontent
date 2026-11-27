@@ -49,7 +49,8 @@ export function matStroka(a: Pick<Avtor13, 'mat' | 'zvezdy'>): string {
   return 'Без мата.'
 }
 // строка манеры отдельно: ее же получает карусель (zh6 внутри zh13, через ctx.settings.popravki)
-export const podachaStroka = (kody?: string[]): string => (kody?.length ? `Как ты подаешь: ${kody.map(k => MANERA[k]).join('; и ')}.` : '')
+export const podachaStroka = (kody?: string[], kto: 'ty' | 'avtor' = 'ty'): string =>
+  (kody?.length ? `${kto === 'avtor' ? 'Как автор подает' : 'Как ты подаешь'}: ${kody.map(k => MANERA[k]).join('; и ')}.` : '')
 export const manera = (kody: unknown): string[] =>
   (Array.isArray(kody) ? kody : []).filter((k): k is string => typeof k === 'string' && !!MANERA[k]).slice(0, 2)
 export type Obrazec13 = { id: string; format: 'reels' | 'carousel' | 'post'; podacha: string; ton: string; mat: boolean; tekst: string; istochnik?: string; kody?: string[]; huk?: string; tema?: string; metod?: boolean }

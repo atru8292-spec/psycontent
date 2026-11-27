@@ -301,8 +301,6 @@ export default function VoicePage() {
     setToneSaved(error ? 'Не сохранилось, попробуй еще раз' : 'Сохранено, следующие посты будут так')
   }
 
-
-
   const kodTrim = kod.trim()
   const kodBad = zh6Ui && (kodTrim.length === 1 || kodTrim.length > 40)
 
@@ -424,7 +422,7 @@ export default function VoicePage() {
               { v: 'light', label: 'Иногда' },
               { v: 'free', label: 'Да' },
             ]} />
-            <p className="text-xs text-brand-muted">{profanity === 'no' ? 'Ни мата, ни даже «блин»' : profanity === 'light' ? 'Со звездочками внутри слова' : profanity === 'free' ? 'Без звездочек, как в жизни' : 'Если не выбрано, без мата.'}</p>
+            <p className="text-xs text-brand-muted">{profanity === 'no' ? 'Ни мата, ни даже «блин»' : profanity === 'light' || profanity === 'free' ? ((matZvezdy ?? profanity === 'light') ? 'Со звездочками внутри слова' : 'Без звездочек, как в жизни') : 'Если не выбрано, без мата.'}</p>
           </div>
           <div className="space-y-2">
             <p className="text-sm font-semibold text-brand-text">Эмоции</p>

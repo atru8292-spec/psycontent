@@ -266,7 +266,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     if (!rez.podpis) return null
     const moral = podpisMoral(rez.podpis), perev = podpisPerevertysh(rez.podpis), vopros = voprosToje && podpisVopros(rez.podpis)
     if (!moral && !perev && !vopros) return null
-    const x = await perepisatPodpis({ podpis: rez.podpis, glavnoe: rez.glavnoe, prichina: moral ? 'moral' : perev ? 'perevertysh' : 'vopros', obrazcy: PODPISI, mat: a.mat === 'tochechno' || a.mat === 'mozhno', matPravilo: matStroka(a), deadline, userId: uchet, knownNames, moral: podpisMoral, vopros: podpisVopros })
+    const x = await perepisatPodpis({ podpis: rez.podpis, glavnoe: rez.glavnoe, prichina: moral ? 'moral' : perev ? 'perevertysh' : 'vopros', obrazcy: PODPISI, mat: a.mat === 'tochechno' || a.mat === 'mozhno', matPravilo: a.mat === 'strogo' ? matStroka(a) : undefined, deadline, userId: uchet, knownNames, moral: podpisMoral, vopros: podpisVopros })
     if (x.vzyato) { rez.tekst = rez.tekst.replace(rez.podpis, x.posle); rez.podpis = x.posle }
     return x
   }
@@ -280,7 +280,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     if (/мужчин/i.test(avtor.gender || '')) ctx.settings.readerGenderRule = 'о читателе в мужском роде'
     else if (!/женщин/i.test(avtor.gender || '')) ctx.settings.readerGenderRule = 'без родовых окончаний'
     // поправки по «Не совсем» и в карусели (ревью 26.11: иначе «учтем» было бы неправдой для каруселей)
-    const pz = [podachaStroka(avtor.manera), popravkiIz(feedback, 'avtor')].filter(Boolean).join(' ')
+    const pz = [podachaStroka(avtor.manera, 'avtor'), popravkiIz(feedback, 'avtor')].filter(Boolean).join(' ')
     if (pz) ctx.settings.popravki = pz
     const req: GenRequest = { topic: tema || (mysl || '').slice(0, 300), format: 'carousel', intent: null, intentChoices: null, userDetail: mysl }
     const r = await zh6Write(ctx, req)
@@ -348,7 +348,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   const mk = moralKonca(f, rez.tekst, rez.glavnoe, mysl)
   if (mk) pometki2.push({ kod: 'moral_konec', fraza: mk })
   for (const x of pometki2) if (!pometki.some(y => y.kod === x.kod && y.fraza === x.fraza)) pometki.push(x)
-  const pr = await perepisatFrazy({ text: `${rez.glavnoe}\n\n${rez.podpis}`, kod: f.kod, nadpis: rez.nadpis, pometki: pometki2, kusok: kusok.tekst, mat: (avtor.mat === 'tochechno' || avtor.mat === 'mozhno'), matPravilo: matStroka(avtor), deadline, userId: uchet, knownNames })
+  const pr = await perepisatFrazy({ text: `${rez.glavnoe}\n\n${rez.podpis}`, kod: f.kod, nadpis: rez.nadpis, pometki: pometki2, kusok: kusok.tekst, mat: (avtor.mat === 'tochechno' || avtor.mat === 'mozhno'), matPravilo: avtor.mat === 'strogo' ? matStroka(avtor) : undefined, deadline, userId: uchet, knownNames })
   for (const x of pr.perepis) if (x.vzyato) { rez.tekst = rez.tekst.replace(x.do, x.posle); rez.glavnoe = rez.glavnoe.replace(x.do, x.posle); rez.podpis = rez.podpis.replace(x.do, x.posle) }
   // подпись с моралью: переписываем только подпись (своя мысль в конце текста моралью не считается, подпись проверяем всегда)
   const pp = await podpisBezMorali(rez, avtor, mysl, f.kod === 'voprosy' ? null : 'vopros', false)
