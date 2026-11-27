@@ -1,0 +1,444 @@
+[
+ {
+  "tema": "Развод",
+  "situacii": [
+   {
+    "tekst": "сыну говоришь, что папа пока поживет у бабушки",
+    "citata": "сыну я сказала, что папа пока поживет с бабушкой",
+    "istochnik": "https://moskvichmag.ru/?p=310305"
+   },
+   {
+    "tekst": "перевозишь на новую квартиру детскую кровать и мультиварку",
+    "citata": "Перевезла некоторые вещи, детскую кровать, мультиварку",
+    "istochnik": "https://t-j.ru/divorce-two-children/"
+   },
+   {
+    "tekst": "для родни вы все еще одна семья и вместе сидите на праздниках",
+    "citata": "Для родственников же мы все еще были одной семьей — на всех праздниках.",
+    "istochnik": "https://t-j.ru/divorce-two-children/"
+   },
+   {
+    "tekst": "после работы тянешь время, лишь бы не пересекаться с ним дома",
+    "citata": "Самое страшное для меня было, когда после работы не хотелось идти домой.",
+    "istochnik": "https://t-j.ru/divorce-two-children/"
+   },
+   {
+    "tekst": "он увозит робот-пылесос и кофеварку, а на карте остается десять тысяч",
+    "citata": "Муж забрал свои гаджеты: робот-пылесос, планшет, компьютер, кофеварку",
+    "istochnik": "https://t-j.ru/we-got-divorced/"
+   },
+   {
+    "tekst": "с ним теперь переписываетесь только про детей",
+    "citata": "Мы с ним общаемся исключительно на тему детей по смс.",
+    "istochnik": "https://t-j.ru/divorce-two-children/"
+   },
+   {
+    "tekst": "общим друзьям он рассказывает, что тебе от него нужны были только деньги",
+    "citata": "После нашим друзьям он рассказывал, что я меркантильная.",
+    "istochnik": "https://t-j.ru/we-got-divorced/"
+   },
+   {
+    "tekst": "подаете на развод, потом миритесь, а свидетельство так никто и не забирает",
+    "citata": "Мы тогда помирились, свидетельство о разводе никто из нас не забрал.",
+    "istochnik": "https://pikabu.ru/story/i_vse_zhe__razvod_12994612",
+    "pravleno": true
+   }
+  ],
+  "vokrug": [
+   {
+    "tekst": "подруга постарше говорит, что разводиться не надо",
+    "citata": "Моя более взрослая подруга советовала не разводиться",
+    "istochnik": "https://t-j.ru/divorce-two-children/"
+   },
+   {
+    "tekst": "бывший убеждает всех вокруг, что это ты рушишь семью",
+    "citata": "Он начал активно всех убеждать и жаловаться, что это такая плохая жена рушит семью",
+    "istochnik": "https://pikabu.ru/story/prodolzhenie_posta_kak_perezhit_razvod_13179963"
+   },
+   {
+    "tekst": "знакомые торопят: «Завтра же иди подавай на алименты»",
+    "citata": "Завтра же идите подавайте на алименты.",
+    "istochnik": "https://t-j.ru/dear-therapist-muzh-i-razvod/"
+   }
+  ],
+  "teper": [
+   {
+    "tekst": "делите квартиру и друзей",
+    "verdikt": "подтверждается",
+    "istochnik": "https://t-j.ru/we-got-divorced/"
+   },
+   {
+    "tekst": "детям нужно сказать, а слов нет",
+    "verdikt": "подтверждается",
+    "istochnik": "https://moskvichmag.ru/?p=310305"
+   },
+   {
+    "tekst": "стыдно перед родителями, что семью не удалось сохранить",
+    "verdikt": "не нашла в живых",
+    "istochnik": ""
+   }
+  ],
+  "zamechaniya": "Лучше всего сработали подборки историй читателей Т—Ж (we-got-divorced, divorce-two-children) и Москвич Mag: там быт развода (вещи, деньги, алименты, праздники с родней). Письма психологу про развод в основном про горе и бессонницу, предметов мало. Стыд перед родителями прямо не нашелся: ближе всего, что для родни пара долго изображает семью на праздниках и что у родителей стыдно просить деньги (Москвич Mag)."
+ },
+ {
+  "tema": "Измена",
+  "situacii": [
+   {
+    "tekst": "случайно видишь в его телефоне «доброе утро» другой женщине",
+    "citata": "я совершенно случайно увидела в телефоне как он желает доброе утро женщине",
+    "istochnik": "https://t-j.ru/dear-therapist-kak-prostit-izmenu/"
+   },
+   {
+    "tekst": "следишь, во сколько он заходит в мессенджер и во сколько она",
+    "citata": "Теперь я постоянно высматриваю, в какое время выходит в мессенджер он, и в какое — она",
+    "istochnik": "https://t-j.ru/dear-therapist-revnost-posle-izmeny-muzha/"
+   },
+   {
+    "tekst": "он ночует в машине у подъезда, пока ты не простишь",
+    "citata": "Говорит пока не прощу,будет так жить.",
+    "istochnik": "https://t-j.ru/dear-therapist-kak-prostit-izmenu/"
+   },
+   {
+    "tekst": "он объясняет, что ему тебя не хватало и ты его не замечаешь",
+    "citata": "Объясняется тем что ему не хватало меня и я не замечала его.",
+    "istochnik": "https://t-j.ru/dear-therapist-kak-prostit-izmenu/"
+   },
+   {
+    "tekst": "в распечатке звонков ее номер почти каждый день",
+    "citata": "Посмотрела исходящие — они созванивались почти каждый день.",
+    "istochnik": "https://t-j.ru/dear-therapist-podozrevaiu-muzha-v-izmene/"
+   },
+   {
+    "tekst": "вечером он приходит с цветами и украшением, о котором ты давно мечтаешь",
+    "citata": "Вечером он вернулся с цветами и украшением, которое мне давно хотелось.",
+    "istochnik": "https://lifehacker.ru/reakciya-devushek-na-izmenu-partnyora/"
+   },
+   {
+    "tekst": "в его старой почте находишь переписку длиной в шестнадцать лет",
+    "citata": "Вспомнила про одну старую почту мужа, «детскую» еще, и полезла искать туда.",
+    "istochnik": "https://t-j.ru/therapist-my-husband-cheated-on-me/"
+   },
+   {
+    "tekst": "он шутит при гостях, все переглядываются, и только ты не понимаешь намека",
+    "citata": "Все переглянулись и выпили.",
+    "istochnik": "https://t-j.ru/dear-therapist-ne-znaiu-kak-prostit-muzha/"
+   }
+  ],
+  "vokrug": [
+   {
+    "tekst": "люди спрашивают: «как можно себя так не уважать и жить с ним дальше?»",
+    "citata": "Как можно настолько себя не уважать, чтобы жить с мужиком, который шоркался с другой?",
+    "istochnik": "https://t-j.ru/dear-therapist-revnost-posle-izmeny-muzha/"
+   },
+   {
+    "tekst": "советуют: «Отпусти, все равно правды не узнаешь»",
+    "citata": "Не заморачивайтесь, отпустите и вам же будет легче, вы все равно не узнаете",
+    "istochnik": "https://t-j.ru/dear-therapist-revnost-posle-izmeny-muzha/"
+   },
+   {
+    "tekst": "говорят, что дети это веская причина крепко подумать",
+    "citata": "Пятеро детей - это оооочень веская причина, чтобы как минимум крепко подумать.",
+    "istochnik": "https://t-j.ru/dear-therapist-ne-smirilas-s-izmenoi-muzha/"
+   },
+   {
+    "tekst": "он отвечает, что раз дома нет близости, он имеет право налево",
+    "citata": "Муж на это ответил: \"Если жена не дает, имею право налево\"",
+    "istochnik": "https://t-j.ru/therapist-my-husband-cheated-on-me/"
+   }
+  ],
+  "teper": [
+   {
+    "tekst": "видишь переписку в его телефоне и не знаешь, говорить ли",
+    "verdikt": "подтверждается",
+    "istochnik": "https://t-j.ru/dear-therapist-podozrevaiu-muzha-v-izmene/"
+   },
+   {
+    "tekst": "после измены вы вместе, и теперь ты проверяешь его телефон",
+    "verdikt": "подтверждается",
+    "istochnik": "https://t-j.ru/dear-therapist-revnost-posle-izmeny-muzha/"
+   },
+   {
+    "tekst": "подруги говорят «уходи», а ты не можешь решить",
+    "verdikt": "подтверждается",
+    "istochnik": "https://pikabu.ru/story/pervyiy_post_i_srazu_grustnyiy_7987225"
+   },
+   {
+    "tekst": "думаешь, что вина на тебе, раз так вышло",
+    "verdikt": "подтверждается",
+    "istochnik": "https://t-j.ru/dear-therapist-kak-prostit-izmenu/"
+   }
+  ],
+  "zamechaniya": "Самое богатое: письма Т—Ж про измену (kak-prostit-izmenu, podozrevaiu-muzha, revnost-posle-izmeny) и особенно комментарии под ними, плюс Лайфхакер с историями девушек. Как узнали: телефон, вайбер, распечатка звонков, старая почта, шутка при гостях. «Вина на тебе» в живых чаще звучит из уст мужа (не хватало внимания, сама докопалась), чем как собственная мысль. Свекровь «сама виновата» нашлась только в выдаче woman.ru (страница закрыта для чтения), поэтому не взята."
+ },
+ {
+  "tema": "Одиночество без пары",
+  "situacii": [
+   {
+    "tekst": "в поездке с друзьями нормальные кровати сразу достаются парам",
+    "citata": "Всегда в общих поездках с друзьями спальни с адекватными кроватями заняты парами",
+    "istochnik": "https://meduza.io/feature/2024/12/08/u-zhizni-v-odinochestve-est-mnogo-plyusov-no-otsutstvie-ryadom-blizkih-lyudey-sozdaet-i-nemalo-problem-ot-bytovyh-do-psihologicheskih"
+   },
+   {
+    "tekst": "друзья теперь дружат семьями, и в этот круг тебя не зовут",
+    "citata": "друзья, которые нашли себе пары и теперь дружат семьями, а мне места в их клубе не нашлось",
+    "istochnik": "https://meduza.io/feature/2024/12/08/u-zhizni-v-odinochestve-est-mnogo-plyusov-no-otsutstvie-ryadom-blizkih-lyudey-sozdaet-i-nemalo-problem-ot-bytovyh-do-psihologicheskih"
+   },
+   {
+    "tekst": "в новогоднюю ночь листаешь фото подруг за семейным столом",
+    "citata": "Фотки подруг, отмечающих в веселом семейном кругу, еще сильнее портили на настроение.",
+    "istochnik": "https://t-j.ru/odin-sovsem-odin/"
+   },
+   {
+    "tekst": "к родителям на праздник не едешь, там опять заведут про внуков",
+    "citata": "К родителям не хочу (опять начнутся разговоры про внуков",
+    "istochnik": "https://t-j.ru/odin-sovsem-odin/"
+   },
+   {
+    "tekst": "ночью в пустой квартире прислушиваешься к каждому звуку",
+    "citata": "Мне не нравится находиться ночью одной в квартире, обостряется слух, нервничаю",
+    "istochnik": "https://meduza.io/feature/2024/12/08/u-zhizni-v-odinochestve-est-mnogo-plyusov-no-otsutstvie-ryadom-blizkih-lyudey-sozdaet-i-nemalo-problem-ot-bytovyh-do-psihologicheskih"
+   },
+   {
+    "tekst": "температура под тридцать девять, и никто не заварит порошок и не принесет воды",
+    "citata": "Никто не заварит тебе порошок от температуры и не принесет воды",
+    "istochnik": "https://t-j.ru/discuss/bolezn-v-odinochestve/"
+   },
+   {
+    "tekst": "в приложении знакомств за несколько лет от силы пять свиданий",
+    "citata": "на свидания согласилась, от силы, раз 5 за несколько лет.",
+    "istochnik": "https://t-j.ru/dear-therapist-nikogda-ne-bylo-otnoshenii/"
+   },
+   {
+    "tekst": "после свидания с сайта знакомств он пропадает или просто блокирует",
+    "citata": "Хочу продолжения встреч, но мне отказывают прямым текстом или просто блокируют.",
+    "istochnik": "https://t-j.ru/dear-therapist-ne-mogu-naiti-muzhchinu/"
+   }
+  ],
+  "vokrug": [
+   {
+    "tekst": "подруги торопят: «Вариант отличный, упускать нельзя, тебе уже 35»",
+    "citata": "Наслушалась подруг, что вариант он отличный, упускать нельзя, тебе 35.",
+    "istochnik": "https://t-j.ru/dear-therapist-ne-mogu-naiti-muzhchinu/"
+   },
+   {
+    "tekst": "мама вздыхает, что так и не станет бабушкой",
+    "citata": "что мама так и не станет счастливой бабушкой",
+    "istochnik": "https://t-j.ru/odin-sovsem-odin/"
+   },
+   {
+    "tekst": "советуют ходить в приложения знакомств как на работу",
+    "citata": "К приложениям советую отнестись как к работе, надо, не надо, идём и выполняем",
+    "istochnik": "https://t-j.ru/dear-therapist-ustala-ot-odinochestva/"
+   },
+   {
+    "tekst": "близким долго объясняешь, что Новый год без компании это не депрессия",
+    "citata": "Пришлось долго объяснять близким и друзьям, что у меня нет депрессии.",
+    "istochnik": "https://meduza.io/feature/2019/12/31/kak-otmetit-novyy-god-v-odinochestve-i-ne-pozhalet-ob-etom-vdohnovlyayuschie-istorii-chitateley-meduzy"
+   }
+  ],
+  "teper": [
+   {
+    "tekst": "у всех друзей пары, а ты на праздниках без пары",
+    "verdikt": "подтверждается",
+    "istochnik": "https://meduza.io/feature/2024/12/08/u-zhizni-v-odinochestve-est-mnogo-plyusov-no-otsutstvie-ryadom-blizkih-lyudey-sozdaet-i-nemalo-problem-ot-bytovyh-do-psihologicheskih"
+   },
+   {
+    "tekst": "мама спрашивает, когда уже свадьба",
+    "verdikt": "подтверждается",
+    "istochnik": "https://t-j.ru/odin-sovsem-odin/"
+   },
+   {
+    "tekst": "приложения знакомств надоели, а без пары тоскливо",
+    "verdikt": "подтверждается",
+    "istochnik": "https://t-j.ru/dear-therapist-nikogda-ne-bylo-otnoshenii/"
+   },
+   {
+    "tekst": "по выходным не с кем пойти в кино",
+    "verdikt": "подтверждается",
+    "istochnik": "https://t-j.ru/dear-therapist-ochen-boius-ostatsia-odna/"
+   }
+  ],
+  "zamechaniya": "Самое богатое: Медуза 2024 о жизни в одиночестве (кровати в поездках, друзья семьями, ночь в пустой квартире), комментарии Т—Ж под текстом о Новом годе в одиночку и обсуждение Т—Ж «болеть в одиночестве». Письма психологу про одиночество бедны на быт: в основном «плачу» и «боюсь остаться одна». Про маму в живых звучат внуки, а не свадьба; кино в выходные дословно не нашлось, есть «в выходные одной все равно грустно». Многие живые фразы с родом (одна, никому не нужна), их пришлось переписывать без рода."
+ },
+ {
+  "tema": "Нарциссичные отношения",
+  "situacii": [
+   {
+    "tekst": "сначала слышишь, что лучше тебя у него никого не было",
+    "citata": "В целом все казалось идеальным:море комплиментов,я лучшая женщина в его жизни,и т.д.",
+    "istochnik": "https://t-j.ru/psychotherapy-kak-ia-vyshla-iz-abiuzivnykh-otnoshenii/"
+   },
+   {
+    "tekst": "он делает замечание, что ты не так режешь огурцы в салат",
+    "citata": "Сначала мелкие замечания о том, что я не так режу огурцы в салат",
+    "istochnik": "https://t-j.ru/psy-abusive-relationship/"
+   },
+   {
+    "tekst": "он допытывается, для кого ты так красиво одеваешься",
+    "citata": "потом выяснения отношений о том, для кого это я надела такое красивое платье",
+    "istochnik": "https://t-j.ru/psy-abusive-relationship/"
+   },
+   {
+    "tekst": "про всех своих бывших он рассказывает, что виноваты были они",
+    "citata": "Рассказы о предыдущих отношениях сводились к тому,что во всем виноваты бывшие",
+    "istochnik": "https://t-j.ru/psychotherapy-kak-ia-vyshla-iz-abiuzivnykh-otnoshenii/"
+   },
+   {
+    "tekst": "при гостях он другой человек, а дома днями с тобой не разговаривает",
+    "citata": "При этом внешне все выглядело нормальным-он совершенно менялся на людях,",
+    "istochnik": "https://t-j.ru/psychotherapy-kak-ia-vyshla-iz-abiuzivnykh-otnoshenii/"
+   },
+   {
+    "tekst": "твоя зарплата у него «смешная», а фитнес пустая трата денег",
+    "citata": "я зря трачу время и деньги на фитнес,и друзья у меня странные",
+    "istochnik": "https://t-j.ru/psychotherapy-kak-ia-vyshla-iz-abiuzivnykh-otnoshenii/"
+   },
+   {
+    "tekst": "он просит выйти из чата одногруппников, потому что там ругаются матом",
+    "citata": "потом просьба выйти из универского чата, потому что там матом ругаются",
+    "istochnik": "https://t-j.ru/psy-abusive-relationship/"
+   },
+   {
+    "tekst": "рядом с ним все время напряжение, а без него сразу легче",
+    "citata": "Я стала замечать,что лучше чувствую себя,когда его нет рядом,и всегда напряжена,когда мы вместе.",
+    "istochnik": "https://t-j.ru/psychotherapy-kak-ia-vyshla-iz-abiuzivnykh-otnoshenii/"
+   }
+  ],
+  "vokrug": [
+   {
+    "tekst": "подруга признается, что уже не знает, о чем с тобой говорить",
+    "citata": "близкая подруга однажды сказала,что не знает,о чем со мной поговорить.",
+    "istochnik": "https://t-j.ru/psychotherapy-kak-ia-vyshla-iz-abiuzivnykh-otnoshenii/"
+   },
+   {
+    "tekst": "папа просит быть спокойнее и не провоцировать",
+    "citata": "В ответ папа просил меня быть спокойнее и не провоцировать",
+    "istochnik": "https://lifehacker.ru/abyuzivnye-otnosheniya/"
+   },
+   {
+    "tekst": "родня говорит, что это теперь твой крест до конца жизни",
+    "citata": "Ты же знала, за кого выходила замуж. Теперь это твой крест до конца жизни",
+    "istochnik": "https://lifehacker.ru/abyuzivnye-otnosheniya/"
+   },
+   {
+    "tekst": "его мама за столом объясняет, что вы теперь семья и все делаете вместе",
+    "citata": "его мама на семейных посиделках стараюсь мне что-то объяснит,что «мы семья,мы теперь должны делать все вместе»",
+    "istochnik": "https://t-j.ru/psychotherapy-kak-ia-vyshla-iz-abiuzivnykh-otnoshenii/"
+   }
+  ],
+  "teper": [
+   {
+    "tekst": "сначала он носил на руках, потом стал холодным и колким",
+    "verdikt": "подтверждается",
+    "istochnik": "https://t-j.ru/psychotherapy-kak-ia-vyshla-iz-abiuzivnykh-otnoshenii/"
+   },
+   {
+    "tekst": "после ссоры извиняешься ты, хотя обидел он",
+    "verdikt": "подтверждается",
+    "istochnik": "https://lifehacker.ru/abyuzivnye-otnosheniya/"
+   },
+   {
+    "tekst": "он говорит, что тебе показалось, и ты начинаешь верить",
+    "verdikt": "подтверждается",
+    "istochnik": "https://pikabu.ru/story/prodolzhenie_posta_kak_perezhit_razvod_13179963"
+   },
+   {
+    "tekst": "друзья перестали звать, потому что он против",
+    "verdikt": "подтверждается",
+    "istochnik": "https://t-j.ru/how-i-got-out-of-the-abusive-relationship/"
+   }
+  ],
+  "zamechaniya": "Слово «нарцисс» в живых рассказах почти не встречается: люди пишут «абьюз», «манипулятор» или просто описывают мужа. Тексты с «нарциссом» в заголовке оказались статьями психологов и разборами случаев. Самое богатое: истории читателей Т—Ж «Как я вышла из абьюзивных отношений» (psychotherapy-..., psy-abusive-relationship, how-i-got-out) и Лайфхакер «3 истории о жизни с абьюзером». Сцены с насилием сознательно не брала. В комментариях к письму Т—Ж про декрет (kak-spasti-sebia-ot-dekretnogo-rabstva) еще есть «наорал в магазине, потому что не открылось приложение с картой» и «следит, сколько молока пьет ребенок», можно добавить."
+ },
+ {
+  "tema": "Как уйти и не вернуться",
+  "situacii": [
+   {
+    "tekst": "все деньги у него в кошельке в машине, и на все надо просить",
+    "citata": "Все деньги у него в кошельке в машине постоянно — надо просить.",
+    "istochnik": "https://t-j.ru/dear-therapist-uiti-ot-muzha-tirana/"
+   },
+   {
+    "tekst": "с детского пособия понемногу откладываешь деньги на всякий случай",
+    "citata": "Начала с детских денег откладывать сумму на всякий случай.",
+    "istochnik": "https://t-j.ru/dear-therapist-kak-spasti-sebia-ot-dekretnogo-rabstva/",
+    "pravleno": true
+   },
+   {
+    "tekst": "уезжаешь к маме, а через несколько месяцев вы снова сходитесь",
+    "citata": "Я ушла от него на несколько месяцев, потом начали сходиться и я забеременела.",
+    "istochnik": "https://t-j.ru/dear-therapist-muzh-obizhaet/"
+   },
+   {
+    "tekst": "после твоего возвращения он вдруг сам моет посуду и с утра бегает за кофе",
+    "citata": "он уходит в магазин ранним утром, чтобы купить мне кофе, он говорит комплименты",
+    "istochnik": "https://pikabu.ru/story/i_vse_zhe__razvod_12994612"
+   },
+   {
+    "tekst": "блокируешь его уже в пятнадцатый раз, а он пишет в другом мессенджере",
+    "citata": "Я блокировала его уже раз пятнадцать. Он всё ещё пишет в разных мессенджерах.",
+    "istochnik": "https://lifehacker.ru/reakciya-devushek-na-izmenu-partnyora/"
+   },
+   {
+    "tekst": "уходишь и сразу забираешь с собой собаку",
+    "citata": "Детей у нас, слава богу, не было, но была собака — я сразу забрала ее с собой.",
+    "istochnik": "https://t-j.ru/divorce-for-better/"
+   },
+   {
+    "tekst": "два года снится, что ты опять живешь у него",
+    "citata": "Два года мне снились кошмары,что я к нему вернулась",
+    "istochnik": "https://t-j.ru/psychotherapy-kak-ia-vyshla-iz-abiuzivnykh-otnoshenii/"
+   },
+   {
+    "tekst": "при каждой ссоре он на две недели уходит жить на работу, а ты зовешь обратно",
+    "citata": "При ссорах партнер уходит из дома и живет на работе по две недели.",
+    "istochnik": "https://t-j.ru/dear-therapist-ochen-boius-ostatsia-odna/"
+   }
+  ],
+  "vokrug": [
+   {
+    "tekst": "стоит заговорить об уходе, как он напоминает, что ты сидишь у него на шее",
+    "citata": "Говорит, что меня кроме детей ничего не интересует, я и копейки не заработала, все на его шее.",
+    "istochnik": "https://t-j.ru/dear-therapist-uiti-ot-muzha-tirana/"
+   },
+   {
+    "tekst": "его мама по телефону сама советует уходить от него поскорее",
+    "citata": "Его мама по телефону сказала мне, уходить от него быстрее.",
+    "istochnik": "https://t-j.ru/how-i-got-out-of-the-abusive-relationship/"
+   },
+   {
+    "tekst": "в полиции говорят: «Надо было смотреть, за кого замуж выходите»",
+    "citata": "Надо было смотреть, за кого замуж выходите",
+    "istochnik": "https://lifehacker.ru/abyuzivnye-otnosheniya/"
+   },
+   {
+    "tekst": "знакомые советуют потихоньку откладывать деньги и заручиться поддержкой родни",
+    "citata": "Начинайте подготавливать пути отступления, откладывайте деньги, заручитесь поддержкой родственников.",
+    "istochnik": "https://t-j.ru/dear-therapist-ne-smirilas-s-izmenoi-muzha/"
+   }
+  ],
+  "teper": [
+   {
+    "tekst": "уходишь уже в третий раз и каждый раз возвращаешься",
+    "verdikt": "подтверждается",
+    "istochnik": "https://t-j.ru/dear-therapist-ochen-boius-ostatsia-odna/"
+   },
+   {
+    "tekst": "он пишет «я изменился», и хочется поверить",
+    "verdikt": "подтверждается",
+    "istochnik": "https://t-j.ru/dear-therapist-ne-znaiu-kak-prostit-muzha/"
+   },
+   {
+    "tekst": "без него страшно, хотя с ним еще страшнее",
+    "verdikt": "подтверждается",
+    "istochnik": "https://t-j.ru/regret-run-from-abuse-in-time/"
+   },
+   {
+    "tekst": "нет денег и жилья, чтобы уйти прямо сейчас",
+    "verdikt": "подтверждается",
+    "istochnik": "https://t-j.ru/dear-therapist-uiti-ot-muzha-tirana/"
+   }
+  ],
+  "zamechaniya": "Самое богатое: письма Т—Ж «уйти от мужа-тирана», «муж обижает», «декретное рабство», «очень боюсь остаться одна» и комментарии под «regret-run-from-abuse-in-time», плюс пост на Пикабу «И все же развод» (как после ухода к маме он вдруг стал стараться). Пикабу через WebFetch отдает битую кодировку, читала через curl с перекодировкой. «Я изменился» дословно звучит у мужа после измены («сказал, что изменился и понял, что такое семья»), а в историях ухода чаще цветы, предложение и внезапная забота. Есть еще сильные детали: «ночью собираешь сумку, утром улетаешь» (how-i-got-out), «вещи он передает через папу, а подарки оставляет себе» (psychotherapy-...), «на съем ушли залог и первый месяц, опустела кредитка» (divorce-for-better)."
+ }
+]

@@ -107,7 +107,7 @@ export function useDesk() {
       const niche = prof.data?.one_niche || (Array.isArray(prof.data?.niches) ? prof.data.niches[0] : '')
       // анкета 2 (19.11): отмеченные темы по кругу (тема дня), старая ниша и фразы запасом
       const temy = Array.isArray(prof.data?.niches) ? (prof.data.niches as unknown[]).map(String) : []
-      const rest = topicsFor({ temy, niche, pain: prof.data?.client_pain_phrases }).filter(t => !picks.some(p => p.text === t)).map(t => ({ text: t }))
+      const rest = topicsFor({ temy, niche, pain: prof.data?.client_pain_phrases, seed: user.id }).filter(t => !picks.some(p => p.text === t)).map(t => ({ text: t }))
       setTopics([...picks, ...rest].slice(0, 12))
       setRhythm(written.error || inBlog.error ? null : { written: written.count || 0, inBlog: inBlog.count || 0 })
       setInWork(work.error ? null : groupInWork(Array.isArray(work.data) ? work.data : []))

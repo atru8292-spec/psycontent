@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
   // «так же» без своей темы: «подберу сама» из боли клиентов или ниши в профиле
   const sampleTopic = sample && !topic
     ? (String(profile.client_pain_phrases || '').split(/\n|;/).map((x: string) => x.trim()).find((x: string) => x.length > 6)
-      || anketaTopics(Array.isArray(profile.niches) ? profile.niches.map(String) : [])[0]
+      || anketaTopics(Array.isArray(profile.niches) ? profile.niches.map(String) : [], userId)[0]
       || String(profile.one_niche || '').trim() || 'то, с чем ко мне приходят чаще всего').slice(0, 200)
     : ''
   const topicFinal = topic || sampleTopic

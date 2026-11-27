@@ -1,0 +1,162 @@
+<title>Живые ситуации знакомства</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap">
+<style>
+/* Рабочий лист: узкая колонка, тема за темой; строка = карточка с кнопкой «Убрать» справа. Палитра PsyCont. */
+:root {
+  --bg: #F5EFE4; --card: #FFFFFF; --ink: #3B2A22; --ink2: #6B6458; --accent: #33472B; --accent-h: #283A21;
+  --soft: #EDE4F7; --line: #E3DACB; --lilac: #C3A6E6; --off: #A63A2A; --off-bg: #F3E6E1;
+  --font: 'Onest', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #1E1915; --card: #29221D; --ink: #F2EADD; --ink2: #B9AE9E; --accent: #A9C493; --accent-h: #BCD5A8;
+  --soft: #3A3045; --line: #41372F; --lilac: #C3A6E6; --off: #E79A8B; --off-bg: #3A2722; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #1E1915; --card: #29221D; --ink: #F2EADD; --ink2: #B9AE9E; --accent: #A9C493; --accent-h: #BCD5A8;
+  --soft: #3A3045; --line: #41372F; --lilac: #C3A6E6; --off: #E79A8B; --off-bg: #3A2722; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 64px }
+.wrap { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px }
+header h1 { font-size: 30px; line-height: 1.15; margin: 0 0 10px; font-weight: 700; text-wrap: balance }
+header p { margin: 0 0 8px; color: var(--ink2); max-width: 62ch }
+.status { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding: 10px 0;
+  border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; font-size: 14px }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg) }
+.status b { font-variant-numeric: tabular-nums }
+.status .note { color: var(--ink2) }
+.status .warn { color: var(--off) }
+nav { display: flex; flex-wrap: wrap; gap: 6px }
+nav a { font-size: 13px; color: var(--ink); text-decoration: none; background: var(--card); border: 1px solid var(--line);
+  border-radius: 999px; padding: 4px 10px }
+nav a:hover { border-color: var(--accent) }
+.tema { display: flex; flex-direction: column; gap: 10px; scroll-margin-top: 64px }
+.grp { margin: 0; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink2) }
+.tema h2 { margin: -6px 0 2px; font-size: 22px; line-height: 1.25; text-wrap: balance }
+.tema h3 { margin: 8px 0 0; font-size: 14px; font-weight: 600; color: var(--accent) }
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px }
+.row { display: flex; gap: 12px; align-items: flex-start; background: var(--card); border: 1px solid var(--line);
+  border-radius: 14px; padding: 12px 12px 12px 16px }
+.row .body { flex: 1; min-width: 0 }
+.txt { margin: 0; font-size: 17px; line-height: 1.4 }
+.meta { margin: 4px 0 0; font-size: 13px; color: var(--ink2); display: flex; flex-wrap: wrap; gap: 4px 12px }
+.src { color: var(--ink2) }
+a.src { text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px }
+a.src:hover { color: var(--ink) }
+.qbtn { font: inherit; font-size: 13px; color: var(--ink2); background: none; border: 0; padding: 0; cursor: pointer;
+  text-decoration: underline dotted; text-underline-offset: 3px }
+.quote { margin: 8px 0 0; font-size: 14px; color: var(--ink2); background: var(--soft); border-radius: 10px; padding: 8px 10px }
+.tog { flex: none; font: inherit; font-size: 14px; font-weight: 500; color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 10px; padding: 7px 12px; cursor: pointer; min-height: 36px }
+.tog:hover { border-color: var(--off); color: var(--off) }
+.row.off { background: var(--off-bg); border-color: transparent }
+.row.off .txt { text-decoration: line-through; text-decoration-color: var(--off); color: var(--ink2) }
+.row.off .tog { color: var(--accent); border-color: var(--accent); background: transparent }
+.old { font-size: 14px; color: var(--ink2) }
+.old summary { cursor: pointer }
+.old ul { margin: 8px 0 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 4px }
+.pill { display: inline-block; font-size: 12px; border-radius: 999px; padding: 1px 8px; margin-right: 6px; border: 1px solid var(--line) }
+.pill.ok { background: var(--soft) }
+.klabel { font-size: 14px; color: var(--ink2); margin-top: 4px }
+.kom { font: inherit; font-size: 15px; color: var(--ink); background: var(--card); border: 1px solid var(--line);
+  border-radius: 12px; padding: 10px 12px; width: 100%; resize: vertical }
+.kom:focus, .tog:focus-visible, .qbtn:focus-visible, nav a:focus-visible { outline: 2px solid var(--lilac); outline-offset: 2px }
+@media (max-width: 480px) {
+  header h1 { font-size: 25px }
+  .row { flex-direction: column; gap: 8px }
+  .tog { align-self: flex-start }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Живые ситуации для знакомства</h1>
+    <p>{{TEM}} тем, в которых у нас были только свои выдуманные строчки. Здесь ситуации из живых историй людей: письма психологу, личные рассказы, комментарии. У каждой строки источник и цитата.</p>
+    <p>Все строки по умолчанию идут в знакомство. Нажми «Убрать» у лишних. Что поправить, напиши в поле под темой. Отметки сохраняются сами, я их прочитаю.</p>
+  </header>
+  <div class="status" role="status"><span>Убрано <b id="cnt">0</b> из {{VSEGO}}</span><span id="save" class="note">Загружаю отметки…</span></div>
+  <nav aria-label="Темы">{{NAV}}</nav>
+  {{SEKCII}}
+</div>
+
+<script>
+(() => {
+  const removed = new Set();
+  const rows = [...document.querySelectorAll('.row')];
+  const save = document.getElementById('save');
+  const cnt = document.getElementById('cnt');
+  let db = null, local = false;
+  const chains = {};
+  const queue = (key, fn) => (chains[key] = (chains[key] || Promise.resolve()).then(fn).catch(err => {
+    save.textContent = 'Не сохранилось, попробуй еще раз'; save.className = 'warn';
+  }));
+
+  function paint() {
+    rows.forEach(r => {
+      const off = removed.has(r.dataset.id);
+      r.classList.toggle('off', off);
+      const b = r.querySelector('.tog');
+      b.textContent = off ? 'Вернуть' : 'Убрать';
+      b.setAttribute('aria-pressed', off ? 'true' : 'false');
+    });
+    cnt.textContent = removed.size;
+  }
+  function lsSave() { try { localStorage.setItem('zhivye-off', JSON.stringify([...removed])) } catch (e) {} }
+  function lsLoad() { try { JSON.parse(localStorage.getItem('zhivye-off') || '[]').forEach(x => removed.add(x)) } catch (e) {} }
+
+  document.addEventListener('click', ev => {
+    const q = ev.target.closest('.qbtn');
+    if (q) { const p = q.closest('.body').querySelector('.quote'); if (p) p.hidden = !p.hidden; return; }
+    const b = ev.target.closest('.tog');
+    if (!b) return;
+    const r = b.closest('.row'); const id = r.dataset.id;
+    const off = !removed.has(id);
+    off ? removed.add(id) : removed.delete(id);
+    paint();
+    if (db) {
+      save.textContent = 'Сохраняю…'; save.className = 'note';
+      queue(id, () => db.doc('otmetki/' + id).set({ ubrat: off, tema: r.dataset.tema, tekst: r.dataset.tekst })
+        .then(() => { save.textContent = 'Сохранено'; save.className = 'note'; }));
+    } else if (local) lsSave();
+  });
+
+  const timers = {};
+  document.querySelectorAll('.kom').forEach(t => t.addEventListener('input', () => {
+    if (!db) return;
+    clearTimeout(timers[t.id]);
+    timers[t.id] = setTimeout(() => {
+      save.textContent = 'Сохраняю…'; save.className = 'note';
+      queue('k' + t.id, () => db.doc('komment/' + t.dataset.tid).set({ tema: t.dataset.tema, tekst: t.value.slice(0, 2000) })
+        .then(() => { save.textContent = 'Сохранено'; save.className = 'note'; }));
+    }, 800);
+  }));
+
+  paint();
+  (async () => {
+    db = window.claude && window.claude.use ? await window.claude.use('db') : null;
+    if (!db) {
+      local = true; lsLoad(); paint();
+      save.textContent = 'Отметки видишь только ты в этом браузере: открой страницу на claude.ai, чтобы я их прочитала';
+      save.className = 'warn';
+      return;
+    }
+    const slow = setTimeout(() => { save.textContent = 'Отметки пока не загрузились, проверь сеть'; save.className = 'warn'; }, 10000);
+    db.collection('otmetki').onSnapshot(s => {
+      if (!s.metadata.fromCache) clearTimeout(slow);
+      removed.clear();
+      s.docs.forEach(d => { const v = d.data(); if (v && v.ubrat === true) removed.add(d.id); });
+      paint();
+      if (!s.metadata.hasPendingWrites && save.textContent.startsWith('Загружаю')) { save.textContent = 'Отметки сохраняются'; save.className = 'note'; }
+    }, () => { clearTimeout(slow); save.textContent = 'Отметки не загрузились, обнови страницу'; save.className = 'warn'; });
+    db.collection('komment').onSnapshot(s => {
+      s.docs.forEach(d => {
+        const t = document.querySelector('.kom[data-tid="' + d.id + '"]');
+        const v = d.data();
+        if (t && v && document.activeElement !== t && typeof v.tekst === 'string') t.value = v.tekst;
+      });
+    }, () => {});
+  })();
+})();
+</script>

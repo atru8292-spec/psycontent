@@ -5,7 +5,9 @@
 
 import dannye from './dannye.json'
 
-export type Tema = { tema: string; situacii: string[] }
+// vokrug: что говорят человеку вокруг (живые 27.11, только у тем, где находок не было); на экране не показывается,
+// берет только генератор (в сборку экранов попадает, около 2 КБ)
+export type Tema = { tema: string; situacii: string[]; vokrug?: string[] }
 export type Gruppa = { kod: string; imya: string; podskazka: string; obshaya: boolean; replika: string; temy: Tema[]; frazy: string[] }
 // значение колонки onboarding_profiles.klienty (миграция 20261119100000_klienty.sql)
 export type Klienty = { groups: string[]; age: string[]; gender: string | null; format: string[] }
@@ -79,14 +81,19 @@ export function replikiDlya(kody: string[]): string[] {
   return [...new Set([...first, ...GRUPPY.map(g => g.replika), OBSHAYA.replika])]
 }
 
-// Ситуации темы: для темы поста (lib/first-topic.ts)
-export function situaciiTemy(tema: string): string[] {
+// Тема анкеты по названию (без учета регистра)
+export function temaAnkety(tema: string): Tema | null {
   const t = tema.trim().toLowerCase()
   for (const g of [...GRUPPY, OBSHAYA]) {
     const hit = g.temy.find(x => x.tema.toLowerCase() === t)
-    if (hit) return hit.situacii
+    if (hit) return hit
   }
-  return []
+  return null
+}
+
+// Ситуации темы: для темы поста (lib/first-topic.ts) и примеров жизни в генераторе
+export function situaciiTemy(tema: string): string[] {
+  return temaAnkety(tema)?.situacii || []
 }
 
 // «С чем работает» для настроек автора в генераторе. С новой анкетой это названия отмеченных групп

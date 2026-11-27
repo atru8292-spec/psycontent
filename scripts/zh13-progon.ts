@@ -17,7 +17,7 @@ import { MODEL_PRICES, USD_TO_RUB_DRAFT } from '../lib/energy'
 const argv = process.argv.slice(2)
 const flag = (n: string) => (argv.find(a => a.startsWith(`--${n}=`)) || '').split('=').slice(1).join('=')
 const NABOR = flag('nabor') || 'zh13'
-const DIR = join(process.cwd(), '_знания', 'мозг-генератора', 'zh13-prod', ...(NABOR === 'zh14' ? ['zh14'] : NABOR === 'zh14b' ? ['zh14b'] : []))
+const DIR = join(process.cwd(), '_знания', 'мозг-генератора', 'zh13-prod', ...(NABOR === 'zh14' ? ['zh14'] : NABOR === 'zh14b' ? ['zh14b'] : NABOR === 'zhivye' ? ['zhivye'] : []))
 // zh14b: 5 текстов zh14 заново после правок 19.11; прошлый текст психолога (для «Слушай» и совета подряд) из zh14
 const ZH14 = join(process.cwd(), '_знания', 'мозг-генератора', 'zh13-prod', 'zh14', 'rezultaty.json')
 const USAGE = join(DIR, 'usage.jsonl')
@@ -32,7 +32,19 @@ const PROFIL = flag('profil') ? JSON.parse(readFileSync(flag('profil'), 'utf8'))
 }
 const FAKTY = 'В 20 лет я вышла замуж за первого парня, потому что боялась остаться одна. Через семь лет развелась. Работала бухгалтером и только в 32 пошла учиться на психолога. Долго считала, что просить о помощи стыдно.'
 // zh13: прошлый набор (8 текстов); zh14: новые форматы 19.11 (9 текстов) и «Подбери сам» (один целиком, второй только выбор)
-const ZADANIYA: { kod: string; mysl?: string; tema?: string; tolkoVybor?: boolean; n?: number; pred?: string }[] = NABOR === 'zh14b' ? [
+// zhivye (27.11): темы с живыми ситуациями, у каждого текста свой психолог (u), писатель придумывает ситуацию сам
+// по трем живым строкам темы; последний текст: та же тема и формат, что у первого, другой психолог (разброс)
+const ZADANIYA: { kod: string; mysl?: string; tema?: string; tolkoVybor?: boolean; n?: number; pred?: string; u?: string }[] = NABOR === 'zhivye' ? [
+  { kod: 'scenka', tema: 'Панические атаки', u: 'psiholog-1' }, { kod: 'auto', tema: 'Утрата и горе', u: 'psiholog-2' },
+  { kod: 'p_paradoks', tema: 'Материнское выгорание и декрет', u: 'psiholog-3' }, { kod: 'pov_assoc', tema: 'Одиночество без пары', u: 'psiholog-4' },
+  { kod: 'mysl', tema: 'Стареющие родители и уход за ними', u: 'psiholog-5' }, { kod: 'voprosy', tema: 'Обида', u: 'psiholog-6' },
+  { kod: 'auto', tema: 'Подростки: закрытая дверь', u: 'psiholog-7' }, { kod: 'perevod', tema: 'Стыд', u: 'psiholog-8' },
+  { kod: 'auto', tema: 'Смена профессии', u: 'psiholog-9' }, { kod: 'auto', tema: 'Сравнение с другими и зависть', u: 'psiholog-10' },
+  { kod: 'scenka', tema: 'Панические атаки', u: 'psiholog-11' },
+  // темы с тремя строками (ревью 27.11): по две строки у каждого, два психолога на тему, сравнить придуманные ситуации
+  { kod: 'mysl', tema: 'Перфекционизм', u: 'psiholog-12' }, { kod: 'mysl', tema: 'Перфекционизм', u: 'psiholog-13' },
+  { kod: 'p_paradoks', tema: 'Неумение отдыхать и вина за отдых', u: 'psiholog-14' }, { kod: 'p_paradoks', tema: 'Неумение отдыхать и вина за отдых', u: 'psiholog-15' },
+] : NABOR === 'zh14b' ? [
   { kod: 'pov_assoc', tema: 'Тревога и накручивание', n: 0 }, { kod: 'vrednye', tema: 'Сепарация от родителей', n: 3, pred: 'golos' },
   { kod: 'sebe20', mysl: FAKTY, n: 4, pred: 'vrednye' }, { kod: 'dve_zhizni', tema: 'Страх ошибиться', n: 6, pred: 'slyshit' },
   { kod: 'film_bez', tema: 'Мамы и взрослые дочери', n: 7, pred: 'dve_zhizni' },
@@ -76,7 +88,7 @@ async function main() {
   const out: any[] = existsSync(fR) ? JSON.parse(readFileSync(fR, 'utf8')) : []
   for (let i = 0; i < ZADANIYA.length; i++) {
     const z = ZADANIYA[i]
-    const key = `${z.kod}${z.mysl ? ':mysl' : ''}${z.tema && z.kod === 'auto' ? ':' + z.tema : ''}`
+    const key = z.u ? `${z.kod}:${z.tema}:${z.u}` : `${z.kod}${z.mysl ? ':mysl' : ''}${z.tema && z.kod === 'auto' ? ':' + z.tema : ''}`
     if (out.some(x => x.key === key)) continue
     if (rub() >= STOP - 1.5) { console.log(`стоп по лимиту: ${rub().toFixed(2)} ₽`); break }
     const t0 = Date.now()
@@ -93,7 +105,7 @@ async function main() {
         writeFileSync(fR, JSON.stringify(out, null, 1)); continue
       }
       const pred = z.pred && existsSync(ZH14) ? JSON.parse(readFileSync(ZH14, 'utf8')).find((x: any) => x.key === z.pred)?.meta : undefined
-      const it = await napisat(stubDb((z.n ?? i) * 5 + 1, pred), '', PROFIL, { formatKod: z.kod === 'auto' ? null : z.kod, mysl: z.mysl || null, tema: z.tema || null, fromPostId: null }, [], { bezUcheta: true })
+      const it = await napisat(stubDb((z.n ?? i) * 5 + 1, pred), z.u || '', NABOR === 'zhivye' ? { ...PROFIL, niches: ZADANIYA.map(x => x.tema).filter(Boolean), klienty: { ...PROFIL.klienty, groups: [] } } : PROFIL, { formatKod: z.kod === 'auto' ? null : z.kod, mysl: z.mysl || null, tema: z.tema || null, fromPostId: null }, [], { bezUcheta: true })
       out.push({ key, kod: z.kod, imya: it.f.imya, vid: it.f.vid, ms: Date.now() - t0, meta: it.meta, problemy: it.proverka.problemy, detali: it.proverka.detali, blizost: it.proverka.blizost, tekst: it.rez.tekst, glavnoe: it.rez.glavnoe, podpis: it.rez.podpis, syroe: it.syroe })
       console.log(`${key}: ${Math.round((Date.now() - t0) / 1000)} с, пометок ${it.meta.pometki.length}, переписано ${it.meta.perepis.filter(x => x.vzyato).length}, проблемы: ${it.proverka.problemy.join(', ') || 'нет'}; всего ${rub().toFixed(2)} ₽`)
     } catch (e: any) {

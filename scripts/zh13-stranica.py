@@ -29,6 +29,7 @@ for i, x in enumerate(R):
     if ZH14 and m.get('rang'): shapka += '<p class="t">Ранжирование модели: ' + e(', '.join(r_['kod'] + ' (' + r_['pochemu'] + ')' for r_ in m['rang'])) + '</p>'
     pro = f'<p class="t">{"Своя мысль: " + e(m.get("mysl")) if m.get("mysl") else "Тема: " + e(m.get("tema"))}</p>'
     if m.get('situaciya'): pro += f'<p class="t">Ситуация: {e(m["situaciya"])}</p>'
+    if m.get('primery'): pro += f'<p class="t">Живые строки темы (образец): {e("; ".join(m["primery"]))}</p>'
     kak = ''.join(f'<li>{e(s)}</li>' for s in m.get('kakSnyat') or [])
     pod = ''.join(f'<li><b>{e(p.get("kod"))}</b>: {e(p.get("pochemu"))}</li>' for p in m.get('podoydet') or [])
     pom = ''.join(f'<li>{e(POM.get(p["kod"], p["kod"]))}: «{e(p["fraza"])}»</li>' for p in m.get('pometki') or [])

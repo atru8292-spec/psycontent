@@ -1,4 +1,4 @@
-// zh13: один текст. Код выбирает тему (по кругу из тем анкеты), обычную ситуацию темы из данных анкеты, формат
+// zh13: один текст. Код выбирает тему (по кругу из тем анкеты), 3 живые строки темы образцом (свою ситуацию писатель придумывает сам), формат
 // («Подбери сам» по кругу, своя мысль: «Просто мысль в камеру»), опору подхода (подряд не повторяется), 2-3 живых
 // образца формата не на ту же тему и живой кусок для ритма; дальше один вызов писателя (gpt-6.1-sol) с текстом,
 // «Как снять» и «Подойдет еще» в одном ответе, разбор и проверка кодом. Бюджет времени: рассуждение medium до 75 с,
@@ -7,14 +7,15 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import dannye from './dannye.json'
 import { callModel } from '../ai'
 import { buildAuthorSettings } from '../settings'
-import { GRUPPY, parseKlienty, situaciiTemy, nishaProfilya } from '@/lib/anketa'
+import { GRUPPY, parseKlienty, situaciiTemy, temaAnkety, nishaProfilya } from '@/lib/anketa'
+import { seedIz, peremeshat, sdvigIz } from '@/lib/seed'
 import { FORMATY, HUKI_MYSLI, formatPo, vybratAuto, type Format13 } from './formaty'
 import { oporyPsihologa, vybratOporu } from './opory'
 import { prompt13, manera, matStroka, podachaStroka, type Avtor13, type Obrazec13 } from './prompt'
 import { razobrat, type Rezultat13 } from './razbor'
 import { proverit, type Proverka } from './proverka'
-import { taZheTema, pohozhe, shodstvo, slova } from './tekst'
-import { pometit, pometitObrashcheniya, rubrikaVoprosov, type Pometka } from './pometki'
+import { taZheTema, pohozhe, shodstvo, slova, obshieCepochki } from './tekst'
+import { pometit, pometitObrashcheniya, pometitKopiyuZhizni, rubrikaVoprosov, type Pometka } from './pometki'
 import { perepisatFrazy, perepisatPodpis, type Perepis } from './perepis'
 import { podpisMoral, podpisVopros, podpisPerevertysh, moralKonca } from './proverka'
 import { HUK_TEKST, type Cel, type Huk } from './formaty'
@@ -39,7 +40,9 @@ const D = dannye as unknown as {
 
 export type Zapros13 = { formatKod: string | null; mysl: string | null; tema: string | null; fromPostId: string | null }
 export type Meta13 = {
-  kod: string; vid: string; rezhim: 'tema' | 'mysl'; tema: string | null; mysl: string | null; situaciya: string | null
+  kod: string; vid: string; rezhim: 'tema' | 'mysl'; tema: string | null; mysl: string | null
+  // situaciya: одна готовая ситуация (до 27.11, старые записи); primery: живые строки темы образцом уровня
+  situaciya?: string | null; primery?: string[]
   opora: string; huk: string | null; obrazcy: string[]; kusok: string; kakSnyat: string[]; podoydet: Rezultat13['podoydet']
   nadpis: string; podpis: string; glavnoe: string; ms: number; popytki: number
   pometki: Pometka[]; perepis: Perepis[]; perepisCelikom?: { do: string; posle: string; vzyato: boolean }
@@ -149,13 +152,13 @@ export function podobrat(f: Format13, tema: string, situacii: string[], mat: boo
   const kand: { x: Obrazec13; o: number }[] = []
   // находки Инстаграма 19.11 размечены форматами (kody): им первое место; у форматов с одной находкой добираем
   // из родственных (RODNYE), чтобы образцов было 2-3
-  for (const x of D.obrazcy) if (x.kody?.includes(f.kod) && ok(x)) kand.push({ x, o: 100 + ((seed * 7 + x.id.length) % 3) - (nedavnie.has(x.id) ? 6 : 0) })
+  for (const x of D.obrazcy) if (x.kody?.includes(f.kod) && ok(x)) kand.push({ x, o: 100 + (seedIz(`${seed}|${x.id}`) % 3) - (nedavnie.has(x.id) ? 6 : 0) })
   ;(RODNYE[f.kod] || []).forEach((k, i) => {
-    for (const x of D.obrazcy) if (x.kody?.includes(k) && ok(x) && !kand.some(c => c.x.id === x.id)) kand.push({ x, o: 60 - i * 5 + ((seed * 7 + x.id.length) % 3) - (nedavnie.has(x.id) ? 6 : 0) })
+    for (const x of D.obrazcy) if (x.kody?.includes(k) && ok(x) && !kand.some(c => c.x.id === x.id)) kand.push({ x, o: 60 - i * 5 + (seedIz(`${seed}|${x.id}`) % 3) - (nedavnie.has(x.id) ? 6 : 0) })
   })
   f.podachi.forEach((p, i) => {
     for (const x of D.obrazcy) if (x.podacha === p && ok(x) && !kand.some(k => k.x.id === x.id))
-      kand.push({ x, o: (f.podachi.length - i) * 10 + (x.format === (f.vid === 'post' ? 'reels' : f.vid) ? 5 : 0) + (mat && x.mat ? 2 : 0) + ((seed * 7 + x.id.length) % 3) - (nedavnie.has(x.id) ? 6 : 0) })
+      kand.push({ x, o: (f.podachi.length - i) * 10 + (x.format === (f.vid === 'post' ? 'reels' : f.vid) ? 5 : 0) + (mat && x.mat ? 2 : 0) + (seedIz(`${seed}|${x.id}`) % 3) - (nedavnie.has(x.id) ? 6 : 0) })
   })
   kand.sort((a, b) => b.o - a.o || a.x.id.localeCompare(b.x.id))
   const out: Obrazec13[] = []
@@ -167,23 +170,34 @@ export function podobrat(f: Format13, tema: string, situacii: string[], mat: boo
   return out
 }
 
-// ситуация темы: по кругу, не из последних десяти текстов психолога
-function situaciyaTemy(tema: string, n: number, bylo: string[]): string | null {
-  const s = situaciiTemy(tema)
-  if (!s.length) return null
-  for (let i = 0; i < s.length; i++) { const x = s[(n + i) % s.length]; if (!bylo.includes(x)) return x }
-  return s[n % s.length]
+// Примеры жизни темы (27.11, Арина: «он сам придумывает, а не берет с шаблона»). Раньше писатель получал одну
+// готовую ситуацию по кругу от числа текстов психолога, и у всех новых психологов первый текст темы выходил про одно
+// и то же. Теперь 3 живые строки темы идут образцом уровня, свою ситуацию писатель придумывает сам. Порядок строк
+// свой у каждого психолога (семя от userId и темы), строки из его последних текстов уходят в конец; если у темы
+// есть фразы «что говорят вокруг», одна из трех строк такая.
+export function primeryZhizni(tema: string, userId: string, bylo: string[], k = 3, krome: string[] = []): string[] {
+  const t = temaAnkety(tema)
+  if (!t || !t.situacii.length) return []
+  // у темы 3-4 строки: даем две (ревью 27.11), иначе набор у всех психологов один и тот же, меняется только порядок
+  if (t.situacii.length <= 4) k = Math.min(k, 2)
+  // своя мысль: строки, у которых общая цепочка 5 слов с мыслью автора, не даем (иначе слова автора метились бы копией)
+  const chuzhie = (xs: string[]) => xs.filter(x => !krome.some(m => obshieCepochki(x, m, 5).length))
+  const svezhie = (xs: string[]) => [...xs.filter(x => !bylo.includes(x)), ...xs.filter(x => bylo.includes(x))]
+  const s = svezhie(peremeshat(chuzhie(t.situacii), seedIz(`${userId}|${t.tema}`)))
+  const v = svezhie(peremeshat(chuzhie(t.vokrug || []), seedIz(`${userId}|vokrug|${t.tema}`)))
+  return v.length && k > 1 ? [...s.slice(0, k - 1), v[0]] : s.slice(0, k)
 }
 
-// своя мысль: ситуация только из темы анкеты, похожей на мысль
-function situaciyaDlyaMysli(mysl: string, temy: string[], n: number, bylo: string[]): string | null {
+// своя мысль: примеры только из темы анкеты, похожей на мысль (по названию темы или ее ситуациям)
+function primeryDlyaMysli(mysl: string, temy: string[], userId: string, bylo: string[]): string[] {
   for (const t of temy) {
-    const s = situaciiTemy(t)
-    const pod = s.filter(x => pohozhe(mysl, x) || pohozhe(mysl, t))
-    if (pod.length) return pod.find(x => !bylo.includes(x)) || pod[n % pod.length]
+    if (pohozhe(mysl, t) || situaciiTemy(t).some(x => pohozhe(mysl, x))) return primeryZhizni(t, userId, bylo, 3, [mysl])
   }
-  return null
+  return []
 }
+
+// примеры жизни прошлого текста: новые записи (primery) или старые с одной ситуацией (situaciya)
+const primeryIz = (z: any): string[] => (Array.isArray(z?.primery) ? z.primery.filter((x: unknown) => typeof x === 'string') : z?.situaciya ? [String(z.situaciya)] : [])
 
 // bezUcheta: прогон без базы (scripts/zh13-progon.ts), расход не пишется в usage_log боевой базы
 export async function napisat(db: SupabaseClient, userId: string, profile: any, z: Zapros13, knownNames: string[], opts?: { bezUcheta?: boolean; t0?: number }): Promise<Itog13> {
@@ -196,7 +210,8 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     if (r.data) origin = { id: r.data.id, created_at: r.data.created_at, topic: r.data.topic, group_id: r.data.group_id, z: r.data.check_result?.zh13 || {} }
   }
   const temy = temyAnkety(profile)
-  const bylyeSit = rows.map(r => r.z.situaciya).filter(Boolean)
+  const bylyeSit = rows.slice(0, 10).flatMap(r => primeryIz(r.z))
+  const sdvig = sdvigIz(userId)
   const mysl = (z.mysl || origin?.z?.mysl || '').trim() || null
   const rezhim: 'tema' | 'mysl' = mysl ? 'mysl' : 'tema'
 
@@ -206,8 +221,9 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     tema = (z.tema || origin?.z?.tema || '').trim() || null
     if (!tema) tema = temaPoKrugu(temy, n, rows)
   }
-  const situaciya = origin?.z?.situaciya !== undefined && origin ? origin.z.situaciya || null
-    : mysl ? situaciyaDlyaMysli(mysl, temy, n, bylyeSit) : situaciyaTemy(tema!, n, bylyeSit)
+  // «другой формат» на ту же мысль: примеры жизни те же, что у исходного текста (если у него они были)
+  const primery = origin && primeryIz(origin.z).length ? primeryIz(origin.z)
+    : mysl ? primeryDlyaMysli(mysl, temy, userId, bylyeSit) : primeryZhizni(tema!, userId, bylyeSit)
 
   const uchet = opts?.bezUcheta ? undefined : userId
   // факты о себе: своя мысль или банк историй профиля; сцена: проверенная под тему (sceny.json)
@@ -215,6 +231,8 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   const fakty = mysl || (istoriiAvtora.length ? istoriiAvtora.slice(0, 3).join('\n') : null)
   const scena = scenaDlya(tema, mysl, rows.slice(0, 5).map(r => r.z.scena).filter(Boolean))
   const usl: Uslovie = { fakty: !!fakty, scena: !!scena, tema: tema || mysl || '' }
+  // свои слова автора: совпадение с ними копией живой строки не считается (ревью 27.11)
+  const svoe = [mysl, fakty].filter((x): x is string => !!x)
   const istoriyaSmesi: Proshlyy[] = rows.map(r => ({ kod: r.z.kod, cel: r.z.cel, huk: r.z.hukVid }))
   // прошлый текст психолога: повтор обращения в начале фразы и совета с числом в двух текстах подряд
   const proshlyy = rows[0] ? `${rows[0].z.glavnoe || ''}\n${rows[0].z.podpis || ''}`.trim() : ''
@@ -233,13 +251,13 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     // со второго текста и в «Эта же мысль в другом формате»
     // ранжируем все форматы: первым берем лучший пост, а «Подойдет еще» покажет и рилсы с каруселью (ревью 26.11)
     const posty = FORMATY.filter(x => x.vid === 'post' && dostupen(x, usl))
-    rang = await ranzhirovat({ tema, mysl, situaciya, formaty: FORMATY.filter(x => dostupen(x, usl)), timeoutMs: Math.min(15000, deadline - Date.now() - 50000), userId: uchet, knownNames })
+    rang = await ranzhirovat({ tema, mysl, situaciya: null, formaty: FORMATY.filter(x => dostupen(x, usl)), timeoutMs: Math.min(15000, deadline - Date.now() - 50000), userId: uchet, knownNames })
     const pervyy = rang.map(x => formatPo(x.kod)).find((x): x is Format13 => !!x && x.vid === 'post' && dostupen(x, usl)) || posty[n % Math.max(1, posty.length)]
     vybor = pervyy
       ? { kod: pervyy.kod, cel: pervyy.cel, huk: vybratHuk(pervyy, undefined, n) || pervyy.huki[0], pochemu: 'первый текст постом' }
       : vybratFormat([], istoriyaSmesi, n, usl)
   } else {
-    rang = await ranzhirovat({ tema, mysl, situaciya, formaty: FORMATY.filter(x => dostupen(x, usl)), timeoutMs: Math.min(15000, deadline - Date.now() - 50000), userId: uchet, knownNames })
+    rang = await ranzhirovat({ tema, mysl, situaciya: null, formaty: FORMATY.filter(x => dostupen(x, usl)), timeoutMs: Math.min(15000, deadline - Date.now() - 50000), userId: uchet, knownNames })
     vybor = vybratFormat(rang.map(x => x.kod), istoriyaSmesi, n, usl)
   }
   const f = formatPo(vybor.kod)!
@@ -251,9 +269,10 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   const popravki = popravkiIz(feedback, avtor0.rod === 'm' ? 'ty-m' : 'ty-f')
   const avtor: Avtor13 = { ...avtor0, ...(popravki ? { popravki } : {}) }
   const nedavnieObr = new Set<string>(rows.slice(0, 3).flatMap(r => r.z.obrazcy || []))
-  const obrazcy = podobrat(f, tema || mysl || '', tema ? situaciiTemy(tema) : [], (avtor.mat === 'tochechno' || avtor.mat === 'mozhno'), n, nedavnieObr)
+  // образцы и живой кусок по кругу со своим сдвигом у каждого психолога (27.11): от одного n у всех новых выходили одни и те же
+  const obrazcy = podobrat(f, tema || mysl || '', tema ? situaciiTemy(tema) : [], (avtor.mat === 'tochechno' || avtor.mat === 'mozhno'), n + sdvig, nedavnieObr)
   const kuski = D.kuski[f.vid]
-  const kusok = kuski[n % kuski.length]
+  const kusok = kuski[(n + sdvig) % kuski.length]
 
   // при «Подбери сам» тройка «Подойдет еще» это следующие за выбранным форматы из ранжирования (с причиной модели)
   const podoydetIzRanga = (rez: Rezultat13) => {
@@ -291,13 +310,13 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     const proverka = proverit({ f, syroe, tekst: rez.tekst, glavnoe: rez.glavnoe, podpis: rez.podpis, obrazcy: [], kusok: '', opora: '', poslednyayaOpora: null, auditoriyaZhenshiny: /женщин/i.test(avtor.gender || ''), mysl, proshlyy })
     if (pp) proverka.detali.perepis = [pp]
     const meta: Meta13 = {
-      kod: f.kod, vid: f.vid, rezhim, tema, mysl, situaciya: null, opora: '', huk: null, hukVid: 'net', cel: vybor.cel, rang, vyborPochemu: vybor.pochemu, obrazcy: [], kusok: '', dvizhok: 'zh6', zh4: (r as any).zh4 || null,
+      kod: f.kod, vid: f.vid, rezhim, tema, mysl, primery: [], opora: '', huk: null, hukVid: 'net', cel: vybor.cel, rang, vyborPochemu: vybor.pochemu, obrazcy: [], kusok: '', dvizhok: 'zh6', zh4: (r as any).zh4 || null,
       kakSnyat: [], podoydet: rez.podoydet, nadpis: '', podpis: rez.podpis, glavnoe: rez.glavnoe, ms: Date.now() - t0, popytki: 1, pometki: [], perepis: pp ? [pp] : [],
     }
     return { f, rez, meta, proverka, syroe, groupId: origin?.group_id || null, avtor }
   }
 
-  const p = prompt13(avtor, { f, tema, mysl, situaciya, opora, huk, obrazcy, kusok: kusok.tekst, fakty: f.trebuet === 'fakty' ? fakty : null, scena: f.trebuet === 'scena' && scena ? scenaBlok(scena) : null })
+  const p = prompt13(avtor, { f, tema, mysl, primery, opora, huk, obrazcy, kusok: kusok.tekst, fakty: f.trebuet === 'fakty' ? fakty : null, scena: f.trebuet === 'scena' && scena ? scenaBlok(scena) : null })
   const pisat = async (user: string, sroki: readonly (readonly ['medium' | 'low', number])[]) => {
     for (const [effort, max] of sroki) {
       const ms = Math.min(max, deadline - Date.now())
@@ -343,12 +362,12 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   }
   // остальные пометки: перепись только помеченной фразы, текст вокруг не трогаем
   // плюс повтор обращения («Слушай,») в тексте или подряд с прошлым текстом (место может быть в подписи) и мораль
-  // в конце текста: переписываются так же, одной фразой
-  const pometki2 = [...(perepisCelikom?.vzyato ? pometit(rez.glavnoe, f.kod, rez.nadpis) : pometki), ...pometitObrashcheniya(rez.glavnoe, rez.podpis, proshlyy)]
+  // в конце текста: переписываются так же, одной фразой; копия живой строки темы первой (переписей не больше четырех)
+  const pometki2 = [...pometitKopiyuZhizni(`${rez.glavnoe}\n${rez.podpis}`, primery, svoe), ...(perepisCelikom?.vzyato ? pometit(rez.glavnoe, f.kod, rez.nadpis) : pometki), ...pometitObrashcheniya(rez.glavnoe, rez.podpis, proshlyy)]
   const mk = moralKonca(f, rez.tekst, rez.glavnoe, mysl)
   if (mk) pometki2.push({ kod: 'moral_konec', fraza: mk })
   for (const x of pometki2) if (!pometki.some(y => y.kod === x.kod && y.fraza === x.fraza)) pometki.push(x)
-  const pr = await perepisatFrazy({ text: `${rez.glavnoe}\n\n${rez.podpis}`, kod: f.kod, nadpis: rez.nadpis, pometki: pometki2, kusok: kusok.tekst, mat: (avtor.mat === 'tochechno' || avtor.mat === 'mozhno'), matPravilo: avtor.mat === 'strogo' ? matStroka(avtor) : undefined, deadline, userId: uchet, knownNames })
+  const pr = await perepisatFrazy({ text: `${rez.glavnoe}\n\n${rez.podpis}`, kod: f.kod, nadpis: rez.nadpis, pometki: pometki2, kusok: kusok.tekst, mat: (avtor.mat === 'tochechno' || avtor.mat === 'mozhno'), matPravilo: avtor.mat === 'strogo' ? matStroka(avtor) : undefined, deadline, userId: uchet, knownNames, primery })
   for (const x of pr.perepis) if (x.vzyato) { rez.tekst = rez.tekst.replace(x.do, x.posle); rez.glavnoe = rez.glavnoe.replace(x.do, x.posle); rez.podpis = rez.podpis.replace(x.do, x.posle) }
   // подпись с моралью: переписываем только подпись (своя мысль в конце текста моралью не считается, подпись проверяем всегда)
   const pp = await podpisBezMorali(rez, avtor, mysl, f.kod === 'voprosy' ? null : 'vopros', false)
@@ -366,9 +385,9 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   proverka.detali.pometki = pometki
   if (pr.perepis.length) proverka.detali.perepis = pr.perepis
   if (perepisCelikom) proverka.detali.perepisCelikom = perepisCelikom
-  for (const x of [...pometit(rez.glavnoe, f.kod, rez.nadpis), ...pometitObrashcheniya(rez.glavnoe, rez.podpis, proshlyy)]) if (!proverka.problemy.includes(`pometka_${x.kod}`)) proverka.problemy.push(`pometka_${x.kod}`)
+  for (const x of [...pometit(rez.glavnoe, f.kod, rez.nadpis), ...pometitObrashcheniya(rez.glavnoe, rez.podpis, proshlyy), ...pometitKopiyuZhizni(`${rez.glavnoe}\n${rez.podpis}`, primery, svoe)]) if (!proverka.problemy.includes(`pometka_${x.kod}`)) proverka.problemy.push(`pometka_${x.kod}`)
   const meta: Meta13 = {
-    kod: f.kod, vid: f.vid, rezhim, tema, mysl, situaciya, opora, huk: huk || null, obrazcy: obrazcy.map(x => x.id), kusok: kusok.id,
+    kod: f.kod, vid: f.vid, rezhim, tema, mysl, primery, opora, huk: huk || null, obrazcy: obrazcy.map(x => x.id), kusok: kusok.id,
     kakSnyat: rez.kakSnyat, podoydet: rez.podoydet, nadpis: rez.nadpis, podpis: rez.podpis, glavnoe: rez.glavnoe, ms: Date.now() - t0, popytki,
     pometki, perepis: pr.perepis, ...(perepisCelikom ? { perepisCelikom } : {}), pary: p.pary,
     cel: vybor.cel, hukVid: vybor.huk, rang, vyborPochemu: vybor.pochemu, scena: f.trebuet === 'scena' ? scena?.id || null : null,

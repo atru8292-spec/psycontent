@@ -8,6 +8,7 @@
 // Нейтральный род (словарь 17.11): темы видят и психологи-мужчины, и психологи-женщины.
 
 import { situaciiTemy } from './anketa'
+import { sdvigIz } from './seed'
 
 export const GENERIC_TOPIC = 'Почему клиенты бросают терапию на третьей встрече'
 
@@ -57,22 +58,23 @@ export const NICHE_TOPICS: { niche: string; roots: string[]; topics: string[] }[
 
 const dayIndex = (d = new Date()) => Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 86400000)
 
-export function nicheTopics(niche: string | null | undefined): string[] {
+export function nicheTopics(niche: string | null | undefined, seed = ''): string[] {
   const n = String(niche || '').toLowerCase().trim()
   if (!n) return []
   const hit = NICHE_TOPICS.find(x => x.niche.toLowerCase() === n) || NICHE_TOPICS.find(x => x.roots.some(r => n.includes(r)))
   if (!hit) return []
-  // тема дня первой, остальные по кругу за ней
-  const k = dayIndex() % hit.topics.length
+  // тема дня первой, остальные по кругу за ней; сдвиг свой у каждого психолога (27.11): иначе в один день у всех одна тема
+  const k = (dayIndex() + sdvigIz(seed)) % hit.topics.length
   return [...hit.topics.slice(k), ...hit.topics.slice(0, k)]
 }
 
 const up = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
-// Отмеченные темы анкеты: из каждой темы одна ситуация (ситуация дня по кругу), своя тема как есть
-export function anketaTopics(temy: string[] | null | undefined): string[] {
+// Отмеченные темы анкеты: из каждой темы одна ситуация (ситуация дня по кругу), своя тема как есть.
+// seed: id психолога (27.11): день плюс свой сдвиг, иначе у всех психологов с теми же темами в один день одна тема дня
+export function anketaTopics(temy: string[] | null | undefined, seed = ''): string[] {
   const all = (Array.isArray(temy) ? temy : []).map(t => String(t || '').trim()).filter(Boolean)
-  const d = dayIndex()
+  const d = dayIndex() + sdvigIz(seed)
   // список тем бывает длинным (вся группа отмечена разом): начинаем с темы дня по кругу, а не всегда с первой
   const k = all.length ? d % all.length : 0
   const list = [...all.slice(k), ...all.slice(0, k)]
@@ -91,10 +93,10 @@ const OLD_NICHE_CHIPS = new Set([
   'Расстройства пищевого поведения', 'Зависимости', 'Горевание и утрата', 'Детская/подростковая психология',
 ])
 
-export function topicsFor(args: { plan?: string[]; temy?: string[] | null; niche?: string | null; pain?: string | null }): string[] {
+export function topicsFor(args: { plan?: string[]; temy?: string[] | null; niche?: string | null; pain?: string | null; seed?: string }): string[] {
   const pain = String(args.pain || '').split(/\n|;/).map(s => s.trim()).filter(s => s.length > 6)
-  const list = [...(args.plan || []), ...anketaTopics(args.temy), ...nicheTopics(args.niche), ...pain]
+  const list = [...(args.plan || []), ...anketaTopics(args.temy, args.seed), ...nicheTopics(args.niche, args.seed), ...pain]
   return [...new Set(list.length ? list : [GENERIC_TOPIC])]
 }
 
-export const firstTopic = (niche?: string | null, pain?: string | null, temy?: string[] | null) => topicsFor({ temy, niche, pain })[0]
+export const firstTopic = (niche?: string | null, pain?: string | null, temy?: string[] | null, seed?: string) => topicsFor({ temy, niche, pain, seed })[0]

@@ -5,7 +5,7 @@
 // целиком один раз (это делает pishi.ts новым вызовом писателя). Все в общем бюджете: нет времени, текст как есть.
 import { callModel } from '../ai'
 import { pometit, nachinaetsyaObrashcheniem, type Pometka } from './pometki'
-import { aforizm, estGlagol } from './tekst'
+import { aforizm, estGlagol, obshieCepochki } from './tekst'
 import { podpisPerevertysh, kontrast } from './proverka'
 import { ochistit13, slova, frazy } from './tekst'
 import { PEREPIS_PODSKAZKA } from './pravki'
@@ -23,8 +23,9 @@ function sosedi(text: string, fraza: string): string {
 export async function perepisatFrazy(o: {
   text: string; kod: string; nadpis: string; pometki: Pometka[]; kusok: string; mat: boolean; matPravilo?: string
   deadline: number; userId?: string; knownNames: string[]
+  primery?: string[]   // живые строки темы: новая фраза на месте копии не должна снова совпадать с ними (27.11)
 }): Promise<{ text: string; perepis: Perepis[] }> {
-  const zadachi = o.pometki.filter(p => p.kod !== 'adresat' && o.text.includes(p.fraza)).slice(0, 4)
+  const zadachi = o.pometki.filter((p, i, a) => p.kod !== 'adresat' && o.text.includes(p.fraza) && a.findIndex(q => q.fraza === p.fraza) === i).slice(0, 4)
   const perepis: Perepis[] = []
   const ostatok = o.deadline - Date.now()
   if (!zadachi.length || ostatok < 8000) {
@@ -56,6 +57,7 @@ export async function perepisatFrazy(o: {
       else if ((p.kod === 'obryvki' || p.kod === 'rvano') && frazy(nov).length >= 3) pochemu = 'опять обрывки'
       else if (p.kod === 'obrashchenie' && frazy(nov).some(nachinaetsyaObrashcheniem)) pochemu = 'та же пометка'
       else if (p.kod === 'moral_konec' && (frazy(nov).some(aforizm) || /не\s+в\s+том/iu.test(nov))) pochemu = 'снова мораль'
+      else if (p.kod === 'kopiya_zhizni' && (o.primery || []).some(x => obshieCepochki(nov, x, 5).length)) pochemu = 'снова копия'
       else if (/<|>|^(Речь|Подпись|Текст на экране)\s*:/i.test(nov)) pochemu = 'метки'
       return { kod: p.kod, do: p.fraza, posle: nov, vzyato: !pochemu, ...(pochemu ? { pochemu } : {}) }
     } catch {

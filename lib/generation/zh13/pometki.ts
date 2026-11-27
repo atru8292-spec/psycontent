@@ -1,7 +1,7 @@
 // zh13: пометки только явного непонятного (ZH13-PRAVKI-ARINY.md, 19.11). Лучше пропустить, чем пометить живое:
 // мат, метафоры, обрывки и неровный ритм не трогаем, слова не запрещаем. Пометка это фраза текста и ее код;
 // перепись делает perepis.ts одним коротким вызовом на фразу.
-import { frazy, slova } from './tekst'
+import { frazy, slova, obshieCepochki, nGrams } from './tekst'
 
 export type Pometka = { kod: string; fraza: string }
 export const POMETKI: Record<string, string> = {
@@ -14,6 +14,17 @@ export const POMETKI: Record<string, string> = {
   obrashchenie: '«Слушай», «Смотри», «Знаешь» в начале фразы повторяется',
   rvano: 'Рвано: три и больше фраз до 4 слов подряд',
   moral_konec: 'Мораль в конце текста',
+  kopiya_zhizni: 'Почти дословно из живого примера темы (5 слов подряд)',
+}
+
+// Фраза почти дословно из живых строк темы (27.11): строки даются писателю образцом уровня, брать их нельзя,
+// иначе у разных психологов выходят одинаковые фразы. 5 слов подряд с примером: перепись этой фразы своими словами.
+// svoe: мысль автора и факты из его историй; цепочки, которые есть в них, копией не считаются (это слова автора)
+export function pometitKopiyuZhizni(text: string, primery: string[], svoe: string[] = []): Pometka[] {
+  if (!primery.length) return []
+  const avtor = nGrams(svoe.join('\n'), 5)
+  const kopiya = (f: string) => primery.some(p => obshieCepochki(f, p, 5).some(c => !avtor.has(c)))
+  return [...new Set(frazy(text).filter(kopiya))].map(fraza => ({ kod: 'kopiya_zhizni', fraza }))
 }
 
 const VOZRAST = /(?<!\p{L})(?:\d{2}|двадцат\p{L}*|тридцат\p{L}*|сорок\p{L}*|пятьдесят\p{L}*|шестьдесят\p{L}*)(?:\s+с\s+лишним|\s+лет|\s+год\p{L}*)?(?!\p{L})/iu

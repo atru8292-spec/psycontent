@@ -275,7 +275,7 @@ export default function ExpressOnboarding() {
     // имя для писем входа («{имя}, привет!»), в фоне, без ожидания
     if (!isPreview()) void syncEmailName(a.name)
     // первая тема без модели: ситуация из первой отмеченной темы (та же логика, что «Не знаю, о чем писать»)
-    setTopic(firstTopic(topics[0], '', topics))
+    setTopic(firstTopic(topics[0], '', topics, uidRef.current || ''))
     track('onb_done')
     setSaving(false)
     go(7)

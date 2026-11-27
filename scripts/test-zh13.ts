@@ -7,11 +7,13 @@ import { OPORY, oporyPsihologa, vybratOporu } from '../lib/generation/zh13/opory
 import { prompt13 } from '../lib/generation/zh13/prompt'
 import { razobrat } from '../lib/generation/zh13/razbor'
 import { proverit, povtoryOborotov, podpisMoral, podpisVopros } from '../lib/generation/zh13/proverka'
-import { podobrat, avtorIz } from '../lib/generation/zh13/pishi'
+import { podobrat, avtorIz, primeryZhizni } from '../lib/generation/zh13/pishi'
+import { seedIz, peremeshat, sdvigIz } from '../lib/seed'
+import { anketaTopics } from '../lib/first-topic'
 import { zh13Dlya } from '../lib/generation/zh13/flag'
 import { vysheePoroga } from '../lib/generation/zh13/kachestvo-db'
-import { situaciiTemy } from '../lib/anketa'
-import { pometit, rubrikaVoprosov } from '../lib/generation/zh13/pometki'
+import { situaciiTemy, temaAnkety, GRUPPY } from '../lib/anketa'
+import { pometit, rubrikaVoprosov, pometitKopiyuZhizni } from '../lib/generation/zh13/pometki'
 import { TEKSTY_PRAVOK, paryDlya, gruppaPar } from '../lib/generation/zh13/pravki'
 import { progonSmesi } from './zh13-smes'
 import { dostupen, tyazhelayaTema } from '../lib/generation/zh13/smes'
@@ -74,17 +76,17 @@ ok('промпт: образцы, опора, ритм своего формат
     assert.equal(b.oSebe, 'rabota')
     assert.equal(avtorIz(profil).oSebe, null, 'disclosure не задан: строки нет')
     const f0 = FORMATY.find(f => !f.zh6)!
-    const pb = prompt13(b, { f: f0, tema: 'Тревога', mysl: null, situaciya: null, opora: OPORY['КПТ'][0], huk: '', obrazcy: [], kusok: 'кусок' }).user
+    const pb = prompt13(b, { f: f0, tema: 'Тревога', mysl: null, primery: [], opora: OPORY['КПТ'][0], huk: '', obrazcy: [], kusok: 'кусок' }).user
     assert.ok(/Как ты подаешь: с иронией.*; и прямо/.test(pb), 'манера в промпте')
     assert.ok(/Про семью и личную жизнь не пишешь; про работу можно: «ко мне приходят».*учебу и свою терапию упоминай, только если они есть в мысли автора/.test(pb), 'о себе в промпте')
     assert.ok(/даже «блин» и «жопа» не пиши/.test(pb), 'строгий запрет')
     assert.ok(/в основном мужчины: к читателю пиши в мужском роде/.test(pb), 'мужской род читателя')
-    const pa = prompt13(avtorIz({ ...profil, profanity: null }), { f: f0, tema: 'Тревога', mysl: null, situaciya: null, opora: OPORY['КПТ'][0], huk: '', obrazcy: [], kusok: 'кусок' }).user
+    const pa = prompt13(avtorIz({ ...profil, profanity: null }), { f: f0, tema: 'Тревога', mysl: null, primery: [], opora: OPORY['КПТ'][0], huk: '', obrazcy: [], kusok: 'кусок' }).user
     assert.ok(!/Как ты подаешь|О себе/.test(pa) && /Без мата\./.test(pa), 'старый профиль без изменений')
   }
   for (const f of FORMATY.filter(f => !f.zh6)) {
     const obr = podobrat(f, 'Тревога и накручивание', [], false, 0, new Set())
-    const p = prompt13(a, { f, tema: 'Тревога и накручивание', mysl: null, situaciya: 'партнер не отвечает час, а в голове уже авария', opora: OPORY['КПТ'][0], huk: 'Первая фраза: вопрос.', obrazcy: obr, kusok: 'кусок' })
+    const p = prompt13(a, { f, tema: 'Тревога и накручивание', mysl: null, primery: ['партнер не отвечает час, а в голове уже авария', 'мама говорит: «это от усталости»'], opora: OPORY['КПТ'][0], huk: 'Первая фраза: вопрос.', obrazcy: obr, kusok: 'кусок' })
     assert.ok(!/КПТ(?!СР)|когнитив/i.test(p.user), 'название подхода в промпте')
     assert.ok(p.user.includes('<живой кусок>'))
     assert.ok(p.user.includes('без рода'))
@@ -98,18 +100,23 @@ ok('промпт: образцы, опора, ритм своего формат
     const par = (p.user.match(/^Было: «/gm) || []).length
     assert.ok(par >= 3 && par <= 4, `${f.kod}: пар ${par}`)
     assert.ok(!p.user.includes('Светину дочку'), 'пример вопросов маме в промпте')
+    // живые строки темы образцом, свою ситуацию писатель придумывает (27.11)
+    assert.ok(p.user.includes('Так эта тема выглядит в жизни у живых людей: партнер не отвечает час, а в голове уже авария; мама говорит: «это от усталости».'), f.kod)
+    assert.ok(p.user.includes('Придумай свою ситуацию такого же уровня из жизни человека, который это читает') && p.user.includes('Эти строки не бери и не пересказывай.'), f.kod)
+    assert.ok(!p.user.includes('Ситуация, от которой можно оттолкнуться'), f.kod)
     if (f.vid === 'post') assert.ok(!p.user.includes('Так звучат живые подписи'))
   }
   const z = { ...profil, klienty: { ...profil.klienty, gender: 'В основном женщины' } }
-  const p2 = prompt13(avtorIz(z), { f: FORMATY[0], tema: 'Т', mysl: null, situaciya: null, opora: 'о', huk: '', obrazcy: [], kusok: 'к' })
+  const p2 = prompt13(avtorIz(z), { f: FORMATY[0], tema: 'Т', mysl: null, primery: [], opora: 'о', huk: '', obrazcy: [], kusok: 'к' })
   assert.ok(!p2.user.includes('без рода'))
 })
 
 ok('своя мысль: текст из мысли, смысл не меняется, ситуация и опора только если подходят', () => {
-  const p = prompt13(avtorIz(profil), { f: FORMATY[0], tema: null, mysl: 'Тревога не враг, она сторож', situaciya: 'ситуация', opora: 'опора', huk: 'х', obrazcy: [], kusok: 'к' })
+  const p = prompt13(avtorIz(profil), { f: FORMATY[0], tema: null, mysl: 'Тревога не враг, она сторож', primery: ['ситуация'], opora: 'опора', huk: 'х', obrazcy: [], kusok: 'к' })
   assert.ok(p.user.includes('Мысль автора, его словами: «Тревога не враг, она сторож»'))
   assert.ok(p.user.includes('не меняй его и не дописывай своих выводов'))
-  assert.ok(p.user.includes('можно от нее оттолкнуться; не подходит, не бери'))
+  assert.ok(p.user.includes('Так похожее выглядит в жизни у живых людей: ситуация. Если к мысли нужна ситуация, придумай свою такого же уровня; эти строки не бери.'))
+  assert.ok(!p.user.includes('твоих клиентов'), 'не «из жизни твоих клиентов»: модель выдумывала бы случай из практики')
   assert.ok(p.user.includes('опора (бери это, только если подходит к мысли)'))
   assert.ok(!p.user.includes('Тема:'))
 })
@@ -208,6 +215,58 @@ ok('неудобные вопросы: меньше трех разных нач
 ok('повтор оборотов 4+ слов между текстами психолога, служебные цепочки не в счет', () => {
   assert.deepEqual(povtoryOborotov('А что, по-вашему, случится, если вы откажете маме?', ['Подумайте, что по-вашему случится если вы промолчите.']), ['что по-вашему случится если вы'])
   assert.deepEqual(povtoryOborotov('и я не на это', ['и я не на это']), [])
+})
+
+ok('живые строки темы: у разных психологов разные, недавние в конце, одна фраза «вокруг», копия ловится (27.11)', () => {
+  const tema = 'Утрата и горе'
+  const vse = situaciiTemy(tema)
+  assert.ok(vse.length >= 6, 'живые ситуации темы загружены')
+  const nabor = (u: string) => primeryZhizni(tema, u, [])
+  assert.deepEqual(nabor('u1'), nabor('u1'), 'у одного психолога порядок один')
+  assert.equal(nabor('u1').length, 3)
+  // разброс: у 50 психологов первая строка не одна и та же (раньше у всех новых была первая строка темы)
+  const pervye = new Set(Array.from({ length: 50 }, (_, i) => nabor(`user-${i}`)[0]))
+  assert.ok(pervye.size >= Math.min(5, vse.length - 1), `первых строк разных ${pervye.size}`)
+  // одна из трех строк: что говорят вокруг (у этой темы они есть)
+  const t = temaAnkety(tema)!
+  assert.ok(t.vokrug && t.vokrug.length && t.vokrug.includes(nabor('u1')[2]), 'третья строка из «вокруг»')
+  // строки из последних текстов психолога уходят в конец
+  const bylo = nabor('u1')
+  const dalshe = primeryZhizni(tema, 'u1', bylo)
+  assert.ok(!bylo.slice(0, 2).some(x => dalshe.slice(0, 2).includes(x)), 'недавние ситуации не повторяются')
+  assert.deepEqual(primeryZhizni('Своя тема без анкеты', 'u1', []), [])
+  // копия живой строки: 5 слов подряд метятся, пересказ своими словами нет
+  const pr = ['в магазине по привычке идешь к полке с маминой любимой едой']
+  assert.deepEqual(pometitKopiyuZhizni('Суббота. В магазине по привычке идешь к полке с кефиром. Потом вспоминаешь.', pr).map(x => x.kod), ['kopiya_zhizni'])
+  assert.deepEqual(pometitKopiyuZhizni('Берешь творог, который она брала, и стоишь у кассы.', pr), [])
+  assert.deepEqual(pometitKopiyuZhizni('В магазине по привычке идешь к полке с кефиром.', []), [])
+  // слова самого автора (мысль, истории) копией не считаются, даже если совпали с живой строкой (ревью 27.11)
+  const mysl = 'В магазине по привычке идешь к полке, где стоял ее творог'
+  assert.deepEqual(pometitKopiyuZhizni('В магазине по привычке идешь к полке, где стоял ее творог.', pr, [mysl]), [])
+  // своя мысль: строки темы с общей цепочкой 5 слов с мыслью в примеры не идут
+  assert.ok(!primeryZhizni(tema, 'u1', [], 3, ['в магазине по привычке идешь к полке']).some(x => x.startsWith('в магазине по привычке')))
+  // свой порядок без зависимостей: одно число на одну строку, перемешивание без потерь
+  assert.equal(seedIz('a'), seedIz('a'))
+  assert.notEqual(seedIz('a'), seedIz('b'))
+  assert.deepEqual([...peremeshat([1, 2, 3, 4, 5], 7)].sort(), [1, 2, 3, 4, 5])
+  assert.equal(sdvigIz(''), 0)
+})
+
+ok('темы с 3-4 строками: по две строки, наборы у психологов разные (ревью 27.11)', () => {
+  const malaya = GRUPPY.flatMap(g => g.temy).find(t => t.situacii.length === 3 && !t.vokrug)!
+  assert.ok(malaya, 'есть тема с тремя строками')
+  const nabory = new Set(Array.from({ length: 30 }, (_, i) => primeryZhizni(malaya.tema, `user-${i}`, []).slice().sort().join('|')))
+  assert.equal(primeryZhizni(malaya.tema, 'u1', []).length, 2)
+  assert.ok(nabory.size >= 2, `наборов ${nabory.size}`)
+})
+
+ok('тема дня: у разных психологов в один день разная, у одного стабильная (27.11)', () => {
+  const temy = ['Утрата и горе', 'Одиночество', 'Развод', 'Панические атаки']
+  const d = (seed: string) => anketaTopics(temy, seed)[0]
+  assert.equal(d('u1'), d('u1'))
+  const raznye = new Set(Array.from({ length: 30 }, (_, i) => d(`user-${i}`)))
+  assert.ok(raznye.size >= 4, `тем дня разных ${raznye.size}`)
+  assert.ok(anketaTopics(temy).length === temy.length, 'без семени как раньше')
 })
 
 ok('суд и бумаги: про чувства метим, настоящую работу и «вынести приговор» нет', () => {
