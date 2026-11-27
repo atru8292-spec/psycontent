@@ -1,0 +1,310 @@
+<title>Контент-план v2, мокапы</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap">
+<style>
+/* Лист мокапов: сверху пояснение, ниже ряды телефонов 390x844 (уменьшены), каждый ряд один вариант или набор состояний.
+   Экраны телефонов в светлой палитре продукта; окружение страницы следует теме. */
+:root {
+  --page: #EFE8DC; --page-ink: #3B2A22; --page-ink2: #6B6458; --page-line: #DDD3C3;
+  --crem: #F5EFE4; --card: #FFFFFF; --ink: #3B2A22; --ink2: #6B6458; --green: #33472B; --green-h: #283A21;
+  --soft: #EDE4F7; --soft2: #F4EEFA; --line: #E3DACB; --lilac: #C3A6E6; --lineL: #DCCBF2; --sage: #8F9D68;
+  --font: 'Onest', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --page: #1E1915; --page-ink: #F2EADD; --page-ink2: #B9AE9E; --page-line: #3A312A; color-scheme: dark } }
+:root[data-theme="dark"] { --page: #1E1915; --page-ink: #F2EADD; --page-ink2: #B9AE9E; --page-line: #3A312A; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--page); color: var(--page-ink); font-family: var(--font); margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 64px }
+.wrap { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 36px }
+header h1 { font-size: 28px; margin: 0 0 8px; text-wrap: balance }
+header p { margin: 0 0 6px; color: var(--page-ink2); max-width: 70ch; line-height: 1.5 }
+h2 { font-size: 20px; margin: 0 0 4px }
+.sub { margin: 0 0 16px; color: var(--page-ink2); max-width: 70ch; line-height: 1.5 }
+.row { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start }
+.shot { display: flex; flex-direction: column; gap: 8px; width: 312px; min-width: 0 }
+.cap { font-size: 13px; color: var(--page-ink2); line-height: 1.4 }
+.cap b { color: var(--page-ink) }
+/* телефон: 390x844 в масштабе 0.8 */
+.phone { width: 312px; height: 675px; border-radius: 34px; background: var(--crem); border: 6px solid #2A211C; overflow: hidden; position: relative; color: var(--ink); font-size: 12px; line-height: 1.4; display: flex; flex-direction: column }
+.status { height: 30px; flex: none; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; font-size: 11px; font-weight: 600 }
+.top { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 6px 14px 8px }
+.logo { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px }
+.logo i { width: 20px; height: 20px; border-radius: 50%; background: var(--green); display: inline-block; position: relative }
+.logo i::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--lilac) }
+.pill { font-size: 10.5px; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 3px 8px; color: var(--ink2) }
+.body { flex: 1; min-height: 0; overflow: hidden; padding: 4px 14px 0; display: flex; flex-direction: column; gap: 10px }
+.nav { flex: none; height: 54px; border-top: 1px solid var(--line); background: var(--card); display: grid; grid-template-columns: repeat(4, 1fr); font-size: 9.5px; color: var(--ink2) }
+.nav span { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px }
+.nav span::before { content: ""; width: 16px; height: 16px; border-radius: 5px; border: 1.5px solid currentColor; opacity: .7 }
+.nav .on { color: var(--green); font-weight: 600 }
+.h { font-size: 20px; font-weight: 700; margin: 2px 0 0 }
+.hrow { display: flex; justify-content: space-between; align-items: baseline }
+.dots { display: flex; align-items: center; gap: 4px; font-size: 10.5px; color: var(--ink2) }
+.dots i { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--green); display: inline-block }
+.dots i.f { background: var(--green) }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 0 rgba(59,42,34,.04) }
+.tema { font-size: 15.5px; font-weight: 600; line-height: 1.3; text-wrap: pretty }
+.tema.big { font-size: 17.5px }
+.meta { color: var(--ink2); font-size: 11.5px }
+.meta u { text-decoration: underline dotted; text-underline-offset: 2px }
+.sut { background: var(--crem); border-radius: 10px; padding: 7px 9px; font-size: 11px; color: var(--ink2) }
+.btn { background: var(--green); color: #fff; border-radius: 12px; text-align: center; font-weight: 600; padding: 10px; font-size: 13px }
+.btn.dim { background: #B9C2AE; color: #fff }
+.quiet { display: grid; grid-template-columns: 1fr 1fr; gap: 6px }
+.quiet span { border: 1px solid var(--line); border-radius: 11px; text-align: center; padding: 7px 4px; font-size: 11.5px; font-weight: 500 }
+.link { color: var(--green); font-weight: 600; font-size: 11.5px }
+.mute { color: var(--ink2); font-size: 11px }
+.lrow { display: flex; justify-content: space-between; align-items: baseline; gap: 8px }
+.field { border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 9px 10px; color: var(--ink2); display: flex; justify-content: space-between; gap: 8px; min-height: 40px }
+.field.tall { min-height: 56px }
+.mic { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--green); position: relative }
+.mic::after { content: ""; position: absolute; left: 5px; top: 3px; width: 5px; height: 8px; border-radius: 3px; background: var(--green) }
+.next { display: flex; flex-direction: column; gap: 6px }
+.next div { display: flex; gap: 8px; align-items: baseline; font-size: 11.5px; border-bottom: 1px solid var(--line); padding-bottom: 6px; min-width: 0 }
+.next div b { font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.next div em { font-style: normal; color: var(--ink2); flex: none }
+.label { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink2) }
+.slot { display: flex; gap: 9px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid var(--line) }
+.st { flex: none; width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--ink2); margin-top: 2px }
+.st.ok { background: var(--green); border-color: var(--green); position: relative }
+.st.ok::after { content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 7px; border: solid #fff; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg) }
+.st.mid { border-color: var(--green); border-style: dashed }
+.slot .t { font-size: 12.5px; font-weight: 500; line-height: 1.3 }
+.slot .m { font-size: 11px; color: var(--ink2) }
+.open { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px; margin: 6px 0 }
+.fold { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; font-weight: 500 }
+.fold em { font-style: normal; color: var(--ink2) }
+.band { border: 1px solid var(--lineL); background: var(--soft2); border-radius: 12px; padding: 8px 10px; font-size: 11.5px; display: flex; justify-content: space-between; gap: 8px }
+.tag { display: inline-block; font-size: 10px; border: 1px solid var(--lineL); background: var(--soft2); border-radius: 999px; padding: 1px 7px; margin-right: 4px }
+.choice { border: 1px solid var(--line); border-radius: 12px; padding: 9px 10px; display: flex; flex-direction: column; gap: 2px }
+.choice b { font-size: 12.5px; font-weight: 600 }
+.toast { position: absolute; left: 14px; right: 14px; bottom: 66px; background: #2A211C; color: #F5EFE4; border-radius: 12px; padding: 10px 12px; display: flex; justify-content: space-between; font-size: 11.5px }
+.toast b { color: #C3E0A8 }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--card); border-radius: 20px 20px 0 0; padding: 14px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 -8px 24px rgba(59,42,34,.18) }
+.dim-bg { position: absolute; inset: 0; background: rgba(42,33,28,.35) }
+.grab { width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto 4px }
+.win { font-size: 12px }
+.choose { border-top: 1px solid var(--page-line); padding-top: 20px }
+.vote { display: flex; gap: 10px; flex-wrap: wrap }
+@media (max-width: 480px) { .shot { width: 100% } .phone { width: 100%; max-width: 312px } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Контент-план v2: как это выглядит в телефоне</h1>
+    <p>Два варианта устройства и общие состояния. Экраны в масштабе 0,8 от телефона 390 px. Строки тем настоящие, из данных знакомства, психолог из примеров: маленький, про панические атаки, только без лица.</p>
+    <p>Дизайнер советует вариант 2: маленькому психологу нужно одно действие без решений, а список недели снова превращается в копящиеся обязательства. Запуск и личное отмечены как вторая версия: продуктовый критик советует сначала выкатить только «Сегодня», связь с текстом, пропуск и фильтр по съемке.</p>
+  </header>
+
+  <section>
+    <h2>Вариант 1. Неделя списком</h2>
+    <p class="sub">На «Написать» сверху карточка «Сегодня». В «Темы → План» эта неделя списком, остальные свернуты.</p>
+    <div class="row">
+      <div class="shot">
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="top"><span class="logo"><i></i>PsyCont</span><span class="pill">осталось 8 текстов</span></div>
+          <div class="body">
+            <div class="hrow"><span class="h">Сегодня</span><span class="dots">на этой неделе 1 из 4 <i class="f"></i><i></i><i></i><i></i></span></div>
+            <div class="card">
+              <div class="tema">В очереди на кассе накрывает, и хочется бросить все и уйти домой</div>
+              <div class="meta">Слова на экране · без лица · <u>Что это</u></div>
+              <div class="btn">Написать</div>
+              <div class="lrow"><span class="link">Пропустить</span><span class="link">Весь план</span></div>
+            </div>
+            <div class="h" style="font-size:16px">О чем сегодня?</div>
+            <div class="field tall"><span>Своя мысль, пара фраз или голосом</span><span class="mic"></span></div>
+          </div>
+          <div class="nav"><span class="on">Написать</span><span>Темы</span><span>Мои тексты</span><span>Настройки</span></div>
+        </div>
+        <p class="cap"><b>«Написать».</b> Карточка дня над своей мыслью. Кнопка «Написать» одна, своя мысль ниже работает как сейчас.</p>
+      </div>
+      <div class="shot">
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="top"><span class="logo"><i></i>PsyCont</span><span class="pill">Идеи · <b style="color:var(--green)">План</b></span></div>
+          <div class="body">
+            <div class="hrow"><span class="h">Эта неделя</span><span class="dots">1 из 4 <i class="f"></i><i></i><i></i><i></i></span></div>
+            <div>
+              <div class="slot"><span class="st ok"></span><div><div class="t">Без бутылки воды из дома не выходишь</div><div class="m">Пост: парадокс · текст · выложено</div></div></div>
+              <div class="open">
+                <div class="slot" style="border:0;padding-top:0"><span class="st mid"></span><div><div class="t">В очереди на кассе накрывает, и хочется бросить все и уйти домой</div><div class="m">Слова на экране · без лица</div></div></div>
+                <div class="btn">Написать</div>
+                <div class="lrow" style="margin-top:6px"><span class="link">Пропустить</span><span class="mute">Другая строка · Другой формат · …</span></div>
+              </div>
+              <div class="slot"><span class="st"></span><div><div class="t">Страшно высказать свое мнение вслух или в блоге</div><div class="m">Текст на экране · без лица</div></div></div>
+              <div class="slot"><span class="st"></span><div><div class="t">В метро по утрам хуже всего, просишь кого-то поехать с тобой</div><div class="m">Пост: признание · <span class="tag">про тебя</span></div></div></div>
+            </div>
+            <div class="fold"><span>Неделя 2 · 4 текста</span><em>›</em></div>
+            <div class="fold"><span>Неделя 3 · 4 текста</span><em>›</em></div>
+            <span class="mute">Запускаю группу, курс или консультации</span>
+          </div>
+          <div class="nav"><span>Написать</span><span class="on">Темы</span><span>Мои тексты</span><span>Настройки</span></div>
+        </div>
+        <p class="cap"><b>«Темы → План».</b> Статусы: ждет, написан, выложен. Пропущенных на экране нет, они просто уходят в конец.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Вариант 2. Одна карточка (советует дизайнер)</h2>
+    <p class="sub">«Сегодня» одна большая карточка, кнопка одна зеленая, две тихие, одна ссылка. Дальше на неделе мелко, весь план за ссылкой.</p>
+    <div class="row">
+      <div class="shot">
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="top"><span class="logo"><i></i>PsyCont</span><span class="pill">осталось 8 текстов</span></div>
+          <div class="body">
+            <div class="hrow"><span class="h" style="font-size:22px">Сегодня</span><span class="pill">Своя мысль ◉</span></div>
+            <div class="card" style="padding:16px">
+              <span class="dots">на этой неделе 1 из 4 <i class="f"></i><i></i><i></i><i></i></span>
+              <div class="tema big">В очереди на кассе накрывает, и хочется бросить все и уйти домой</div>
+              <div class="meta">Слова на экране · без лица · <u>Что это</u></div>
+              <div class="sut">Ролик без голоса под музыку. Чашка, окно или руки, лицо не нужно. Поверх по очереди всплывают слова про одно состояние.</div>
+              <div class="btn">Написать</div>
+              <div class="quiet"><span>Другая строка</span><span>Другой формат</span></div>
+              <div class="lrow"><span class="link">Пропустить</span><span class="mute">План подождет, он не сгорает</span></div>
+            </div>
+            <div class="label">Дальше на неделе</div>
+            <div class="next">
+              <div><b>Страшно высказать свое мнение вслух или в блоге</b><em>Текст на экране</em></div>
+              <div><b>В метро по утрам хуже всего, просишь кого-то поехать с тобой</b><em>Признание</em></div>
+            </div>
+            <span class="link">Весь план</span>
+          </div>
+          <div class="nav"><span class="on">Написать</span><span>Темы</span><span>Мои тексты</span><span>Настройки</span></div>
+        </div>
+        <p class="cap"><b>«Написать».</b> Строка темы крупно, «Что это» раскрыто для примера. Своя мысль за пилюлей сверху.</p>
+      </div>
+      <div class="shot">
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="top"><span class="logo"><i></i>PsyCont</span><span class="pill">Идеи · <b style="color:var(--green)">План</b></span></div>
+          <div class="body">
+            <div class="band"><span>Группа «Жить без страха приступа» · старт 15 декабря</span><span class="link">Изменить</span></div>
+            <div class="hrow"><span class="h">Эта неделя</span><span class="dots">2 из 4 <i class="f"></i><i class="f"></i><i></i><i></i></span></div>
+            <div>
+              <div class="slot"><span class="st ok"></span><div><div class="t">Сидишь и читаешь про приступы, и от этого только хуже</div><div class="m">Текст на экране · выложено</div></div></div>
+              <div class="slot"><span class="st ok"></span><div><div class="t">Страшно, что сходишь с ума</div><div class="m">Пост: парадокс · выложено</div></div></div>
+              <div class="slot"><span class="st mid"></span><div><div class="t">От одной мысли, что надо выйти в магазин, начинается приступ</div><div class="m"><span class="tag">про группу</span>Что слышит психолог · в описании мягкое приглашение</div></div></div>
+              <div class="slot"><span class="st"></span><div><div class="t">Звонок поздно вечером, и сразу кажется, что случилась беда</div><div class="m">Слова на экране · без лица</div></div></div>
+            </div>
+            <div class="fold"><span>Неделя 4 · 4 текста</span><em>›</em></div>
+          </div>
+          <div class="nav"><span>Написать</span><span class="on">Темы</span><span>Мои тексты</span><span>Настройки</span></div>
+        </div>
+        <p class="cap"><b>«Весь план» в режиме запуска (вторая версия).</b> Полоса запуска сверху, у продающих слотов метка «про группу». Приглашений не больше двух в неделю.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Состояния карточки «Сегодня»</h2>
+    <p class="sub">Одинаковые для обоих вариантов. Нигде нет счета пропусков, процентов и красного.</p>
+    <div class="row">
+      <div class="shot">
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="top"><span class="logo"><i></i>PsyCont</span><span class="pill">осталось 7 текстов</span></div>
+          <div class="body">
+            <span class="h" style="font-size:22px">Сегодня</span>
+            <div class="card" style="padding:16px">
+              <span class="label">Сегодня про тебя</span>
+              <div class="tema">Что было у тебя на этой неделе про панические атаки?</div>
+              <div class="mute">Пары фраз хватит. Только про себя, без историй клиентов.</div>
+              <div class="field tall"><span>Например: в пятницу полчаса стояла у входа в метро</span><span class="mic"></span></div>
+              <div class="btn dim">Написать из этого</div>
+              <span class="link">Сегодня без личного</span>
+            </div>
+          </div>
+          <div class="nav"><span class="on">Написать</span><span>Темы</span><span>Мои тексты</span><span>Настройки</span></div>
+        </div>
+        <p class="cap"><b>Личное (вторая версия).</b> План не выдумывает, а спрашивает. Без ответа слот меняется на обычный. Нужен текстовый формат «своя история», иначе тому, кто без лица, некуда.</p>
+      </div>
+      <div class="shot">
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="top"><span class="logo"><i></i>PsyCont</span><span class="pill">осталось 9 текстов</span></div>
+          <div class="body">
+            <span class="h" style="font-size:22px">Сегодня</span>
+            <div class="card" style="padding:16px">
+              <div class="tema">Как тебе удобнее снимать?</div>
+              <div class="mute">Сегодня в плане первый рилс. Подберу форматы под ответ.</div>
+              <div class="choice"><b>Только без лица</b><span class="mute">Руки, чашка, окно, текст на экране</span></div>
+              <div class="choice"><b>Голосом за кадром</b><span class="mute">Твой голос поверх тихого видео</span></div>
+              <div class="choice"><b>Могу в кадре</b></div>
+              <div class="lrow"><span class="link">Решу потом</span><span class="mute">Поменять можно в Настройках</span></div>
+            </div>
+          </div>
+          <div class="nav"><span class="on">Написать</span><span>Темы</span><span>Мои тексты</span><span>Настройки</span></div>
+        </div>
+        <p class="cap"><b>Первый рилс.</b> Вопрос про съемку в тот момент, когда он нужен. «Решу потом» значит только без лица.</p>
+      </div>
+      <div class="shot">
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="top"><span class="logo"><i></i>PsyCont</span><span class="pill">осталось 8 текстов</span></div>
+          <div class="body">
+            <span class="h" style="font-size:22px">Сегодня</span>
+            <div class="card" style="padding:16px">
+              <span class="dots">на этой неделе 1 из 4 <i class="f"></i><i></i><i></i><i></i></span>
+              <div class="tema big">Страшно высказать свое мнение вслух или в блоге</div>
+              <div class="meta">Текст на экране · без лица · <u>Что это</u></div>
+              <div class="btn">Написать</div>
+              <div class="quiet"><span>Другая строка</span><span>Другой формат</span></div>
+              <div class="lrow"><span class="link">Пропустить</span><span class="mute">План подождет, он не сгорает</span></div>
+            </div>
+          </div>
+          <div class="toast"><span>Тема ушла в конец плана</span><b>Вернуть</b></div>
+          <div class="nav"><span class="on">Написать</span><span>Темы</span><span>Мои тексты</span><span>Настройки</span></div>
+        </div>
+        <p class="cap"><b>Пропуск.</b> Карточка уезжает, на ее место следующий слот. Тост на 5 секунд с «Вернуть».</p>
+      </div>
+      <div class="shot">
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="top"><span class="logo"><i></i>PsyCont</span><span class="pill">Идеи · <b style="color:var(--green)">План</b></span></div>
+          <div class="body" style="opacity:.5">
+            <span class="h">Эта неделя</span>
+            <div class="slot"><span class="st"></span><div><div class="t">В очереди на кассе накрывает</div><div class="m">Слова на экране</div></div></div>
+          </div>
+          <div class="dim-bg"></div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <div class="tema">Запускаю группу, курс или консультации</div>
+            <div class="mute">За две недели до старта в плане появятся тексты об этом. Приглашений не больше двух в неделю.</div>
+            <div class="field"><span>Что запускаешь</span></div>
+            <div class="field"><span>Когда старт</span></div>
+            <div class="field"><span>Как записаться: из профиля</span></div>
+            <div class="btn">Встроить в план</div>
+          </div>
+        </div>
+        <p class="cap"><b>Запуск (вторая версия).</b> Лист снизу из «Темы → План». Как записаться подставляется из профиля.</p>
+      </div>
+      <div class="shot">
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="top"><span class="logo"><i></i>PsyCont</span><span class="pill">осталось 7 текстов</span></div>
+          <div class="body">
+            <div class="mute" style="color:var(--green);font-weight:600">Выложено. На этой неделе 4 из 4</div>
+            <span class="h" style="font-size:22px">Сегодня</span>
+            <div class="card" style="padding:16px">
+              <div class="tema">Неделя готова</div>
+              <div class="mute">Следующую можно начать, когда захочется.</div>
+              <div class="btn">Взять следующую тему</div>
+            </div>
+          </div>
+          <div class="nav"><span class="on">Написать</span><span>Темы</span><span>Мои тексты</span><span>Настройки</span></div>
+        </div>
+        <p class="cap"><b>Неделя закрыта.</b> Без конфетти и счетчиков. Отметка «Уже в блоге?» у текста отмечает слот сама.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="choose">
+    <h2>Что выбрать</h2>
+    <p class="sub">Напиши в чат «вариант 1» или «вариант 2» и что поменять. Состояния общие, их можно поправить отдельно.</p>
+  </section>
+</div>
