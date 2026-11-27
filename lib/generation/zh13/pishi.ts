@@ -10,7 +10,7 @@ import { buildAuthorSettings } from '../settings'
 import { GRUPPY, parseKlienty, situaciiTemy, nishaProfilya } from '@/lib/anketa'
 import { FORMATY, HUKI_MYSLI, formatPo, vybratAuto, type Format13 } from './formaty'
 import { oporyPsihologa, vybratOporu } from './opory'
-import { prompt13, manera, type Avtor13, type Obrazec13 } from './prompt'
+import { prompt13, manera, matStroka, podachaStroka, type Avtor13, type Obrazec13 } from './prompt'
 import { razobrat, type Rezultat13 } from './razbor'
 import { proverit, type Proverka } from './proverka'
 import { taZheTema, pohozhe, shodstvo, slova } from './tekst'
@@ -115,12 +115,13 @@ export function avtorIz(profile: any): Avtor13 {
   const k = parseKlienty(profile?.klienty)
   const gruppy = k.groups.map(c => GRUPPY.find(g => g.kod === c)?.imya.replace(/\s*\(.*\)$/, '')).filter((x): x is string => !!x)
   const golos = s.voiceBrief ? s.voiceBrief.replace(/\n+/g, '; ')
-    : s.toneVerbal ? `так ты отвечаешь клиентам, твоими словами: «${s.toneVerbal}»` : 'спокойный, разговорный'
+    : s.toneVerbal ? `так ты отвечаешь клиентам, твоими словами: «${s.toneVerbal}»` : manera(profile?.manera).length ? 'разговорный' : 'спокойный, разговорный'
   return {
     rod: profile?.author_gender === 'male' ? 'm' : 'f',
     vy: /на вы/.test(s.address),
     golos,
     mat: profile?.profanity === 'free' ? 'mozhno' : profile?.profanity === 'light' ? 'tochechno' : profile?.profanity === 'no' ? 'strogo' : 'net',
+    zvezdy: typeof profile?.mat_zvezdy === 'boolean' ? profile.mat_zvezdy : typeof profile?.habits?.mat_zvezdy === 'boolean' ? profile.habits.mat_zvezdy : undefined,
     manera: manera(profile?.manera),
     oSebe: ({ 1: 'lichnoe', 2: 'rabota', 3: 'nichego' } as const)[Number(profile?.disclosure) as 1 | 2 | 3] ?? null,
     gruppy: gruppy.length ? gruppy : (nishaProfilya(profile) ? [nishaProfilya(profile)] : []),
@@ -265,7 +266,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     if (!rez.podpis) return null
     const moral = podpisMoral(rez.podpis), perev = podpisPerevertysh(rez.podpis), vopros = voprosToje && podpisVopros(rez.podpis)
     if (!moral && !perev && !vopros) return null
-    const x = await perepisatPodpis({ podpis: rez.podpis, glavnoe: rez.glavnoe, prichina: moral ? 'moral' : perev ? 'perevertysh' : 'vopros', obrazcy: PODPISI, mat: a.mat === 'tochechno' || a.mat === 'mozhno', deadline, userId: uchet, knownNames, moral: podpisMoral, vopros: podpisVopros })
+    const x = await perepisatPodpis({ podpis: rez.podpis, glavnoe: rez.glavnoe, prichina: moral ? 'moral' : perev ? 'perevertysh' : 'vopros', obrazcy: PODPISI, mat: a.mat === 'tochechno' || a.mat === 'mozhno', matPravilo: matStroka(a), deadline, userId: uchet, knownNames, moral: podpisMoral, vopros: podpisVopros })
     if (x.vzyato) { rez.tekst = rez.tekst.replace(rez.podpis, x.posle); rez.podpis = x.posle }
     return x
   }
@@ -276,9 +277,10 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     if (opts?.bezUcheta) ctx.userId = ''
     // род читателя как у остальных форматов zh13: без рода, если аудитория не «в основном женщины» (только в этом
     // вызове, настройки прода zh6 не меняются)
-    if (!/женщин/i.test(avtor.gender || '')) ctx.settings.readerGenderRule = 'без родовых окончаний'
+    if (/мужчин/i.test(avtor.gender || '')) ctx.settings.readerGenderRule = 'о читателе в мужском роде'
+    else if (!/женщин/i.test(avtor.gender || '')) ctx.settings.readerGenderRule = 'без родовых окончаний'
     // поправки по «Не совсем» и в карусели (ревью 26.11: иначе «учтем» было бы неправдой для каруселей)
-    const pz = popravkiIz(feedback, 'avtor')
+    const pz = [podachaStroka(avtor.manera), popravkiIz(feedback, 'avtor')].filter(Boolean).join(' ')
     if (pz) ctx.settings.popravki = pz
     const req: GenRequest = { topic: tema || (mysl || '').slice(0, 300), format: 'carousel', intent: null, intentChoices: null, userDetail: mysl }
     const r = await zh6Write(ctx, req)
@@ -346,7 +348,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   const mk = moralKonca(f, rez.tekst, rez.glavnoe, mysl)
   if (mk) pometki2.push({ kod: 'moral_konec', fraza: mk })
   for (const x of pometki2) if (!pometki.some(y => y.kod === x.kod && y.fraza === x.fraza)) pometki.push(x)
-  const pr = await perepisatFrazy({ text: `${rez.glavnoe}\n\n${rez.podpis}`, kod: f.kod, nadpis: rez.nadpis, pometki: pometki2, kusok: kusok.tekst, mat: (avtor.mat === 'tochechno' || avtor.mat === 'mozhno'), deadline, userId: uchet, knownNames })
+  const pr = await perepisatFrazy({ text: `${rez.glavnoe}\n\n${rez.podpis}`, kod: f.kod, nadpis: rez.nadpis, pometki: pometki2, kusok: kusok.tekst, mat: (avtor.mat === 'tochechno' || avtor.mat === 'mozhno'), matPravilo: matStroka(avtor), deadline, userId: uchet, knownNames })
   for (const x of pr.perepis) if (x.vzyato) { rez.tekst = rez.tekst.replace(x.do, x.posle); rez.glavnoe = rez.glavnoe.replace(x.do, x.posle); rez.podpis = rez.podpis.replace(x.do, x.posle) }
   // подпись с моралью: переписываем только подпись (своя мысль в конце текста моралью не считается, подпись проверяем всегда)
   const pp = await podpisBezMorali(rez, avtor, mysl, f.kod === 'voprosy' ? null : 'vopros', false)

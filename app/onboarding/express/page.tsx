@@ -255,9 +255,10 @@ export default function ExpressOnboarding() {
     try {
       if (!isPreview()) {
         saveErr = (await supabase.from('onboarding_profiles').upsert(profileData, { onConflict: 'user_id' })).error
-        // миграция manera (или klienty) еще не применена: сохраняем все остальное без нового поля, ответы не теряются
-        for (const pole of ['manera', 'klienty']) {
-          if (saveErr && new RegExp(pole).test(String((saveErr as { message?: string }).message || ''))) {
+        // колонки еще нет (миграция не применена, PGRST204 или текст про колонку): сохраняем остальное без нее, ответы не теряются
+        for (const pole of ['manera', 'mat_zvezdy', 'klienty']) {
+          const err = saveErr as { message?: string; code?: string } | null
+          if (err && new RegExp(pole).test(`${err.code || ''} ${err.message || ''}`)) {
             delete profileData[pole]
             saveErr = (await supabase.from('onboarding_profiles').upsert(profileData, { onConflict: 'user_id' })).error
           }
@@ -317,7 +318,7 @@ export default function ExpressOnboarding() {
   // ---------- общие куски ----------
   const green = 'w-full h-[52px] rounded-2xl text-[16px] font-semibold bg-brand-accent text-white hover:bg-brand-accent-hover cursor-pointer transition'
   const outline = 'w-full h-[52px] rounded-2xl text-[16px] font-semibold border-[1.5px] border-brand-accent text-brand-accent bg-brand-card cursor-pointer transition'
-  // вопросы 2 и 6 крупнее, чтобы не было пустоты; на 3-5 свои плотные чипы (components/anketa), иначе не влезает в 375×667
+  // вопрос 2 крупнее, чтобы не было пустоты; на 3-4 свои плотные чипы (components/anketa), иначе не влезает в 375×667
   const big = step === 2
   const chip = (on: boolean, dim = false) => `${big ? 'min-h-[52px] px-5 text-[17px]' : 'h-11 px-4 text-[15px]'} inline-flex items-center gap-1.5 rounded-full cursor-pointer transition ${on ? 'bg-brand-soft border-[1.5px] border-brand-accent text-brand-text font-semibold' : 'border border-brand-border text-brand-text'} ${dim ? 'opacity-50' : ''}`
   const inputCls = 'h-14 w-full rounded-[20px] bg-brand-card border-[1.5px] border-brand-border px-4 text-[16px] text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-accent focus:ring-[3px] focus:ring-brand-soft'
@@ -341,7 +342,7 @@ export default function ExpressOnboarding() {
     </div>
   )
   // необязательный шаг: ничего не отмечено = «Пропустить», есть ответ = «Дальше» (один слот)
-  const skipBlock = (n: 4 | 5, has: boolean) => (
+  const skipBlock = (n: 4, has: boolean) => (
     <div ref={actionRef} className="sticky bottom-0 z-10 bg-brand-bg pt-2 pb-[max(4px,env(safe-area-inset-bottom))] mt-3">
       <button type="button" disabled={moving}
         onClick={() => { if (has) next(); else { track('onb_skip', { step: n }); done(n); go((n + 1) as Step) } }}
@@ -521,7 +522,7 @@ export default function ExpressOnboarding() {
         </fieldset>
         <fieldset className="mt-5">
           <legend className={legend}>{T6.mat}</legend>
-          <div className="mt-2 grid grid-cols-3 gap-2 items-stretch">
+          <div className="mt-2 grid grid-cols-1 min-[360px]:grid-cols-3 gap-2 items-stretch">
             {variant('onb-mat', a.mat === 'no', () => setA({ ...a, mat: 'no' }), T6.matNo, T6.matNoSub, true)}
             {variant('onb-mat', a.mat === 'light', () => setA({ ...a, mat: 'light' }), T6.matLight, T6.matLightSub, true)}
             {variant('onb-mat', a.mat === 'free', () => setA({ ...a, mat: 'free' }), T6.matFree, T6.matFreeSub, true)}

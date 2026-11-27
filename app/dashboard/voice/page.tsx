@@ -146,6 +146,7 @@ export default function VoicePage() {
   const [intensity, setIntensity] = useState<'calm' | 'live' | 'hot' | null>(null)
   // манера из знакомства (27.11), до двух; тот же выбор, что на шаге 5 знакомства
   const [manera, setManera] = useState<string[]>([])
+  const [maneraHint, setManeraHint] = useState(false)
   // ползунки тона (те же, что в экспрессе): 0..100, высокое = формально / серьезно / бережно
   const [tone, setTone] = useState<Record<ToneAxis, number>>({ tone_formal: 50, tone_serious: 50, tone_cautious: 50 })
   const [toneSaved, setToneSaved] = useState<string | null>(null)
@@ -300,13 +301,7 @@ export default function VoicePage() {
     setToneSaved(error ? 'Не сохранилось, попробуй еще раз' : 'Сохранено, следующие посты будут так')
   }
 
-  // звездочки сохраняются сразу, как мат и эмоции
-  const saveZvezdy = async (v: boolean) => {
-    if (!userId) return
-    setMatZvezdy(v); setToneSaved(null)
-    const ok = await saveExtra(userId, { mat_zvezdy: v })
-    setToneSaved(ok ? 'Сохранено, следующие посты будут так' : 'Не сохранилось, попробуй еще раз')
-  }
+
 
   const kodTrim = kod.trim()
   const kodBad = zh6Ui && (kodTrim.length === 1 || kodTrim.length > 40)
@@ -399,11 +394,18 @@ export default function VoicePage() {
                 const on = manera.includes(m.kod)
                 const off = !on && manera.length >= MANERA_MAX
                 return (
-                  <button key={m.kod} type="button" aria-pressed={on} aria-disabled={off || undefined} title={off ? 'Можно до двух. Сними одну, чтобы выбрать другую' : `«${m.primer}»`}
-                    onClick={() => {
-                      if (off) return
+                  <button key={m.kod} type="button" aria-pressed={on} aria-disabled={off || undefined}
+                    onClick={async () => {
+                      if (off) { setManeraHint(true); return }
+                      setManeraHint(false)
+                      const prev = manera
                       const next = on ? manera.filter(k => k !== m.kod) : [...manera, m.kod]
-                      setManera(next); saveTone({ manera: next })
+                      setManera(next)
+                      if (!userId) return
+                      setToneSaved(null)
+                      const { error } = await supabase.from('onboarding_profiles').update({ manera: next }).eq('user_id', userId)
+                      // не сохранилось: возвращаем прежний выбор, чтобы экран не врал
+                      if (error) { setManera(prev); setToneSaved('Не сохранилось, попробуй еще раз') } else setToneSaved('Сохранено, следующие посты будут так')
                     }}
                     className={`px-3 py-1.5 rounded-full text-sm border transition cursor-pointer ${on ? 'bg-brand-accent text-white border-brand-accent' : off ? 'bg-white text-brand-muted border-dashed border-brand-border' : 'bg-white text-brand-text-secondary border-brand-border hover:border-brand-accent'}`}>
                     {m.imya}
@@ -411,6 +413,7 @@ export default function VoicePage() {
                 )
               })}
             </div>
+            <p className="text-xs text-brand-muted" role="status">{maneraHint ? 'Можно до двух. Сними одну, чтобы выбрать другую' : manera.length ? MANERY.filter(m => manera.includes(m.kod)).map(m => `«${m.primer}»`).join(' ') : ''}</p>
           </div>
           <div className="space-y-2">
             <p className="text-sm font-semibold text-brand-text">Мат</p>

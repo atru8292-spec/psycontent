@@ -16,6 +16,8 @@ export type Avtor13 = {
   golos: string
   // strogo: явное «Нет» в знакомстве (без грубых слов вообще); net: не выбрано, как раньше
   mat: 'net' | 'strogo' | 'tochechno' | 'mozhno'
+  // звездочки в мате: явный выбор (mat_zvezdy, знакомство ставит light true, free false), иначе по умолчанию у light
+  zvezdy?: boolean
   gruppy: string[]
   age: string[]
   gender: string | null
@@ -37,6 +39,17 @@ export const MANERA: Record<string, string> = {
   berezhno: 'бережно, по-доброму: снимаешь вину уверенно, без «может быть» и «иногда», мягкость в смысле, а не в осторожных словах',
   posvoyski: 'по-свойски, на равных: разговорными словами, без дистанции специалиста',
 }
+// одна строка правил мата для писателя и для переписи (perepis.ts), чтобы строгий вариант доходил везде
+export function matStroka(a: Pick<Avtor13, 'mat' | 'zvezdy'>): string {
+  const zv = a.zvezdy ?? a.mat === 'tochechno'
+  // звездочки не выбраны явно: прежняя строка «Мат можно.» (старые профили без изменений)
+  if (a.mat === 'mozhno') return a.zvezdy === undefined ? 'Мат можно.' : zv ? 'Мат можно, со звездочкой в середине слова.' : 'Мат можно, без звездочек.'
+  if (a.mat === 'tochechno') return zv ? 'Мат и грубые слова можно точечно, мат со звездочкой в середине слова.' : 'Мат и грубые слова можно точечно, без звездочек.'
+  if (a.mat === 'strogo') return 'Без мата и без грубых слов, даже «блин» и «жопа» не пиши.'
+  return 'Без мата.'
+}
+// строка манеры отдельно: ее же получает карусель (zh6 внутри zh13, через ctx.settings.popravki)
+export const podachaStroka = (kody?: string[]): string => (kody?.length ? `Как ты подаешь: ${kody.map(k => MANERA[k]).join('; и ')}.` : '')
 export const manera = (kody: unknown): string[] =>
   (Array.isArray(kody) ? kody : []).filter((k): k is string => typeof k === 'string' && !!MANERA[k]).slice(0, 2)
 export type Obrazec13 = { id: string; format: 'reels' | 'carousel' | 'post'; podacha: string; ton: string; mat: boolean; tekst: string; istochnik?: string; kody?: string[]; huk?: string; tema?: string; metod?: boolean }
@@ -122,8 +135,8 @@ export function prompt13(a: Avtor13, z: Zadanie13): { system: string; user: stri
     ].filter(Boolean).join(' ')
     : `Сделай свой ${chto}. Тема: ${chistTema(z.tema || '')}.${z.situaciya ? ` Ситуация, от которой можно оттолкнуться: ${z.situaciya}.` : ''}`
   // «Нет» в знакомстве строгое (27.11): без мата и без грубых слов, даже «блин» и «жопа»
-  const mat = a.mat === 'mozhno' ? 'Мат можно, без звездочек.' : a.mat === 'tochechno' ? 'Мат и грубые слова можно точечно, мат со звездочкой в середине слова.' : a.mat === 'strogo' ? 'Без мата и без грубых слов, даже «блин» и «жопа» не пиши.' : 'Без мата.'
-  const podacha = a.manera?.length ? ` Как ты подаешь: ${a.manera.map(k => MANERA[k]).join('; и ')}.` : ''
+  const mat = matStroka(a)
+  const podacha = a.manera?.length ? ` ${podachaStroka(a.manera)}` : ''
   // «нет» в знакомстве значит «без личного», а не «совсем без я»: «ко мне приходят», «в практике вижу» остаются (дизайнер 27.11)
   const oSebe = a.oSebe === 'lichnoe' ? ' О себе можно и про личное: свой опыт и жизнь, но факты своей жизни бери только из мысли автора, не выдумывай.'
     : a.oSebe === 'rabota' ? ' О личном не пишешь; про работу можно: «ко мне приходят», «в практике вижу».'

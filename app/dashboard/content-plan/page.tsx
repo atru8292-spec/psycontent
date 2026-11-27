@@ -634,7 +634,7 @@ export default function ContentPlan() {
               actionLabel="Составить план тем"
               onAction={handleGenerate}
             />
-            {needOnboarding && <div className="mt-4"><LimitNotice title="Сначала расскажи о себе" message="План тем собирается под то, с чем ты работаешь. Пять коротких вопросов, и можно составлять." actionLabel="Рассказать о себе" actionHref="/onboarding/express" /></div>}
+            {needOnboarding && <div className="mt-4"><LimitNotice title="Сначала расскажи о себе" message="План тем собирается под то, с чем ты работаешь. Шесть коротких вопросов, и можно составлять." actionLabel="Рассказать о себе" actionHref="/onboarding/express" /></div>}
             {serverError && <div className="mt-4"><ServerErrorNotice onRetry={handleGenerate} /></div>}
             {error && !needOnboarding && !serverError && <div className="mt-4 p-4 bg-brand-soft border border-brand-border-soft rounded-xl text-brand-text text-[15px] md:text-sm">{error}</div>}
           </motion.div>

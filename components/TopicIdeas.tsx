@@ -283,7 +283,7 @@ export default function TopicIdeas({ embedded = false }: { embedded?: boolean })
             />
             {needOnboarding && (
               <div className="mt-4">
-                <LimitNotice title="Сначала расскажи о себе" message="Темы подбираются под то, с чем ты работаешь. Пять коротких вопросов, и можно искать." actionLabel="Рассказать о себе" actionHref="/onboarding/express" />
+                <LimitNotice title="Сначала расскажи о себе" message="Темы подбираются под то, с чем ты работаешь. Шесть коротких вопросов, и можно искать." actionLabel="Рассказать о себе" actionHref="/onboarding/express" />
               </div>
             )}
             {serverError && (

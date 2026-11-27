@@ -192,7 +192,8 @@ export async function rebuildVoice(db: SupabaseClient, userId: string, profile: 
   // Настройки из образцов, только если психолог их не задала сама
   if (!profile?.author_gender && (brief.gender === 'female' || brief.gender === 'male')) update.author_gender = brief.gender
   if (!profile?.reader_address && (brief.address === 'ty' || brief.address === 'vy')) update.reader_address = brief.address
-  if (!profile?.profanity && (brief.profanity === 'no' || brief.profanity === 'light')) update.profanity = brief.profanity
+  // 'no' сам не ставим (27.11): явное «Нет» теперь строгое (даже «блин» нельзя), его выбирает только человек
+  if (!profile?.profanity && brief.profanity === 'light') update.profanity = brief.profanity
 
   const upd = await db.from('onboarding_profiles').update(update).eq('user_id', userId)
   if (upd.error) throw new Error('Не получилось сохранить голос: ' + upd.error.message)

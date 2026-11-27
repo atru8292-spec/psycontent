@@ -3,3 +3,5 @@
 -- Только добавление nullable-колонки: старые профили не меняются (null = строки манеры в промпте нет).
 -- Права: таблица уже под RLS «свой профиль»; новых функций нет.
 alter table public.onboarding_profiles add column if not exists manera text[];
+alter table public.onboarding_profiles drop constraint if exists onboarding_profiles_manera_max2;
+alter table public.onboarding_profiles add constraint onboarding_profiles_manera_max2 check (manera is null or cardinality(manera) <= 2);

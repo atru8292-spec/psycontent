@@ -347,3 +347,12 @@ if (file && existsSync(file)) {
 }
 
 console.log(`\nвсе ${n} проверок прошли`)
+
+// коды манер одни и те же в интерфейсе (lib/manera.ts) и в генераторе (MANERA в prompt.ts), иначе выбор молча теряется
+{
+  const { MANERY } = require('../lib/manera')
+  const { MANERA } = require('../lib/generation/zh13/prompt')
+  const a = MANERY.map((m: any) => m.kod).sort().join(','), b = Object.keys(MANERA).sort().join(',')
+  if (a !== b) { console.error('коды манер разошлись:', a, '|', b); process.exit(1) }
+  console.log('ok коды манер совпадают')
+}
