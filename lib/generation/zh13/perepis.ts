@@ -87,7 +87,7 @@ export async function perepisatPodpis(o: {
       `Так звучат живые подписи (их слова не бери):\n${o.obrazcy.map(x => `- ${x}`).join('\n')}`,
       `Текст, под которым подпись:\n<текст>\n${o.glavnoe.slice(0, 1500)}\n</текст>`,
       `<подпись>\n${o.podpis}\n</подпись>`,
-      `Одна-две строки обычной речью, без морали, без противопоставления и без вопроса подписчикам, не начинай с «Можно» и «Иногда». ${o.matPravilo ? `${o.matPravilo} ` : o.mat ? '' : 'Без мата. '}Буква «е» вместо «ё», без длинных тире. Ответ: только новая подпись.`,
+      `Одна-две строки обычной речью: что было или что ты думаешь. Без морали, без противопоставления, без игры слов и иронии, которую надо разгадывать, без вопроса подписчикам, не начинай с «Можно» и «Иногда». ${o.matPravilo ? `${o.matPravilo} ` : o.mat ? '' : 'Без мата. '}Буква «е» вместо «ё», без длинных тире. Ответ: только новая подпись.`,
     ].join('\n\n')
     const raw = await callModel({ system: SYSTEM, user, effort: 'low', verbosity: 'low', maxTokens: 600, timeoutMs: Math.min(20000, o.deadline - Date.now()), writer: true, userId: o.userId, operation: 'generate_post_zh13_podpis', knownNames: o.knownNames })
     const nov = ochistit13(raw).replace(/^Подпись\s*:\s*/i, '').replace(/^[«"]|[»"]$/g, '').trim()

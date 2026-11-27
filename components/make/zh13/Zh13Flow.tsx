@@ -33,7 +33,7 @@ import { track } from '@/lib/track'
 import { goalFirst, prepareFirsts } from '@/lib/metrika'
 import { isMaterials, spendLine, shagov, END, TARIFF_HREF, TRIAL_SPEND, type Materials } from '@/lib/limit-texts'
 import { dateRu } from '@/lib/billing/pay-texts'
-import { FORMATY, imyaNaEkrane, korotkoNaEkrane, sZaglavnoy } from '@/lib/generation/zh13/formaty'
+import { FORMATY, SUT, imyaNaEkrane, korotkoNaEkrane, sZaglavnoy } from '@/lib/generation/zh13/formaty'
 import { readMakeParam, takeMakeOnce } from '@/lib/make-handoff'
 
 type Ready = {
@@ -165,6 +165,9 @@ function KakSnyat({ v, open, onToggle, aside }: { v: Ready; open: boolean; onTog
   if (v.vid !== 'reels' || !v.kakSnyat.length) return null
   // хук и плашки по ходу ролика: «Плашки:» с новой строки, по-человечески
   const nadpis = v.nadpis.replace(/[;,.]?\s*Плашки?:\s*/i, '\nПо ходу: ').trim()
+  // «Что это» (27.11): суть ролика и как его снять, видно и в свернутом блоке на телефоне
+  const sut = SUT[v.kod]
+  const sutP = sut ? <p className={aside ? 'mt-1.5 text-[15px] leading-[22px] text-brand-text-secondary' : 'px-4 pb-3 -mt-1 text-[15px] leading-[22px] text-brand-text-secondary'}>{sut}</p> : null
   const body = (
     <div className={aside ? 'mt-3' : 'px-4 pb-4'}>
       <ol className="space-y-2.5">
@@ -190,6 +193,7 @@ function KakSnyat({ v, open, onToggle, aside }: { v: Ready; open: boolean; onTog
   if (aside) return (
     <div className={`rounded-[20px] bg-brand-card ${SHADOW} p-5`}>
       <p className="text-[17px] font-semibold text-brand-text">Как снять</p>
+      {sutP}
       {body}
     </div>
   )
@@ -199,6 +203,7 @@ function KakSnyat({ v, open, onToggle, aside }: { v: Ready; open: boolean; onTog
         <span className="min-w-0 flex-1 text-[15px] font-semibold text-brand-text">Как снять <span className="font-normal text-brand-muted">· {shagov(v.kakSnyat.length)}</span></span>
         <ChevronDown className={`w-5 h-5 text-brand-muted transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
+      {sutP}
       {open && body}
     </div>
   )

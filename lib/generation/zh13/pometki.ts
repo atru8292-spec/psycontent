@@ -15,6 +15,7 @@ export const POMETKI: Record<string, string> = {
   rvano: 'Рвано: три и больше фраз до 4 слов подряд',
   moral_konec: 'Мораль в конце текста',
   kopiya_zhizni: 'Почти дословно из живого примера темы (5 слов подряд)',
+  tam_gde: 'Парная конструкция «не там, где..., а там, где...»',
 }
 
 // Фраза почти дословно из живых строк темы (27.11): строки даются писателю образцом уровня, брать их нельзя,
@@ -55,6 +56,8 @@ export function rubrikaVoprosov(t: string): string | null {
   const m = String(t).match(/неудобные\s+вопросы\s+(.{2,80}?)\s+за\s+(?:вас|тебя)/iu)
   return m ? m[1].replace(/[«»"]/g, '').trim() : null
 }
+
+const TAM_GDE = /там,\s+где/giu
 
 // пометки на основе текста (без подписи у рилса: подпись проверяется своими правилами)
 export function pometit(glavnoe: string, kod: string, nadpis = ''): Pometka[] {
@@ -102,6 +105,16 @@ export function pometit(glavnoe: string, kod: string, nadpis = ''): Pometka[] {
         if (kusok && !obr.some(o => o.includes(L[i]) || kusok.includes(o))) add('rvano', kusok)
       }
       i = j
+    }
+  }
+  // парная конструкция «не всегда там, где..., иногда там, где...» (оценка Арины 27.11: «ИИ-конструкции»): в двух соседних
+  // фразах два «там, где» и противопоставление. У 209 живых текстов zh13/dannye.json ни разу, поэтому метим кодом.
+  // Метим обе фразы куском текста как есть: перепись дает одну обычную фразу вместо пары.
+  for (let i = 0; i + 1 < F.length; i++) {
+    const para = `${F[i]} ${F[i + 1]}`
+    if ((para.match(TAM_GDE) || []).length >= 2 && /(?<![а-яё])(не|иногда|а)(?![а-яё])/iu.test(para)) {
+      const i0 = glavnoe.indexOf(F[i]), i1 = glavnoe.indexOf(F[i + 1], i0)
+      if (i0 >= 0 && i1 >= 0) { add('tam_gde', glavnoe.slice(i0, i1 + F[i + 1].length)); i++ }
     }
   }
   if (kod === 'voprosy') {

@@ -34,11 +34,27 @@ for f in 'PABCDE':
                 uniq.append(x)
         zhivye[norm(t['tema'])] = {'tema': t['tema'], 'situacii': uniq, 'vokrug': vok, 'istochniki': urls}
 
+# Живые строки от Арины (27.11, комментарий к оценкам текстов): добавляются в тему как есть, с пометкой источника.
+DOP = {
+    'Страх чужого мнения и осуждения': ['попросить открыть окно в душном автобусе или сказать таксисту остановиться, и приходится себя перебарывать'],
+}
+
+def dopolnit(t, polnyy):
+    for x in DOP.get(t['tema'], []):
+        x = chk(x)
+        if x not in t['situacii']:
+            t['situacii'].append(x)
+        if polnyy:
+            ot = t.setdefault('ot_ariny', [])
+            if x not in ot:
+                ot.append(x)
+
 def primenit(path, polnyy):
     d = json.load(open(path, encoding='utf-8'))
     nashli = set()
     for g in d['gruppy']:
         for t in g['temy']:
+            dopolnit(t, polnyy)
             z = zhivye.get(norm(t['tema']))
             if not z:
                 continue
@@ -79,6 +95,17 @@ while i < len(L):
         continue
     out.append(L[i])
     i += 1
+for tema, xs in DOP.items():
+    for x in xs:
+        if any(l == f'- {x} (Арина 27.11)' for l in out):
+            continue
+        for j, l in enumerate(out):
+            if l.startswith(f'**{tema}**'):
+                k = j + 1
+                while k < len(out) and out[k].startswith('- ') and not out[k].startswith('- находки:'):
+                    k += 1
+                out.insert(k, f'- {x} (Арина 27.11)')
+                break
 txt = '\n'.join(out)
 POMETKA = 'Пометка «живые 27.11»: у темы не было находок, ситуации и фразы «вокруг» собраны из живых рассказов людей 27.11, источники в zhivye-2026-11-27.'
 if POMETKA not in txt:
