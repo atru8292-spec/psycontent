@@ -1,0 +1,32 @@
+{
+ "p01": {
+  "tema": "Панические атаки",
+  "pervaya": "b",
+  "vtoraya": "a"
+ },
+ "p02": {
+  "tema": "Одиночество без пары",
+  "pervaya": "a",
+  "vtoraya": "b"
+ },
+ "p03": {
+  "tema": "Стареющие родители и уход за ними",
+  "pervaya": "b",
+  "vtoraya": "a"
+ },
+ "p04": {
+  "tema": "Обида",
+  "pervaya": "b",
+  "vtoraya": "a"
+ },
+ "p05": {
+  "tema": "Подростки: закрытая дверь",
+  "pervaya": "b",
+  "vtoraya": "a"
+ },
+ "p06": {
+  "tema": "Стыд",
+  "pervaya": "a",
+  "vtoraya": "b"
+ }
+}
