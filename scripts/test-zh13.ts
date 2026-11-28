@@ -15,7 +15,7 @@ import { anketaTopics } from '../lib/first-topic'
 import { zh13Dlya } from '../lib/generation/zh13/flag'
 import { vysheePoroga } from '../lib/generation/zh13/kachestvo-db'
 import { situaciiTemy, temaAnkety, GRUPPY } from '../lib/anketa'
-import { pometit, rubrikaVoprosov, pometitKopiyuZhizni, pometitRod } from '../lib/generation/zh13/pometki'
+import { pometit, rubrikaVoprosov, pometitKopiyuZhizni, pometitRod, pometitShtamp } from '../lib/generation/zh13/pometki'
 import { TEKSTY_PRAVOK, paryDlya, gruppaPar } from '../lib/generation/zh13/pravki'
 import { progonSmesi } from './zh13-smes'
 import { dostupen, tyazhelayaTema } from '../lib/generation/zh13/smes'
@@ -331,6 +331,13 @@ ok('подпись: вариант а две живые случайные, ва
   const p = prompt13(avtorIz({ full_name: 'Т', approaches: ['КПТ'] }), { f: f0, tema: 'Т', mysl: null, primery: [], opora: 'о', huk: '', obrazcy: [], kusok: 'к', podpis: zb }).user
   assert.ok(p.includes('Эта подпись:') && !p.includes('Так звучат живые подписи'), 'в промпте б')
   if (prev === undefined) delete process.env.PODPIS_VARIANT; else process.env.PODPIS_VARIANT = prev
+})
+
+ok('дежурная поддержка «тоже важно», «тоже имеет значение» метится (28.11)', () => {
+  for (const t of ['Твое «мне не хочется продолжать» тоже имеет значение.', 'Это тоже важно.', 'Тебе тоже нужны силы на эту жизнь.', 'Твои еда и сон тоже важны.'])
+    assert.equal(pometitShtamp(t).length, 1, t)
+  assert.deepEqual(pometitShtamp('Мне тоже важно, во сколько ты придешь, скажи заранее.\nОна тоже пришла.').length, 1, 'одна фраза')
+  assert.deepEqual(pometitShtamp('Сестра тоже пришла. Мама тоже звонила.'), [], 'обычное «тоже»')
 })
 
 ok('представление в конце подписи: кодом, в каждой третьей, имя и темы из профиля (28.11)', () => {

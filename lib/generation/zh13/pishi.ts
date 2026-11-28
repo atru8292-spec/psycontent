@@ -15,7 +15,7 @@ import { prompt13, manera, matStroka, podachaStroka, type Avtor13, type Obrazec1
 import { razobrat, type Rezultat13 } from './razbor'
 import { proverit, type Proverka } from './proverka'
 import { taZheTema, pohozhe, shodstvo, slova, obshieCepochki } from './tekst'
-import { pometit, pometitObrashcheniya, pometitKopiyuZhizni, pometitRod, rubrikaVoprosov, type Pometka } from './pometki'
+import { pometit, pometitObrashcheniya, pometitKopiyuZhizni, pometitRod, pometitShtamp, rubrikaVoprosov, type Pometka } from './pometki'
 import { predstavlenie } from './predstavlenie'
 import { podpisZadanie, podpisBlok } from './podpis'
 import { perepisatFrazy, perepisatPodpis, type Perepis } from './perepis'
@@ -382,7 +382,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   // остальные пометки: перепись только помеченной фразы, текст вокруг не трогаем
   // плюс повтор обращения («Слушай,») в тексте или подряд с прошлым текстом (место может быть в подписи) и мораль
   // в конце текста: переписываются так же, одной фразой; копия живой строки темы первой (переписей не больше четырех)
-  const pometki2 = [...pometitKopiyuZhizni(`${rez.glavnoe}\n${rez.podpis}`, primery, svoe), ...pometitRod(`${rez.glavnoe}\n${rez.podpis}`, avtor.gender || '', f.kod), ...(perepisCelikom?.vzyato ? pometit(rez.glavnoe, f.kod, rez.nadpis) : pometki), ...pometitObrashcheniya(rez.glavnoe, rez.podpis, proshlyy)]
+  const pometki2 = [...pometitKopiyuZhizni(`${rez.glavnoe}\n${rez.podpis}`, primery, svoe), ...pometitRod(`${rez.glavnoe}\n${rez.podpis}`, avtor.gender || '', f.kod), ...pometitShtamp(`${rez.glavnoe}\n${rez.podpis}`), ...(perepisCelikom?.vzyato ? pometit(rez.glavnoe, f.kod, rez.nadpis) : pometki), ...pometitObrashcheniya(rez.glavnoe, rez.podpis, proshlyy)]
   const mk = moralKonca(f, rez.tekst, rez.glavnoe, mysl)
   if (mk) pometki2.push({ kod: 'moral_konec', fraza: mk })
   for (const x of pometki2) if (!pometki.some(y => y.kod === x.kod && y.fraza === x.fraza)) pometki.push(x)
@@ -405,7 +405,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   proverka.detali.pometki = pometki
   if (pr.perepis.length) proverka.detali.perepis = pr.perepis
   if (perepisCelikom) proverka.detali.perepisCelikom = perepisCelikom
-  for (const x of [...pometit(rez.glavnoe, f.kod, rez.nadpis), ...pometitObrashcheniya(rez.glavnoe, rez.podpis, proshlyy), ...pometitKopiyuZhizni(`${rez.glavnoe}\n${rez.podpis}`, primery, svoe), ...pometitRod(`${rez.glavnoe}\n${rez.podpis}`, avtor.gender || '', f.kod)]) if (!proverka.problemy.includes(`pometka_${x.kod}`)) proverka.problemy.push(`pometka_${x.kod}`)
+  for (const x of [...pometit(rez.glavnoe, f.kod, rez.nadpis), ...pometitObrashcheniya(rez.glavnoe, rez.podpis, proshlyy), ...pometitKopiyuZhizni(`${rez.glavnoe}\n${rez.podpis}`, primery, svoe), ...pometitRod(`${rez.glavnoe}\n${rez.podpis}`, avtor.gender || '', f.kod), ...pometitShtamp(`${rez.glavnoe}\n${rez.podpis}`)]) if (!proverka.problemy.includes(`pometka_${x.kod}`)) proverka.problemy.push(`pometka_${x.kod}`)
   const meta: Meta13 = {
     kod: f.kod, vid: f.vid, rezhim, tema, mysl, primery, opora, huk: huk || null, predstavlenie: pred, podpisVariant: podpisZ.variant, podpisTip: podpisZ.tip, obrazcy: obrazcy.map(x => x.id), kusok: kusok.id,
     kakSnyat: rez.kakSnyat, podoydet: rez.podoydet, nadpis: rez.nadpis, podpis: rez.podpis, glavnoe: rez.glavnoe, ms: Date.now() - t0, popytki,

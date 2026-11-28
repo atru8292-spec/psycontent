@@ -4,7 +4,7 @@
 // попадает под ту же пометку, пустая, с метками или «ё»/тире. «Неудобные вопросы» не человеку переписываются
 // целиком один раз (это делает pishi.ts новым вызовом писателя). Все в общем бюджете: нет времени, текст как есть.
 import { callModel } from '../ai'
-import { pometit, pometitRod, nachinaetsyaObrashcheniem, type Pometka } from './pometki'
+import { pometit, pometitRod, pometitShtamp, nachinaetsyaObrashcheniem, type Pometka } from './pometki'
 import { aforizm, estGlagol, obshieCepochki } from './tekst'
 import { podpisPerevertysh, kontrast } from './proverka'
 import { ochistit13, slova, frazy } from './tekst'
@@ -60,6 +60,7 @@ export async function perepisatFrazy(o: {
       else if (p.kod === 'moral_konec' && (frazy(nov).some(aforizm) || /не\s+в\s+том/iu.test(nov))) pochemu = 'снова мораль'
       else if (p.kod === 'kopiya_zhizni' && (o.primery || []).some(x => obshieCepochki(nov, x, 5).length)) pochemu = 'снова копия'
       else if (p.kod === 'rod' && pometitRod(nov, o.auditoriya || '', o.kod).length) pochemu = 'снова род'
+      else if (pometitShtamp(nov).length) pochemu = 'снова дежурная поддержка'
       else if (/<|>|^(Речь|Подпись|Текст на экране)\s*:/i.test(nov)) pochemu = 'метки'
       return { kod: p.kod, do: p.fraza, posle: nov, vzyato: !pochemu, ...(pochemu ? { pochemu } : {}) }
     } catch {
