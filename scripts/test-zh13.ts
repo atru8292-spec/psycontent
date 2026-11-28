@@ -6,7 +6,7 @@ import { FORMATY, formatPo, vybratAuto, KRUG_AUTO } from '../lib/generation/zh13
 import { OPORY, oporyPsihologa, vybratOporu } from '../lib/generation/zh13/opory'
 import { prompt13 } from '../lib/generation/zh13/prompt'
 import { razobrat } from '../lib/generation/zh13/razbor'
-import { proverit, povtoryOborotov, podpisMoral, podpisVopros } from '../lib/generation/zh13/proverka'
+import { proverit, povtoryOborotov, podpisMoral, podpisVopros, podpisVoprosPloho } from '../lib/generation/zh13/proverka'
 import { podobrat, avtorIz, primeryZhizni } from '../lib/generation/zh13/pishi'
 import { seedIz, peremeshat, sdvigIz } from '../lib/seed'
 import { anketaTopics } from '../lib/first-topic'
@@ -92,7 +92,9 @@ ok('промпт: образцы, опора, ритм своего формат
     assert.ok(p.user.includes('без рода'))
     assert.ok(p.user.includes('Подойдет еще:'))
     assert.equal(p.user.includes('Как снять:'), f.vid === 'reels', f.kod)
-    assert.equal(p.user.includes('Не заканчивай текст вопросом'), f.kod !== 'voprosy', f.kod)
+    assert.equal(p.user.includes('Основной текст не заканчивай вопросом'), f.kod !== 'voprosy', f.kod)
+    // подпись 28.11: 3-5 фраз про то, что стоит за роликом, конкретный вопрос в конце можно
+    if (f.vid !== 'post') assert.ok(p.user.includes('Подпись дает то, чего нет в ролике') && p.user.includes('3-5 коротких фраз') && !p.user.includes('одна-две строки'), f.kod)
     assert.ok(!p.user.includes('{huk}'))
     // рилсы R1: без «как сказал бы вслух»; понятность: одна строка и 3-4 пары под формат
     assert.ok(!p.user.includes('как сказал бы вслух'), f.kod)
@@ -161,9 +163,13 @@ ok('проверка: мораль, вопрос, «Подожди», шабло
   const p2 = proverit({ ...base, syroe: t, tekst: r.tekst + ' ещё — так', glavnoe: r.glavnoe, podpis: r.podpis })
   assert.ok(p2.problemy.includes('yo') && p2.problemy.includes('tire'))
   assert.equal(p.podpisNachalo, 'можно любить'); assert.equal(p.pervyeSlova, 'подожди ты')
-  const t2 = 'Речь: Обычный текст без вопроса.\nПодпись: А вы так делаете?'
+  // 28.11: конкретный вопрос в подписи можно, дежурный («Знакомо?») нет
+  const t2 = 'Речь: Обычный текст без вопроса.\nПодпись: Опять одно и то же. Знакомо?'
   const r2 = razobrat(t2, f)
-  assert.ok(proverit({ ...base, poslednyayaOpora: null, syroe: t2, tekst: r2.tekst, glavnoe: r2.glavnoe, podpis: r2.podpis }).problemy.includes('vopros_konec'))
+  assert.ok(proverit({ ...base, poslednyayaOpora: null, syroe: t2, tekst: r2.tekst, glavnoe: r2.glavnoe, podpis: r2.podpis }).problemy.includes('vopros_konec'), 'дежурный вопрос')
+  const t2b = 'Речь: Обычный текст без вопроса.\nПодпись: Один раз пересказали за столом. А тебе в детстве было кому рассказать?'
+  const r2b = razobrat(t2b, f)
+  assert.ok(!proverit({ ...base, poslednyayaOpora: null, syroe: t2b, tekst: r2b.tekst, glavnoe: r2b.glavnoe, podpis: r2b.podpis }).problemy.includes('vopros_konec'), 'конкретный вопрос')
   const obr = 'раз два три четыре пять шесть семь восемь'
   const t3 = `Речь: ну раз два три четыре пять шесть и все.\nПодпись: П.`
   const r3 = razobrat(t3, f)
@@ -291,6 +297,14 @@ ok('тема дня: у разных психологов в один день �
   assert.ok(anketaTopics(temy).length === temy.length, 'без семени как раньше')
 })
 
+ok('подпись 28.11: мораль только в последней фразе, дежурный вопрос плохо, конкретный можно', () => {
+  assert.equal(podpisMoral('Можно бесконечно ждать, что тебя заметят. Подросток смотрит, что ты делаешь с его историей.'), false)
+  assert.equal(podpisMoral('Подросток смотрит, что ты делаешь с его историей. Доверие всегда начинается с тишины.'), true)
+  assert.equal(podpisVoprosPloho('Один раз пересказали за столом, и он замолчал. Знакомо?'), true)
+  assert.equal(podpisVoprosPloho('Один раз пересказали за столом. А тебе в детстве было кому рассказать?'), false)
+  assert.equal(podpisVoprosPloho('А у вас как?'), true)
+})
+
 ok('суд и бумаги: про чувства метим, настоящую работу и «вынести приговор» нет', () => {
   const k = (t: string) => pometit(t, 'mysl').map(x => x.kod)
   for (const t of ['Одобрение получить проще, только тебя в этой презентации почти нет.', 'Без обвинений и получасовой защиты своего желудка в суде.', 'Для внутреннего суда доказательства не нужны.',
@@ -308,7 +322,7 @@ ok('мораль: своя мысль в конце не мораль, подп�
   const r = razobrat(t, f)
   const base = { f, syroe: t, tekst: r.tekst, glavnoe: r.glavnoe, podpis: r.podpis, obrazcy: [], kusok: '', opora: 'о', poslednyayaOpora: null, auditoriyaZhenshiny: true }
   assert.ok(!proverit({ ...base, mysl: 'Тревога не враг. Она сторож, который слишком старается и лает на каждый шорох' }).problemy.includes('moral'))
-  assert.ok(podpisMoral('Можно любить маму и злиться. Это нормально.'))
+  assert.ok(podpisMoral('Мама снова звонит третий раз за вечер. Любить маму и злиться на нее можно.'), 'мораль в конце подписи')
   assert.ok(!podpisMoral('Пакет у забора. В доме никто не спит.'))
   assert.ok(podpisVopros('Ты так переживаешь с любым человеком или именно с ним?'))
 })

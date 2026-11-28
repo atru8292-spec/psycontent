@@ -85,11 +85,11 @@ export async function perepisatPodpis(o: {
   if (o.deadline - Date.now() < 8000) return { ...base, posle: '', vzyato: false, pochemu: 'нет времени' }
   try {
     const user = [
-      `Перепиши подпись под публикацией. Сейчас она ${o.prichina === 'moral' ? 'кончается выводом, как мораль' : o.prichina === 'perevertysh' ? 'из коротких фраз с противопоставлением, как афоризм-перевертыш, это режет глаз' : 'кончается вопросом к подписчикам'}.`,
+      `Перепиши подпись под публикацией. Сейчас она ${o.prichina === 'moral' ? 'кончается выводом, как мораль' : o.prichina === 'perevertysh' ? 'из коротких фраз с противопоставлением, как афоризм-перевертыш, это режет глаз' : 'кончается дежурным вопросом подписчикам'}.`,
       `Так звучат живые подписи (их слова не бери):\n${o.obrazcy.map(x => `- ${x}`).join('\n')}`,
       `Текст, под которым подпись:\n<текст>\n${o.glavnoe.slice(0, 1500)}\n</текст>`,
       `<подпись>\n${o.podpis}\n</подпись>`,
-      `Одна-две строки обычной речью: что было или что ты думаешь. Без морали, без противопоставления, без игры слов и иронии, которую надо разгадывать, без вопроса подписчикам, не начинай с «Можно» и «Иногда». ${o.matPravilo ? `${o.matPravilo} ` : o.mat ? '' : 'Без мата. '}Буква «е» вместо «ё», без длинных тире. Ответ: только новая подпись.`,
+      `3-5 коротких фраз обычной речью: что стоит за этим текстом, одной мыслью простыми словами, про человека из текста. Без морали в конце, без противопоставления, без игры слов и иронии, которую надо разгадывать. В конце можно один конкретный вопрос зрителю про его жизнь. Не начинай с «Можно» и «Иногда». ${o.matPravilo ? `${o.matPravilo} ` : o.mat ? '' : 'Без мата. '}Буква «е» вместо «ё», без длинных тире. Ответ: только новая подпись.`,
     ].join('\n\n')
     const raw = await callModel({ system: SYSTEM, user, effort: 'low', verbosity: 'low', maxTokens: 600, timeoutMs: Math.min(20000, o.deadline - Date.now()), writer: true, userId: o.userId, operation: 'generate_post_zh13_podpis', knownNames: o.knownNames })
     const nov = ochistit13(raw).replace(/^Подпись\s*:\s*/i, '').replace(/^[«"]|[»"]$/g, '').trim()
@@ -103,7 +103,7 @@ export async function perepisatPodpis(o: {
       pochemu = 'снова перевертыш'
     }
     else if (o.vopros(nov)) pochemu = 'снова вопрос'
-    else if (slova(nov).length > Math.max(40, slova(o.podpis).length * 1.5)) pochemu = 'длиннее'
+    else if (slova(nov).length > Math.max(90, slova(o.podpis).length * 1.5)) pochemu = 'длиннее'
     else if (/^(можно|иногда)(?![а-яё])/i.test(nov)) pochemu = 'шаблон начала'
     return { ...base, posle: nov, vzyato: !pochemu, ...(pochemu ? { pochemu } : {}) }
   } catch {

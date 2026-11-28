@@ -17,7 +17,7 @@ import { MODEL_PRICES, USD_TO_RUB_DRAFT } from '../lib/energy'
 const argv = process.argv.slice(2)
 const flag = (n: string) => (argv.find(a => a.startsWith(`--${n}=`)) || '').split('=').slice(1).join('=')
 const NABOR = flag('nabor') || 'zh13'
-const DIR = join(process.cwd(), '_знания', 'мозг-генератора', 'zh13-prod', ...(NABOR === 'zh14' ? ['zh14'] : NABOR === 'zh14b' ? ['zh14b'] : NABOR === 'zhivye' ? ['zhivye'] : NABOR === 'zhivye2' ? ['zhivye2'] : NABOR === 'zhivye3' ? ['zhivye3'] : []))
+const DIR = join(process.cwd(), '_знания', 'мозг-генератора', 'zh13-prod', ...(NABOR === 'zh14' ? ['zh14'] : NABOR === 'zh14b' ? ['zh14b'] : NABOR === 'zhivye' ? ['zhivye'] : NABOR === 'zhivye2' ? ['zhivye2'] : NABOR === 'zhivye3' ? ['zhivye3'] : NABOR === 'podpisi' ? ['podpisi'] : []))
 // zh14b: 5 текстов zh14 заново после правок 19.11; прошлый текст психолога (для «Слушай» и совета подряд) из zh14
 const ZH14 = join(process.cwd(), '_знания', 'мозг-генератора', 'zh13-prod', 'zh14', 'rezultaty.json')
 const USAGE = join(DIR, 'usage.jsonl')
@@ -35,7 +35,12 @@ const FAKTY = 'В 20 лет я вышла замуж за первого пар�
 // zhivye (27.11): темы с живыми ситуациями, у каждого текста свой психолог (u), писатель придумывает ситуацию сам
 // по трем живым строкам темы; последний текст: та же тема и формат, что у первого, другой психолог (разброс)
 // zhivye2 (27.11 вечер): тот же набор после правок по оценкам Арины, для сравнения «было / стало»
-const ZADANIYA: { kod: string; mysl?: string; tema?: string; tolkoVybor?: boolean; n?: number; pred?: string; u?: string }[] = NABOR === 'zhivye' || NABOR === 'zhivye2' || NABOR === 'zhivye3' ? [
+// podpisi (28.11): шесть рилсов из набора zhivye у тех же психологов, после правки подписей
+const ZADANIYA: { kod: string; mysl?: string; tema?: string; tolkoVybor?: boolean; n?: number; pred?: string; u?: string }[] = NABOR === 'podpisi' ? [
+  { kod: 'scenka', tema: 'Панические атаки', u: 'psiholog-1' }, { kod: 'pov_assoc', tema: 'Одиночество без пары', u: 'psiholog-4' },
+  { kod: 'mysl', tema: 'Стареющие родители и уход за ними', u: 'psiholog-5' }, { kod: 'voprosy', tema: 'Обида', u: 'psiholog-6' },
+  { kod: 'scenka', tema: 'Подростки: закрытая дверь', u: 'psiholog-7' }, { kod: 'perevod', tema: 'Стыд', u: 'psiholog-8' },
+] : NABOR === 'zhivye' || NABOR === 'zhivye2' || NABOR === 'zhivye3' ? [
   { kod: 'scenka', tema: 'Панические атаки', u: 'psiholog-1' }, { kod: 'auto', tema: 'Утрата и горе', u: 'psiholog-2' },
   { kod: 'p_paradoks', tema: 'Материнское выгорание и декрет', u: 'psiholog-3' }, { kod: 'pov_assoc', tema: 'Одиночество без пары', u: 'psiholog-4' },
   { kod: 'mysl', tema: 'Стареющие родители и уход за ними', u: 'psiholog-5' }, { kod: 'voprosy', tema: 'Обида', u: 'psiholog-6' },
@@ -106,7 +111,7 @@ async function main() {
         writeFileSync(fR, JSON.stringify(out, null, 1)); continue
       }
       const pred = z.pred && existsSync(ZH14) ? JSON.parse(readFileSync(ZH14, 'utf8')).find((x: any) => x.key === z.pred)?.meta : undefined
-      const it = await napisat(stubDb((z.n ?? i) * 5 + 1, pred), z.u || '', NABOR === 'zhivye' || NABOR === 'zhivye2' || NABOR === 'zhivye3' ? { ...PROFIL, niches: ZADANIYA.map(x => x.tema).filter(Boolean), klienty: { ...PROFIL.klienty, groups: [] } } : PROFIL, { formatKod: z.kod === 'auto' ? null : z.kod, mysl: z.mysl || null, tema: z.tema || null, fromPostId: null }, [], { bezUcheta: true })
+      const it = await napisat(stubDb((z.n ?? i) * 5 + 1, pred), z.u || '', NABOR === 'zhivye' || NABOR === 'zhivye2' || NABOR === 'zhivye3' || NABOR === 'podpisi' ? { ...PROFIL, niches: ZADANIYA.map(x => x.tema).filter(Boolean), klienty: { ...PROFIL.klienty, groups: [] } } : PROFIL, { formatKod: z.kod === 'auto' ? null : z.kod, mysl: z.mysl || null, tema: z.tema || null, fromPostId: null }, [], { bezUcheta: true })
       out.push({ key, kod: z.kod, imya: it.f.imya, vid: it.f.vid, ms: Date.now() - t0, meta: it.meta, problemy: it.proverka.problemy, detali: it.proverka.detali, blizost: it.proverka.blizost, tekst: it.rez.tekst, glavnoe: it.rez.glavnoe, podpis: it.rez.podpis, syroe: it.syroe })
       console.log(`${key}: ${Math.round((Date.now() - t0) / 1000)} с, пометок ${it.meta.pometki.length}, переписано ${it.meta.perepis.filter(x => x.vzyato).length}, проблемы: ${it.proverka.problemy.join(', ') || 'нет'}; всего ${rub().toFixed(2)} ₽`)
     } catch (e: any) {

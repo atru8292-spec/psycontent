@@ -5,8 +5,14 @@ import dannye from './dannye.json'
 import { ritm, blizost, osnova, frazy, aforizm, obshieCepochki, slova, nGrams, pohozhe, shodstvo, estGlagol, type Ritm } from './tekst'
 
 // подпись с моралью (любая фраза подписи похожа на вывод) или с вопросом подписчикам в конце
-export const podpisMoral = (p: string) => frazy(p).some(aforizm)
+// мораль в подписи: только последняя фраза (28.11: подпись теперь 3-5 фраз и объясняет; по любой фразе мораль нашлась бы
+// у 7 из 14 живых подписей, по последней у 1 из 14)
+export const podpisMoral = (p: string) => { const F = frazy(p); return F.length > 0 && aforizm(F[F.length - 1]) }
 export const podpisVopros = (p: string) => /\?\s*[»"]?\s*$/.test(p.trim())
+// вопрос в подписи можно, если он конкретный (28.11, Арина: вопрос в подписи дает живой разговор); плохо только дежурный
+// вопрос в конце («Знакомо?», «А у вас как?», «Согласны?») или два вопроса подряд подписчикам
+const DEZHURNYY = /(?<!\p{L})(знакомо|узнали себя|узнаешь себя|согласн\p{L}*|а у вас как|а у тебя как|как у вас|как у тебя|а вы как|а ты как|что думаете|что скажете|было такое|бывало такое|пишите|напишите|делитесь|поделитесь)(?!\p{L})[^.!?]*\?\s*[»"]?\s*$/iu
+export const podpisVoprosPloho = (p: string) => { const t = p.trim(); return DEZHURNYY.test(t) || (t.match(/\?/g) || []).length >= 3 }
 // подпись-перевертыш (правка Арины 19.11: «Звонок на три минуты. Внутренний долг на всю жизнь», «Диплом остается.
 // Обязанность ... в комплект не входит»): 2-3 короткие фразы с противопоставлением. Противопоставление: «не X, а Y»,
 // коротко и навсегда, остается и не входит, или две фразы без глагола подряд (афоризм из двух существительных).
@@ -54,6 +60,7 @@ export function moralKonca(f: Format13, tekst: string, glavnoe: string, mysl?: s
 import type { Format13 } from './formaty'
 import { POMETKI } from './pometki'
 import { TEKSTY_PRAVOK } from './pravki'
+import { PODPISI } from './prompt'
 
 export const PROBLEMY: Record<string, string> = {
   moral: 'Мораль или вывод в конце',
@@ -121,7 +128,7 @@ export function proverit(o: {
   }
 
   // вопрос подписчикам: подпись с вопросом; конец текста вопросом, кроме неудобных вопросов и диалогов
-  const voprosPodpis = /\?\s*$/.test(o.podpis)
+  const voprosPodpis = podpisVoprosPloho(o.podpis)
   const voprosTekst = f.kod !== 'voprosy' && !['sessiya', 'scenka'].includes(f.vyvod) && /\?\s*$/.test(konec)
   if (voprosPodpis || voprosTekst) { problemy.push('vopros_konec'); detali.vopros = voprosPodpis ? o.podpis : konec }
 
@@ -141,7 +148,7 @@ export function proverit(o: {
   // копирование образцов, живого куска и примеров из правок Арины (модель может начать копировать ее «живо»)
   // слова, которые требует сам формат («Что слышит психолог: читать в описании»), копией не считаем
   const shablon = new Set(obshieCepochki(f.kak, f.kak, 6))
-  const kopii = [...new Set([...o.obrazcy, o.kusok, ...TEKSTY_PRAVOK].flatMap(x => obshieCepochki(`${osn}\n${o.podpis}`, x, 6)))].filter(x => !shablon.has(x))
+  const kopii = [...new Set([...o.obrazcy, o.kusok, ...TEKSTY_PRAVOK, ...PODPISI].flatMap(x => obshieCepochki(`${osn}\n${o.podpis}`, x, 6)))].filter(x => !shablon.has(x))
   if (kopii.length) { problemy.push('kopiya'); detali.kopiya = kopii.slice(0, 5) }
 
   if (o.poslednyayaOpora && o.poslednyayaOpora === o.opora) problemy.push('opora_povtor')
