@@ -289,7 +289,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     const rolik = `${rez.nadpis || ''}\n${rez.glavnoe}`
     const peresk = f.vid !== 'post' && podpisPereskaz(rez.podpis, rolik)
     if (!moral && !perev && !vopros && !peresk) return null
-    const x = await perepisatPodpis({ podpis: rez.podpis, glavnoe: rez.glavnoe, prichina: peresk ? 'pereskaz' : moral ? 'moral' : perev ? 'perevertysh' : 'vopros', pereskaz: (p: string) => podpisPereskaz(p, rolik), obrazcy: PODPISI, mat: a.mat === 'tochechno' || a.mat === 'mozhno', matPravilo: a.mat === 'strogo' ? matStroka(a) : undefined, deadline, userId: uchet, knownNames, moral: podpisMoral, vopros: podpisVoprosPloho })
+    const x = await perepisatPodpis({ podpis: rez.podpis, glavnoe: rez.glavnoe, prichina: peresk ? 'pereskaz' : moral ? 'moral' : perev ? 'perevertysh' : 'vopros', pereskaz: (p: string) => podpisPereskaz(p, rolik), auditoriya: a.gender || '', obrazcy: PODPISI, mat: a.mat === 'tochechno' || a.mat === 'mozhno', matPravilo: a.mat === 'strogo' ? matStroka(a) : undefined, deadline, userId: uchet, knownNames, moral: podpisMoral, vopros: podpisVoprosPloho })
     if (x.vzyato) { rez.tekst = rez.tekst.replace(rez.podpis, x.posle); rez.podpis = x.posle }
     return x
   }

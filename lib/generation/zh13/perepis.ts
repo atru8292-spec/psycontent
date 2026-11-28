@@ -80,6 +80,7 @@ export async function perepisatFrazy(o: {
 export async function perepisatPodpis(o: {
   podpis: string; glavnoe: string; prichina: 'moral' | 'vopros' | 'perevertysh' | 'pereskaz'; obrazcy: string[]; mat: boolean; matPravilo?: string
   pereskaz?: (p: string) => boolean
+  auditoriya?: string  // пол аудитории: новая подпись тоже без чужого рода (28.11, «чего хочешь сама» при аудитории «Все»)
   deadline: number; userId?: string; knownNames: string[]; moral: (p: string) => boolean; vopros: (p: string) => boolean
 }): Promise<Perepis> {
   const base = { kod: `podpis_${o.prichina}`, do: o.podpis }
@@ -105,6 +106,7 @@ export async function perepisatPodpis(o: {
     }
     else if (o.vopros(nov)) pochemu = 'снова вопрос'
     else if (o.pereskaz && o.pereskaz(nov)) pochemu = 'снова пересказ'
+    else if (o.auditoriya !== undefined && pometitRod(nov, o.auditoriya).length) pochemu = 'род'
     else if (slova(nov).length > Math.max(90, slova(o.podpis).length * 1.5)) pochemu = 'длиннее'
     else if (/^(можно|иногда)(?![а-яё])/i.test(nov)) pochemu = 'шаблон начала'
     return { ...base, posle: nov, vzyato: !pochemu, ...(pochemu ? { pochemu } : {}) }
