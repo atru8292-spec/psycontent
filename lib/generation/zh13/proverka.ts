@@ -12,6 +12,17 @@ export const podpisVopros = (p: string) => /\?\s*[»"]?\s*$/.test(p.trim())
 // вопрос в подписи можно, если он конкретный (28.11, Арина: вопрос в подписи дает живой разговор); плохо только дежурный
 // вопрос в конце («Знакомо?», «А у вас как?», «Согласны?») или два вопроса подряд подписчикам
 const DEZHURNYY = /(?<!\p{L})(знакомо|узнали себя|узнаешь себя|согласн\p{L}*|а у вас как|а у тебя как|как у вас|как у тебя|а вы как|а ты как|что думаете|что скажете|было такое|бывало такое|пишите|напишите|делитесь|поделитесь)(?!\p{L})[^.!?]*\?\s*[»"]?\s*$/iu
+// пересказ ролика в подписи (28.11, Арина: «в описании не то же самое, что в ролике»). Доля значимых слов подписи (по
+// первым пяти буквам), которые есть в самом ролике: у 12 живых подписей dannye от 0 до 0,15, у наших 24 подписей
+// прогонов 27-28.11 в половине от 0,2 до 0,6. Порог 0,2.
+const STOP_POD = new Set(['и', 'в', 'не', 'на', 'что', 'а', 'я', 'ты', 'он', 'она', 'это', 'как', 'с', 'по', 'к', 'но', 'так', 'же', 'то', 'за', 'у', 'из', 'мне', 'тебе', 'бы', 'ли', 'еще', 'уже', 'все', 'ее', 'его', 'их', 'мы', 'вы', 'был', 'была', 'было', 'быть', 'или', 'если', 'когда', 'потому', 'только', 'даже', 'очень', 'просто', 'там', 'тут', 'вот', 'для', 'о', 'от', 'до', 'ну', 'да', 'нет', 'чтобы', 'себя', 'сама', 'сам'])
+const znachimye = (t: string) => slova(t).filter(w => w.length > 3 && !STOP_POD.has(w)).map(w => w.slice(0, 5))
+export function dolyaPereskaza(podpis: string, rolik: string): number {
+  const P = znachimye(podpis), T = new Set(znachimye(rolik))
+  return P.length ? P.filter(w => T.has(w)).length / P.length : 0
+}
+export const PERESKAZ_POROG = 0.2
+export const podpisPereskaz = (podpis: string, rolik: string) => slova(podpis).length >= 8 && dolyaPereskaza(podpis, rolik) > PERESKAZ_POROG
 export const podpisVoprosPloho = (p: string) => { const t = p.trim(); return DEZHURNYY.test(t) || (t.match(/\?/g) || []).length >= 3 }
 // подпись-перевертыш (правка Арины 19.11: «Звонок на три минуты. Внутренний долг на всю жизнь», «Диплом остается.
 // Обязанность ... в комплект не входит»): 2-3 короткие фразы с противопоставлением. Противопоставление: «не X, а Y»,
@@ -65,6 +76,7 @@ import { PODPISI } from './prompt'
 export const PROBLEMY: Record<string, string> = {
   moral: 'Мораль или вывод в конце',
   vopros_konec: 'Вопрос подписчикам в конце',
+  pereskaz: 'Подпись пересказывает ролик',
   podozhdi: 'Хук «Подожди,»',
   podpis_shablon: 'Подпись по шаблону («Иногда», «Можно ... и ...»)',
   povtor_podpisi: 'Начало подписи повторяется (больше 15% за неделю)',
@@ -122,6 +134,7 @@ export function proverit(o: {
   const moralPodpis = frazy(o.podpis).some(aforizm)
   if (moralKonec || moralPodpis) { problemy.push('moral'); detali.moral = moralPodpis ? o.podpis : konec }
   if (o.podpis && podpisPerevertysh(o.podpis)) { problemy.push('perevertysh'); detali.perevertysh = o.podpis }
+  if (o.podpis && f.vid !== 'post' && podpisPereskaz(o.podpis.replace(/\n\n(Если (ты|вы) здесь впервые|Я \S+, психолог|Привет, я)[\s\S]*$/u, ''), o.glavnoe)) { problemy.push('pereskaz'); detali.pereskaz = o.podpis }
   if (o.proshlyy) {
     const ps = povtorSoveta(`${osn}\n${o.podpis}`, o.proshlyy)
     if (ps.length) { problemy.push('povtor_soveta'); detali.povtorSoveta = ps }

@@ -78,18 +78,19 @@ export async function perepisatFrazy(o: {
 // подпись с моралью (или у карусели zh6 с вопросом подписчикам): переписываем только подпись одним коротким вызовом
 // по живым подписям-образцам. Новая тоже с моралью, с вопросом, длинная или с пометкой: оставляем старую.
 export async function perepisatPodpis(o: {
-  podpis: string; glavnoe: string; prichina: 'moral' | 'vopros' | 'perevertysh'; obrazcy: string[]; mat: boolean; matPravilo?: string
+  podpis: string; glavnoe: string; prichina: 'moral' | 'vopros' | 'perevertysh' | 'pereskaz'; obrazcy: string[]; mat: boolean; matPravilo?: string
+  pereskaz?: (p: string) => boolean
   deadline: number; userId?: string; knownNames: string[]; moral: (p: string) => boolean; vopros: (p: string) => boolean
 }): Promise<Perepis> {
   const base = { kod: `podpis_${o.prichina}`, do: o.podpis }
   if (o.deadline - Date.now() < 8000) return { ...base, posle: '', vzyato: false, pochemu: 'нет времени' }
   try {
     const user = [
-      `Перепиши подпись под публикацией. Сейчас она ${o.prichina === 'moral' ? 'кончается выводом, как мораль' : o.prichina === 'perevertysh' ? 'из коротких фраз с противопоставлением, как афоризм-перевертыш, это режет глаз' : 'кончается дежурным вопросом подписчикам'}.`,
+      `Перепиши подпись под публикацией. Сейчас она ${o.prichina === 'pereskaz' ? 'пересказывает то, что зритель уже увидел в ролике' : o.prichina === 'moral' ? 'кончается выводом, как мораль' : o.prichina === 'perevertysh' ? 'из коротких фраз с противопоставлением, как афоризм-перевертыш, это режет глаз' : 'кончается дежурным вопросом подписчикам'}.`,
       `Так звучат живые подписи (их слова не бери):\n${o.obrazcy.map(x => `- ${x}`).join('\n')}`,
       `Текст, под которым подпись:\n<текст>\n${o.glavnoe.slice(0, 1500)}\n</текст>`,
       `<подпись>\n${o.podpis}\n</подпись>`,
-      `3-5 коротких фраз обычной речью: что стоит за этим текстом, про человека из текста, конкретно и без абстрактных слов, как сказал бы подруге. Без морали в конце, без противопоставления, без игры слов и иронии, которую надо разгадывать. В конце можно один конкретный вопрос зрителю про его жизнь. Не начинай с «Можно» и «Иногда». ${o.matPravilo ? `${o.matPravilo} ` : o.mat ? '' : 'Без мата. '}Буква «е» вместо «ё», без длинных тире. Ответ: только новая подпись.`,
+      `3-5 коротких фраз обычной речью, обращаясь к зрителю, а не рассказывая про героев ролика. Дай то, чего в ролике нет: назови, что с человеком происходит и почему, или один маленький шаг, или поддержку. Конкретно и без абстрактных слов, как сказал бы подруге. Без морали в конце, без противопоставления, без игры слов и иронии, которую надо разгадывать. В конце можно один конкретный вопрос зрителю про его жизнь. Не начинай с «Можно» и «Иногда». ${o.matPravilo ? `${o.matPravilo} ` : o.mat ? '' : 'Без мата. '}Буква «е» вместо «ё», без длинных тире. Ответ: только новая подпись.`,
     ].join('\n\n')
     const raw = await callModel({ system: SYSTEM, user, effort: 'low', verbosity: 'low', maxTokens: 600, timeoutMs: Math.min(20000, o.deadline - Date.now()), writer: true, userId: o.userId, operation: 'generate_post_zh13_podpis', knownNames: o.knownNames })
     const nov = ochistit13(raw).replace(/^Подпись\s*:\s*/i, '').replace(/^[«"]|[»"]$/g, '').trim()
@@ -103,6 +104,7 @@ export async function perepisatPodpis(o: {
       pochemu = 'снова перевертыш'
     }
     else if (o.vopros(nov)) pochemu = 'снова вопрос'
+    else if (o.pereskaz && o.pereskaz(nov)) pochemu = 'снова пересказ'
     else if (slova(nov).length > Math.max(90, slova(o.podpis).length * 1.5)) pochemu = 'длиннее'
     else if (/^(можно|иногда)(?![а-яё])/i.test(nov)) pochemu = 'шаблон начала'
     return { ...base, posle: nov, vzyato: !pochemu, ...(pochemu ? { pochemu } : {}) }

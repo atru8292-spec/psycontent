@@ -6,7 +6,7 @@ import { FORMATY, formatPo, vybratAuto, KRUG_AUTO } from '../lib/generation/zh13
 import { OPORY, oporyPsihologa, vybratOporu } from '../lib/generation/zh13/opory'
 import { prompt13 } from '../lib/generation/zh13/prompt'
 import { razobrat } from '../lib/generation/zh13/razbor'
-import { proverit, povtoryOborotov, podpisMoral, podpisVopros, podpisVoprosPloho } from '../lib/generation/zh13/proverka'
+import { proverit, povtoryOborotov, podpisMoral, podpisVopros, podpisVoprosPloho, podpisPereskaz, dolyaPereskaza } from '../lib/generation/zh13/proverka'
 import { podobrat, avtorIz, primeryZhizni } from '../lib/generation/zh13/pishi'
 import { predstavlenie } from '../lib/generation/zh13/predstavlenie'
 import { seedIz, peremeshat, sdvigIz } from '../lib/seed'
@@ -95,7 +95,7 @@ ok('промпт: образцы, опора, ритм своего формат
     assert.equal(p.user.includes('Как снять:'), f.vid === 'reels', f.kod)
     assert.equal(p.user.includes('Основной текст не заканчивай вопросом'), f.kod !== 'voprosy', f.kod)
     // подпись 28.11: 3-5 фраз про то, что стоит за роликом, конкретный вопрос в конце можно
-    if (f.vid !== 'post') assert.ok(p.user.includes('Подпись дает то, чего нет в ролике') && p.user.includes('3-5 коротких фраз') && !p.user.includes('одна-две строки'), f.kod)
+    if (f.vid !== 'post') assert.ok(p.user.includes('Подпись не пересказывает ролик') && p.user.includes('говорит со зрителем, а не про героев ролика') && p.user.includes('3-5 коротких фраз') && !p.user.includes('одна-две строки'), f.kod)
     assert.ok(!p.user.includes('{huk}'))
     // рилсы R1: без «как сказал бы вслух»; понятность: одна строка и 3-4 пары под формат
     assert.ok(!p.user.includes('как сказал бы вслух'), f.kod)
@@ -304,6 +304,13 @@ ok('подпись 28.11: мораль только в последней фра
   assert.equal(podpisVoprosPloho('Один раз пересказали за столом, и он замолчал. Знакомо?'), true)
   assert.equal(podpisVoprosPloho('Один раз пересказали за столом. А тебе в детстве было кому рассказать?'), false)
   assert.equal(podpisVoprosPloho('А у вас как?'), true)
+})
+
+ok('подпись не пересказывает ролик: доля слов ролика больше 0,2 метится (28.11)', () => {
+  const rolik = 'Мама: Ты чего шепчешь? Дочь: Я на работе, в подсобке, сердце колотится, только не клади трубку. Мама: Это от усталости.'
+  assert.equal(podpisPereskaz('Ей страшно, но в подсобке она все равно следит, чтобы мама не разволновалась, и не кладет трубку.', rolik), true, 'пересказ')
+  assert.equal(podpisPereskaz('Когда страшно, хочется, чтобы рядом кто-то был. Попробуй заранее договориться с близким, что ты ему напишешь одно слово, и он перезвонит.', rolik), false, 'свое')
+  assert.ok(dolyaPereskaza('', rolik) === 0, 'пустая подпись')
 })
 
 ok('представление в конце подписи: кодом, в каждой третьей, имя и темы из профиля (28.11)', () => {

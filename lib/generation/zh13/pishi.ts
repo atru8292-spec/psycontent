@@ -18,7 +18,7 @@ import { taZheTema, pohozhe, shodstvo, slova, obshieCepochki } from './tekst'
 import { pometit, pometitObrashcheniya, pometitKopiyuZhizni, pometitRod, rubrikaVoprosov, type Pometka } from './pometki'
 import { predstavlenie } from './predstavlenie'
 import { perepisatFrazy, perepisatPodpis, type Perepis } from './perepis'
-import { podpisMoral, podpisVoprosPloho, podpisPerevertysh, moralKonca } from './proverka'
+import { podpisMoral, podpisVoprosPloho, podpisPerevertysh, podpisPereskaz, moralKonca } from './proverka'
 import { HUK_TEKST, type Cel, type Huk } from './formaty'
 import { vybratFormat, vybratHuk, dostupen, type Proshlyy, type Uslovie, type Vybor } from './smes'
 import { ranzhirovat, type Rang } from './podbor'
@@ -286,8 +286,10 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   const podpisBezMorali = async (rez: Rezultat13, a: Avtor13, _mysl: string | null, _povod: string | null, voprosToje: boolean): Promise<Perepis | null> => {
     if (!rez.podpis) return null
     const moral = podpisMoral(rez.podpis), perev = podpisPerevertysh(rez.podpis), vopros = voprosToje && podpisVoprosPloho(rez.podpis)
-    if (!moral && !perev && !vopros) return null
-    const x = await perepisatPodpis({ podpis: rez.podpis, glavnoe: rez.glavnoe, prichina: moral ? 'moral' : perev ? 'perevertysh' : 'vopros', obrazcy: PODPISI, mat: a.mat === 'tochechno' || a.mat === 'mozhno', matPravilo: a.mat === 'strogo' ? matStroka(a) : undefined, deadline, userId: uchet, knownNames, moral: podpisMoral, vopros: podpisVoprosPloho })
+    const rolik = `${rez.nadpis || ''}\n${rez.glavnoe}`
+    const peresk = f.vid !== 'post' && podpisPereskaz(rez.podpis, rolik)
+    if (!moral && !perev && !vopros && !peresk) return null
+    const x = await perepisatPodpis({ podpis: rez.podpis, glavnoe: rez.glavnoe, prichina: peresk ? 'pereskaz' : moral ? 'moral' : perev ? 'perevertysh' : 'vopros', pereskaz: (p: string) => podpisPereskaz(p, rolik), obrazcy: PODPISI, mat: a.mat === 'tochechno' || a.mat === 'mozhno', matPravilo: a.mat === 'strogo' ? matStroka(a) : undefined, deadline, userId: uchet, knownNames, moral: podpisMoral, vopros: podpisVoprosPloho })
     if (x.vzyato) { rez.tekst = rez.tekst.replace(rez.podpis, x.posle); rez.podpis = x.posle }
     return x
   }
