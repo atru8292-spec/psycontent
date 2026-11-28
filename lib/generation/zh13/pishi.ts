@@ -16,6 +16,7 @@ import { razobrat, type Rezultat13 } from './razbor'
 import { proverit, type Proverka } from './proverka'
 import { taZheTema, pohozhe, shodstvo, slova, obshieCepochki } from './tekst'
 import { pometit, pometitObrashcheniya, pometitKopiyuZhizni, pometitRod, rubrikaVoprosov, type Pometka } from './pometki'
+import { predstavlenie } from './predstavlenie'
 import { perepisatFrazy, perepisatPodpis, type Perepis } from './perepis'
 import { podpisMoral, podpisVoprosPloho, podpisPerevertysh, moralKonca } from './proverka'
 import { HUK_TEKST, type Cel, type Huk } from './formaty'
@@ -49,6 +50,7 @@ export type Meta13 = {
   dvizhok?: 'zh6'; zh4?: any; pary?: string[]
   cel?: Cel; hukVid?: Huk; rang?: Rang[]; vyborPochemu?: string; scena?: string | null
   scenaIspravleno?: SverkaScen['ispravleno']
+  predstavlenie?: boolean
 }
 export type Itog13 = { f: Format13; rez: Rezultat13; meta: Meta13; proverka: Proverka; syroe: string; groupId: string | null; avtor: Avtor13 }
 
@@ -290,6 +292,16 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     return x
   }
 
+  // представление в конце подписи (28.11): кодом, в каждой третьей, имя в модель не уходит
+  const dobavitPredstavlenie = (r: Rezultat13) => {
+    const pred = r.podpis ? predstavlenie(profile, avtor.vy, n + sdvig) : null
+    if (!pred) return false
+    const bylo = r.podpis
+    r.podpis = `${bylo}\n\n${pred}`
+    if (r.tekst.includes(bylo)) r.tekst = r.tekst.replace(bylo, r.podpis)
+    return true
+  }
+
   // карусель: рецепт zh6, как на проде (оценки Арины 19.11: карусели zh13 слабые во всех вариантах)
   if (f.zh6) {
     const ctx = await buildContext(db, userId, profile)
@@ -307,10 +319,11 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     const rez = razobrat(syroe, f)
     podoydetIzRanga(rez)
     const pp = await podpisBezMorali(rez, avtor, mysl, null, true)
+    const predK = dobavitPredstavlenie(rez)
     const proverka = proverit({ f, syroe, tekst: rez.tekst, glavnoe: rez.glavnoe, podpis: rez.podpis, obrazcy: [], kusok: '', opora: '', poslednyayaOpora: null, auditoriyaZhenshiny: /женщин/i.test(avtor.gender || ''), mysl, proshlyy })
     if (pp) proverka.detali.perepis = [pp]
     const meta: Meta13 = {
-      kod: f.kod, vid: f.vid, rezhim, tema, mysl, primery: [], opora: '', huk: null, hukVid: 'net', cel: vybor.cel, rang, vyborPochemu: vybor.pochemu, obrazcy: [], kusok: '', dvizhok: 'zh6', zh4: (r as any).zh4 || null,
+      kod: f.kod, vid: f.vid, rezhim, tema, mysl, primery: [], opora: '', huk: null, hukVid: 'net', cel: vybor.cel, rang, vyborPochemu: vybor.pochemu, obrazcy: [], kusok: '', dvizhok: 'zh6', zh4: (r as any).zh4 || null, predstavlenie: predK,
       kakSnyat: [], podoydet: rez.podoydet, nadpis: '', podpis: rez.podpis, glavnoe: rez.glavnoe, ms: Date.now() - t0, popytki: 1, pometki: [], perepis: pp ? [pp] : [],
     }
     return { f, rez, meta, proverka, syroe, groupId: origin?.group_id || null, avtor }
@@ -372,6 +385,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   // подпись с моралью: переписываем только подпись (своя мысль в конце текста моралью не считается, подпись проверяем всегда)
   const pp = await podpisBezMorali(rez, avtor, mysl, f.kod === 'voprosy' ? null : 'vopros', false)
   if (pp) pr.perepis.push(pp)
+  const pred = dobavitPredstavlenie(rez)
 
   const proverka = proverit({
     f, syroe, tekst: rez.tekst, glavnoe: rez.glavnoe, podpis: rez.podpis, obrazcy: obrazcy.map(x => x.tekst), kusok: kusok.tekst,
@@ -387,7 +401,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   if (perepisCelikom) proverka.detali.perepisCelikom = perepisCelikom
   for (const x of [...pometit(rez.glavnoe, f.kod, rez.nadpis), ...pometitObrashcheniya(rez.glavnoe, rez.podpis, proshlyy), ...pometitKopiyuZhizni(`${rez.glavnoe}\n${rez.podpis}`, primery, svoe), ...pometitRod(`${rez.glavnoe}\n${rez.podpis}`, avtor.gender || '', f.kod)]) if (!proverka.problemy.includes(`pometka_${x.kod}`)) proverka.problemy.push(`pometka_${x.kod}`)
   const meta: Meta13 = {
-    kod: f.kod, vid: f.vid, rezhim, tema, mysl, primery, opora, huk: huk || null, obrazcy: obrazcy.map(x => x.id), kusok: kusok.id,
+    kod: f.kod, vid: f.vid, rezhim, tema, mysl, primery, opora, huk: huk || null, predstavlenie: pred, obrazcy: obrazcy.map(x => x.id), kusok: kusok.id,
     kakSnyat: rez.kakSnyat, podoydet: rez.podoydet, nadpis: rez.nadpis, podpis: rez.podpis, glavnoe: rez.glavnoe, ms: Date.now() - t0, popytki,
     pometki, perepis: pr.perepis, ...(perepisCelikom ? { perepisCelikom } : {}), pary: p.pary,
     cel: vybor.cel, hukVid: vybor.huk, rang, vyborPochemu: vybor.pochemu, scena: f.trebuet === 'scena' ? scena?.id || null : null,

@@ -35,6 +35,9 @@ const P: Record<string, Para> = {
   // у живых оно в 23 текстах из 185)
   pomosh: { bylo: 'А сижу, улыбаюсь, будто мне помощь собирают', zhivo: 'А я сижу, улыбаюсь и чувствую, что меня жалеют' },
   odobrit: { bylo: 'Как будто успех еще надо одобрить, прежде чем ему завидовать', zhivo: 'И злишься на себя, что не можешь просто за него порадоваться' },
+  // 28.11, Арина: подпись «без абстракции и понятно» (из подписей прогона podpisi)
+  otkaz: { bylo: 'Но вместе с возможным отказом исчезает и шанс получить помощь, компанию, объятия', zhivo: 'Только так и помощи не будет: никто же не знает, что она нужна' },
+  sozhalenie: { bylo: 'обычный свободный день начинает казаться чем-то, за что потом придется расплачиваться сожалением', zhivo: 'И страшно, что потом будешь жалеть об этом выходном' },
   sovet: { bylo: '«не переспрашивай» без оговорок', zhivo: 'Один раз уточнить нормально, особенно если по голосу слышно, что что-то не так. Но если ответили «нет, просто устала», дальше попробуйте не переспрашивать хотя бы до вечера. Тревога спадет сама, просто не сразу' },
 }
 
@@ -42,10 +45,10 @@ const P: Record<string, Para> = {
 // пары во всех вызовах, иначе тексты сползут в один шаблон). seed для повторяемости в тестах, без него случайно.
 const GRUPPY_PAR: Record<string, string[]> = {
   dialog: ['hleb', 'vyskazat', 'ostyl', 'sorok', 'obeshchat', 'uteshaesh', 'proslushivanie', 'kulaki', 'dyhanie', 'pomosh'], // сессия, сценка
-  perevod: ['dolzhnost', 'perevozhu', 'proslushivanie', 'uteshaesh', 'uzhin', 'yazyk'],
-  monolog: ['sud', 'mehanizm', 'otdyh', 'sovet', 'doklad', 'stazhirovka', 'dacha', 'obryvki', 'dyhanie', 'pomosh', 'odobrit'],          // мысль, ответ на комментарий, текст на экране
+  perevod: ['dolzhnost', 'perevozhu', 'proslushivanie', 'uteshaesh', 'uzhin', 'yazyk', 'otkaz'],
+  monolog: ['sud', 'mehanizm', 'otdyh', 'sovet', 'doklad', 'stazhirovka', 'dacha', 'obryvki', 'dyhanie', 'pomosh', 'odobrit', 'otkaz', 'sozhalenie'],          // мысль, ответ на комментарий, текст на экране
   voprosy: ['uzhin', 'biografiya', 'isk', 'sud', 'proslushivanie', 'yazyk'],
-  post: ['isk', 'yazyk', 'stazhirovka', 'kulaki', 'biografiya', 'otdyh', 'sovet', 'mehanizm', 'obryvki', 'odobrit'],
+  post: ['isk', 'yazyk', 'stazhirovka', 'kulaki', 'biografiya', 'otdyh', 'sovet', 'mehanizm', 'obryvki', 'odobrit', 'sozhalenie'],
 }
 export const gruppaPar = (kod: string, vid: string) => ['sessiya', 'scenka', 'golos', 'film_bez', 'film_lico'].includes(kod) ? 'dialog' : kod === 'perevod' || kod === 'p_perevod' ? 'perevod'
   : kod === 'voprosy' ? 'voprosy' : vid === 'post' ? 'post' : 'monolog'

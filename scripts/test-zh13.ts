@@ -8,6 +8,7 @@ import { prompt13 } from '../lib/generation/zh13/prompt'
 import { razobrat } from '../lib/generation/zh13/razbor'
 import { proverit, povtoryOborotov, podpisMoral, podpisVopros, podpisVoprosPloho } from '../lib/generation/zh13/proverka'
 import { podobrat, avtorIz, primeryZhizni } from '../lib/generation/zh13/pishi'
+import { predstavlenie } from '../lib/generation/zh13/predstavlenie'
 import { seedIz, peremeshat, sdvigIz } from '../lib/seed'
 import { anketaTopics } from '../lib/first-topic'
 import { zh13Dlya } from '../lib/generation/zh13/flag'
@@ -303,6 +304,15 @@ ok('подпись 28.11: мораль только в последней фра
   assert.equal(podpisVoprosPloho('Один раз пересказали за столом, и он замолчал. Знакомо?'), true)
   assert.equal(podpisVoprosPloho('Один раз пересказали за столом. А тебе в детстве было кому рассказать?'), false)
   assert.equal(podpisVoprosPloho('А у вас как?'), true)
+})
+
+ok('представление в конце подписи: кодом, в каждой третьей, имя и темы из профиля (28.11)', () => {
+  const prof = { full_name: 'анна петрова', klienty: { groups: ['trevoga', 'otnosheniya'], age: [], gender: null, format: [] } }
+  assert.equal(predstavlenie(prof, false, 1), null, 'не в каждой подписи')
+  assert.equal(predstavlenie(prof, false, 0), 'Если ты здесь впервые: я Анна, психолог. Здесь говорим про тревогу и стресс и про отношения.')
+  assert.equal(predstavlenie(prof, true, 3), 'Я Анна, психолог, пишу про тревогу и стресс и про отношения. Если откликается, оставайтесь.')
+  assert.equal(predstavlenie({ full_name: 'Мария' }, false, 6), 'Привет, я Мария, психолог.', 'без групп только имя')
+  assert.equal(predstavlenie({ full_name: '' }, false, 0), null, 'без имени нет')
 })
 
 ok('суд и бумаги: про чувства метим, настоящую работу и «вынести приговор» нет', () => {
