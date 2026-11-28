@@ -9,6 +9,7 @@ import { razobrat } from '../lib/generation/zh13/razbor'
 import { proverit, povtoryOborotov, podpisMoral, podpisVopros, podpisVoprosPloho, podpisPereskaz, dolyaPereskaza } from '../lib/generation/zh13/proverka'
 import { podobrat, avtorIz, primeryZhizni } from '../lib/generation/zh13/pishi'
 import { predstavlenie } from '../lib/generation/zh13/predstavlenie'
+import { tipPodpisi, podpisZadanie, podpisBlok, TIPY_PODPISI } from '../lib/generation/zh13/podpis'
 import { seedIz, peremeshat, sdvigIz } from '../lib/seed'
 import { anketaTopics } from '../lib/first-topic'
 import { zh13Dlya } from '../lib/generation/zh13/flag'
@@ -311,6 +312,24 @@ ok('подпись не пересказывает ролик: доля слов
   assert.equal(podpisPereskaz('Ей страшно, но в подсобке она все равно следит, чтобы мама не разволновалась, и не кладет трубку.', rolik), true, 'пересказ')
   assert.equal(podpisPereskaz('Когда страшно, хочется, чтобы рядом кто-то был. Попробуй заранее договориться с близким, что ты ему напишешь одно слово, и он перезвонит.', rolik), false, 'свое')
   assert.ok(dolyaPereskaza('', rolik) === 0, 'пустая подпись')
+})
+
+ok('подпись: вариант а две живые случайные, вариант б тип по кругу, в вопросах без «разговора» (28.11)', () => {
+  const tipy = Array.from({ length: 5 }, (_, i) => tipPodpisi('scenka', i))
+  assert.equal(new Set(tipy).size, 5, 'пять типов по кругу')
+  assert.ok(!Array.from({ length: 8 }, (_, i) => tipPodpisi('voprosy', i)).includes('razgovor'), 'в вопросах без разговора')
+  const prev = process.env.PODPIS_VARIANT
+  process.env.PODPIS_VARIANT = 'b'
+  const zb = podpisZadanie('scenka', 2, 'u1')
+  assert.equal(zb.variant, 'b'); assert.ok(zb.tip && zb.obrazcy.length === 0, 'б без образцов')
+  assert.ok(podpisBlok(zb, false).includes(`Эта подпись: ${TIPY_PODPISI[zb.tip!].imya}.`), 'б тип в задании')
+  process.env.PODPIS_VARIANT = 'a'
+  const za = podpisZadanie('scenka', 2, 'u1')
+  assert.equal(za.obrazcy.length, 2, 'а две живые'); assert.ok(podpisBlok(za, true).includes('на «вы»'), 'обращение')
+  const f0 = formatPo('scenka')!
+  const p = prompt13(avtorIz({ full_name: 'Т', approaches: ['КПТ'] }), { f: f0, tema: 'Т', mysl: null, primery: [], opora: 'о', huk: '', obrazcy: [], kusok: 'к', podpis: zb }).user
+  assert.ok(p.includes('Эта подпись:') && !p.includes('Так звучат живые подписи'), 'в промпте б')
+  if (prev === undefined) delete process.env.PODPIS_VARIANT; else process.env.PODPIS_VARIANT = prev
 })
 
 ok('представление в конце подписи: кодом, в каждой третьей, имя и темы из профиля (28.11)', () => {

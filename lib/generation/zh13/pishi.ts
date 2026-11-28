@@ -17,6 +17,7 @@ import { proverit, type Proverka } from './proverka'
 import { taZheTema, pohozhe, shodstvo, slova, obshieCepochki } from './tekst'
 import { pometit, pometitObrashcheniya, pometitKopiyuZhizni, pometitRod, rubrikaVoprosov, type Pometka } from './pometki'
 import { predstavlenie } from './predstavlenie'
+import { podpisZadanie, podpisBlok } from './podpis'
 import { perepisatFrazy, perepisatPodpis, type Perepis } from './perepis'
 import { podpisMoral, podpisVoprosPloho, podpisPerevertysh, podpisPereskaz, moralKonca } from './proverka'
 import { HUK_TEKST, type Cel, type Huk } from './formaty'
@@ -51,6 +52,7 @@ export type Meta13 = {
   cel?: Cel; hukVid?: Huk; rang?: Rang[]; vyborPochemu?: string; scena?: string | null
   scenaIspravleno?: SverkaScen['ispravleno']
   predstavlenie?: boolean
+  podpisVariant?: string; podpisTip?: string | null
 }
 export type Itog13 = { f: Format13; rez: Rezultat13; meta: Meta13; proverka: Proverka; syroe: string; groupId: string | null; avtor: Avtor13 }
 
@@ -283,13 +285,15 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     rez.podoydet = [...iz, ...rez.podoydet.filter(x => !iz.some(y => y.kod === x.kod) && x.kod !== f.kod)].slice(0, 3)
   }
   // подпись: мораль переписываем всегда; вопрос подписчикам у карусели zh6 (vopros=true) и как запасной повод у остальных
+  // подпись: вариант и тип (podpis.ts), один на текст, тот же в промпте писателя и в переписи
+  const podpisZ = podpisZadanie(f.kod, n + sdvig, userId)
   const podpisBezMorali = async (rez: Rezultat13, a: Avtor13, _mysl: string | null, _povod: string | null, voprosToje: boolean): Promise<Perepis | null> => {
     if (!rez.podpis) return null
     const moral = podpisMoral(rez.podpis), perev = podpisPerevertysh(rez.podpis), vopros = voprosToje && podpisVoprosPloho(rez.podpis)
     const rolik = `${rez.nadpis || ''}\n${rez.glavnoe}`
     const peresk = f.vid !== 'post' && podpisPereskaz(rez.podpis, rolik)
     if (!moral && !perev && !vopros && !peresk) return null
-    const x = await perepisatPodpis({ podpis: rez.podpis, glavnoe: rez.glavnoe, prichina: peresk ? 'pereskaz' : moral ? 'moral' : perev ? 'perevertysh' : 'vopros', pereskaz: (p: string) => podpisPereskaz(p, rolik), auditoriya: a.gender || '', obrazcy: PODPISI, mat: a.mat === 'tochechno' || a.mat === 'mozhno', matPravilo: a.mat === 'strogo' ? matStroka(a) : undefined, deadline, userId: uchet, knownNames, moral: podpisMoral, vopros: podpisVoprosPloho })
+    const x = await perepisatPodpis({ podpis: rez.podpis, glavnoe: rez.glavnoe, prichina: peresk ? 'pereskaz' : moral ? 'moral' : perev ? 'perevertysh' : 'vopros', pereskaz: (p: string) => podpisPereskaz(p, rolik), auditoriya: a.gender || '', blok: podpisBlok(podpisZ, a.vy), obrazcy: PODPISI, mat: a.mat === 'tochechno' || a.mat === 'mozhno', matPravilo: a.mat === 'strogo' ? matStroka(a) : undefined, deadline, userId: uchet, knownNames, moral: podpisMoral, vopros: podpisVoprosPloho })
     if (x.vzyato) { rez.tekst = rez.tekst.replace(rez.podpis, x.posle); rez.podpis = x.posle }
     return x
   }
@@ -331,7 +335,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     return { f, rez, meta, proverka, syroe, groupId: origin?.group_id || null, avtor }
   }
 
-  const p = prompt13(avtor, { f, tema, mysl, primery, opora, huk, obrazcy, kusok: kusok.tekst, fakty: f.trebuet === 'fakty' ? fakty : null, scena: f.trebuet === 'scena' && scena ? scenaBlok(scena) : null })
+  const p = prompt13(avtor, { podpis: podpisZ, f, tema, mysl, primery, opora, huk, obrazcy, kusok: kusok.tekst, fakty: f.trebuet === 'fakty' ? fakty : null, scena: f.trebuet === 'scena' && scena ? scenaBlok(scena) : null })
   const pisat = async (user: string, sroki: readonly (readonly ['medium' | 'low', number])[]) => {
     for (const [effort, max] of sroki) {
       const ms = Math.min(max, deadline - Date.now())
@@ -403,7 +407,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   if (perepisCelikom) proverka.detali.perepisCelikom = perepisCelikom
   for (const x of [...pometit(rez.glavnoe, f.kod, rez.nadpis), ...pometitObrashcheniya(rez.glavnoe, rez.podpis, proshlyy), ...pometitKopiyuZhizni(`${rez.glavnoe}\n${rez.podpis}`, primery, svoe), ...pometitRod(`${rez.glavnoe}\n${rez.podpis}`, avtor.gender || '', f.kod)]) if (!proverka.problemy.includes(`pometka_${x.kod}`)) proverka.problemy.push(`pometka_${x.kod}`)
   const meta: Meta13 = {
-    kod: f.kod, vid: f.vid, rezhim, tema, mysl, primery, opora, huk: huk || null, predstavlenie: pred, obrazcy: obrazcy.map(x => x.id), kusok: kusok.id,
+    kod: f.kod, vid: f.vid, rezhim, tema, mysl, primery, opora, huk: huk || null, predstavlenie: pred, podpisVariant: podpisZ.variant, podpisTip: podpisZ.tip, obrazcy: obrazcy.map(x => x.id), kusok: kusok.id,
     kakSnyat: rez.kakSnyat, podoydet: rez.podoydet, nadpis: rez.nadpis, podpis: rez.podpis, glavnoe: rez.glavnoe, ms: Date.now() - t0, popytki,
     pometki, perepis: pr.perepis, ...(perepisCelikom ? { perepisCelikom } : {}), pary: p.pary,
     cel: vybor.cel, hukVid: vybor.huk, rang, vyborPochemu: vybor.pochemu, scena: f.trebuet === 'scena' ? scena?.id || null : null,

@@ -72,6 +72,7 @@ import type { Format13 } from './formaty'
 import { POMETKI } from './pometki'
 import { TEKSTY_PRAVOK } from './pravki'
 import { PODPISI } from './prompt'
+import { PODPISI_PUL } from './podpis'
 
 export const PROBLEMY: Record<string, string> = {
   moral: 'Мораль или вывод в конце',
@@ -161,7 +162,7 @@ export function proverit(o: {
   // копирование образцов, живого куска и примеров из правок Арины (модель может начать копировать ее «живо»)
   // слова, которые требует сам формат («Что слышит психолог: читать в описании»), копией не считаем
   const shablon = new Set(obshieCepochki(f.kak, f.kak, 6))
-  const kopii = [...new Set([...o.obrazcy, o.kusok, ...TEKSTY_PRAVOK, ...PODPISI].flatMap(x => obshieCepochki(`${osn}\n${o.podpis}`, x, 6)))].filter(x => !shablon.has(x))
+  const kopii = [...new Set([...o.obrazcy, o.kusok, ...TEKSTY_PRAVOK, ...PODPISI, ...PODPISI_PUL].flatMap(x => obshieCepochki(`${osn}\n${o.podpis}`, x, 6)))].filter(x => !shablon.has(x))
   if (kopii.length) { problemy.push('kopiya'); detali.kopiya = kopii.slice(0, 5) }
 
   if (o.poslednyayaOpora && o.poslednyayaOpora === o.opora) problemy.push('opora_povtor')
