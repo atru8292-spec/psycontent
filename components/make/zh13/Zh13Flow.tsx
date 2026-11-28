@@ -162,22 +162,22 @@ function Svernutyi({ open, onOpen, children }: { open: boolean; onOpen: () => vo
 
 function KakSnyat({ v, open, onToggle, aside }: { v: Ready; open: boolean; onToggle: () => void; aside?: boolean }) {
   const [copied, setCopied] = useState(false)
-  if (v.vid !== 'reels' || !v.kakSnyat.length) return null
+  // «Что это» (27.11): суть ролика и как его снять, видно и в свернутом блоке на телефоне; блок есть и без шагов
+  const sut = SUT[v.kod]
+  if (v.vid !== 'reels' || (!v.kakSnyat.length && !sut)) return null
   // хук и плашки по ходу ролика: «Плашки:» с новой строки, по-человечески
   const nadpis = v.nadpis.replace(/[;,.]?\s*Плашки?:\s*/i, '\nПо ходу: ').trim()
-  // «Что это» (27.11): суть ролика и как его снять, видно и в свернутом блоке на телефоне
-  const sut = SUT[v.kod]
   const sutP = sut ? <p className={aside ? 'mt-1.5 text-[15px] leading-[22px] text-brand-text-secondary' : 'px-4 pb-3 -mt-1 text-[15px] leading-[22px] text-brand-text-secondary'}>{sut}</p> : null
   const body = (
     <div className={aside ? 'mt-3' : 'px-4 pb-4'}>
-      <ol className="space-y-2.5">
+      {v.kakSnyat.length > 0 && <ol className="space-y-2.5">
         {v.kakSnyat.map((s, i) => (
           <li key={i} className="flex gap-3 text-[15px] leading-[22px] text-brand-text">
             <span className="w-6 h-6 shrink-0 rounded-full bg-brand-soft-2 text-[13px] font-semibold flex items-center justify-center tabular-nums">{i + 1}</span>
             <span className="min-w-0 break-words">{s}</span>
           </li>
         ))}
-      </ol>
+      </ol>}
       {nadpis && v.kod !== 'ekran' && (
         <div className="mt-3 rounded-xl bg-brand-soft px-3 py-2.5">
           <div className="flex items-center justify-between gap-2">
@@ -200,7 +200,7 @@ function KakSnyat({ v, open, onToggle, aside }: { v: Ready; open: boolean; onTog
   return (
     <div className="mt-3 rounded-2xl border border-brand-border bg-brand-card">
       <button type="button" onClick={onToggle} aria-expanded={open} className="w-full min-h-11 px-4 py-2.5 flex items-center gap-2 text-left cursor-pointer">
-        <span className="min-w-0 flex-1 text-[15px] font-semibold text-brand-text">Как снять <span className="font-normal text-brand-muted">· {shagov(v.kakSnyat.length)}</span></span>
+        <span className="min-w-0 flex-1 text-[15px] font-semibold text-brand-text">Как снять {v.kakSnyat.length > 0 && <span className="font-normal text-brand-muted">· {shagov(v.kakSnyat.length)}</span>}</span>
         <ChevronDown className={`w-5 h-5 text-brand-muted transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {sutP}

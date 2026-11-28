@@ -293,8 +293,8 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     const rolik = `${rez.nadpis || ''}\n${rez.glavnoe}`
     const peresk = f.vid !== 'post' && podpisPereskaz(rez.podpis, rolik)
     if (!moral && !perev && !vopros && !peresk) return null
-    const x = await perepisatPodpis({ podpis: rez.podpis, glavnoe: rez.glavnoe, prichina: peresk ? 'pereskaz' : moral ? 'moral' : perev ? 'perevertysh' : 'vopros', pereskaz: (p: string) => podpisPereskaz(p, rolik), auditoriya: a.gender || '', blok: podpisBlok(podpisZ, a.vy), obrazcy: PODPISI, mat: a.mat === 'tochechno' || a.mat === 'mozhno', matPravilo: a.mat === 'strogo' ? matStroka(a) : undefined, deadline, userId: uchet, knownNames, moral: podpisMoral, vopros: podpisVoprosPloho })
-    if (x.vzyato) { rez.tekst = rez.tekst.replace(rez.podpis, x.posle); rez.podpis = x.posle }
+    const x = await perepisatPodpis({ podpis: rez.podpis, glavnoe: rez.glavnoe, prichina: peresk ? 'pereskaz' : moral ? 'moral' : perev ? 'perevertysh' : 'vopros', pereskaz: (p: string) => podpisPereskaz(p, rolik), auditoriya: a.gender || '', blok: podpisBlok(podpisZ, a.vy, f.vid), obrazcy: PODPISI, mat: a.mat === 'tochechno' || a.mat === 'mozhno', matPravilo: a.mat === 'strogo' ? matStroka(a) : undefined, deadline, userId: uchet, knownNames, moral: podpisMoral, vopros: podpisVoprosPloho })
+    if (x.vzyato) { rez.tekst = rez.tekst.replace(rez.podpis, () => x.posle); rez.podpis = x.posle }
     return x
   }
 
@@ -304,7 +304,7 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     if (!pred) return false
     const bylo = r.podpis
     r.podpis = `${bylo}\n\n${pred}`
-    if (r.tekst.includes(bylo)) r.tekst = r.tekst.replace(bylo, r.podpis)
+    if (r.tekst.includes(bylo)) r.tekst = r.tekst.replace(bylo, () => r.podpis)
     return true
   }
 
@@ -325,8 +325,9 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
     const rez = razobrat(syroe, f)
     podoydetIzRanga(rez)
     const pp = await podpisBezMorali(rez, avtor, mysl, null, true)
+    const podpisDoPred = rez.podpis
     const predK = dobavitPredstavlenie(rez)
-    const proverka = proverit({ f, syroe, tekst: rez.tekst, glavnoe: rez.glavnoe, podpis: rez.podpis, obrazcy: [], kusok: '', opora: '', poslednyayaOpora: null, auditoriyaZhenshiny: /женщин/i.test(avtor.gender || ''), mysl, proshlyy })
+    const proverka = proverit({ f, syroe, tekst: rez.tekst, glavnoe: rez.glavnoe, podpis: podpisDoPred, nadpis: rez.nadpis, obrazcy: [], kusok: '', opora: '', poslednyayaOpora: null, auditoriyaZhenshiny: /женщин/i.test(avtor.gender || ''), mysl, proshlyy })
     if (pp) proverka.detali.perepis = [pp]
     const meta: Meta13 = {
       kod: f.kod, vid: f.vid, rezhim, tema, mysl, primery: [], opora: '', huk: null, hukVid: 'net', cel: vybor.cel, rang, vyborPochemu: vybor.pochemu, obrazcy: [], kusok: '', dvizhok: 'zh6', zh4: (r as any).zh4 || null, predstavlenie: predK,
@@ -385,16 +386,21 @@ export async function napisat(db: SupabaseClient, userId: string, profile: any, 
   const pometki2 = [...pometitKopiyuZhizni(`${rez.glavnoe}\n${rez.podpis}`, primery, svoe), ...pometitRod(`${rez.glavnoe}\n${rez.podpis}`, avtor.gender || '', f.kod), ...pometitShtamp(`${rez.glavnoe}\n${rez.podpis}`), ...(perepisCelikom?.vzyato ? pometit(rez.glavnoe, f.kod, rez.nadpis) : pometki), ...pometitObrashcheniya(rez.glavnoe, rez.podpis, proshlyy)]
   const mk = moralKonca(f, rez.tekst, rez.glavnoe, mysl)
   if (mk) pometki2.push({ kod: 'moral_konec', fraza: mk })
+  // очередь переписи (не больше четырех): копия и мораль в конце раньше рода и дежурной поддержки (ревью 28.11)
+  const VAZHNOST: Record<string, number> = { kopiya_zhizni: 0, moral_konec: 1 }
+  pometki2.sort((x, y) => (VAZHNOST[x.kod] ?? (x.kod === 'rod' || x.kod === 'shtamp' ? 3 : 2)) - (VAZHNOST[y.kod] ?? (y.kod === 'rod' || y.kod === 'shtamp' ? 3 : 2)))
   for (const x of pometki2) if (!pometki.some(y => y.kod === x.kod && y.fraza === x.fraza)) pometki.push(x)
   const pr = await perepisatFrazy({ text: `${rez.glavnoe}\n\n${rez.podpis}`, kod: f.kod, nadpis: rez.nadpis, pometki: pometki2, kusok: kusok.tekst, mat: (avtor.mat === 'tochechno' || avtor.mat === 'mozhno'), matPravilo: avtor.mat === 'strogo' ? matStroka(avtor) : undefined, deadline, userId: uchet, knownNames, primery, auditoriya: avtor.gender || '' })
   for (const x of pr.perepis) if (x.vzyato) { rez.tekst = rez.tekst.replace(x.do, x.posle); rez.glavnoe = rez.glavnoe.replace(x.do, x.posle); rez.podpis = rez.podpis.replace(x.do, x.posle) }
   // подпись с моралью: переписываем только подпись (своя мысль в конце текста моралью не считается, подпись проверяем всегда)
   const pp = await podpisBezMorali(rez, avtor, mysl, f.kod === 'voprosy' ? null : 'vopros', false)
   if (pp) pr.perepis.push(pp)
+  // проверка качества смотрит подпись без представления: иначе «Знакомо?» в конце пряталось бы за ним (ревью 28.11)
+  const podpisDoPred = rez.podpis
   const pred = dobavitPredstavlenie(rez)
 
   const proverka = proverit({
-    f, syroe, tekst: rez.tekst, glavnoe: rez.glavnoe, podpis: rez.podpis, obrazcy: obrazcy.map(x => x.tekst), kusok: kusok.tekst,
+    f, syroe, tekst: rez.tekst, glavnoe: rez.glavnoe, podpis: podpisDoPred, nadpis: rez.nadpis, obrazcy: obrazcy.map(x => x.tekst), kusok: kusok.tekst,
     opora, poslednyayaOpora: posledOpory[0] || null, auditoriyaZhenshiny: /женщин/i.test(avtor.gender || ''), mysl, proshlyy,
   })
   if (scenaF) {

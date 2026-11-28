@@ -10,7 +10,7 @@ import { peremeshat, seedIz } from '@/lib/seed'
 export type PodpisVariant = 'a' | 'b'
 export const podpisVariant = (): PodpisVariant => (process.env.PODPIS_VARIANT === 'a' ? 'a' : 'b')
 
-const nachalo = (vy: boolean) => `Подпись читает человек, который только что досмотрел ролик и узнал в нем себя. Ролик он видел, пересказывать его не надо. Говори с ним на «${vy ? 'вы' : 'ты'}», а не про героев ролика, простыми словами, как сказал бы подруге. 3-5 коротких фраз.`
+const nachalo = (vy: boolean, vid: string) => { const chto = vid === 'carousel' ? 'карусель' : 'ролик'; return `Подпись читает человек, который только что ${vid === 'carousel' ? 'долистал карусель' : 'досмотрел ролик'} и узнал в ней себя. ${chto === 'карусель' ? 'Карусель' : 'Ролик'} он видел, пересказывать не надо. Говори прямо с ним, на «${vy ? 'вы' : 'ты'}», простыми словами, как сказал бы подруге; героев не пересказывай. 3-5 коротких фраз.` }
 
 // Вариант Б: типы подписи. Каждая инструкция говорит, что подпись делает, и закрывает один провал, типичный именно для
 // этого типа (для поддержки общие слова, для шага список, для разговора дежурный вопрос), без общего списка запретов.
@@ -28,7 +28,7 @@ export function tipPodpisi(kod: string, n: number): string {
   const ok = PORYADOK.filter(t => !(kod === 'voprosy' && t === 'razgovor'))
   // PODPIS_TIP_IDX только для прогона scripts/zh13-progon.ts: у тестовых психологов номер текста не растет
   const i = process.env.PODPIS_TIP_IDX !== undefined ? Number(process.env.PODPIS_TIP_IDX) || 0 : n
-  return ok[i % ok.length]
+  return ok[((i % ok.length) + ok.length) % ok.length]
 }
 
 // Вариант А: набор живых подписей (Instagram, dannye.json), только с обращением к зрителю, без личных историй, обрезаны
@@ -49,7 +49,7 @@ export function podpisZadanie(kod: string, n: number, seed: string): PodpisZadan
 }
 
 // строка для промпта писателя (и та же суть для переписи подписи)
-export function podpisBlok(z: PodpisZadanie, vy: boolean): string {
-  if (z.variant === 'b' && z.tip) return `${nachalo(vy)} Эта подпись: ${TIPY_PODPISI[z.tip].imya}. ${TIPY_PODPISI[z.tip].kak}`
-  return `${nachalo(vy)} Она дает то, чего в ролике нет: что с человеком происходит и почему, маленький шаг или поддержку. В конце можно один конкретный вопрос про его жизнь. Так звучат живые подписи (их слова не бери):\n${z.obrazcy.map(x => `- ${x}`).join('\n')}`
+export function podpisBlok(z: PodpisZadanie, vy: boolean, vid = 'reels'): string {
+  if (z.variant === 'b' && z.tip) return `${nachalo(vy, vid)} Эта подпись: ${TIPY_PODPISI[z.tip].imya}. ${TIPY_PODPISI[z.tip].kak}`
+  return `${nachalo(vy, vid)} Она дает то, чего в ${vid === 'carousel' ? 'карусели' : 'ролике'} нет: что с человеком происходит и почему, маленький шаг или поддержку. В конце можно один конкретный вопрос про его жизнь. Так звучат живые подписи (их слова не бери):\n${z.obrazcy.map(x => `- ${x}`).join('\n')}`
 }

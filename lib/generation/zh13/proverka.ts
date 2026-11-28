@@ -23,7 +23,7 @@ export function dolyaPereskaza(podpis: string, rolik: string): number {
 }
 export const PERESKAZ_POROG = 0.2
 export const podpisPereskaz = (podpis: string, rolik: string) => slova(podpis).length >= 8 && dolyaPereskaza(podpis, rolik) > PERESKAZ_POROG
-export const podpisVoprosPloho = (p: string) => { const t = p.trim(); return DEZHURNYY.test(t) || (t.match(/\?/g) || []).length >= 3 }
+export const podpisVoprosPloho = (p: string) => { const t = p.trim(); const F = frazy(t); return DEZHURNYY.test(F[F.length - 1] || '') || (t.match(/\?/g) || []).length >= 3 }
 // подпись-перевертыш (правка Арины 19.11: «Звонок на три минуты. Внутренний долг на всю жизнь», «Диплом остается.
 // Обязанность ... в комплект не входит»): 2-3 короткие фразы с противопоставлением. Противопоставление: «не X, а Y»,
 // коротко и навсегда, остается и не входит, или две фразы без глагола подряд (афоризм из двух существительных).
@@ -100,7 +100,7 @@ export const PROBLEMY: Record<string, string> = {
 
 const ROD = /(?<!\p{L})(ты|вы)\s+(?:\p{L}+\s+){0,2}(\p{L}{2,}(?:ла|лась)|сама|одна|должна|готова|рада|виновата|уверена|бездельница)(?!\p{L})/giu
 // реплики ролей (мама, клиентка) по смыслу бывают в женском роде, их не проверяем
-const bezRoley = (t: string) => t.split('\n').filter(l => !/^\s*[А-ЯЁ][а-яё]+(?: \d)?\s*:/u.test(l)).join('\n')
+const bezRoley = (t: string) => t.split('\n').filter(l => !/^\s*[А-ЯЁ][а-яё]*(?:\s+[а-яё]+){0,3}(?: \d)?\s*:/u.test(l)).join('\n')
 const dvaSlova = (s: string) => slova(String(s || '').replace(/^[«"(\s]+/, '')).slice(0, 2).join(' ')
 const RITM_ZHIVYH = (dannye as any).ritm as Record<'reels' | 'carousel' | 'post', Ritm>
 // порог «ритм далеко»: у одного текста мера шумная (в опыте среднее по варианту 0,29-0,42), флажок только на явный провал
@@ -120,6 +120,7 @@ export function proverit(o: {
   obrazcy: string[]; kusok: string; opora: string; poslednyayaOpora: string | null; auditoriyaZhenshiny: boolean
   mysl?: string | null
   proshlyy?: string        // прошлый текст психолога (основной текст и подпись): повтор совета с числом
+  nadpis?: string          // надпись рилса: пересказ подписи меряется по ролику целиком, как при переписи
 }): Proverka {
   const { f } = o
   const osn = osnova(o.tekst, f.vid) || o.glavnoe
@@ -132,10 +133,10 @@ export function proverit(o: {
   // текст из своей мысли: ее повтор в конце моралью не считаем (решение Арины 19.11)
   const povtorMysli = !!o.mysl && (pohozhe(konec, o.mysl) || shodstvo(konec, o.mysl) > 0.4 || shodstvo(o.mysl, konec) > 0.4)
   const moralKonec = !['sessiya', 'scenka'].includes(f.vyvod) && aforizm(konec) && !povtorMysli
-  const moralPodpis = frazy(o.podpis).some(aforizm)
+  const moralPodpis = podpisMoral(o.podpis)
   if (moralKonec || moralPodpis) { problemy.push('moral'); detali.moral = moralPodpis ? o.podpis : konec }
   if (o.podpis && podpisPerevertysh(o.podpis)) { problemy.push('perevertysh'); detali.perevertysh = o.podpis }
-  if (o.podpis && f.vid !== 'post' && podpisPereskaz(o.podpis.replace(/\n\n(Если (ты|вы) здесь впервые|Я \S+, психолог|Привет, я)[\s\S]*$/u, ''), o.glavnoe)) { problemy.push('pereskaz'); detali.pereskaz = o.podpis }
+  if (o.podpis && f.vid !== 'post' && podpisPereskaz(o.podpis, `${o.nadpis || ''}\n${o.glavnoe}`)) { problemy.push('pereskaz'); detali.pereskaz = o.podpis }
   if (o.proshlyy) {
     const ps = povtorSoveta(`${osn}\n${o.podpis}`, o.proshlyy)
     if (ps.length) { problemy.push('povtor_soveta'); detali.povtorSoveta = ps }
